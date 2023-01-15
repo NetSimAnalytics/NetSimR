@@ -19,9 +19,10 @@ Description: Assists actuaries and other insurance modellers in pricing,
     distributions.
     Includes calculating pure IBNR exposure with LogNormal and
     Gamma distribution for reporting delay.
-	Includes a shiny tool to simulate insurance claims.
+    Includes a shiny tool to simulate insurance claims.
 License: GPL-3
 Encoding: UTF-8
-Suggests: knitr, crch, testthat, rmarkdown, shiny, shinybusy, future.apply, rmarkdown, scales
+Imports: rmarkdown, shiny, shinybusy, future.apply, rmarkdown, scales
+Suggests: knitr, crch, testthat
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1

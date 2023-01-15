@@ -1,3 +1,11 @@
+#' Server function for the Shiny Simulator application
+#'
+#' @param input Input for the server function.
+#' @param output Output for the server function.
+#' @param session Session for the server function.
+#' @return Returns server rendering for the shiny application.
+#' @examples
+#' shinyApp(ui = ui, server = server)
 server = function(input, output, session) {
   #seed input
   output$seed_value <- renderUI({

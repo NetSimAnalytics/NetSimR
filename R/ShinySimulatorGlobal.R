@@ -1,17 +1,56 @@
 #help functions
-#set maximum number of pareto slices
+
+#' Parameter to set the maximum number of pareto slices
+#'
+#' @return The the maximum number of Pareto Slices.
+#' @examples
+#' max_number_of_pareto_slices
 max_number_of_pareto_slices = 5
 
-#random pareto generator
+#' Random Pareto generator
+#'
+#' @param n Number of values to generate.
+#' @param alpha A positive real number. Alpha parameter of the Pareto distribution.
+#' @param x_m A positive real number. The minimum value for the Pareto distribution.
+#' @return A vector of \code{n} random Pareto variables with parameters \code{alpha} and \code{x_m}.
+#' @examples
+#' rpareto(10, 1.5, 1000)
+#' rpareto(200, 1.7, 10000)
 rpareto <- function(n, alpha, x_m) x_m / runif(n)^(1/alpha)
-#apply severity cap
+
+#' Apply severity cap function
+#'
+#' @param claims A vector of Claims.
+#' @param severity_cap_boolean A variable that if true, the function will cap the claims, otherwise will just return them.
+#' @param severity_cap_amount The claim cap value.
+#' @return If \code{severity_cap_boolean} is true, then will return the minimum of \code{severity_cap_amount} or \code{claims} otherwise will return \code{claims}. The operation is vectorised.
+#' @examples
+#' apply_severity_cap(c(100, 50, 20), TRUE, 60)
+#' apply_severity_cap(c(100, 50, 20), FALSE, 60)
 apply_severity_cap <- function(claims, severity_cap_boolean, severity_cap_amount){
   if(severity_cap_boolean){
     claims <- ifelse(claims>severity_cap_amount, severity_cap_amount, claims)
   }
   return(claims)
 }
-#apply deductible and limit
+
+#' A vector with the reinsurance structure options
+#'
+#' @return The reinsurance structure options
+#' @examples
+#' reinsurance_structures_options
+reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer')
+
+#' Apply a deductible and limit to claims
+#'
+#' @param gross_claims_data A vector of Claims.
+#' @param reinsurance_structure The chosen reinsurance structure. Options are: 'No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer'.
+#' @param deductible The deductible of the reinsurance structure.
+#' @param limit The limit of the reinsurance structure.
+#' @return The ceded claims for the structure, with the chosen deductible and limit.
+#' @examples
+#' apply_deductible_limit(c(100, 50, 20), 'Limited Layer', 40, 20)
+#' apply_deductible_limit(c(100, 50, 20), 'Limited Layer', 10, 30)
 apply_deductible_limit <- function(gross_claims_data, reinsurance_structure, deductible, limit){
   if(reinsurance_structure=='No Reinsurance Structure'){return(gross_claims_data)}
   else if (reinsurance_structure=='Unlimited Layer'){return(ifelse(gross_claims_data<deductible,0, gross_claims_data-deductible))}
@@ -19,10 +58,8 @@ apply_deductible_limit <- function(gross_claims_data, reinsurance_structure, ded
   else if (reinsurance_structure=='Exclude Layer'){return(gross_claims_data - ifelse(gross_claims_data<deductible, 0, ifelse(gross_claims_data-deductible>limit, limit, gross_claims_data-deductible)))}
 }
 
-#reinsurance structures
-reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer')
-
-#set distribution object class
+#' The class of the distribution objects
+#'
 distributionClass <- setClass("distributionClass", slots = c(
   distrID="character"
   ,distr_label="character"
@@ -33,9 +70,13 @@ distributionClass <- setClass("distributionClass", slots = c(
   ,simulate_func = "function"
 ))
 
-#set frequency distribitions
+#' A vector with the frequency distribution objects
+#'
+#' @return The frequency distribution objects.
+#' @examples
+#' freq_dist_options
 freq_dist_options <- c(
-  distributionClass(
+  Poisson=distributionClass(
     distrID='Poisson'
     ,distr_label='Poisson'
     ,paramIDs=c("lamda")
@@ -45,7 +86,7 @@ freq_dist_options <- c(
       rpois(n = number_of_simulations, lambda = parameters[1])
     )}
   )
-  ,distributionClass(
+  ,Negative_Binomial=distributionClass(
     distrID='Negative_Binomial'
     ,distr_label='Negative Binomial'
     ,paramIDs=c("r", "beta")
@@ -55,7 +96,7 @@ freq_dist_options <- c(
       rpois(n = number_of_simulations, lambda = rgamma(n =number_of_simulations, shape = parameters[1], scale = parameters[2]))
     )}
   )
-  ,distributionClass(
+  ,Binomial=distributionClass(
     distrID='Binomial'
     ,distr_label='Binomial'
     ,paramIDs=c("n", "p")
@@ -66,7 +107,7 @@ freq_dist_options <- c(
       rbinom(n = number_of_simulations, size = parameters[1], prob = parameters[2])
     )}
   )
-  ,distributionClass(
+  ,Fixed_number_of_Counts=distributionClass(
     distrID='Fixed_number_of_Counts'
     ,distr_label='Fixed number of Counts'
     ,paramIDs=c("FixedNumberOfCounts")
@@ -78,15 +119,23 @@ freq_dist_options <- c(
   )
 )
 
-names(freq_dist_options) <- sapply(freq_dist_options, function(x) x@distrID)
+#' A data frame with the frequency distribution parameter placeholders
+#'
+#' @return The frequency distribution parameter placeholders.
+#' @examples
+#' freq_dist_parameter_placeholders
 freq_dist_parameter_placeholders <- data.frame(
   param_number = 1:max(sapply(freq_dist_options, function(x) length(x@paramIDs)))
+  ,param_id = paste0("freq_param_", 1:max(sapply(freq_dist_options, function(x) length(x@paramIDs))))
 )
-freq_dist_parameter_placeholders$param_id <- paste0("freq_param_", freq_dist_parameter_placeholders$param_number)
 
-#set severity distributions
+#' A vector with the severity distribution objects
+#'
+#' @return The severity distribution objects.
+#' @examples
+#' sev_dist_options
 sev_dist_options <- c(
-  distributionClass(
+  Normal=distributionClass(
     distrID='Normal'
     ,distr_label='Normal'
     ,paramIDs=c("mu", "sigma")
@@ -96,7 +145,7 @@ sev_dist_options <- c(
       rnorm(n = number_of_simulations, mean = parameters[1], sd = parameters[2])
     )}
   )
-  ,distributionClass(
+  ,LogNormal=distributionClass(
     distrID='LogNormal'
     ,distr_label='Log-Normal'
     ,paramIDs=c("mu", "sigma")
@@ -107,7 +156,7 @@ sev_dist_options <- c(
       rlnorm(n = number_of_simulations, meanlog = parameters[1], sdlog = parameters[2])
     )}
   )
-  ,distributionClass(
+  ,Gamma=distributionClass(
     distrID='Gamma'
     ,distr_label='Gamma'
     ,paramIDs=c("rate", "scale")
@@ -118,7 +167,7 @@ sev_dist_options <- c(
       rgamma(n = number_of_simulations, rate = parameters[1], scale = parameters[2])
     )}
   )
-  ,distributionClass(
+  ,Exponential=distributionClass(
     distrID='Exponential'
     ,distr_label='Exponential'
     ,paramIDs=c("rate")
@@ -128,7 +177,7 @@ sev_dist_options <- c(
       rexp(n = number_of_simulations, rate = parameters[1])
     )}
   )
-  ,distributionClass(
+  ,Pareto=distributionClass(
     distrID='Pareto'
     ,distr_label='Pareto'
     ,paramIDs=c("alpha", "x_m")
@@ -138,7 +187,7 @@ sev_dist_options <- c(
       rpareto(n = number_of_simulations, alpha = parameters[1], x_m = parameters[2])
     )}
   )
-  ,distributionClass(
+  ,Fixed_Severity=distributionClass(
     distrID='Fixed_Severity'
     ,distr_label='Fixed Severity'
     ,paramIDs=c("Fixed_sev_amount")
@@ -150,14 +199,43 @@ sev_dist_options <- c(
   )
 )
 
-names(sev_dist_options) <- sapply(sev_dist_options, function(x) x@distrID)
+#' A data frame with the severity distribution parameter placeholders
+#'
+#' @return The severity distribution parameter placeholders.
+#' @examples
+#' sev_dist_parameter_placeholders
 sev_dist_parameter_placeholders <- data.frame(
   param_number = 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs)))
+  ,param_id = paste0("sev_param_", 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs))))
 )
-sev_dist_parameter_placeholders$param_id <- paste0("sev_param_", sev_dist_parameter_placeholders$param_number)
 
-
-#simulate function
+#' A function to simulate frequency - severity of insurance claims. The function applies severity cap, reinsurance structure for each and every loss claim, reinsurance structure for each and aggregate claims. The function allows for piecewise pareto slices.
+#'
+#' @param numOfSimulations The number of simulations to run.
+#' @param freq_params A vector of the frequency distribution parameters.
+#' @param sev_params A vector of the severity distribution parameters.
+#' @param seedSetBinary True if there is a fixed seed, otherwise false.
+#' @param seedValue The seed value.
+#' @param freqDistr The frequency distribution. Options are as per the freq_dist_options.
+#' @param sevDistr The severity distribution. Options are as per the sev_dist_options.
+#' @param paretoSlice True if there is Pareto slicing.
+#' @param pareto_slice_times The number of Pareto slices.
+#' @param slice_pareto_alphas A vector of Pareto slices' aphla parameters.
+#' @param slice_pareto_x_ms A vector of Pareto slices' x_m parameters.
+#' @param sevCapBinary True if there is a severity cap.
+#' @param sev_cap_amount The severity cap amount.
+#' @param reinsuranceStructureEEL The chosen reinsurance structure for each and every loss claim.
+#' @param reinsurance_structure_eel_dedctible_amount The deductible for each and every loss reinsurance structure.
+#' @param reinsurance_structure_eel_limit_amount The limit for each and every loss reinsurance structure.
+#' @param reinsuranceStructureAL The chosen reinsurance structure for aggregate claims.
+#' @param reinsurance_structure_al_dedctible_amount The deductible for aggregate reinsurance structure.
+#' @param reinsurance_structure_al_limit_amount The limit for aggregate reinsurance structure.
+#' @param reinsuranceStructureLimitedReinstatements True if there is a limit in reinstatements, otherwise false.
+#' @param reinsuranceStructureReinstatementLimit The reinstatement limit.
+#' @param multiprocessing True if multiprocessing is used, otherwise false.
+#' @return A data frame with claims counts, ceded claims and the number of reinstatements used.
+#' @examples
+#' simulate_function(numOfSimulations=10, freq_params=c(10), sev_params=c(100,10), seedSetBinary=FALSE, freqDistr="Poisson", sevDistr="Normal", paretoSlice=FALSE, sevCapBinary=FALSE, reinsuranceStructureEEL='Limited Layer', reinsurance_structure_eel_dedctible_amount=100, reinsurance_structure_eel_limit_amount=10, reinsuranceStructureAL='Limited Layer', reinsurance_structure_al_dedctible_amount=10, reinsurance_structure_al_limit_amount=50, reinsuranceStructureLimitedReinstatements=FALSE, multiprocessing=FALSE)
 simulate_function <- function(
     numOfSimulations,
     freq_params,
@@ -272,5 +350,9 @@ simulate_function <- function(
   return(data)
 }
 
-#run app function
+#' A function to run the shiny simulator application
+#'
+#' @return Opens the shiny simulator application
+#' @examples
+#' run_shiny_simulator()
 run_shiny_simulator = function(){shinyApp(ui = ui, server = server)}
