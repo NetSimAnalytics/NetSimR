@@ -1,4 +1,16 @@
 exportPattern("^[[:alpha:]]+")
 
-importFrom("stats", "dgamma", "dlnorm", "pgamma", "plnorm", "pnorm", "qgamma", "qlnorm")
+importFrom(
+  "stats"
+  ,"dgamma"
+  ,"dlnorm"
+  ,"pgamma"
+  ,"plnorm"
+  ,"pnorm"
+  ,"qgamma"
+  ,"qlnorm"
+  ,"ShinySimulatorGlobal"
+  ,"ShinySimulatorApp"
+  ,"ShinySimulatorServer"
+)
 
