@@ -48,6 +48,7 @@ reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer
 #' @param deductible The deductible of the reinsurance structure.
 #' @param limit The limit of the reinsurance structure.
 #' @return The ceded claims for the structure, with the chosen deductible and limit.
+#' @export
 #' @examples
 #' apply_deductible_limit(c(100, 50, 20), 'Limited Layer', 40, 20)
 #' apply_deductible_limit(c(100, 50, 20), 'Limited Layer', 10, 30)
@@ -234,6 +235,7 @@ sev_dist_parameter_placeholders <- data.frame(
 #' @param reinsuranceStructureReinstatementLimit The reinstatement limit.
 #' @param multiprocessing True if multiprocessing is used, otherwise false.
 #' @return A data frame with claims counts, ceded claims and the number of reinstatements used.
+#' @export
 #' @examples
 #' simulate_function(numOfSimulations=10, freq_params=c(10), sev_params=c(100,10), seedSetBinary=FALSE, freqDistr="Poisson", sevDistr="Normal", paretoSlice=FALSE, sevCapBinary=FALSE, reinsuranceStructureEEL='Limited Layer', reinsurance_structure_eel_dedctible_amount=100, reinsurance_structure_eel_limit_amount=10, reinsuranceStructureAL='Limited Layer', reinsurance_structure_al_dedctible_amount=10, reinsurance_structure_al_limit_amount=50, reinsuranceStructureLimitedReinstatements=FALSE, multiprocessing=FALSE)
 simulate_function <- function(
@@ -353,6 +355,7 @@ simulate_function <- function(
 #' A function to run the shiny simulator application
 #'
 #' @return Opens the shiny simulator application
+#' @export
 #' @examples
 #' run_shiny_simulator()
-run_shiny_simulator = function(){shinyApp(ui = ui, server = server)}
+run_shiny_simulator = function(){shinyApp(ui = shiny_simulator_ui, server = shiny_simulator_server)}

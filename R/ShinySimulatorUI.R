@@ -1,9 +1,15 @@
+#load the required libraries
+library(shiny)
+library(shinybusy)
+
+
 #' UI file for the Shiny Simulator application
 #'
 #' @return Returns the UI code for the shiny application.
 #' @examples
 #' shinyApp(ui = ui, server = server)
-ui = fluidPage(
+#' @import shiny
+shiny_simulator_ui = fluidPage(
 
   use_busy_spinner(spin = "fading-circle", position = "full-page")
   ,fluidRow(titlePanel("NetSimR simulator"))

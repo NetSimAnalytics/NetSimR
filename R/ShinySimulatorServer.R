@@ -6,7 +6,7 @@
 #' @return Returns server rendering for the shiny application.
 #' @examples
 #' shinyApp(ui = ui, server = server)
-server = function(input, output, session) {
+shiny_simulator_server = function(input, output, session) {
   #seed input
   output$seed_value <- renderUI({
     if (input$seedSetBinary) {
@@ -180,10 +180,11 @@ server = function(input, output, session) {
 
   #download report button
   output$downloadReportHandler <- downloadHandler(
-    filename = system.file("rmd", "ShinySimulatorReport.Rmd", package = "NetSimR"),
+    filename = "simulation_report.html",
+    #filename = normalizePath(system.file("rmd", "ShinySimulatorReport.Rmd", package = "NetSimR")),
     content = function(file) {
-      tempReport <- normalizePath(file.path(tempdir(), "ShinySimulatorReport.Rmd"))
-      file.copy("ShinySimulatorReport.Rmd", tempReport, overwrite = TRUE)
+      tempReport <- normalizePath(file.path(tempdir(), "ShinySimulatorReport.Rmd"), mustWork = FALSE)
+      file.copy(normalizePath(system.file("rmd", "ShinySimulatorReport.Rmd", package = "NetSimR")), tempReport, overwrite = TRUE)
       rmarkdown::render(
         tempReport, output_file = file
         ,params = append(simulation_settings, list(total_claims_data = simulated_data$data$total_claims))

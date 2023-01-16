@@ -25,4 +25,4 @@ Encoding: UTF-8
 Imports: rmarkdown, shiny, shinybusy, future.apply, rmarkdown, scales
 Suggests: knitr, crch, testthat
 VignetteBuilder: knitr
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.3
