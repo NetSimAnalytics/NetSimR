@@ -4,6 +4,12 @@
 #' @param output Output for the server function.
 #' @param session Session for the server function.
 #' @return Returns server rendering for the shiny application.
+#' @import rmarkdown
+#' @import shiny
+#' @import shinybusy
+#' @import future.apply
+#' @import rmarkdown
+#' @import scales
 #' @examples
 #' shinyApp(ui = ui, server = server)
 shiny_simulator_server = function(input, output, session) {
@@ -181,12 +187,12 @@ shiny_simulator_server = function(input, output, session) {
   #download report button
   output$downloadReportHandler <- downloadHandler(
     filename = "simulation_report.html",
-    #filename = normalizePath(system.file("rmd", "ShinySimulatorReport.Rmd", package = "NetSimR")),
     content = function(file) {
       tempReport <- normalizePath(file.path(tempdir(), "ShinySimulatorReport.Rmd"), mustWork = FALSE)
       file.copy(normalizePath(system.file("rmd", "ShinySimulatorReport.Rmd", package = "NetSimR")), tempReport, overwrite = TRUE)
       rmarkdown::render(
         tempReport, output_file = file
+        ,quiet = TRUE
         ,params = append(simulation_settings, list(total_claims_data = simulated_data$data$total_claims))
         ,envir = new.env(parent = globalenv()
         )
