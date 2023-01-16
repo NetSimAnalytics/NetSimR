@@ -8,6 +8,7 @@
 #' @import shiny
 #' @import shinybusy
 #' @import future.apply
+#' @import future
 #' @import rmarkdown
 #' @import scales
 #' @examples
