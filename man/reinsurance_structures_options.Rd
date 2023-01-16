@@ -16,7 +16,4 @@ The reinsurance structure options
 \description{
 A vector with the reinsurance structure options
 }
-\examples{
-reinsurance_structures_options
-}
 \keyword{datasets}

@@ -16,7 +16,4 @@ The frequency distribution parameter placeholders.
 \description{
 A data frame with the frequency distribution parameter placeholders
 }
-\examples{
-freq_dist_parameter_placeholders
-}
 \keyword{datasets}

@@ -16,7 +16,4 @@ The the maximum number of Pareto Slices.
 \description{
 Parameter to set the maximum number of pareto slices
 }
-\examples{
-max_number_of_pareto_slices
-}
 \keyword{datasets}

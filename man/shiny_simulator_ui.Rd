@@ -16,7 +16,4 @@ Returns the UI code for the shiny application.
 \description{
 UI file for the Shiny Simulator application
 }
-\examples{
-shinyApp(ui = ui, server = server)
-}
 \keyword{datasets}

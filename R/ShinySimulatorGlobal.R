@@ -3,8 +3,6 @@
 #' Parameter to set the maximum number of pareto slices
 #'
 #' @return The the maximum number of Pareto Slices.
-#' @examples
-#' max_number_of_pareto_slices
 max_number_of_pareto_slices = 5
 
 #' Random Pareto generator
@@ -13,9 +11,6 @@ max_number_of_pareto_slices = 5
 #' @param alpha A positive real number. Alpha parameter of the Pareto distribution.
 #' @param x_m A positive real number. The minimum value for the Pareto distribution.
 #' @return A vector of \code{n} random Pareto variables with parameters \code{alpha} and \code{x_m}.
-#' @examples
-#' rpareto(10, 1.5, 1000)
-#' rpareto(200, 1.7, 10000)
 rpareto <- function(n, alpha, x_m) x_m / runif(n)^(1/alpha)
 
 #' Apply severity cap function
@@ -24,9 +19,6 @@ rpareto <- function(n, alpha, x_m) x_m / runif(n)^(1/alpha)
 #' @param severity_cap_boolean A variable that if true, the function will cap the claims, otherwise will just return them.
 #' @param severity_cap_amount The claim cap value.
 #' @return If \code{severity_cap_boolean} is true, then will return the minimum of \code{severity_cap_amount} or \code{claims} otherwise will return \code{claims}. The operation is vectorised.
-#' @examples
-#' apply_severity_cap(c(100, 50, 20), TRUE, 60)
-#' apply_severity_cap(c(100, 50, 20), FALSE, 60)
 apply_severity_cap <- function(claims, severity_cap_boolean, severity_cap_amount){
   if(severity_cap_boolean){
     claims <- ifelse(claims>severity_cap_amount, severity_cap_amount, claims)
@@ -37,8 +29,6 @@ apply_severity_cap <- function(claims, severity_cap_boolean, severity_cap_amount
 #' A vector with the reinsurance structure options
 #'
 #' @return The reinsurance structure options
-#' @examples
-#' reinsurance_structures_options
 reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer')
 
 #' Apply a deductible and limit to claims
@@ -74,8 +64,6 @@ distributionClass <- setClass("distributionClass", slots = c(
 #' A vector with the frequency distribution objects
 #'
 #' @return The frequency distribution objects.
-#' @examples
-#' freq_dist_options
 freq_dist_options <- c(
   Poisson=distributionClass(
     distrID='Poisson'
@@ -123,8 +111,6 @@ freq_dist_options <- c(
 #' A data frame with the frequency distribution parameter placeholders
 #'
 #' @return The frequency distribution parameter placeholders.
-#' @examples
-#' freq_dist_parameter_placeholders
 freq_dist_parameter_placeholders <- data.frame(
   param_number = 1:max(sapply(freq_dist_options, function(x) length(x@paramIDs)))
   ,param_id = paste0("freq_param_", 1:max(sapply(freq_dist_options, function(x) length(x@paramIDs))))
@@ -133,8 +119,6 @@ freq_dist_parameter_placeholders <- data.frame(
 #' A vector with the severity distribution objects
 #'
 #' @return The severity distribution objects.
-#' @examples
-#' sev_dist_options
 sev_dist_options <- c(
   Normal=distributionClass(
     distrID='Normal'
@@ -203,8 +187,6 @@ sev_dist_options <- c(
 #' A data frame with the severity distribution parameter placeholders
 #'
 #' @return The severity distribution parameter placeholders.
-#' @examples
-#' sev_dist_parameter_placeholders
 sev_dist_parameter_placeholders <- data.frame(
   param_number = 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs)))
   ,param_id = paste0("sev_param_", 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs))))
@@ -236,8 +218,6 @@ sev_dist_parameter_placeholders <- data.frame(
 #' @param multiprocessing True if multiprocessing is used, otherwise false.
 #' @return A data frame with claims counts, ceded claims and the number of reinstatements used.
 #' @export
-#' @examples
-#' simulate_function(numOfSimulations=10, freq_params=c(10), sev_params=c(100,10), seedSetBinary=FALSE, freqDistr="Poisson", sevDistr="Normal", paretoSlice=FALSE, sevCapBinary=FALSE, reinsuranceStructureEEL='Limited Layer', reinsurance_structure_eel_dedctible_amount=100, reinsurance_structure_eel_limit_amount=10, reinsuranceStructureAL='Limited Layer', reinsurance_structure_al_dedctible_amount=10, reinsurance_structure_al_limit_amount=50, reinsuranceStructureLimitedReinstatements=FALSE, multiprocessing=FALSE)
 simulate_function <- function(
     numOfSimulations,
     freq_params,
@@ -356,6 +336,4 @@ simulate_function <- function(
 #'
 #' @return Opens the shiny simulator application
 #' @export
-#' @examples
-#' run_shiny_simulator()
 run_shiny_simulator = function(){shinyApp(ui = shiny_simulator_ui, server = shiny_simulator_server)}

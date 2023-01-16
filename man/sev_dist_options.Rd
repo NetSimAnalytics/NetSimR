@@ -16,7 +16,4 @@ The severity distribution objects.
 \description{
 A vector with the severity distribution objects
 }
-\examples{
-sev_dist_options
-}
 \keyword{datasets}

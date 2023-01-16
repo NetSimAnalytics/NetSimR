@@ -19,7 +19,3 @@ If \code{severity_cap_boolean} is true, then will return the minimum of \code{se
 \description{
 Apply severity cap function
 }
-\examples{
-apply_severity_cap(c(100, 50, 20), TRUE, 60)
-apply_severity_cap(c(100, 50, 20), FALSE, 60)
-}

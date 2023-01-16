@@ -22,7 +22,7 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Includes a shiny tool to simulate insurance claims.
 License: GPL-3
 Encoding: UTF-8
-Imports: rmarkdown, shiny, shinybusy, future.apply, rmarkdown, scales
+Imports: rmarkdown, shiny, shinybusy, future.apply, rmarkdown, scales, future
 Suggests: knitr, crch, testthat
 VignetteBuilder: knitr
 RoxygenNote: 7.2.3

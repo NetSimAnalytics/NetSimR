@@ -16,7 +16,4 @@ The frequency distribution objects.
 \description{
 A vector with the frequency distribution objects
 }
-\examples{
-freq_dist_options
-}
 \keyword{datasets}

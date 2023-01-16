@@ -12,6 +12,3 @@ Opens the shiny simulator application
 \description{
 A function to run the shiny simulator application
 }
-\examples{
-run_shiny_simulator()
-}

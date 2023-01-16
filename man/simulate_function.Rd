@@ -80,6 +80,3 @@ A data frame with claims counts, ceded claims and the number of reinstatements u
 \description{
 A function to simulate frequency - severity of insurance claims. The function applies severity cap, reinsurance structure for each and every loss claim, reinsurance structure for each and aggregate claims. The function allows for piecewise pareto slices.
 }
-\examples{
-simulate_function(numOfSimulations=10, freq_params=c(10), sev_params=c(100,10), seedSetBinary=FALSE, freqDistr="Poisson", sevDistr="Normal", paretoSlice=FALSE, sevCapBinary=FALSE, reinsuranceStructureEEL='Limited Layer', reinsurance_structure_eel_dedctible_amount=100, reinsurance_structure_eel_limit_amount=10, reinsuranceStructureAL='Limited Layer', reinsurance_structure_al_dedctible_amount=10, reinsurance_structure_al_limit_amount=50, reinsuranceStructureLimitedReinstatements=FALSE, multiprocessing=FALSE)
-}

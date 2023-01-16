@@ -19,7 +19,3 @@ A vector of \code{n} random Pareto variables with parameters \code{alpha} and \c
 \description{
 Random Pareto generator
 }
-\examples{
-rpareto(10, 1.5, 1000)
-rpareto(200, 1.7, 10000)
-}
