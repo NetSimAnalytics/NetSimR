@@ -9,8 +9,13 @@
 #' @import shinybusy
 #' @import future.apply
 #' @importFrom future plan
+#' @importFrom future sequential
+#' @importFrom future multisession
 #' @import rmarkdown
+#' @import methods
+#' @import stats
 #' @import scales
+#' @import utils
 shiny_simulator_server = function(input, output, session) {
   #seed input
   output$seed_value <- renderUI({
