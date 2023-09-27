@@ -1,11 +1,10 @@
 #' UI file for the Shiny Simulator application
 #'
 #' @return Returns the UI code for the shiny application.
-GLMFittingToolUI = shinyUI(fluidPage(
+GLMFittingToolUI = fluidPage(
 
   use_busy_spinner(spin = "fading-circle", position = "full-page")
   ,headerPanel(div("GLM Fitting tool"), windowTitle = "GLM Fitting Tool")
-  ,useShinyjs()
   ,tabsetPanel(
     tabPanel(
       "Save - Load inputs"
@@ -33,7 +32,7 @@ GLMFittingToolUI = shinyUI(fluidPage(
       "Data import",
       sidebarPanel(
         selectInput("data_source", "Select Data Source",
-                    choices = c("Database", "CSV File", "mtcars", "iris")),
+                    choices = c("Database", "CSV File")),
         conditionalPanel(
           condition = "input.data_source == 'Database'",
           selectInput("db_type", "Select Database Type",
@@ -109,9 +108,9 @@ GLMFittingToolUI = shinyUI(fluidPage(
         mainPanel(
           br(),
           br(),
-          plotlyOutput("fitness_plot")
+          plotly::plotlyOutput("fitness_plot")
         )
       )
     )
   )
-))
+)

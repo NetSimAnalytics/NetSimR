@@ -1,14 +1,3 @@
-#required libraries
-# library(shiny)
-# library(DBI)
-# library(RMySQL)
-# library(RSQLite)
-# library(RODBC)
-# library(RPostgreSQL)
-# library(shinyjs)
-# library(plotly)
-# library(shinybusy)
-
 #settings
 options(shiny.maxRequestSize=30*1024^2)
 
@@ -16,4 +5,7 @@ options(shiny.maxRequestSize=30*1024^2)
 #'
 #' @return Opens the glm fitting tool application
 #' @export
-run_shiny_glm_fitting_tool = function(){shinyApp(ui = GLMFittingToolUI, server = GLMFittingToolServer)}
+run_shiny_glm_fitting_tool = function(){
+  shinyjs::useShinyjs()
+  shinyApp(ui = GLMFittingToolUI, server = GLMFittingToolServer)
+}

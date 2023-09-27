@@ -6,12 +6,12 @@
 #' @return Returns server rendering for the shiny application.
 #' @import shiny
 #' @import DBI
-#' @import RMySQL
-#' @import RSQLite
+#' @importFrom RMySQL MySQL
+#' @importFrom RSQLite SQLite
 #' @import RODBC
 #' @import RPostgreSQL
-#' @import shinyjs
-#' @import plotly
+#' @importFrom shinyjs useShinyjs
+#' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
 #' @import shinybusy
 
 GLMFittingToolServer = function(input, output, session) {
@@ -92,16 +92,9 @@ GLMFittingToolServer = function(input, output, session) {
         hide_spinner()
         return(NULL)
       }
-
-      return(read.csv(file$datapath))
-
-    } else if (input$data_source == "mtcars") {
+      df <- read.csv(file$datapath)
       hide_spinner()
-      return(mtcars)
-
-    } else if (input$data_source == "iris") {
-      hide_spinner()
-      return(iris)
+      return(df)
     }
   })
 
@@ -282,9 +275,9 @@ GLMFittingToolServer = function(input, output, session) {
     plot_data$Actual <- plot_data$Actual/plot_data$Exposure
     plot_data$Predicted <- plot_data$Predicted/plot_data$Exposure
 
-    p <- plot_ly(data = plot_data, x = ~Group.1) %>%
-      add_lines(y = ~Actual, name = "Actual", type = "scatter", mode = "lines") %>%
-      add_lines(y = ~Predicted, name = "Predicted", type = "scatter", mode = "lines")
+    p <- plot_ly(data = plot_data, x = ~Group.1)
+    p <- add_lines(p, y = ~Actual, name = "Actual", type = "scatter", mode = "lines")
+    p <- add_lines(p, y = ~Predicted, name = "Predicted", type = "scatter", mode = "lines")
 
     # Assuming you want counts on the second y-axis
     p <- layout(p, yaxis2 = list(overlaying = "y", side = "right"))
