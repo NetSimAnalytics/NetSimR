@@ -1,4 +1,4 @@
-#' UI file for the Shiny Simulator application
+#' UI file for the Shiny GLM Fitting Tool
 #'
 #' @return Returns the UI code for the shiny application.
 shiny_simulator_ui = fluidPage(
