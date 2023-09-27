@@ -5,7 +5,16 @@ shiny_simulator_ui = fluidPage(
 
   use_busy_spinner(spin = "fading-circle", position = "full-page")
   ,fluidRow(titlePanel("NetSimR simulator"))
-
+  ,fluidRow(
+    p("Application was produced by Yiannis Parizas."),
+    br(),
+    p("Please get in touch for any feedback."),
+    br(),
+    a("LinkedIn", href = "https://www.linkedin.com/in/yiannisparizas/", target = "_blank"),
+    br(),
+    br(),
+    a("Email", href = "mailto:yiannis.parizas@gmail.com")
+  )
   ,flowLayout(
 
     verticalLayout(
