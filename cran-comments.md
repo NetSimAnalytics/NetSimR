@@ -1,3 +1,3 @@
 # NetSimR release comments
 
-Added shiny simulator
+Added shiny glm fitting tool
