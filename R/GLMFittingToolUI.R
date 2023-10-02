@@ -11,7 +11,8 @@ GLMFittingToolUI = fluidPage(
       h3("Welcome to the GLM Fitting tool"),
       p("This tool allows you to analyse and fit GLM models to your data."),
       p("Created by Yiannis Parizas. For more information, please visit my ", a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/"), "."),
-      p("You can also reach out to me via email at ", a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"), ".")
+      p("You can also reach out to me via email at ", a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"), "."),
+      p("Please reach out if you have any feedback or encounter any bugs.")
     ),
 
     tabPanel(
