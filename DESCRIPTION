@@ -2,7 +2,7 @@ Package: NetSimR
 Type: Package
 Title: Actuarial Functions for Non-Life Insurance Modelling
 Version: 0.1.4
-Author: Yiannis Parizas [aut, cre]
+Author: Yiannis Parizas [aut, cre] (<https://www.linkedin.com/in/yiannisparizas/>)
 Authors@R: person("Yiannis", "Parizas", email = "yiannis.parizas@gmail.com", role = c("aut", "cre"))
 Maintainer: Yiannis Parizas <yiannis.parizas@gmail.com>
 Description: Assists actuaries and other insurance modellers in pricing,
@@ -19,10 +19,15 @@ Description: Assists actuaries and other insurance modellers in pricing,
     distributions.
     Includes calculating pure IBNR exposure with LogNormal and
     Gamma distribution for reporting delay.
-    Includes a shiny tool to simulate insurance claims.
+    Includes three shiny tools, one to simulate insurance claims,
+    one to fit GLMs and one to fit statistical distributions.
+    Methods used in the package refer to
+    Free for All by Yiannis Parizas (2023) <https://www.theactuary.com/2023/03/02/free-all>;
+    Escaping the triangle by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/06/2019/06/05/escaping-triangle>;
+    Take to excess by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess>.
 License: GPL-3
 Encoding: UTF-8
-Imports: rmarkdown, shiny, shinybusy, future.apply, scales, future, methods, DBI, RMySQL, RODBC, RPostgreSQL, RSQLite, plotly, shinyjs
+Imports: rmarkdown, shiny, shinybusy, future.apply, scales, future, methods, DBI, RMySQL, RODBC, RPostgreSQL, RSQLite, plotly, shinyjs, MASS, fitdistrplus, shinyWidgets
 Suggests: knitr, crch, testthat
 VignetteBuilder: knitr
 RoxygenNote: 7.2.3
