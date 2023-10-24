@@ -1,121 +1,146 @@
 #' UI file for the Shiny glm fitting tool
 #'
 #' @return Returns the UI code for the shiny application.
-GLMFittingToolUI = fluidPage(
 
-  use_busy_spinner(spin = "fading-circle", position = "full-page")
-  ,headerPanel(div("GLM Fitting tool"), windowTitle = "GLM Fitting Tool")
-  ,tabsetPanel(
+distribution_fitting_tool_UI = fluidPage(
+
+
+
+  headerPanel(div("NetDisFit by NetSimR"), windowTitle = "NetSim Distribution Fitting Tool"),
+
+  tabsetPanel(
     tabPanel(
       "Welcome",
-      h3("Welcome to the GLM Fitting tool"),
-      p("This tool allows you to analyse and fit GLM models to your data."),
+      h3("Welcome to the NetDisFit Tool"),
+      p("This tool allows you to analyse and fit probability distributions to your data."),
       p("Created by Yiannis Parizas. For more information, please visit my ", a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/"), "."),
       p("You can also reach out to me via email at ", a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"), "."),
       p("Please reach out if you have any feedback or encounter any bugs.")
     ),
 
     tabPanel(
-      "Save - Load inputs"
-      ,sidebarLayout(
+      "Data Upload",
+      sidebarLayout(
         sidebarPanel(
-          fileInput("load_config", "Load Configuration")
-          ,fluidRow(uiOutput("downloadConfButton"))
-        )
-        ,mainPanel(
-          h3(p('You can recover your previous work here. You can load the backup, load the data and load the backup again to fully recover your previous work.'))
-        )
-      )
-    )
-
-    ,tabPanel(
-      "Data import",
-      sidebarPanel(
-        selectInput("data_source", "Select Data Source",
-                    choices = c("CSV File", "Database")),
-        conditionalPanel(
-          condition = "input.data_source == 'Database'",
-          selectInput("db_type", "Select Database Type",
-                      choices = c("MySQL", "SQLite", "SQL Server", "PostgreSQL")),
-          textInput("db_host", "Database Host/Path", "localhost"),
-          conditionalPanel(
-            condition = "((input.db_type == 'MySQL') || (input.db_type == 'PostgreSQL'))",
-            textInput("db_port", "Database Port (optional)", ""),
-          ),
-          conditionalPanel(
-            condition = "input.db_type == 'SQL Server'",
-            checkboxInput("windows_auth", "Windows Authentication")
-          ),
-          conditionalPanel(
-            condition = "(input.db_type != 'SQL Server') || ((input.db_type == 'SQL Server') && !input.windows_auth)",
-            textInput("db_user", "Database User", "root"),
-            textInput("db_password", "Database Password", "")
-          ),
-          textAreaInput("sql_query", "SQL Query", "SELECT * FROM your_table", rows=4, width = '100%')
-        ),
-        conditionalPanel(
-          condition = "input.data_source == 'CSV File'",
-          fileInput("csv_file", "Upload CSV File")
-        ),
-        actionButton("submit", "Submit Query/Upload")
-      ),
-      mainPanel(
-        dataTableOutput("selected_input_data_table")
-      )
-    )
-
-    ,tabPanel(
-      "GLM Model Fitting"
-      ,sidebarLayout(
-        sidebarPanel(
-          selectInput("response_variable", "Select Response Variable", choices = NULL),
-          selectInput("link_function", "Link Function",
-                      choices = c("identity", "logit", "probit", "log", "inverse"),
-                      selected = "identity"),
-          selectInput("glm_distribution", "GLM Distribution",
-                      choices = c("gaussian", "poisson", "binomial", "Gamma", "inverse.gaussian"),
-                      selected = "gaussian"),
-          selectInput("offset", "Enter Offset (optional)", choices = NULL),
-          selectInput("weights", "Enter Weights (optional)", choices = NULL),
-          textAreaInput("formula", "Enter Formula", rows=4, width = '100%'),
-          br(),
-          actionButton("fit_model", "Fit GLM Model"),
-          br(),
-          br(),
-          actionButton("save_formula_1", "Save to placeholder 1"),
-          actionButton("load_formula_1", "Load placeholder 1"),
-          verbatimTextOutput("aic_output_1"),
-          br(),
-          actionButton("save_formula_2", "Save to placeholder 2"),
-          actionButton("load_formula_2", "Load placeholder 2"),
-          verbatimTextOutput("aic_output_2"),
-          br(),
-          br(),
-          downloadButton("download_model", "Download Model (RDS)"),
-          downloadButton("download_summary", "Download Model Summary"),
-          downloadButton("download_data_with_predictions", "Download Data with Predictions (CSV)")
-        ),
-        mainPanel(
-          h4("GLM Model Summary"),
-          verbatimTextOutput("model_summary")
-        )
-      )
-    )
-
-    ,tabPanel(
-      "Predictions visualisation"
-      ,sidebarLayout(
-        sidebarPanel(
-          selectInput("visualize_variable", "Select Explanatory Variable", choices = c("None")),
-          sliderInput("number_of_bands_input", "Select number of bands:",
-                      min = 10, max = 100, value = 10),
-          br(),
-          actionButton("execute_visualization", "Execute Visualization")
+          fileInput("file1", "Choose CSV/text File", accept = c(
+            'text/csv',
+            'text/comma-separated-values,text/plain',
+            '.csv'
+          )),
+          checkboxInput("data_includes_header", "CSV Has Header", value = TRUE),
+          radioButtons('sep', 'Separator', c(Comma=',', Semicolon=';', Tab='\t'), ','),
+          radioButtons('quote', 'Quote', c('Double Quote'='"', 'Single Quote'="'", None=''), '"'),
         ),
         mainPanel(
           br(),
+          dataTableOutput("data_table")
+        )
+      )
+    ),
+
+
+    tabPanel(
+      "Frequency Analysis",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(inputId='counts_var', label='Claim Counts variable',choices=""),
+          checkboxInput("counts_weighted_var", "Weigthed counts fit", value = F),
+          conditionalPanel(
+            condition = "input.counts_weighted_var",
+            selectInput(inputId='counts_weights_var', label='Weigths variable',choices="")
+          ),
+          actionButton("execute_freq_analysis", "Execute Analysis"),
           br(),
-          plotly::plotlyOutput("fitness_plot")
+          br(),
+          p('Note: the above will remove any negative or non numeric values'),
+          br(),
+          sliderInput(inputId = "count_hist_bins",
+                      label = "Histogram number of bins:",
+                      min = 1,
+                      max = 100,
+                      value = 20),
+          selectInput("FreqDistri", "Selected Frequency Distribution",
+                      c("Poisson" = "Poisson",
+                        "Negative Binomial" = "NegativeBinomial")),
+          tabPanel(title="Claim Count Summary", strong("Frequency parameters fitted"), verbatimTextOutput("selected_freq_params"))
+        ),
+        mainPanel(
+          br(),
+          tabPanel(title="Claim Count Histogram",plotly::plotlyOutput('count_hist')),
+          tabPanel(title="Claim Count CDF vs model fit",plotly::plotlyOutput('freq_fit_plot')),
+          tabPanel(title="Claim Count Summary", h5(strong("Frequency data summary"), align="center"), verbatimTextOutput("freq_summary")),
+          tabPanel(title="Distribution Proposal", h5(strong("Distribution Proposal"), align="center"), verbatimTextOutput("distribution_proposal")),
+          tabPanel(title="Selected distribution Summary", h5(strong("Selected distribution Summary"), align="center"), verbatimTextOutput("selected_distribution_summary"))
+        )
+      )
+    ),
+
+
+
+    tabPanel(
+      "Severity Analysis",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(inputId='severity_var', label='Claim severity variable',choices=""),
+          actionButton("execute_sev_analysis", "Execute Analysis"),
+          br(),
+          br(),
+          p('Note: the above will remove any negative, zero or non numeric values'),
+          br(),
+          sliderInput(inputId = "severity_hist_bins",
+                      label = "Histogram number of bins:",
+                      min = 1,
+                      max = 200,
+                      value = 20),
+          checkboxInput("sev_fit_log_scale", "Log Scale for Severity cdf", value = F),
+          tabPanel(title="Severity parameters summary",
+                   strong("Severity parameters fitted"),
+                   verbatimTextOutput("sev_param_summary"))
+        ),
+        mainPanel(
+          tabPanel(title="Claim Severity Histogram and cdf fit", plotly::plotlyOutput('sev_hist')),
+          tabPanel(title="Claim Severity Summary", h5(strong("Severity data summary"), align="center"), verbatimTextOutput("sev_summary")),
+          tabPanel(title="Claim Severity fit log scale", plotly::plotlyOutput('sev_fit_plot'))
+        )
+      )
+    ),
+
+
+
+    tabPanel(
+      "Sliced Severity Analysis",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(inputId='sliced_sev_var', label='Sliced Claim severity variable',choices=""),
+          actionButton("execute_sliced_sev_analysis", "Execute Analysis"),
+          br(),
+          br(),
+          p('Note: the above will remove any negative, zero or non numeric values'),
+          br(),
+          sliderInput(
+            inputId = "slicing_point_left",
+            label = "Slicing Point",
+            min = 0,
+            max = 10,
+            value = 5
+          ),
+          sliderInput(
+            inputId = "slicing_point_right",
+            label = "Second Slicing Point",
+            min = 0,
+            max = 20,
+            value = 10
+          ),
+          checkboxInput("sev_cens_fit_log_scale", "Log Scale for Severity cdf", value = F),
+          tabPanel(
+            title="Sliced Severity parameters summary",
+            strong("Sliced Severity parameters fitted"),
+            verbatimTextOutput("slc_sev_fitted_param_summary")
+          )
+        ),
+        mainPanel(
+          tabPanel(title="Mean Excess Function of Claim Severity",plotly::plotlyOutput('mean_excess_func_plot')),
+          tabPanel(title="Claim Severity Cumulative Density Function",plotly::plotlyOutput('sliced_sev_cdf_plot'))
         )
       )
     )
