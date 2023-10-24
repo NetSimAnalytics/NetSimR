@@ -20,7 +20,7 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Includes calculating pure IBNR exposure with LogNormal and
     Gamma distribution for reporting delay.
     Includes three shiny tools, one to simulate insurance claims applying
-    reinsurance sructures, fit GLMs and fit claims frequency or severity
+    reinsurance structures, fit GLMs and fit claims frequency or severity
     distributions.
     Methods used in the package refer to
     Free for All by Yiannis Parizas (2023) <https://www.theactuary.com/2023/03/02/free-all>;

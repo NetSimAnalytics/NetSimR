@@ -44,6 +44,11 @@ distribution_fitting_tool_UI = fluidPage(
       sidebarLayout(
         sidebarPanel(
           selectInput(inputId='counts_var', label='Claim Counts variable',choices=""),
+          checkboxInput("counts_weighted_var", "Weigthed counts fit", value = F),
+          conditionalPanel(
+            condition = "input.counts_weighted_var",
+            selectInput(inputId='counts_weights_var', label='Weigths variable',choices="")
+          ),
           actionButton("execute_freq_analysis", "Execute Analysis"),
           br(),
           br(),

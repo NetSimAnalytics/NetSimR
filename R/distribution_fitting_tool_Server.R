@@ -47,6 +47,28 @@ distribution_fitting_tool_Server = function(input, output, session) {
 
   kstest <- function(claims, predictions){round(max(abs(rank(claims)/(length(claims)+1)-predictions))*sqrt(length(claims)),2)}
 
+  existence_check_shiny <- function(df){
+    tryCatch({
+      df
+      return(T)
+    },
+    shiny.silent.error = function(e) {return(F)}
+    )
+  }
+
+
+  fit_slice_pareto <- function (sev_data, slic_pont_lft, slic_pont_rght) {
+    z <- subset(sev_data, sev_data > slic_pont_lft)
+    w <- subset(z, z <= slic_pont_rght)
+    dat <- data.frame(severity = w, empirical = rank(w) / (length(z) + 1))
+    SumOfSquares <- function(data, par) {
+      sum((1 - (slic_pont_lft / data$severity)^par[1] - data$empirical)^2)
+    }
+    x=1
+    result <- optim(par = x, SumOfSquares, data = dat, lower = 0.0001, method = "L-BFGS-B")
+    return(result$par)
+  }
+
   ######################
   #Data input
   ######################
@@ -57,6 +79,8 @@ distribution_fitting_tool_Server = function(input, output, session) {
     header <- if (input$data_includes_header) TRUE else FALSE
     df <- read.csv(inFile$datapath, header = header, sep = input$sep, quote = input$quote)
     updateSelectInput(session, inputId = 'counts_var', label = 'Frequency Variable',
+                      choices = names(df), selected = names(df))
+    updateSelectInput(session, inputId = 'counts_weights_var', label = 'Weights Variable',
                       choices = names(df), selected = names(df))
     updateSelectInput(session, inputId = 'severity_var', label = 'Severity Variable',
                       choices = names(df), selected = names(df))
@@ -76,9 +100,26 @@ distribution_fitting_tool_Server = function(input, output, session) {
   counts_data <- eventReactive(input$execute_freq_analysis, {
     clean_and_convert_to_numeric(data()[, input$counts_var])
   })
+  weights_data <- eventReactive(input$execute_freq_analysis, {
+    if (input$counts_weighted_var) {
+      clean_and_convert_to_numeric(data()[, input$counts_weights_var])
+    } else { NULL }
+  })
 
-  freq_nb_fit <- reactive({fitdist(counts_data(), "nbinom")})
-  freq_po_fit <- reactive({fitdist(counts_data(), "pois")})
+  freq_nb_fit <- reactive({
+    if (input$counts_weighted_var) {
+      suppressWarnings(fitdist(counts_data(), "nbinom", weights = weights_data()))
+    } else {
+      suppressWarnings(fitdist(counts_data(), "nbinom"))
+    }
+  })
+  freq_po_fit <- reactive({
+    if (input$counts_weighted_var) {
+      suppressWarnings(fitdist(counts_data(), "pois", weights = weights_data()))
+    } else {
+      suppressWarnings(fitdist(counts_data(), "pois"))
+    }
+  })
   mean_counts <- reactive({mean(counts_data())})
   median_counts <- reactive({median(counts_data())})
   var_counts <- reactive({var(counts_data())})
@@ -133,7 +174,6 @@ distribution_fitting_tool_Server = function(input, output, session) {
     p <- plot_ly(x = x_axis, y = empirical_cdf, type = "scatter", mode = "lines", name = "Empirical cdf")
     p <- layout(p, xaxis = list(title = "Claim frequency"), yaxis = list(title = "CDF"))
     p <- layout(p, title =  "Claim Frequency CDF and model fit")
-    p <- add_lines(p, x = x_axis, y = empirical_cdf, type = 'scatter', mode = 'lines', name = 'Empirical cdf')
     poisson_cdf <- ppois(x_axis, lambda = freq_po_fit()$estimate[1])
     p <- add_lines(p, x = x_axis, y = poisson_cdf, type = 'scatter', mode = 'lines', name = 'Poisson cdf')
     nb_cdf <- pnbinom(x_axis, size = freq_nb_fit()$estimate[1], mu = freq_nb_fit()$estimate[2])
@@ -149,48 +189,48 @@ distribution_fitting_tool_Server = function(input, output, session) {
     clean_and_convert_to_numeric(data()[, input$severity_var], T)
   })
 
-	sev_norm_fit <- reactive({fitdist(severity_data(), "norm")})
-	sev_lnorm_fit <- reactive({fitdist(severity_data(), "lnorm")})
-	sev_gamma_fit <- reactive({fitdistr(severity_data(), 'gamma', method = "L-BFGS-B", lower = c(0, 0), start = list(scale = 1, shape = 1))})
+  sev_norm_fit <- reactive({fitdist(severity_data(), "norm")})
+  sev_lnorm_fit <- reactive({fitdist(severity_data(), "lnorm")})
+  sev_gamma_fit <- reactive({fitdistr(severity_data(), 'gamma', method = "L-BFGS-B", lower = c(0, 0), start = list(scale = 1, shape = 1))})
 
-	sev_pareto_xm <- reactive({ min(severity_data()) })
-	sev_pareto_alpha <- reactive({ length(severity_data())/(sum(log(severity_data()))-length(severity_data())*log(sev_pareto_xm())) })
-
-
-	output$sev_param_summary <- renderPrint({
-	  KSNorm <- kstest(severity_data(), pnorm(severity_data(),sev_norm_fit()$estimate[1],sev_norm_fit()$estimate[2]))
-	  KSlNorm <- kstest(severity_data(), plnorm(severity_data(), meanlog = sev_lnorm_fit()$estimate[1], sdlog = sev_lnorm_fit()$estimate[2]))
-	  KSPareto <- kstest(severity_data(), 1-(sev_pareto_xm()/severity_data())^sev_pareto_alpha())
-	  KSExpo <- kstest(severity_data(), pexp(severity_data(),1/sev_norm_fit()$estimate[1]))
-	  KSGamma <- kstest(severity_data(), pgamma(severity_data(),sev_gamma_fit()$estimate[1],sev_gamma_fit()$estimate[2]))
-
-	  param <- matrix(c(round(sev_norm_fit()$estimate[1],0),round(sev_norm_fit()$estimate[2],2),KSNorm
-	                    ,"","","","Mu","Sigma", "K-S Dist",round(sev_lnorm_fit()$estimate[1],4),round(sev_lnorm_fit()$estimate[2],4),KSlNorm
-	                    ,"","","","xm","alpha", "K-S Dist",round(sev_pareto_xm(),0),round(sev_pareto_alpha(),4),KSPareto
-	                    ,"","","","Mean","", "K-S Dist",round(sev_norm_fit()$estimate[1],0),"",KSExpo
-	                    ,"","","","Scale","Shape", "K-S Dist",round(sev_gamma_fit()$estimate[1],4),round(sev_gamma_fit()$estimate[2],4),KSGamma
-	  ),
-	  nrow = 13, ncol = 3, byrow = TRUE)
-	  colnames(param)<-c("Mean", "Std. Dev.", "K-S Dist")
-	  rownames(param)<-c("Normal","","","LogNormal","","","Pareto","","","Exponential","","","Gamma")
-	  noquote(param)
-	})
+  sev_pareto_xm <- reactive({ min(severity_data()) })
+  sev_pareto_alpha <- reactive({ length(severity_data())/(sum(log(severity_data()))-length(severity_data())*log(sev_pareto_xm())) })
 
 
-	output$sev_hist <- renderPlotly({
-	  p <- plot_ly(
-	    x = severity_data()
-	    ,type = "histogram"
-	    ,nbinsx  = input$severity_hist_bins
-	    ,marker = list(line = list(color = "black", width = 2))
-	    ,name = "Empirical pdf"
-	  )
-	  p <- layout(p, xaxis = list(title = "Claim Severity"), yaxis = list(title = "Severity"))
-	  p <- layout(p, title = "Histogram of Claim Severity")
-	  return(p)
-	})
+  output$sev_param_summary <- renderPrint({
+    KSNorm <- kstest(severity_data(), pnorm(severity_data(),sev_norm_fit()$estimate[1],sev_norm_fit()$estimate[2]))
+    KSlNorm <- kstest(severity_data(), plnorm(severity_data(), meanlog = sev_lnorm_fit()$estimate[1], sdlog = sev_lnorm_fit()$estimate[2]))
+    KSPareto <- kstest(severity_data(), 1-(sev_pareto_xm()/severity_data())^sev_pareto_alpha())
+    KSExpo <- kstest(severity_data(), pexp(severity_data(),1/sev_norm_fit()$estimate[1]))
+    KSGamma <- kstest(severity_data(), pgamma(severity_data(),scale = sev_gamma_fit()$estimate[1],shape = sev_gamma_fit()$estimate[2]))
 
-	output$sev_summary <- renderPrint({summary(severity_data())})
+    param <- matrix(c(round(sev_norm_fit()$estimate[1],0),round(sev_norm_fit()$estimate[2],2),KSNorm
+                      ,"","","","Mu","Sigma", "K-S Dist",round(sev_lnorm_fit()$estimate[1],4),round(sev_lnorm_fit()$estimate[2],4),KSlNorm
+                      ,"","","","xm","alpha", "K-S Dist",round(sev_pareto_xm(),0),round(sev_pareto_alpha(),4),KSPareto
+                      ,"","","","Mean","", "K-S Dist",round(sev_norm_fit()$estimate[1],0),"",KSExpo
+                      ,"","","","Scale","Shape", "K-S Dist",round(sev_gamma_fit()$estimate[1],4),round(sev_gamma_fit()$estimate[2],4),KSGamma
+    ),
+    nrow = 13, ncol = 3, byrow = TRUE)
+    colnames(param)<-c("Mean", "Std. Dev.", "K-S Dist")
+    rownames(param)<-c("Normal","","","LogNormal","","","Pareto","","","Exponential","","","Gamma")
+    noquote(param)
+  })
+
+
+  output$sev_hist <- renderPlotly({
+    p <- plot_ly(
+      x = severity_data()
+      ,type = "histogram"
+      ,nbinsx  = input$severity_hist_bins
+      ,marker = list(line = list(color = "black", width = 2))
+      ,name = "Empirical pdf"
+    )
+    p <- layout(p, xaxis = list(title = "Claim Severity"), yaxis = list(title = "Severity"))
+    p <- layout(p, title = "Histogram of Claim Severity")
+    return(p)
+  })
+
+  output$sev_summary <- renderPrint({summary(severity_data())})
 
   output$sev_fit_plot <- renderPlotly({
     x_axis <- generate_xaxis_points(severity_data(), 1000)
@@ -221,91 +261,86 @@ distribution_fitting_tool_Server = function(input, output, session) {
     clean_and_convert_to_numeric(data()[, input$sliced_sev_var], T)
   })
 
- 	x_axis_sliced_sev <- eventReactive(input$execute_sliced_sev_analysis, {
- 	  generate_xaxis_points(sliced_sev_data(), 1000)
- 	})
+  x_axis_sliced_sev <- eventReactive(input$execute_sliced_sev_analysis, {
+    generate_xaxis_points(sliced_sev_data(), 1000)
+  })
 
- 	output$mean_excess_func_plot <- renderPlotly({
- 	  p <- plot_ly(
- 	    y = unlist(lapply(x_axis_sliced_sev(), function(x) mean(x_axis_sliced_sev()[x_axis_sliced_sev() >= x])))
- 	    ,x = x_axis_sliced_sev(), type = "scatter", mode = "lines"
- 	  )
+  output$mean_excess_func_plot <- renderPlotly({
+    p <- plot_ly(
+      y = unlist(lapply(x_axis_sliced_sev(), function(x) mean(x_axis_sliced_sev()[x_axis_sliced_sev() >= x])))
+      ,x = x_axis_sliced_sev(), type = "scatter", mode = "lines"
+    )
     p <- layout(
       p,
       xaxis = list(title = "Claim Severity"),
       yaxis = list(title = "Mean Excess Function"),
       title = "Mean Excess Function of Claim Severity"
     )
- 	})
+  })
 
- 	observeEvent(input$execute_sliced_sev_analysis,{
- 	  updateSliderInput(
- 	    session
- 	    ,"slicing_point_left"
- 	    ,min = round(min(sliced_sev_data()),0)
- 	    ,max = round(max(sliced_sev_data()),0)
- 	    ,value = (round(min(sliced_sev_data()),0)+round(max(sliced_sev_data()),0))/2
- 	  )
- 	})
+  observeEvent(input$execute_sliced_sev_analysis,{
+    updateSliderInput(
+      session
+      ,"slicing_point_left"
+      ,min = round(min(sliced_sev_data()),0)
+      ,max = round(max(sliced_sev_data()),0)
+      ,value = (round(min(sliced_sev_data()),0)+round(max(sliced_sev_data()),0))/2
+    )
+  })
 
- 	observeEvent(input$execute_sliced_sev_analysis,{
- 	  updateSliderInput(
- 	    session
- 	    ,"slicing_point_right"
- 	    ,min = (round(min(sliced_sev_data()),0)+round(max(sliced_sev_data()),0))/2
- 	    ,max = round(max(sliced_sev_data()),0)
- 	    ,value = 3*(round(min(sliced_sev_data()),0)+round(max(sliced_sev_data()),0))/4
- 	  )
- 	})
+  observeEvent(input$execute_sliced_sev_analysis,{
+    updateSliderInput(
+      session
+      ,"slicing_point_right"
+      ,min = (round(min(sliced_sev_data()),0)+round(max(sliced_sev_data()),0))/2
+      ,max = round(max(sliced_sev_data()),0)
+      ,value = 3*(round(min(sliced_sev_data()),0)+round(max(sliced_sev_data()),0))/4
+    )
+  })
 
- 	observeEvent(input$slicing_point_left,{
- 	  updateSliderInput(
- 	    session
- 	    ,"slicing_point_right"
- 	    ,min = input$slicing_point_left
- 	    ,value = (input$slicing_point_left+round(max(sliced_sev_data()),0))/2
- 	  )
- 	  update
- 	})
+  observeEvent(input$slicing_point_left,{
+    updateSliderInput(
+      session
+      ,"slicing_point_right"
+      ,min = input$slicing_point_left
+      ,value = (input$slicing_point_left+round(max(sliced_sev_data()),0))/2
+    )
+    update
+  })
 
- 	slc_sev_lnorm_fit <- reactive({fitdist(sliced_sev_data(), "lnorm")})
+  slc_sev_lnorm_fit <- reactive({fitdist(sliced_sev_data(), "lnorm")})
 
- 	slc_sev_censored_lnorm_fit <- reactive({
- 	  tryCatch({
- 	    w <- subset(sliced_sev_data(), sliced_sev_data() <= input$slicing_point_left)
- 	    dat <- data.frame(severity = w, empirical = rank(w) / (length(sliced_sev_data()) + 1))
- 	    SumOfSquares <- function(data, par) {
- 	      sum((plnorm(data$severity, meanlog = par[1], sdlog = par[2]) - data$empirical)^2)
- 	    }
- 	    result <- optim(par = c(mean(log(w)), sd(log(w))), SumOfSquares, data = dat, lower=0.0001, method = "L-BFGS-B")
- 	    if(result$convergence != 0) {return(NULL)}
- 	    return(result)
- 	  }, error = function(e) {
- 	    cat("An error occurred:", conditionMessage(e), "\n")
- 	    return(data.frame(par=c(1,2)))
- 	  })
- 	})
+  slc_sev_censored_lnorm_fit <- reactive({
+    tryCatch({
+      if(!existence_check_shiny(sliced_sev_data())){return(data.frame(par=c(1,2)))}
+      w <- subset(sliced_sev_data(), sliced_sev_data() <= input$slicing_point_left)
+      dat <- data.frame(severity = w, empirical = rank(w) / (length(sliced_sev_data()) + 1))
+      SumOfSquares <- function(data, par) {
+        sum((plnorm(data$severity, meanlog = par[1], sdlog = par[2]) - data$empirical)^2)
+      }
+      result <- optim(par = c(mean(log(w)), sd(log(w))), SumOfSquares, data = dat, lower=0.0001, method = "L-BFGS-B")
+      if(result$convergence != 0) {return(NULL)}
+      return(result)
+    }, error = function(e) {
+      cat("An error occurred:", conditionMessage(e), "\n")
+      return(e)
+    })
+  })
 
-	zGreaterThanXm1 <- reactive({ sliced_sev_data()[sliced_sev_data()>input$slicing_point_left] })
-	zGreaterThanXm2 <- reactive({ sliced_sev_data()[sliced_sev_data()>input$slicing_point_right] })
-	paretoX1Alpha <- reactive({ length(zGreaterThanXm1())/(sum(log(zGreaterThanXm1()))-length(zGreaterThanXm1())*log(input$slicing_point_left)) })
-	paretoX2AlphaMod <- reactive({
-	  tryCatch({
-	    z <- subset(sliced_sev_data(), sliced_sev_data() > input$slicing_point_left)
-	    w <- subset(z, z <= input$slicing_point_right)
-	    dat <- data.frame(severity = w, empirical = rank(w) / (length(z) + 1))
-	    SumOfSquares <- function(data, par) {
-	      sum((1 - (input$slicing_point_left / data$severity)^par[1] - data$empirical)^2)
-	    }
-	    result <- optim(par = paretoX1Alpha(), SumOfSquares, data = dat, lower = 0.0001, method = "L-BFGS-B")
-	    result$par
-	  }, error = function(e) {
-	    cat("An error occurred: ", conditionMessage(e), "\n")
-	    return(1)
-	  })
-	})
-	paretoX2Alpha <- reactive({ length(zGreaterThanXm2())/(sum(log(zGreaterThanXm2()))-length(zGreaterThanXm2())*log(input$slicing_point_right)) })
-	PrXLessThanParetoX1 <- reactive({ plnorm(input$slicing_point_left, meanlog = slc_sev_censored_lnorm_fit()$par[1], sdlog = slc_sev_censored_lnorm_fit()$par[2]) })
+  zGreaterThanXm1 <- reactive({ sliced_sev_data()[sliced_sev_data()>input$slicing_point_left] })
+  zGreaterThanXm2 <- reactive({ sliced_sev_data()[sliced_sev_data()>input$slicing_point_right] })
+  paretoX1Alpha <- reactive({ length(zGreaterThanXm1())/(sum(log(zGreaterThanXm1()))-length(zGreaterThanXm1())*log(input$slicing_point_left)) })
+  paretoX2AlphaMod <- reactive({
+    tryCatch({
+      if(!existence_check_shiny(sliced_sev_data())){return(1)}
+      return(fit_slice_pareto(sliced_sev_data(), input$slicing_point_left, input$slicing_point_right))
+    }, error = function(e) {
+      cat("An error occurred: ", conditionMessage(e), "\n")
+      return(e)
+    })
+  })
+  paretoX2Alpha <- reactive({ length(zGreaterThanXm2())/(sum(log(zGreaterThanXm2()))-length(zGreaterThanXm2())*log(input$slicing_point_right)) })
+  PrXLessThanParetoX1 <- reactive({ plnorm(input$slicing_point_left, meanlog = slc_sev_censored_lnorm_fit()$par[1], sdlog = slc_sev_censored_lnorm_fit()$par[2]) })
 
   output$sliced_sev_cdf_plot <- renderPlotly({
     LogNormalParetoInv<- function(x){
@@ -348,45 +383,46 @@ distribution_fitting_tool_Server = function(input, output, session) {
 
 
 
-	output$slc_sev_fitted_param_summary <- renderPrint({
-	  LogNormalParetoInv<- function(x){
-	    ifelse(
-	      x<=input$slicing_point_left
-	      ,plnorm(x, meanlog = slc_sev_censored_lnorm_fit()$par[1], sdlog = slc_sev_censored_lnorm_fit()$par[2])
-	      ,(1-(input$slicing_point_left/x)^paretoX1Alpha())*(1-PrXLessThanParetoX1())+PrXLessThanParetoX1()
+  output$slc_sev_fitted_param_summary <- renderPrint({
+    LogNormalParetoInv<- function(x){
+      ifelse(
+        x<=input$slicing_point_left
+        ,plnorm(x, meanlog = slc_sev_censored_lnorm_fit()$par[1], sdlog = slc_sev_censored_lnorm_fit()$par[2])
+        ,(1-(input$slicing_point_left/x)^paretoX1Alpha())*(1-PrXLessThanParetoX1())+PrXLessThanParetoX1()
 
-	    )
-	  }
+      )
+    }
 
-	  PrXLessThanParetoX2<-(1-(input$slicing_point_left/input$slicing_point_right)^paretoX2AlphaMod())*(1-PrXLessThanParetoX1())+PrXLessThanParetoX1()
+    PrXLessThanParetoX2<-(1-(input$slicing_point_left/input$slicing_point_right)^paretoX2AlphaMod())*(1-PrXLessThanParetoX1())+PrXLessThanParetoX1()
 
-	  LogNormalParetoParetoInv<- function(x){
-	    ifelse(
-	      x<=input$slicing_point_right
-	      ,ifelse(
-	        x<=input$slicing_point_left
-	        ,plnorm(x, meanlog = slc_sev_censored_lnorm_fit()$par[1], sdlog = slc_sev_censored_lnorm_fit()$par[2])
-	        ,(1-(input$slicing_point_left/x)^paretoX2AlphaMod())*(1-PrXLessThanParetoX1())+PrXLessThanParetoX1()
-	      )
-	      ,(1-(input$slicing_point_right/x)^paretoX2Alpha())*(1-PrXLessThanParetoX2)+PrXLessThanParetoX2
+    LogNormalParetoParetoInv<- function(x){
+      ifelse(
+        x<=input$slicing_point_right
+        ,ifelse(
+          x<=input$slicing_point_left
+          ,plnorm(x, meanlog = slc_sev_censored_lnorm_fit()$par[1], sdlog = slc_sev_censored_lnorm_fit()$par[2])
+          ,(1-(input$slicing_point_left/x)^paretoX2AlphaMod())*(1-PrXLessThanParetoX1())+PrXLessThanParetoX1()
+        )
+        ,(1-(input$slicing_point_right/x)^paretoX2Alpha())*(1-PrXLessThanParetoX2)+PrXLessThanParetoX2
 
-	    )
-	  }
+      )
+    }
 
-	  KSlNorm <- kstest(sliced_sev_data(), plnorm(sliced_sev_data(), meanlog = slc_sev_lnorm_fit()$estimate[1], sdlog = slc_sev_lnorm_fit()$estimate[2]))
-	  KSlNormPareto <- kstest(sliced_sev_data(), LogNormalParetoInv(sliced_sev_data()))
-	  KSlNormParetoPareto <- kstest(sliced_sev_data(), LogNormalParetoParetoInv(sliced_sev_data()))
+    KSlNorm <- kstest(sliced_sev_data(), plnorm(sliced_sev_data(), meanlog = slc_sev_lnorm_fit()$estimate[1], sdlog = slc_sev_lnorm_fit()$estimate[2]))
+    KSlNormPareto <- kstest(sliced_sev_data(), LogNormalParetoInv(sliced_sev_data()))
+    KSlNormParetoPareto <- kstest(sliced_sev_data(), LogNormalParetoParetoInv(sliced_sev_data()))
 
-	  param <- matrix(c(round(slc_sev_lnorm_fit()$estimate[1],4),round(slc_sev_lnorm_fit()$estimate[2],4),KSlNorm
-	                    ,"","","","mu","sigma", "",round(slc_sev_censored_lnorm_fit()$par[1],4),round(slc_sev_censored_lnorm_fit()$par[2],4),""
-	                    ,"","","","xm","alpha", "K-S Dist",input$slicing_point_left,round(paretoX1Alpha(),4),KSlNormPareto
-	                    ,"","","","xm","alpha", "",input$slicing_point_left,round(paretoX2AlphaMod(),4),""
-	                    ,"","","","xm","alpha", "K-S Dist",input$slicing_point_right,round(paretoX2Alpha(),4),KSlNormParetoPareto
-	  ),
-	  nrow = 13, ncol = 3, byrow = TRUE)
-	  colnames(param)<-c("Mu", "Sigma", "K-S Dist")
-	  rownames(param)<-c("LogNormal","","","LogNormal Sliced","","","Pareto x1","","","Pareto x2 lower","","","Pareto x2 upper")
-	  noquote(param)
-	})
+    param <- matrix(c(round(slc_sev_lnorm_fit()$estimate[1],4),round(slc_sev_lnorm_fit()$estimate[2],4),KSlNorm
+                      ,"","","","mu","sigma", "",round(slc_sev_censored_lnorm_fit()$par[1],4),round(slc_sev_censored_lnorm_fit()$par[2],4),""
+                      ,"","","","xm","alpha", "K-S Dist",input$slicing_point_left,round(paretoX1Alpha(),4),KSlNormPareto
+                      ,"","","","xm","alpha", "",input$slicing_point_left,round(paretoX2AlphaMod(),4),""
+                      ,"","","","xm","alpha", "K-S Dist",input$slicing_point_right,round(paretoX2Alpha(),4),KSlNormParetoPareto
+    ),
+    nrow = 13, ncol = 3, byrow = TRUE)
+    colnames(param)<-c("Mu", "Sigma", "K-S Dist")
+    rownames(param)<-c("LogNormal","","","LogNormal Sliced","","","Pareto x1","","","Pareto x2 lower","","","Pareto x2 upper")
+    noquote(param)
+  })
+
 
 }
