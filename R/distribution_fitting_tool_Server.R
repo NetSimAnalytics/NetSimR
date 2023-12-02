@@ -464,7 +464,7 @@ distribution_fitting_tool_Server = function(input, output, session) {
   })
 
   piecwise_pareto_alpha <- reactive({
-    PiecewisePareto_ML_Estimator_Alpha(piecewise_sev_data(), piecwise_pareto_mu())
+    Pareto::PiecewisePareto_ML_Estimator_Alpha(piecewise_sev_data(), piecwise_pareto_mu())
   })
 
   output$fitted_sliced_pareto <- renderTable({
@@ -476,7 +476,7 @@ distribution_fitting_tool_Server = function(input, output, session) {
 
 
   empirical_piecwise_cdf <- reactive({1:length(piecewise_sev_data())/(length(piecewise_sev_data())+1)})
-  predicted_piecwise_cdf <- reactive({pPiecewisePareto(piecewise_sev_data(), piecwise_pareto_mu(), piecwise_pareto_alpha())})
+  predicted_piecwise_cdf <- reactive({Pareto::pPiecewisePareto(piecewise_sev_data(), piecwise_pareto_mu(), piecwise_pareto_alpha())})
   output$piecewise_pareto_ks_test <- renderText({paste(
     'k-s test:'
     ,round(max(abs(empirical_piecwise_cdf() - predicted_piecwise_cdf())),4)
