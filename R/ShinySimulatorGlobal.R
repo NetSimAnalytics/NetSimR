@@ -20,10 +20,8 @@ rpareto <- function(n, alpha, x_m) x_m / runif(n)^(1/alpha)
 #' @param severity_cap_amount The claim cap value.
 #' @return If \code{severity_cap_boolean} is true, then will return the minimum of \code{severity_cap_amount} or \code{claims} otherwise will return \code{claims}. The operation is vectorised.
 apply_severity_cap <- function(claims, severity_cap_boolean, severity_cap_amount){
-  if(severity_cap_boolean){
-    claims <- ifelse(claims>severity_cap_amount, severity_cap_amount, claims)
-  }
-  return(claims)
+  if (!severity_cap_boolean) return(claims)
+  pmin(claims, severity_cap_amount)
 }
 
 #' A vector with the reinsurance structure options
@@ -43,10 +41,19 @@ reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer
 #' apply_deductible_limit(c(100, 50, 20), 'Limited Layer', 40, 20)
 #' apply_deductible_limit(c(100, 50, 20), 'Limited Layer', 10, 30)
 apply_deductible_limit <- function(gross_claims_data, reinsurance_structure, deductible, limit){
-  if(reinsurance_structure=='No Reinsurance Structure'){return(gross_claims_data)}
-  else if (reinsurance_structure=='Unlimited Layer'){return(ifelse(gross_claims_data<deductible,0, gross_claims_data-deductible))}
-  else if (reinsurance_structure=='Limited Layer'){return(ifelse(gross_claims_data<deductible, 0, ifelse(gross_claims_data-deductible>limit, limit, gross_claims_data-deductible)))}
-  else if (reinsurance_structure=='Exclude Layer'){return(gross_claims_data - ifelse(gross_claims_data<deductible, 0, ifelse(gross_claims_data-deductible>limit, limit, gross_claims_data-deductible)))}
+  if (reinsurance_structure == 'No Reinsurance Structure') {return(gross_claims_data)}
+
+  layer_claims <- pmax(gross_claims_data - deductible, 0)
+
+  if (reinsurance_structure == 'Unlimited Layer') {return(layer_claims)}
+
+  limited_layer_claims <- pmin(layer_claims, limit)
+
+  if (reinsurance_structure == 'Limited Layer') {return(limited_layer_claims)}
+
+  if (reinsurance_structure == 'Exclude Layer') {return(gross_claims_data - limited_layer_claims)}
+
+  stop("Unknown reinsurance structure: ", reinsurance_structure)
 }
 
 #' The class of the distribution objects
@@ -322,11 +329,11 @@ simulate_function <- function(
     {
 
       if(multiprocessing){
-        plan(multisession)
-        on.exit(plan(sequential), add = TRUE)
+        future::plan(future::multisession)
+        on.exit(future::plan(future::sequential), add = TRUE)
 
         #parallel execution: no reliable live per-chunk updates in standard Shiny
-        res <- future_lapply(chunk_sizes, simulate_chunk, future.seed = TRUE)
+        res <- future.apply::future_lapply(chunk_sizes, simulate_chunk, future.seed = TRUE)
         shiny::incProgress(1, detail = paste("Completed", n_chunks, "chunks"))
         res
 

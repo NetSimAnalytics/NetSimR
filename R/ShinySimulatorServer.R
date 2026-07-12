@@ -195,7 +195,7 @@ shiny_simulator_server = function(input, output, session) {
       {
         do.call(simulate_function, simulation_settings)
       }, error = function(cond) {
-        plan(sequential)
+        future::plan(future::sequential)
         showNotification(
           paste("Error:", conditionMessage(cond)),
           type = "error",
