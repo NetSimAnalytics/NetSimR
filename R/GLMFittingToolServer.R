@@ -13,6 +13,7 @@
 #' @importFrom shinyjs useShinyjs
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
 #' @import shinybusy
+#' @import reactable
 
 GLMFittingToolServer = function(input, output, session) {
 
@@ -114,7 +115,9 @@ GLMFittingToolServer = function(input, output, session) {
   })
 
   # Display the query result or uploaded data in a data table
-  output$selected_input_data_table <- renderDataTable({selected_data()})
+  output$selected_input_data_table <- reactable::renderReactable({
+    reactable::reactable(selected_data())
+  })
 
   #save configurtations
   output$DownloadDataHandlerConf <- downloadHandler(

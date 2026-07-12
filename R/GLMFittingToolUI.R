@@ -61,7 +61,7 @@ GLMFittingToolUI = fluidPage(
         actionButton("submit", "Submit Query/Upload")
       ),
       mainPanel(
-        dataTableOutput("selected_input_data_table")
+        reactable::reactableOutput("selected_input_data_table")
       )
     )
 

@@ -1,7 +1,7 @@
 Package: NetSimR
 Type: Package
 Title: Actuarial Functions for Non-Life Insurance Modelling
-Version: 0.1.5
+Version: 0.1.6
 Author: Yiannis Parizas [aut, cre]
 Authors@R: person("Yiannis", "Parizas", email = "yiannis.parizas@gmail.com", role = c("aut", "cre"))
 Maintainer: Yiannis Parizas <yiannis.parizas@gmail.com>
@@ -28,7 +28,7 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Take to excess by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess>.
 License: GPL-3
 Encoding: UTF-8
-Imports: rmarkdown, shiny, shinybusy, future.apply, scales, future, methods, DBI, RMySQL, RODBC, RPostgreSQL, RSQLite, plotly, shinyjs, MASS, fitdistrplus, shinyWidgets, Pareto, data.table
+Imports: rmarkdown, shiny, shinybusy, future.apply, scales, future, methods, DBI, RMySQL, RODBC, RPostgreSQL, RSQLite, plotly, shinyjs, MASS, fitdistrplus, shinyWidgets, Pareto, data.table, reactable
 Suggests: knitr, crch, testthat
 VignetteBuilder: knitr
-RoxygenNote: 7.2.3
+RoxygenNote: 8.0.0

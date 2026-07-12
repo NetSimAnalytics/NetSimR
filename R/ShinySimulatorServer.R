@@ -17,6 +17,7 @@
 #' @import stats
 #' @import scales
 #' @import utils
+#' @import reactable
 shiny_simulator_server = function(input, output, session) {
   #set data.table threads once per session, leave one core free for the main process
   data.table::setDTthreads(max(1, parallel::detectCores() - 1))

@@ -10,6 +10,7 @@
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
 #' @import fitdistrplus
 #' @import Pareto
+#' @import reactable
 
 distribution_fitting_tool_Server = function(input, output, session) {
 
@@ -92,7 +93,9 @@ distribution_fitting_tool_Server = function(input, output, session) {
     return(df)
   })
 
-  output$data_table <- renderDataTable({data()})
+  output$data_table <- reactable::renderReactable({
+    reactable::reactable(data())
+  })
 
   ######################
   #Frequency analysis

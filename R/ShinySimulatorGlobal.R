@@ -312,11 +312,11 @@ simulate_function <- function(
     )
 
     #aggregate individual claims back to simulation-level totals via data.table
-    dt <- data.table(sim_id = sim_id, claim = claims)
-    agg <- dt[, .(total_claims = sum(claim)), by = sim_id]
-
+    dt <- data.table::data.table(sim_id = sim_id, claim = claims)
+    agg <- stats::aggregate(claim ~ sim_id, data = dt, FUN = sum)
+    names(agg)[names(agg) == "claim"] <- "total_claims"
     totals <- numeric(this_n)
-    totals[agg$sim_id] <- agg$total_claims
+    totals[agg[["sim_id"]]] <- agg[["total_claims"]]
 
     return(list(claim_counts = counts, total_claims = totals))
   }
