@@ -6,7 +6,6 @@
 #' @return Returns server rendering for the shiny application.
 #' @import shiny
 #' @import MASS
-#' @import shinyWidgets
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
 #' @import fitdistrplus
 #' @import Pareto

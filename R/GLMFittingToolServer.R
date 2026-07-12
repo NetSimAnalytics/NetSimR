@@ -14,6 +14,7 @@
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
 #' @import shinybusy
 #' @import reactable
+#' @importFrom plotly plotlyOutput
 
 GLMFittingToolServer = function(input, output, session) {
 

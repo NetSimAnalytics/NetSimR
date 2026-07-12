@@ -2,7 +2,7 @@
 % Please edit documentation in R/GLMFittingToolUI.R
 \name{GLMFittingToolUI}
 \alias{GLMFittingToolUI}
-\title{UI file for the Shiny glm fitting tool}
+\title{UI file for the Shiny GLM fitting tool}
 \usage{
 GLMFittingToolUI
 }
@@ -10,5 +10,5 @@ GLMFittingToolUI
 Returns the UI code for the shiny application.
 }
 \description{
-UI file for the Shiny glm fitting tool
+UI file for the Shiny GLM fitting tool
 }
