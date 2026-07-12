@@ -322,25 +322,34 @@ simulate_function <- function(
   }
 
   #run chunks, optionally in parallel across chunks (not per-simulation)
-  chunk_results <- shiny::withProgress(
-    message = "Running simulations",
-    detail = paste("Processing", n_chunks, "chunks"),
-    value = 0,
-    {
+  #run chunks, optionally in parallel across chunks (not per-simulation)
+  if (multiprocessing) {
+    future::plan(future::multisession)
+    on.exit(future::plan(future::sequential), add = TRUE)
 
-      if(multiprocessing){
-        future::plan(future::multisession)
-        on.exit(future::plan(future::sequential), add = TRUE)
+    shiny::showNotification(
+      "Running in parallel. Live progress is not available in multiprocessing mode.",
+      type = "message",
+      duration = NULL,
+      id = "parallel_sim_notice"
+    )
+    on.exit(shiny::removeNotification("parallel_sim_notice"), add = TRUE)
 
-        #parallel execution: no reliable live per-chunk updates in standard Shiny
-        res <- future.apply::future_lapply(chunk_sizes, simulate_chunk, future.seed = TRUE)
-        shiny::incProgress(1, detail = paste("Completed", n_chunks, "chunks"))
-        res
+    chunk_results <- future.apply::future_lapply(
+      chunk_sizes,
+      simulate_chunk,
+      future.seed = TRUE
+    )
 
-      } else {
+  } else {
+    chunk_results <- shiny::withProgress(
+      message = "Running simulations",
+      detail = paste("Processing", n_chunks, "chunks"),
+      value = 0,
+      {
         res <- vector("list", length(chunk_sizes))
 
-        for(i in seq_along(chunk_sizes)){
+        for (i in seq_along(chunk_sizes)) {
           res[[i]] <- simulate_chunk(chunk_sizes[i])
           shiny::incProgress(
             amount = 1 / length(chunk_sizes),
@@ -350,8 +359,8 @@ simulate_function <- function(
 
         res
       }
-    }
-  )
+    )
+  }
 
   data <- data.frame(
     claim_counts = unlist(lapply(chunk_results, `[[`, "claim_counts"), use.names = FALSE)
