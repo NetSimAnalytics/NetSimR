@@ -192,7 +192,9 @@ sev_dist_parameter_placeholders <- data.frame(
   ,param_id = paste0("sev_param_", 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs))))
 )
 
-#' A function to simulate frequency - severity of insurance claims. The function applies severity cap, reinsurance structure for each and every loss claim, reinsurance structure for each and aggregate claims. The function allows for piecewise pareto slices.
+#' A function to simulate frequency - severity of insurance claims using chunked vectorisation.
+#' The function applies severity cap, reinsurance structure for each and every loss claim,
+#' reinsurance structure for aggregate claims, and allows for piecewise pareto slices.
 #'
 #' @param numOfSimulations The number of simulations to run.
 #' @param freq_params A vector of the frequency distribution parameters.
@@ -203,7 +205,7 @@ sev_dist_parameter_placeholders <- data.frame(
 #' @param sevDistr The severity distribution. Options are as per the sev_dist_options.
 #' @param paretoSlice True if there is Pareto slicing.
 #' @param pareto_slice_times The number of Pareto slices.
-#' @param slice_pareto_alphas A vector of Pareto slices' aphla parameters.
+#' @param slice_pareto_alphas A vector of Pareto slices' alpha parameters.
 #' @param slice_pareto_x_ms A vector of Pareto slices' x_m parameters.
 #' @param sevCapBinary True if there is a severity cap.
 #' @param sev_cap_amount The severity cap amount.
@@ -216,8 +218,10 @@ sev_dist_parameter_placeholders <- data.frame(
 #' @param reinsuranceStructureLimitedReinstatements True if there is a limit in reinstatements, otherwise false.
 #' @param reinsuranceStructureReinstatementLimit The reinstatement limit.
 #' @param multiprocessing True if multiprocessing is used, otherwise false.
+#' @param chunk_size The number of simulations processed per vectorised batch. Defaults to 10000.
 #' @return A data frame with claims counts, ceded claims and the number of reinstatements used.
 #' @export
+#' @import data.table
 simulate_function <- function(
     numOfSimulations,
     freq_params,
@@ -240,71 +244,116 @@ simulate_function <- function(
     reinsurance_structure_al_limit_amount,
     reinsuranceStructureLimitedReinstatements,
     reinsuranceStructureReinstatementLimit,
-    multiprocessing
-  ){
+    multiprocessing,
+    chunk_size = 10000
+){
   #set custom seed
   if(seedSetBinary){set.seed(seedValue)}
-  #initiate data and simulate counts
-  data <- data.frame(claim_counts = freq_dist_options[[freqDistr]]@simulate_func(
-    number_of_simulations = numOfSimulations
-    ,parameters = freq_params
-  ))
 
-  #predefine parameters in a simulate severity function
-  #simulate claims from the chosen distribution and parammeters
-  simulate_individual_severities_parametrised <- function (claim_counts){
+  n_chunks <- ceiling(numOfSimulations / chunk_size)
+  chunk_sizes <- rep(chunk_size, n_chunks)
+  remainder <- numOfSimulations - chunk_size * (n_chunks - 1)
+  chunk_sizes[n_chunks] <- remainder
 
-    claims = sev_dist_options[[sevDistr]]@simulate_func(
-      number_of_simulations = claim_counts
+  #vectorised worker for a single chunk of simulations
+  simulate_chunk <- function(this_n){
+
+    #simulate claim counts for this chunk
+    counts <- freq_dist_options[[freqDistr]]@simulate_func(
+      number_of_simulations = this_n
+      ,parameters = freq_params
+    )
+
+    total_claims_needed <- sum(counts)
+
+    #edge case: chunk has zero claims across all simulations
+    if(total_claims_needed == 0){
+      return(list(claim_counts = counts, total_claims = rep(0, this_n)))
+    }
+
+    sim_id <- rep.int(seq_len(this_n), counts)
+
+    #simulate all individual severities for the chunk in one vectorised call
+    claims <- sev_dist_options[[sevDistr]]@simulate_func(
+      number_of_simulations = total_claims_needed
       ,parameters = sev_params
     )
-    #apply pareto slices
+
+    #apply pareto slices using logical indexing (only redraws claims above threshold)
     if(paretoSlice){
       for(j in 1:pareto_slice_times){
-        claims = ifelse(
-          claims > slice_pareto_x_ms[j]
-          ,rpareto(n = claim_counts, alpha = slice_pareto_alphas[j], x_m = slice_pareto_x_ms[j])
-          ,claims
-        )
+        idx <- claims > slice_pareto_x_ms[j]
+        if(any(idx)){
+          claims[idx] <- rpareto(n = sum(idx), alpha = slice_pareto_alphas[j], x_m = slice_pareto_x_ms[j])
+        }
       }
     }
+
     #apply severity cap
-    claims = apply_severity_cap(
+    claims <- apply_severity_cap(
       claims
       ,severity_cap_boolean = sevCapBinary
       ,severity_cap_amount = sev_cap_amount
     )
-    #apply EEL deductible
-    claims = apply_deductible_limit(
+
+    #apply EEL deductible/limit per individual claim
+    claims <- apply_deductible_limit(
       claims
       ,reinsurance_structure = reinsuranceStructureEEL
       ,deductible = reinsurance_structure_eel_dedctible_amount
       ,limit = reinsurance_structure_eel_limit_amount
     )
-    #sum individual claims and return them
-    claims = sum(claims)
-    return(claims)
+
+    #aggregate individual claims back to simulation-level totals via data.table
+    dt <- data.table(sim_id = sim_id, claim = claims)
+    agg <- dt[, .(total_claims = sum(claim)), by = sim_id]
+
+    totals <- numeric(this_n)
+    totals[agg$sim_id] <- agg$total_claims
+
+    return(list(claim_counts = counts, total_claims = totals))
   }
 
-  #simulate individual severities, apply severity cap, apply reinsurance structure EEL and take a sum of individual claims
-  if(multiprocessing){plan(multisession)}
-  data$total_claims <- unlist(
-    if(multiprocessing){
-      future_lapply(
-        future.seed = T
-        ,data$claim_counts
-        ,function(z) {simulate_individual_severities_parametrised(z)}
-      )
-    } else {
-      lapply(
-        data$claim_counts
-        ,function(z) {simulate_individual_severities_parametrised(z)}
-      )
+  #run chunks, optionally in parallel across chunks (not per-simulation)
+  chunk_results <- shiny::withProgress(
+    message = "Running simulations",
+    detail = paste("Processing", n_chunks, "chunks"),
+    value = 0,
+    {
+
+      if(multiprocessing){
+        plan(multisession)
+        on.exit(plan(sequential), add = TRUE)
+
+        #parallel execution: no reliable live per-chunk updates in standard Shiny
+        res <- future_lapply(chunk_sizes, simulate_chunk, future.seed = TRUE)
+        shiny::incProgress(1, detail = paste("Completed", n_chunks, "chunks"))
+        res
+
+      } else {
+        res <- vector("list", length(chunk_sizes))
+
+        for(i in seq_along(chunk_sizes)){
+          res[[i]] <- simulate_chunk(chunk_sizes[i])
+          shiny::incProgress(
+            amount = 1 / length(chunk_sizes),
+            detail = paste("Chunk", i, "of", length(chunk_sizes))
+          )
+        }
+
+        res
+      }
     }
   )
-  if(multiprocessing){plan(sequential)}
+
+  data <- data.frame(
+    claim_counts = unlist(lapply(chunk_results, `[[`, "claim_counts"), use.names = FALSE)
+    ,total_claims = unlist(lapply(chunk_results, `[[`, "total_claims"), use.names = FALSE)
+  )
+  rm(chunk_results); gc(FALSE)
+
   #apply reinstatements
-  if(reinsuranceStructureEEL  %in% c('Limited Layer')){
+  if(reinsuranceStructureEEL %in% c('Limited Layer')){
     if(reinsuranceStructureLimitedReinstatements){
       data$total_claims <- apply_deductible_limit(
         data$total_claims
@@ -314,13 +363,14 @@ simulate_function <- function(
       )
       data$number_of_reinstatements_used <- (data$total_claims / reinsurance_structure_eel_limit_amount)
       data$number_of_reinstatements_used <- ifelse(
-        data$number_of_reinstatements_used>reinsuranceStructureReinstatementLimit
+        data$number_of_reinstatements_used > reinsuranceStructureReinstatementLimit
         ,reinsuranceStructureReinstatementLimit
         ,data$number_of_reinstatements_used
       )
-      data$number_of_reinstatements_used <- round(data$number_of_reinstatements_used,2)
+      data$number_of_reinstatements_used <- round(data$number_of_reinstatements_used, 2)
     }
   }
+
   #apply reinsurance structure AL
   data$total_claims <- apply_deductible_limit(
     data$total_claims
@@ -328,7 +378,7 @@ simulate_function <- function(
     ,reinsurance_structure_al_dedctible_amount
     ,reinsurance_structure_al_limit_amount
   )
-  data$total_claims <- round(data$total_claims,2)
+  data$total_claims <- round(data$total_claims, 2)
   return(data)
 }
 
