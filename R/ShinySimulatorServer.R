@@ -219,7 +219,7 @@ shiny_simulator_server = function(input, output, session) {
       "Report"
     }
 
-    downloadButton('downloadReportHandler', label)
+    downloadButton('downloadReportHandler', label, icon = icon("file-lines"), class = "btn-outline-primary")
   })
 
   #download data button
@@ -237,7 +237,7 @@ shiny_simulator_server = function(input, output, session) {
 
   output$downloadDataButton <- renderUI({
     req(simulated_data$data)
-    downloadButton('DownloadDataHandler', 'Data')
+    downloadButton('DownloadDataHandler', 'CSV data', icon = icon("file-csv"), class = "btn-outline-primary")
   })
 
   #download report button
@@ -275,4 +275,17 @@ shiny_simulator_server = function(input, output, session) {
       })
     }
   )
+
+  #keep dynamic outputs rendering even while their empty containers are collapsed by the UI styles
+  dynamic_outputs <- c(
+    freq_dist_parameter_placeholders$param_id
+    ,sev_dist_parameter_placeholders$param_id
+    ,paste0("slice_pareto_param_", 1:(2*max_number_of_pareto_slices))
+    ,"reinsuranceStructureDeductibleEEL", "reinsuranceStructureLimitEEL"
+    ,"reinsuranceStructureDeductibleAL", "reinsuranceStructureLimitAL"
+    ,"downloadDataButton", "downloadReportButton"
+  )
+  for (output_name in dynamic_outputs) {
+    outputOptions(output, output_name, suspendWhenHidden = FALSE)
+  }
 }
