@@ -60,6 +60,62 @@ test_that("empirical cdf and mean excess helpers match their definitions", {
   expect_true(is.nan(mean_excess[points == max(claims)]))
 })
 
+test_that("weighted empirical cdf counts each claim weight times", {
+  claims <- c(3, 1, 2, 2)
+  weights <- c(1, 2, 3, 4)
+  points <- c(0, 1, 1.5, 2, 3, 4)
+  expect_equal(empirical_cdf_at(points, claims, weights),
+               empirical_cdf_at(points, rep(claims, weights)))
+})
+
+test_that("ks_distance matches stats::ks.test", {
+  set.seed(4)
+  x <- rlnorm(80, 5, 1.1)
+  expect_equal(ks_distance(x, function(q) plnorm(q, 5, 1)), unname(ks.test(x, "plnorm", 5, 1)$statistic))
+  expect_true(is.na(ks_distance(numeric(0), pnorm)))
+})
+
+test_that("data columns are converted to numbers and uploaded files read cleanly", {
+  expect_equal(dft_as_numeric(c(" 1,234.5", "12", "abc", "", "1,23", "-3")), c(1234.5, 12, NA, NA, NA, -3))
+  expect_equal(dft_as_numeric(c("1,5", "2"), dec = ","), c(1.5, 2))
+  expect_equal(dft_as_numeric(c(TRUE, FALSE)), c(1, 0))
+  df <- data.frame(a = c("1", "2", "x"), b = c("1", "2", "3"), c = c("q", "w", "e"))
+  expect_equal(dft_numeric_columns(df), "b")
+  #a byte order mark, a blank name and a repeated name
+  path <- tempfile(fileext = ".csv")
+  con <- file(path, "wb")
+  writeBin(as.raw(c(0xef, 0xbb, 0xbf)), con)
+  writeBin(charToRaw("Claim Amount,,Claim Amount\n1,2,3\n4,5,6\n"), con)
+  close(con)
+  expect_equal(names(dft_read_data(path)), c("Claim Amount", "V2", "Claim Amount_1"))
+  #a decimal comma with a semicolon separator
+  path <- tempfile(fileext = ".csv")
+  writeLines(c("sev;n", "1,5;2", "2,25;3"), path)
+  expect_equal(dft_read_data(path, sep = ";", dec = ",")$sev, c(1.5, 2.25))
+})
+
+test_that("fit_gamma_mle fits claims far below 1", {
+  set.seed(5)
+  x <- rgamma(200, shape = 2, scale = 0.01)
+  fit <- fit_gamma_mle(x)
+  expect_true(all(is.finite(fit$estimate)))
+  expect_equal(unname(fit$estimate[["shape"]] * fit$estimate[["scale"]]), mean(x), tolerance = 1e-3)
+  #the profile likelihood fit, the fallback when the optimiser stops on its zero bounds, gives the exact MLE:
+  #its mean equals the sample mean and it is a maximum of the log-likelihood
+  set.seed(6)
+  counts <- pmax(1, rpois(1000, 3))
+  expect_equal(fit_gamma_mle(counts)$estimate, fit_gamma_profile(counts)$estimate, tolerance = 1e-4)
+  fit <- fit_gamma_profile(counts)
+  expect_named(fit$estimate, c("scale", "shape"))
+  expect_equal(unname(fit$estimate[["shape"]] * fit$estimate[["scale"]]), mean(counts), tolerance = 1e-10)
+  expect_error(fit_gamma_profile(c(2, 2, 2)), "not all equal")
+  loglik <- function(p) sum(dgamma(counts, shape = p[2], scale = p[1], log = TRUE))
+  #the estimate is a maximum: moving either parameter lowers the log-likelihood
+  for (step in list(c(1.01, 1), c(0.99, 1), c(1, 1.01), c(1, 0.99))) {
+    expect_true(loglik(fit$estimate) > loglik(fit$estimate * step))
+  }
+})
+
 test_that("fit_gamma_mle matches MASS::fitdistr with the same optimiser settings", {
   #reference computed with MASS::fitdistr(x, "gamma", method = "L-BFGS-B", lower = c(0, 0), start = list(scale = 1, shape = 1))
   x <- c(120, 340, 560, 780, 1200, 1500, 2300, 3100, 4800, 9000)

@@ -106,7 +106,58 @@ Changes in Version 0.1.6
   o The Normal severity has its own parameter ids in the simulator, so values
     no longer carry over between the Normal and the Log-Normal. Settings files
     saved by earlier versions still load.
+  o Distribution fitting tool: redesigned interface in the style of the
+    simulator, with light, dark and system themes (system by default), summary
+    tiles, result tables that mark the best fit, and charts that follow the
+    theme. Messages replace errors when a column cannot be used, and the column
+    lists default to likely count, amount and weight columns.
+  o Distribution fitting tool data upload: decimal comma option, thousands
+    separators such as "1,234.5" read as numbers, a UTF-8 byte order mark no
+    longer ends up in the first column name, column names are kept as in the
+    file, and the preview is capped at 10,000 rows.
+  o Distribution fitting tool fixes: weighted frequency fits keep each count
+    with the weight of its own row, and the weighted choice is fixed when the
+    analysis runs; the mean, variance and suggestion use the weights; claim
+    counts and weights must be whole numbers (non-integer counts gave a
+    meaningless Negative Binomial fit). The Kolmogorov-Smirnov figures are now
+    the distance of stats::ks.test() in every tab (before, a scaled statistic
+    based on rank / (n + 1)). The single Pareto cdf is zero below its threshold
+    instead of negative. The sliced LogNormal body allows a negative mu (claims
+    below 1 were fitted with mu held at 0.0001). The Gamma fit no longer fails
+    on small whole numbers or claims far below 1. Severity cdfs of claims below
+    1,000 are drawn on a fine grid instead of whole numbers, and the log scale
+    uses a log axis.
+  o GLM fitting tool: redesigned interface in the style of the simulator, with
+    light, dark and system themes (system by default); CSV separator, decimal
+    and quote options; links offered per family with the family's default;
+    column buttons that add terms to the formula; a coefficient table with
+    relativities or odds ratios; tiles for AIC, deviance explained and
+    dispersion; and download buttons that appear once a model is fitted.
+  o GLM fitting tool fixes: an offset can be the log of an exposure column (the
+    column was always used raw, so an exposure gave a wrong model); the actual
+    against predicted chart uses the fitted model's columns, divides by the
+    exposure only when it is one, weighs rows by the weights, and offers bands
+    of equal counts. A stored model keeps the AIC, family, link and offset of
+    the model it was fitted with (before, the AIC of whatever was fitted last
+    was shown next to the saved formula) and marks the lower AIC when the
+    models are comparable. Predictions no longer fail on a factor level found
+    only in rows the fit left out. Fit warnings are shown instead of hidden,
+    text binomial responses are read as factors, "." stands for every other
+    column, and import errors show the actual error in a dialog that can be
+    closed.
+  o GLM fitting tool settings file: only the import options and model choices
+    are kept, never the database password; loading checks the file and applies
+    the column choices once the data is imported. Files saved by earlier
+    versions still load.
+  o Distribution fitting tool sliders: slicing points start at the 75th and
+    95th percentiles with a fine step, moving the first past the second moves
+    only the second, and piecewise Pareto thresholds start at the 50th, 75th,
+    87.5th, ... percentiles and are kept when the number of thresholds changes.
   o Claims simulator: up to six Pareto slices, added with an Add slice button
     and removed with a button on each slice; removing a slice moves the later
     slices up. The switch and the number-of-slices list are gone. Settings
     files saved with the old switch still load.
+  o New simulate_claims(): a simpler interface to simulate_function() with
+    short argument names (n_sims, frequency, severity_params, eel_layer,
+    agg_limit, ...), distributions chosen by name in any case, parameters
+    that may be named, and defaults for every optional feature.

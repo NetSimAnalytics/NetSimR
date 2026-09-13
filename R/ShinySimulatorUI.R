@@ -778,10 +778,17 @@ body {
 
 #' Script that applies and remembers the light / dark / system theme choice
 #'
+#' Shared by the simulator and the distribution fitting tool; each app remembers
+#' its own choice. With no stored choice the app follows the system setting.
+#' @param storage_key The localStorage key the choice is saved under.
 #' @noRd
-sim_theme_js <- "
+netsimr_theme_js <- function(storage_key) {
+  sub("__STORAGE_KEY__", storage_key, netsimr_theme_js_template, fixed = TRUE)
+}
+
+netsimr_theme_js_template <- "
 (function () {
-  var KEY = 'netsimr-simulator-theme';
+  var KEY = '__STORAGE_KEY__';
   var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
   function storedMode() {
@@ -980,7 +987,7 @@ shiny_simulator_ui <- bslib::page_navbar(
 
   header = tagList(
     tags$head(
-      tags$script(HTML(sim_theme_js)),
+      tags$script(HTML(netsimr_theme_js("netsimr-simulator-theme"))),
       tags$style(HTML(sim_ui_css))
     ),
     #Shiny's built-in busy indicators follow the app theme, so they work in dark mode too

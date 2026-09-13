@@ -4,11 +4,15 @@
 \alias{GLMFittingToolUI}
 \title{UI file for the Shiny GLM fitting tool}
 \usage{
-GLMFittingToolUI
+GLMFittingToolUI(request)
+}
+\arguments{
+\item{request}{The request, supplied by shiny.}
 }
 \value{
 Returns the UI code for the shiny application.
 }
 \description{
-UI file for the Shiny GLM fitting tool
+A function of the request, so that it is built when the app starts, after
+every helper of the package is defined.
 }

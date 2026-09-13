@@ -25,6 +25,61 @@ shiny_tool_on_start <- function() {
   onStop(function() options(old_options))
 }
 
+# Inputs of the GLM fitting tool that its settings file keeps, with how each is
+# restored. Passwords and uploaded files are never kept; "column" inputs refer
+# to columns of the data and are applied once data with that column is imported.
+glm_settings_inputs <- data.frame(
+  id = c("data_source", "csv_header", "csv_sep", "csv_dec", "csv_quote",
+         "db_type", "db_host", "db_name", "db_port", "windows_auth", "db_user", "sql_query",
+         "glm_distribution", "link_function", "offset_log", "formula", "number_of_bands_input", "band_method",
+         "response_variable", "offset", "weights", "visualize_variable"),
+  kind = c("radio", "switch", "radio", "radio", "radio",
+           "select", "text", "text", "text", "switch", "text", "textarea",
+           "select", "select", "switch", "textarea", "slider", "radio",
+           "column", "column", "column", "column"),
+  stringsAsFactors = FALSE
+)
+
+glm_settings_tool <- "NetSimR GLM fitting tool"
+
+# Allowed values of the inputs with a fixed set of choices.
+glm_settings_choices <- list(
+  data_source = c("CSV File", "Database"),
+  csv_sep = c(",", ";", "\t"),
+  csv_dec = c(".", ","),
+  csv_quote = c("\"", "'", ""),
+  db_type = c("MySQL", "SQLite", "SQL Server", "PostgreSQL"),
+  glm_distribution = c("gaussian", "poisson", "binomial", "Gamma", "inverse.gaussian"),
+  link_function = c("identity", "log", "inverse", "sqrt", "logit", "probit", "cloglog", "cauchit", "1/mu^2"),
+  band_method = c("quantile", "width")
+)
+
+# The usable values of a settings file: a named list of the known inputs whose
+# values have the right type (and an allowed value), or NULL when the file is not
+# a settings file. Files saved by earlier versions (every input of the app) are
+# read too; anything unknown, such as a password, is ignored.
+glm_settings_values <- function(settings) {
+  if (!is.list(settings)) return(NULL)
+  inputs <- if (identical(settings$tool, glm_settings_tool)) settings$inputs else settings
+  if (!is.list(inputs) || is.null(names(inputs))) return(NULL)
+  kinds <- stats::setNames(glm_settings_inputs$kind, glm_settings_inputs$id)
+  values <- list()
+  for (id in intersect(names(inputs), names(kinds))) {
+    value <- inputs[[id]]
+    if (!is.atomic(value) || length(value) != 1 || is.na(value)) next
+    ok <- switch(
+      kinds[[id]],
+      switch = is.logical(value),
+      slider = is.numeric(value) && is.finite(value),
+      is.character(value)
+    )
+    if (!ok) next
+    if (!is.null(glm_settings_choices[[id]]) && !value %in% glm_settings_choices[[id]]) next
+    values[[id]] <- value
+  }
+  if (length(values) == 0) NULL else values
+}
+
 # Database driver packages used by the GLM fitting tool. They are in Suggests,
 # so a user who only imports CSV files does not need to install them.
 glm_tool_db_packages <- c(
@@ -71,6 +126,12 @@ glm_tool_query_dbi <- function(driver, sql, ...) {
   con <- DBI::dbConnect(driver, ...)
   on.exit(DBI::dbDisconnect(con), add = TRUE)
   DBI::dbGetQuery(con, sql)
+}
+
+# A value for an ODBC connection string, in braces (with any closing brace
+# doubled), so that a ; in a host, user or password cannot add attributes.
+glm_tool_odbc_value <- function(x) {
+  paste0("{", gsub("}", "}}", if (is.null(x)) "" else x, fixed = TRUE), "}")
 }
 
 # Runs a query through an ODBC connection string and always closes the connection.
