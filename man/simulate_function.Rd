@@ -81,6 +81,7 @@ simulate_function(
 }
 \value{
 A data frame with claims counts, ceded claims and the number of reinstatements used.
+Stops with an error that names any required setting that is missing or not a number.
 }
 \description{
 A function to simulate frequency - severity of insurance claims using chunked vectorisation.

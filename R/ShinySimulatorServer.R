@@ -6,7 +6,6 @@
 #' @return Returns server rendering for the shiny application.
 #' @import rmarkdown
 #' @import shiny
-#' @import shinybusy
 #' @import future.apply
 #' @import data.table
 #' @importFrom future plan
@@ -41,6 +40,7 @@ shiny_simulator_server = function(input, output, session) {
       ,label = object@param_labels[param_id]
       ,min = object@param_min_values[param_id]
       ,max = object@param_max_values[param_id]
+      ,step = if (isTRUE(object@param_whole_numbers[param_id])) 1 else NA
       ,value = NULL
     )
     })}
@@ -131,31 +131,15 @@ shiny_simulator_server = function(input, output, session) {
   #create simulation data dataFrame reactive to enable download buttons & simulation settings list
   simulated_data <- reactiveValues(data=NULL)
   simulation_settings <- list()
-  is_running <- reactiveVal(FALSE)
-
-  observe({
-    if (is_running()) {
-      updateActionButton(session, "RunSimulations", label = "Running...")
-    } else {
-      updateActionButton(session, "RunSimulations", label = "Run Simulations")
-    }
-  })
 
   #run simulation button
+  #the browser disables the button and shows "Running..." on click; this message re-enables it
   observeEvent(input$RunSimulations,{
-    if (is_running()) return(NULL)
-    is_running(TRUE)
+    on.exit(session$sendCustomMessage("netsimr-run-finished", TRUE), add = TRUE)
 
-    on.exit({
-      is_running(FALSE)
-      hide_spinner()
-      gc()
-    }, add = TRUE)
-
-    show_spinner()
-
-    #set parameters
-    simulation_settings <<- list(
+    #collect the settings for this run
+    pareto_slice_count <- if (is.null(input$pareto_slice_times)) 0 else as.numeric(input$pareto_slice_times)
+    new_settings <- list(
       freq_params = unname(sapply(
         freq_dist_options[[input$freqDistr]]@paramIDs
         ,function(x) input[[x]]
@@ -172,11 +156,11 @@ shiny_simulator_server = function(input, output, session) {
       ,paretoSlice = input$paretoSlice
       ,pareto_slice_times = as.numeric(input$pareto_slice_times)
       ,slice_pareto_alphas = if(input$paretoSlice){unname(sapply(
-        1:as.numeric(input$pareto_slice_times)
+        seq_len(pareto_slice_count)
         ,function(y) input[[paste0("slice_pareto_param_", y*2-1)]]
       ))}
       ,slice_pareto_x_ms = if(input$paretoSlice){unname(sapply(
-        1:as.numeric(input$pareto_slice_times)
+        seq_len(pareto_slice_count)
         ,function(y) input[[paste0("slice_pareto_param_", y*2)]]
       ))}
       ,sevCapBinary = input$sevCapBinary
@@ -191,6 +175,27 @@ shiny_simulator_server = function(input, output, session) {
       ,reinsuranceStructureLimitedReinstatements = input$reinsuranceStructureLimitedReinstatements
       ,reinsuranceStructureReinstatementLimit = input$reinsuranceStructureReinstatementLimit
     )
+
+    #stop before running and tell the user which fields are empty
+    missing_settings <- find_missing_simulation_settings(new_settings)
+    if (length(missing_settings) > 0) {
+      showNotification(
+        tags$div(
+          tags$strong("Please fix these settings before running:"),
+          tags$ul(lapply(missing_settings, tags$li))
+        ),
+        type = "error",
+        duration = 10,
+        id = "missing_settings_notice"
+      )
+      return(NULL)
+    }
+    removeNotification("missing_settings_notice")
+
+    simulation_settings <<- new_settings
+
+    on.exit(gc(), add = TRUE)
+
     #run simmulations
     simulated_data$data <- tryCatch(
       {
@@ -208,18 +213,10 @@ shiny_simulator_server = function(input, output, session) {
     )
   })
 
-  is_downloading_report <- reactiveVal(FALSE)
-
+  #the browser shows "Preparing report..." on click; the report handler re-enables the button
   output$downloadReportButton <- renderUI({
     req(simulated_data$data)
-
-    label <- if (is_downloading_report()) {
-      "Preparing report..."
-    } else {
-      "Report"
-    }
-
-    downloadButton('downloadReportHandler', label, icon = icon("file-lines"), class = "btn-outline-primary")
+    downloadButton('downloadReportHandler', 'Report', icon = icon("file-lines"), class = "btn-outline-primary")
   })
 
   #download data button
@@ -244,8 +241,7 @@ shiny_simulator_server = function(input, output, session) {
   output$downloadReportHandler <- downloadHandler(
     filename = "simulation_report.html",
     content = function(file) {
-      is_downloading_report(TRUE)
-      on.exit(is_downloading_report(FALSE), add = TRUE)
+      on.exit(session$sendCustomMessage("netsimr-report-finished", TRUE), add = TRUE)
 
       showNotification(
         "Preparing report, save dialog will appear shortly...",
@@ -263,12 +259,35 @@ shiny_simulator_server = function(input, output, session) {
         )
 
         incProgress(0.5, detail = "Rendering report")
-        rmarkdown::render(
-          tempReport,
-          output_file = file,
-          quiet = TRUE,
-          params = append(simulation_settings, list(total_claims_data = simulated_data$data$total_claims)),
-          envir = new.env(parent = globalenv())
+        report_params <- append(simulation_settings, list(
+          total_claims_data = simulated_data$data$total_claims
+          #readable names so the report can show e.g. "Negative Binomial: r = 2, beta = 1"
+          ,freq_distr_label = freq_dist_options[[simulation_settings$freqDistr]]@distr_label
+          ,sev_distr_label = sev_dist_options[[simulation_settings$sevDistr]]@distr_label
+          ,freq_param_labels = freq_dist_options[[simulation_settings$freqDistr]]@param_labels
+          ,sev_param_labels = sev_dist_options[[simulation_settings$sevDistr]]@param_labels
+        ))
+        #pass only the fields the template declares, so an older copy of the template still renders
+        declared_params <- names(rmarkdown::yaml_front_matter(tempReport)$params)
+        report_params <- report_params[names(report_params) %in% declared_params]
+
+        tryCatch(
+          rmarkdown::render(
+            tempReport,
+            output_file = file,
+            quiet = TRUE,
+            params = report_params,
+            envir = new.env(parent = globalenv())
+          ),
+          error = function(cond) {
+            #without this the download just fails, with the reason only in the R console
+            showNotification(
+              paste("The report could not be created:", conditionMessage(cond)),
+              type = "error",
+              duration = NULL
+            )
+            stop(cond)
+          }
         )
 
         incProgress(1, detail = "Done")

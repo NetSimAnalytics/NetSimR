@@ -65,6 +65,7 @@ distributionClass <- setClass("distributionClass", slots = c(
   ,param_labels="character"
   ,param_min_values="numeric"
   ,param_max_values="numeric"
+  ,param_whole_numbers="logical"
   ,simulate_func = "function"
 ))
 
@@ -99,6 +100,7 @@ freq_dist_options <- c(
     ,param_labels=c("n", "p")
     ,param_min_values=c(0,0)
     ,param_max_values=c(NA,1)
+    ,param_whole_numbers=c(TRUE, FALSE)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rbinom(n = number_of_simulations, size = parameters[1], prob = parameters[2])
     )}
@@ -109,6 +111,7 @@ freq_dist_options <- c(
     ,paramIDs=c("FixedNumberOfCounts")
     ,param_labels=c("FixedNumberOfCounts")
     ,param_min_values=c(0)
+    ,param_whole_numbers=c(TRUE)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rep(parameters[1], number_of_simulations)
     )}
@@ -143,7 +146,6 @@ sev_dist_options <- c(
     ,paramIDs=c("mu", "sigma")
     ,param_labels=c("mu", "sigma")
     ,param_min_values=c(0,0)
-    ,param_max_values=c(NA,1)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rlnorm(n = number_of_simulations, meanlog = parameters[1], sdlog = parameters[2])
     )}
@@ -154,7 +156,6 @@ sev_dist_options <- c(
     ,paramIDs=c("shape", "scale")
     ,param_labels=c("shape", "scale")
     ,param_min_values=c(0,0)
-    ,param_max_values=c(NA,1)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rgamma(n = number_of_simulations, shape = parameters[1], scale = parameters[2])
     )}
@@ -199,6 +200,93 @@ sev_dist_parameter_placeholders <- data.frame(
   ,param_id = paste0("sev_param_", 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs))))
 )
 
+#' Find missing or non-numeric simulation settings
+#'
+#' Checks every numeric setting that the chosen options require.
+#'
+#' @param settings A named list of \code{simulate_function} arguments.
+#' @return A character vector naming each setting that is missing or not a number.
+#' An empty vector means the settings are complete.
+#' @noRd
+find_missing_simulation_settings <- function(settings) {
+  s <- settings
+  problems <- character(0)
+  is_number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
+  nth <- function(x, i) if (i <= length(x)) x[[i]] else NULL
+  check <- function(value, label) {
+    if (!is_number(value)) problems <<- c(problems, label)
+  }
+  check_params <- function(values, distr, options, group) {
+    if (!(is.character(distr) && length(distr) == 1 && distr %in% names(options))) {
+      problems <<- c(problems, paste(group, "distribution"))
+      return(invisible(NULL))
+    }
+    labels <- options[[distr]]@param_labels
+    whole <- options[[distr]]@param_whole_numbers
+    for (i in seq_along(labels)) {
+      value <- nth(values, i)
+      label <- paste0(group, " parameter '", labels[i], "'")
+      if (!is_number(value)) {
+        problems <<- c(problems, label)
+      } else if (isTRUE(whole[i]) && value != round(value)) {
+        #claim counts and Binomial n cannot be fractional
+        problems <<- c(problems, paste(label, "must be a whole number"))
+      }
+    }
+  }
+
+  check(s$numOfSimulations, "Number of simulations")
+  check_params(s$freq_params, s$freqDistr, freq_dist_options, "Frequency")
+  check_params(s$sev_params, s$sevDistr, sev_dist_options, "Severity")
+  if (isTRUE(s$seedSetBinary)) check(s$seedValue, "Seed value")
+
+  if (isTRUE(s$paretoSlice)) {
+    if (!is_number(s$pareto_slice_times)) {
+      problems <- c(problems, "Number of Pareto Slices")
+    } else {
+      for (j in seq_len(s$pareto_slice_times)) {
+        check(nth(s$slice_pareto_alphas, j), paste("Sliced alpha", j))
+        check(nth(s$slice_pareto_x_ms, j), paste("Sliced x_m", j))
+      }
+      #each slice replaces the tail above its threshold, so thresholds must increase
+      x_ms <- utils::head(suppressWarnings(as.numeric(unlist(s$slice_pareto_x_ms))), s$pareto_slice_times)
+      if (length(x_ms) == s$pareto_slice_times && length(x_ms) > 1 &&
+          !anyNA(x_ms) && any(diff(x_ms) <= 0)) {
+        problems <- c(problems, "Sliced x_m values must increase from one slice to the next")
+      }
+    }
+  }
+
+  if (isTRUE(s$sevCapBinary)) check(s$sev_cap_amount, "Severity Cap Amount")
+
+  layers_with_deductible <- c('Unlimited Layer', 'Limited Layer', 'Exclude Layer')
+  layers_with_limit <- c('Limited Layer', 'Exclude Layer')
+
+  is_structure <- function(x) is.character(x) && length(x) == 1 && x %in% reinsurance_structures_options
+  if (!is_structure(s$reinsuranceStructureEEL)) problems <- c(problems, "EEL reinsurance structure")
+  if (!is_structure(s$reinsuranceStructureAL)) problems <- c(problems, "AL reinsurance structure")
+
+  if (isTRUE(s$reinsuranceStructureEEL %in% layers_with_deductible)) {
+    check(s$reinsurance_structure_eel_dedctible_amount, "EEL Deductible Amount")
+  }
+  if (isTRUE(s$reinsuranceStructureEEL %in% layers_with_limit)) {
+    check(s$reinsurance_structure_eel_limit_amount, "EEL Limit Amount")
+  }
+  if (isTRUE(s$reinsuranceStructureEEL == 'Limited Layer') &&
+      isTRUE(s$reinsuranceStructureLimitedReinstatements)) {
+    check(s$reinsuranceStructureReinstatementLimit, "Number of Reinstatements")
+  }
+
+  if (isTRUE(s$reinsuranceStructureAL %in% layers_with_deductible)) {
+    check(s$reinsurance_structure_al_dedctible_amount, "AL Deductible Amount")
+  }
+  if (isTRUE(s$reinsuranceStructureAL %in% layers_with_limit)) {
+    check(s$reinsurance_structure_al_limit_amount, "AL Limit Amount")
+  }
+
+  problems
+}
+
 #' A function to simulate frequency - severity of insurance claims using chunked vectorisation.
 #' The function applies severity cap, reinsurance structure for each and every loss claim,
 #' reinsurance structure for aggregate claims, and allows for piecewise pareto slices.
@@ -227,6 +315,7 @@ sev_dist_parameter_placeholders <- data.frame(
 #' @param multiprocessing True if multiprocessing is used, otherwise false.
 #' @param chunk_size The number of simulations processed per vectorised batch. Defaults to 10000.
 #' @return A data frame with claims counts, ceded claims and the number of reinstatements used.
+#' Stops with an error that names any required setting that is missing or not a number.
 #' @export
 #' @import data.table
 simulate_function <- function(
@@ -254,8 +343,35 @@ simulate_function <- function(
     multiprocessing,
     chunk_size = 10000
 ){
+  #collect the settings; arguments not needed for the chosen options may be omitted,
+  #and an omitted argument without a default is treated as not set (NULL)
+  arg_env <- environment()
+  arg_defaults <- formals(sys.function())
+  has_no_default <- vapply(arg_defaults, function(d) is.symbol(d) && as.character(d) == "", logical(1))
+  settings <- list()
+  for (arg in names(arg_defaults)) {
+    if (has_no_default[[arg]] && do.call(missing, list(as.name(arg)), envir = arg_env)) {
+      assign(arg, NULL, envir = arg_env)
+    }
+    settings[arg] <- list(get(arg, envir = arg_env))
+  }
+
+  #stop early with a clear message if a required setting is missing
+  missing_settings <- find_missing_simulation_settings(settings)
+  if (length(missing_settings) > 0) {
+    stop("Missing or invalid settings: ", paste(missing_settings, collapse = ", "), call. = FALSE)
+  }
+
+  #parameters may be supplied as lists; use plain numeric vectors from here on
+  freq_params <- as.numeric(unlist(freq_params))
+  sev_params <- as.numeric(unlist(sev_params))
+  if (isTRUE(paretoSlice)) {
+    slice_pareto_alphas <- as.numeric(unlist(slice_pareto_alphas))
+    slice_pareto_x_ms <- as.numeric(unlist(slice_pareto_x_ms))
+  }
+
   #set custom seed
-  if(seedSetBinary){set.seed(seedValue)}
+  if(isTRUE(seedSetBinary)){set.seed(seedValue)}
 
   n_chunks <- ceiling(numOfSimulations / chunk_size)
   chunk_sizes <- rep(chunk_size, n_chunks)
@@ -287,7 +403,7 @@ simulate_function <- function(
     )
 
     #apply pareto slices using logical indexing (only redraws claims above threshold)
-    if(paretoSlice){
+    if(isTRUE(paretoSlice)){
       for(j in 1:pareto_slice_times){
         idx <- claims > slice_pareto_x_ms[j]
         if(any(idx)){
@@ -299,7 +415,7 @@ simulate_function <- function(
     #apply severity cap
     claims <- apply_severity_cap(
       claims
-      ,severity_cap_boolean = sevCapBinary
+      ,severity_cap_boolean = isTRUE(sevCapBinary)
       ,severity_cap_amount = sev_cap_amount
     )
 
@@ -321,19 +437,33 @@ simulate_function <- function(
     return(list(claim_counts = counts, total_claims = totals))
   }
 
-  #run chunks, optionally in parallel across chunks (not per-simulation)
-  #run chunks, optionally in parallel across chunks (not per-simulation)
-  if (multiprocessing) {
-    future::plan(future::multisession)
-    on.exit(future::plan(future::sequential), add = TRUE)
+  #shiny progress bars and notifications only work inside a running shiny app
+  in_shiny_session <- !is.null(shiny::getDefaultReactiveDomain())
 
-    shiny::showNotification(
-      "Running in parallel. Live progress is not available in multiprocessing mode.",
-      type = "message",
-      duration = NULL,
-      id = "parallel_sim_notice"
-    )
-    on.exit(shiny::removeNotification("parallel_sim_notice"), add = TRUE)
+  run_chunks_sequentially <- function(on_chunk_done = function(i) NULL) {
+    res <- vector("list", length(chunk_sizes))
+    for (i in seq_along(chunk_sizes)) {
+      res[[i]] <- simulate_chunk(chunk_sizes[i])
+      on_chunk_done(i)
+    }
+    res
+  }
+
+  #run chunks, optionally in parallel across chunks (not per-simulation)
+  if (isTRUE(multiprocessing)) {
+    #restore the caller's future plan afterwards
+    old_plan <- future::plan(future::multisession)
+    on.exit(future::plan(old_plan), add = TRUE)
+
+    if (in_shiny_session) {
+      shiny::showNotification(
+        "Running in parallel. Live progress is not available in multiprocessing mode.",
+        type = "message",
+        duration = NULL,
+        id = "parallel_sim_notice"
+      )
+      on.exit(shiny::removeNotification("parallel_sim_notice"), add = TRUE)
+    }
 
     chunk_results <- future.apply::future_lapply(
       chunk_sizes,
@@ -341,25 +471,21 @@ simulate_function <- function(
       future.seed = TRUE
     )
 
-  } else {
+  } else if (in_shiny_session) {
     chunk_results <- shiny::withProgress(
       message = "Running simulations",
       detail = paste("Processing", n_chunks, "chunks"),
       value = 0,
-      {
-        res <- vector("list", length(chunk_sizes))
-
-        for (i in seq_along(chunk_sizes)) {
-          res[[i]] <- simulate_chunk(chunk_sizes[i])
-          shiny::incProgress(
-            amount = 1 / length(chunk_sizes),
-            detail = paste("Chunk", i, "of", length(chunk_sizes))
-          )
-        }
-
-        res
-      }
+      run_chunks_sequentially(function(i) {
+        shiny::incProgress(
+          amount = 1 / length(chunk_sizes),
+          detail = paste("Chunk", i, "of", length(chunk_sizes))
+        )
+      })
     )
+
+  } else {
+    chunk_results <- run_chunks_sequentially()
   }
 
   data <- data.frame(
@@ -370,7 +496,7 @@ simulate_function <- function(
 
   #apply reinstatements
   if(reinsuranceStructureEEL %in% c('Limited Layer')){
-    if(reinsuranceStructureLimitedReinstatements){
+    if(isTRUE(reinsuranceStructureLimitedReinstatements)){
       data$total_claims <- apply_deductible_limit(
         data$total_claims
         ,'Limited Layer'

@@ -54,7 +54,13 @@ GLMFittingToolUI <- bslib::page_navbar(
   ),
 
   header = tagList(
-    shinybusy::use_busy_spinner(spin = "fading-circle", position = "full-page"),
+    #Shiny's built-in busy indicators: a top progress bar while the server works,
+    #plus spinners on outputs that are recalculating
+    useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
+    busyIndicatorOptions(
+      pulse_background = "linear-gradient(90deg, #14b8a6, #0f766e, #14b8a6)",
+      pulse_height = "4px"
+    ),
     tags$head(
       tags$style(HTML("
 :root {

@@ -723,6 +723,67 @@ sim_theme_js <- "
 })();
 "
 
+#' Script that shows busy states on the Run and Report buttons
+#'
+#' Server-side label updates only reach the browser after a run has finished,
+#' so the busy state is set in the browser on click and cleared by a server message.
+#' @noRd
+sim_run_state_js <- "
+(function () {
+  function setBusy(el, label) {
+    if (!el.hasAttribute('data-idle-html')) el.setAttribute('data-idle-html', el.innerHTML);
+    var spinner = document.createElement('span');
+    spinner.className = 'spinner-border spinner-border-sm me-2';
+    spinner.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '';
+    el.appendChild(spinner);
+    el.appendChild(document.createTextNode(label));
+    el.setAttribute('aria-busy', 'true');
+  }
+
+  function setIdle(el) {
+    if (!el) return;
+    if (el.hasAttribute('data-idle-html')) {
+      el.innerHTML = el.getAttribute('data-idle-html');
+      el.removeAttribute('data-idle-html');
+    }
+    el.removeAttribute('aria-busy');
+  }
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+
+    /* Shiny's own click handler on the button has already run by the time this
+       document-level listener fires, so the click is counted before the button is
+       disabled. The busy state must be set right away: the server's reply can
+       arrive before any deferred timer runs, especially in a background tab. */
+    var run = event.target.closest('#RunSimulations');
+    if (run && !run.disabled) {
+      run.disabled = true;
+      setBusy(run, 'Running...');
+    }
+
+    var report = event.target.closest('#downloadReportHandler');
+    if (report) {
+      if (report.classList.contains('disabled')) { event.preventDefault(); return; }
+      report.classList.add('disabled');
+      setBusy(report, 'Preparing report...');
+    }
+  });
+
+  /* Shiny requires message handlers to take exactly one argument */
+  Shiny.addCustomMessageHandler('netsimr-run-finished', function (message) {
+    var run = document.getElementById('RunSimulations');
+    if (run) { run.disabled = false; setIdle(run); }
+  });
+
+  Shiny.addCustomMessageHandler('netsimr-report-finished', function (message) {
+    var report = document.getElementById('downloadReportHandler');
+    if (report) { report.classList.remove('disabled'); setIdle(report); }
+  });
+})();
+"
+
 #' UI file for the Shiny NetSimR Simulator Tool
 #'
 #' @return Returns the UI code for the shiny application.
@@ -770,7 +831,13 @@ shiny_simulator_ui = bslib::page_navbar(
       tags$script(HTML(sim_theme_js)),
       tags$style(HTML(sim_ui_css))
     ),
-    use_busy_spinner(spin = "fading-circle", position = "full-page")
+    #Shiny's built-in busy indicators follow the app theme, so they work in dark mode too
+    useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
+    busyIndicatorOptions(
+      pulse_background = "linear-gradient(90deg, #60a5fa, #2563eb, #60a5fa)",
+      pulse_height = "4px"
+    ),
+    tags$script(HTML(sim_run_state_js))
   ),
 
   # ---------------------------------------------------------------- Welcome
@@ -883,7 +950,7 @@ shiny_simulator_ui = bslib::page_navbar(
         sim_card_header("gear", "Simulation", "Run settings and outputs"),
         bslib::card_body(
           sliderInput('numberOfSimulations', 'Number of simulations',
-                      min = 10*1000, max = 1000*1000, value = 10*1000, step = 10*1000,
+                      min = 10*1000, max = 1000*1000, value = 50*1000, step = 10*1000,
                       sep = ",", width = "100%"),
           bslib::input_switch('seedSetBinary', 'Custom seed', value = FALSE),
           uiOutput("seed_value"),

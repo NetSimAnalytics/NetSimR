@@ -12,7 +12,6 @@
 #' @import RPostgreSQL
 #' @importFrom shinyjs useShinyjs
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
-#' @import shinybusy
 #' @import reactable
 #' @importFrom plotly plotlyOutput
 #' @importFrom bslib page_navbar nav_panel layout_columns card card_body card_header navbar_options bs_theme font_google
@@ -20,7 +19,6 @@ GLMFittingToolServer = function(input, output, session) {
 
   #import data
   selected_data <- eventReactive(input$submit, {
-    show_spinner()
     result <- tryCatch({
       if (input$data_source == "Database") {
         # need to test all connectors work
@@ -88,7 +86,6 @@ GLMFittingToolServer = function(input, output, session) {
         }
 
         #return data
-        hide_spinner()
         return(df_input)
 
       } else if (input$data_source == "CSV File") {
@@ -96,15 +93,12 @@ GLMFittingToolServer = function(input, output, session) {
         # Read the uploaded CSV file
         file <- input$csv_file
         if (is.null(file)) {
-          hide_spinner()
           return(NULL)
         }
         df <- read.csv(file$datapath)
-        hide_spinner()
         return(df)
       }
     }, error = function(e) {
-      hide_spinner()
       showModal(modalDialog(
         title = "Error",
         "An error occurred while importing data. Please check your settings and try again.",
@@ -153,7 +147,6 @@ GLMFittingToolServer = function(input, output, session) {
   })
 
   fitted_model <- eventReactive(input$fit_model, {
-    show_spinner()
     tryCatch({
       offset_formula <- if (input$offset != "None") paste("offset(", input$offset, ") +", sep = "")
       formula_str <- paste(input$response_variable, "~", offset_formula, input$formula)
@@ -164,11 +157,9 @@ GLMFittingToolServer = function(input, output, session) {
         ,weights = if (input$weights != "None") eval(parse(text = input$weights)) else NULL
         ,family = eval(parse(text = paste0(input$glm_distribution, '(link = ', input$link_function,')')))
       )
-      hide_spinner()
       return(glm_model)
     }, error = function(e) {
       message("Model fitting failed:", e)
-      hide_spinner()
       return(NULL)
     })
   })
@@ -269,9 +260,7 @@ GLMFittingToolServer = function(input, output, session) {
 
   #visualisation
   fitness_plot <- eventReactive(input$execute_visualization, {
-    show_spinner()
     if (input$visualize_variable == "None") {
-      hide_spinner()
       return(NULL)
     }
     #create temporary dataframe
@@ -309,7 +298,6 @@ GLMFittingToolServer = function(input, output, session) {
     p <- layout(p, yaxis2 = list(title = 'Expopsure'))
     p <- layout(p, title = "Comparison of Actual and Predicted Values")
 
-    hide_spinner()
     return(p)
   })
 
