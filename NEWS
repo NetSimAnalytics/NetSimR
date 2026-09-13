@@ -82,3 +82,27 @@ Changes in Version 0.1.6
     theme. TVaR now averages exactly the worst share of simulations.
   o Shiny's built-in busy indicators replace the shinybusy package in the
     simulator and the GLM fitting tool.
+  o simulate_function() checks every distribution parameter against its range
+    (e.g. Poisson mean at least 0, Binomial probability between 0 and 1,
+    positive Gamma, Exponential and Pareto parameters) and checks that
+    deductibles, the cap and reinstatements are not negative and that limits
+    are positive, instead of failing or returning NA part-way through a run.
+    The Normal mean and the Log-Normal mu may now be negative, and the implied
+    moments are shown for them.
+  o simulate_function() random numbers: every chunk of simulations has its own
+    L'Ecuyer-CMRG stream, so a run gives the same results in sequence and in
+    parallel, and a fixed seed no longer changes the caller's random number
+    stream. Results for a given seed differ from earlier versions.
+  o simulate_function() is faster: Pareto slices are drawn in one step; when
+    nothing acts on individual claims, each year's total is drawn at once for
+    Normal, Gamma, Exponential and fixed severities; with the new argument
+    gross = FALSE and an each-and-every-loss layer only the claims that reach
+    the layer are drawn. The chunk size adapts to the expected number of
+    claims (new default chunk_size = NULL), which keeps memory use flat for
+    high claim frequencies. The new argument shortcuts = FALSE turns the
+    shortcuts off.
+  o simulate_function() has defaults for every optional argument, a progress
+    argument for progress reporting, and no longer calls Shiny itself.
+  o The Normal severity has its own parameter ids in the simulator, so values
+    no longer carry over between the Normal and the Log-Normal. Settings files
+    saved by earlier versions still load.

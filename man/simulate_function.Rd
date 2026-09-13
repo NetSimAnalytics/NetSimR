@@ -4,33 +4,36 @@
 \alias{simulate_function}
 \title{A function to simulate frequency - severity of insurance claims using chunked vectorisation.
 The function applies severity cap, reinsurance structure for each and every loss claim,
-reinsurance structure for aggregate claims, and allows for piecewise pareto slices.}
+reinsurance structure for aggregate claims, and allows for piecewise pareto slices}
 \usage{
 simulate_function(
   numOfSimulations,
   freq_params,
   sev_params,
-  seedSetBinary,
-  seedValue,
+  seedSetBinary = FALSE,
+  seedValue = NULL,
   freqDistr,
   sevDistr,
-  paretoSlice,
-  pareto_slice_times,
-  slice_pareto_alphas,
-  slice_pareto_x_ms,
-  sevCapBinary,
-  sev_cap_amount,
-  reinsuranceStructureEEL,
-  reinsurance_structure_eel_dedctible_amount,
-  reinsurance_structure_eel_limit_amount,
-  reinsuranceStructureAL,
-  reinsurance_structure_al_dedctible_amount,
-  reinsurance_structure_al_limit_amount,
-  reinsuranceStructureLimitedReinstatements,
-  reinsuranceStructureReinstatementLimit,
-  multiprocessing,
+  paretoSlice = FALSE,
+  pareto_slice_times = NULL,
+  slice_pareto_alphas = NULL,
+  slice_pareto_x_ms = NULL,
+  sevCapBinary = FALSE,
+  sev_cap_amount = NULL,
+  reinsuranceStructureEEL = "No Reinsurance Structure",
+  reinsurance_structure_eel_dedctible_amount = NULL,
+  reinsurance_structure_eel_limit_amount = NULL,
+  reinsuranceStructureAL = "No Reinsurance Structure",
+  reinsurance_structure_al_dedctible_amount = NULL,
+  reinsurance_structure_al_limit_amount = NULL,
+  reinsuranceStructureLimitedReinstatements = FALSE,
+  reinsuranceStructureReinstatementLimit = NULL,
+  multiprocessing = FALSE,
   sevTruncateAtZero = FALSE,
-  chunk_size = 10000
+  chunk_size = NULL,
+  gross = TRUE,
+  shortcuts = TRUE,
+  progress = NULL
 )
 }
 \arguments{
@@ -80,24 +83,37 @@ simulate_function(
 
 \item{sevTruncateAtZero}{True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.}
 
-\item{chunk_size}{The number of simulations processed per vectorised batch. Defaults to 10000.}
+\item{chunk_size}{The number of simulations processed per vectorised batch. By default (NULL) it is chosen from the expected number of claims per simulation, so that a batch holds about a million claims (between 100 and 10,000 simulations).}
+
+\item{gross}{True (the default) to return the gross total claims before reinsurance. Set it to FALSE when only the totals after the structures are needed: with an each-and-every-loss layer this allows drawing only the claims that reach the layer, which is much faster.}
+
+\item{shortcuts}{True (the default) to use exact shortcuts where the settings allow: when no layer, cap, Pareto slice or truncation acts on individual claims, each simulation's total is drawn in one step for the Normal, Gamma, Exponential and fixed severities; with \code{gross = FALSE} and a layer, only the claims above the deductible are drawn. The results follow the same distribution as without shortcuts. Set it to FALSE to simulate every claim.}
+
+\item{progress}{An optional function called after each chunk of a sequential run with the fraction done and a short description, e.g. to update a progress bar.}
 }
 \value{
-A data frame with one row per simulation: the claim count, the total claims after the reinsurance structures, the gross total claims before them, and the number of reinstatements used (when reinstatements are limited).
-Stops with an error that names any required setting that is missing or not a number.
+A data frame with one row per simulation: the claim count, the total claims after the reinsurance structures, the gross total claims before them (unless \code{gross = FALSE}), and the number of reinstatements used (when reinstatements are limited).
+Stops with an error that names any required setting that is missing or invalid.
 }
 \description{
 A function to simulate frequency - severity of insurance claims using chunked vectorisation.
 The function applies severity cap, reinsurance structure for each and every loss claim,
-reinsurance structure for aggregate claims, and allows for piecewise pareto slices.
+reinsurance structure for aggregate claims, and allows for piecewise pareto slices
+}
+\details{
+Random numbers: each chunk of simulations uses its own L'Ecuyer-CMRG random stream,
+derived from one seed, so a run gives the same results whether or not it runs in
+parallel. With \code{seedSetBinary = TRUE} the run is reproducible from \code{seedValue}
+and the caller's random number stream is left unchanged; otherwise the seed is drawn
+from the caller's stream, so \code{set.seed()} before the call also makes it reproducible.
+Results depend on the chunk size, which by default adapts to the expected number of
+claims per simulation.
 }
 \examples{
 # 1,000 simulated years of Poisson claim counts with Normal claim sizes, no reinsurance
 results <- simulate_function(
   numOfSimulations = 1000, freq_params = 3, sev_params = c(1000, 200),
-  seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
-  reinsuranceStructureEEL = "No Reinsurance Structure",
-  reinsuranceStructureAL = "No Reinsurance Structure", multiprocessing = FALSE
+  seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal"
 )
 summary(results$total_claims)
 
@@ -107,8 +123,7 @@ layer <- simulate_function(
   seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
   reinsuranceStructureEEL = "Limited Layer",
   reinsurance_structure_eel_dedctible_amount = 800,
-  reinsurance_structure_eel_limit_amount = 1500,
-  reinsuranceStructureAL = "No Reinsurance Structure", multiprocessing = FALSE
+  reinsurance_structure_eel_limit_amount = 1500
 )
 mean(layer$total_claims)
 }

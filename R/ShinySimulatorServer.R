@@ -265,7 +265,17 @@ shiny_simulator_server <- function(input, output, session) {
     #run simmulations
     simulated_data$data <- tryCatch(
       {
-        do.call(simulate_function, simulation_settings)
+        if (isTRUE(simulation_settings$multiprocessing)) {
+          showNotification("Running the simulations on the parallel workers...", type = "message", duration = 3, id = "parallel_run_notice")
+          do.call(simulate_function, simulation_settings)
+        } else {
+          #sequential runs report their progress chunk by chunk
+          shiny::withProgress(message = "Simulating", value = 0, {
+            do.call(simulate_function, c(simulation_settings, list(
+              progress = function(value, detail) shiny::setProgress(value, detail = detail)
+            )))
+          })
+        }
       }, error = function(cond) {
         future::plan(future::sequential)
         showNotification(

@@ -8,7 +8,7 @@ sim_settings_format <- "NetSimR simulator settings"
 #' Version of the saved settings format
 #'
 #' @noRd
-sim_settings_version <- 1
+sim_settings_version <- 2
 
 #' Name of the file offered by the save button
 #'
@@ -101,6 +101,26 @@ sim_settings_validate <- function(x) {
     if (!is.null(problem)) return(problem)
   }
   TRUE
+}
+
+#' Bring the inputs of an older settings file up to date
+#'
+#' Settings version 1 stored the Normal severity's mean and standard deviation under the
+#' Log-Normal's ids (mu, sigma); from version 2 the Normal has its own ids.
+#'
+#' @param inputs The named list of saved input values.
+#' @param version The settings version of the file.
+#' @return The inputs, with old ids renamed.
+#' @noRd
+sim_settings_migrate <- function(inputs, version) {
+  if (is.numeric(version) && length(version) == 1 && !is.na(version) && version < 2 &&
+      identical(inputs$sevDistr, "Normal")) {
+    if (is.null(inputs$normal_mean)) inputs$normal_mean <- inputs$mu
+    if (is.null(inputs$normal_sd)) inputs$normal_sd <- inputs$sigma
+    inputs$mu <- NULL
+    inputs$sigma <- NULL
+  }
+  inputs
 }
 
 #' Compare an input value with the value a settings file asks for
@@ -276,7 +296,7 @@ sim_settings_examples <- list(
   )
   ,"Simple: Normal claims truncated at zero" = list(
     freqDistr = "Poisson", lamda = 3
-    ,sevDistr = "Normal", mu = 1000, sigma = 600
+    ,sevDistr = "Normal", normal_mean = 1000, normal_sd = 600
     ,sevTruncateAtZero = TRUE
     ,numberOfSimulations = 20000
     ,seedSetBinary = FALSE
@@ -436,7 +456,7 @@ sim_settings_io_server <- function(input, output, session) {
       showNotification(paste(error_prefix, problem), type = "error", duration = 8)
       return(invisible(FALSE))
     }
-    entries <- sim_settings_plan(settings$inputs)
+    entries <- sim_settings_plan(sim_settings_migrate(settings$inputs, settings$version))
     is_pending <- vapply(entries, function(entry) !is.null(entry$gate), logical(1))
 
     #stage one: the controls that decide which fields exist
