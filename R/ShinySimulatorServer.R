@@ -4,14 +4,12 @@
 #' @param output Output for the server function.
 #' @param session Session for the server function.
 #' @return Returns server rendering for the shiny application.
-#' @import rmarkdown
 #' @import shiny
 #' @import future.apply
 #' @import data.table
 #' @importFrom future plan
 #' @importFrom future sequential
 #' @importFrom future multisession
-#' @import rmarkdown
 #' @import methods
 #' @import stats
 #' @import scales
@@ -249,35 +247,13 @@ shiny_simulator_server = function(input, output, session) {
         duration = 3
       )
 
-      shiny::withProgress(message = "Preparing report", value = 0, {
-        incProgress(0.2, detail = "Copying template")
-        tempReport <- normalizePath(file.path(tempdir(), "ShinySimulatorReport.Rmd"), mustWork = FALSE)
-        file.copy(
-          normalizePath(system.file("rmd", "ShinySimulatorReport.Rmd", package = "NetSimR")),
-          tempReport,
-          overwrite = TRUE
-        )
-
-        incProgress(0.5, detail = "Rendering report")
-        report_params <- append(simulation_settings, list(
-          total_claims_data = simulated_data$data$total_claims
-          #readable names so the report can show e.g. "Negative Binomial: r = 2, beta = 1"
-          ,freq_distr_label = freq_dist_options[[simulation_settings$freqDistr]]@distr_label
-          ,sev_distr_label = sev_dist_options[[simulation_settings$sevDistr]]@distr_label
-          ,freq_param_labels = freq_dist_options[[simulation_settings$freqDistr]]@param_labels
-          ,sev_param_labels = sev_dist_options[[simulation_settings$sevDistr]]@param_labels
-        ))
-        #pass only the fields the template declares, so an older copy of the template still renders
-        declared_params <- names(rmarkdown::yaml_front_matter(tempReport)$params)
-        report_params <- report_params[names(report_params) %in% declared_params]
-
+      shiny::withProgress(message = "Preparing report", value = 0.3, detail = "Building report", {
+        #the report is assembled in R (see write_simulation_report), so no pandoc is needed
         tryCatch(
-          rmarkdown::render(
-            tempReport,
-            output_file = file,
-            quiet = TRUE,
-            params = report_params,
-            envir = new.env(parent = globalenv())
+          write_simulation_report(
+            file = file,
+            settings = simulation_settings,
+            total_claims = simulated_data$data$total_claims
           ),
           error = function(cond) {
             #without this the download just fails, with the reason only in the R console

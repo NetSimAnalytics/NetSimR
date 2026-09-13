@@ -28,7 +28,7 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Take to excess by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess>.
 License: GPL-3
 Encoding: UTF-8
-Imports: rmarkdown, shiny (>= 1.8.1), future.apply, scales, future, parallel, methods, DBI, RMySQL, RODBC, RPostgreSQL, RSQLite, plotly, shinyjs, MASS, fitdistrplus, Pareto, data.table, reactable, bslib
-Suggests: knitr, crch, testthat
+Imports: shiny (>= 1.8.1), htmltools, base64enc, future.apply, scales, future, parallel, methods, DBI, RMySQL, RODBC, RPostgreSQL, RSQLite, plotly, shinyjs, MASS, fitdistrplus, Pareto, data.table, reactable, bslib
+Suggests: knitr, rmarkdown, crch, testthat
 VignetteBuilder: knitr
 RoxygenNote: 8.0.0

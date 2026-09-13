@@ -893,19 +893,19 @@ shiny_simulator_ui = bslib::page_navbar(
         class = "sim-stat",
         div(class = "sim-stat-label", icon("chart-bar"), "Frequency models"),
         div(class = "sim-stat-value",
-            paste(unname(sapply(freq_dist_options, function(x) x@distr_label)), collapse = " · "))
+            paste(unname(sapply(freq_dist_options, function(x) x@distr_label)), collapse = paste0(" ", intToUtf8(183), " ")))
       ),
       div(
         class = "sim-stat",
         div(class = "sim-stat-label", icon("chart-line"), "Severity models"),
         div(class = "sim-stat-value",
-            paste(unname(sapply(sev_dist_options, function(x) x@distr_label)), collapse = " · "))
+            paste(unname(sapply(sev_dist_options, function(x) x@distr_label)), collapse = paste0(" ", intToUtf8(183), " ")))
       ),
       div(
         class = "sim-stat",
         div(class = "sim-stat-label", icon("shield-halved"), "Reinsurance"),
         div(class = "sim-stat-value",
-            paste(setdiff(reinsurance_structures_options, "No Reinsurance Structure"), collapse = " · "))
+            paste(setdiff(reinsurance_structures_options, "No Reinsurance Structure"), collapse = paste0(" ", intToUtf8(183), " ")))
       )
     ),
 
