@@ -4,3 +4,5 @@
 ^CRAN-SUBMISSION$
 ^tests/testthat/_problems$
 ^\.claude$
+^.*\.tar\.gz$
+^.*\.Rcheck$
