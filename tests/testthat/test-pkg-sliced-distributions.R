@@ -89,6 +89,58 @@ test_that("sliced Gamma-Pareto documented examples give the same values as befor
   expect_equal(dSlicedGammaPareto(3000, 1, 0.0005, 1000, 1.2), 6.49183158710909e-05, tolerance = 1e-9)
 })
 
+test_that("sliced functions recycle every argument, including vector parameters", {
+  #one value per row, so each argument has its own length; ifelse() used to take its length
+  #from the claim amount and slice point only and drop the other parameters' extra values
+  elementwise <- function(f, ...) {
+    args <- data.frame(...)
+    vapply(seq_len(nrow(args)), function(i) do.call(f, unname(as.list(args[i, ]))), numeric(1))
+  }
+  check <- function(f, ...) expect_equal(f(...), elementwise(f, ...), tolerance = 1e-12)
+  shapes <- c(1.2, 2, 3)
+  gamma_pars <- list(GShape = c(1.2, 2, 0.8), GRate = 4e-4, SlicePoint = 3000, PShape = 1.4)
+  for (f in list(pSlicedGammaPareto, dSlicedGammaPareto, SlicedGammaParetoCappedMean, ExposureCurveSlicedGammaPareto)) {
+    check(f, 5000, c(1.2, 2, 0.8), 4e-4, 3000, 1.4)
+    check(f, 5000, 1.2, c(4e-4, 1e-3, 2e-4), 3000, 1.4)
+    check(f, 5000, 1.2, 4e-4, 3000, shapes)
+    check(f, c(1000, 5000), 1.2, 4e-4, 3000, c(1.4, 1.4, 2, 2))
+  }
+  check(qSlicedGammaPareto, 0.9, 1, 5e-4, 1000, shapes)
+  check(qSlicedGammaPareto, 0.9, c(1, 2, 3), 5e-4, 1000, 1.2)
+  check(SlicedGammaParetoMean, c(1.2, 2, 0.8), 4e-4, 3000, 1.4)
+  check(SlicedGammaParetoMean, 1.2, 4e-4, 3000, shapes)
+  check(ILFSlicedGammaPareto, 2000, 5000, c(1.2, 2, 0.8), 4e-4, 3000, 1.4)
+  check(ILFSlicedGammaPareto, 2000, 5000, 1.2, 4e-4, 3000, shapes)
+  for (f in list(pSlicedLNormPareto, dSlicedLNormPareto, SlicedLNormParetoCappedMean, ExposureCurveSlicedLNormPareto)) {
+    check(f, 5000, c(6, 7, 7.5), 1.5, 3000, 1.4)
+    check(f, 5000, 6, c(1.5, 1, 2), 3000, 1.4)
+    check(f, 5000, 6, 1.5, 3000, shapes)
+    check(f, c(1000, 5000), 6, 1.5, 3000, c(1.4, 1.4, 2, 2))
+  }
+  check(qSlicedLNormPareto, 0.9, 6, 1.5, 1000, shapes)
+  check(qSlicedLNormPareto, 0.9, c(6, 7, 8), 1.5, 1000, 1.2)
+  check(SlicedLNormParetoMean, 6, 1.5, 3000, shapes)
+  check(ILFSlicedLNormPareto, 2000, 5000, c(6, 7, 7.5), 1.5, 3000, 1.4)
+  check(ILFSlicedLNormPareto, 2000, 5000, 6, 1.5, 3000, shapes)
+  #the reported case: the second value used to be 0.3313
+  expect_equal(ExposureCurveSlicedGammaPareto(5000, c(1.2, 2), 4e-4, 3000, 1.4), c(0.5193966168, 0.4641285645), tolerance = 1e-9)
+  #lengths that do not recycle are an error rather than silently truncated
+  expect_error(pSlicedGammaPareto(1:2, 1:3, 4e-4, 3000, 1.4))
+})
+
+test_that("sliced quantile functions keep their precision as q approaches 1", {
+  #1 - q is exact for q = 1 - 2^-40, so the Pareto tail gives the quantile in closed form
+  q <- 1 - 2^-40
+  upper <- pgamma(1000, 1, 5e-4, lower.tail = FALSE)
+  expect_equal(qSlicedGammaPareto(q, 1, 5e-4, 1000, 1.2), 1000 * (upper * 2^40)^(1 / 1.2), tolerance = 1e-13)
+  upper <- plnorm(1000, 6, 1.5, lower.tail = FALSE)
+  expect_equal(qSlicedLNormPareto(q, 6, 1.5, 1000, 1.2), 1000 * (upper * 2^40)^(1 / 1.2), tolerance = 1e-13)
+  #the quantile function inverts the survival function far in the tail
+  x <- qSlicedGammaPareto(1 - 1e-12, 1, 5e-4, 1000, 1.2)
+  expect_equal(pgamma(1000, 1, 5e-4, lower.tail = FALSE) * (1000 / x)^1.2, 1e-12, tolerance = 1e-10)
+  expect_equal(qSlicedGammaPareto(1, 1, 5e-4, 1000, 1.2), Inf)
+})
+
 test_that("sliced LogNormal-Pareto documented examples give the same values as before", {
   expect_equal(SlicedLNormParetoMean(6, 1.5, 1000, 1.2), 1865.63324717588, tolerance = 1e-9)
   expect_equal(SlicedLNormParetoMean(c(5, 5.5, 6), 1.5, 1000, 1.1), c(1306.190, 2130.408, 3228.298), tolerance = 1e-6)

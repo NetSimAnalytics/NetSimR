@@ -28,9 +28,9 @@
 #'
 #' @param n_sims Number of simulations (e.g. years).
 #' @param frequency Name of the claim count distribution; see Details.
-#' @param frequency_params Parameters of the claim count distribution, in the order of Details or named.
+#' @param frequency_params Parameters of the claim count distribution, either all unnamed in the order of Details or all named.
 #' @param severity Name of the claim size distribution; see Details.
-#' @param severity_params Parameters of the claim size distribution, in the order of Details or named.
+#' @param severity_params Parameters of the claim size distribution, either all unnamed in the order of Details or all named.
 #' @param seed A whole number for a reproducible run. NULL (the default) uses the current random number stream, so \code{set.seed()} before the call also makes the run reproducible.
 #' @param truncate_at_zero TRUE to draw Normal claim sizes from the Normal distribution truncated at zero, so no claim is negative. Only used with the Normal severity.
 #' @param pareto_thresholds Increasing claim sizes above which the severity tail is replaced by Pareto slices, one per slice (at most six). NULL (the default) for no slices.
@@ -92,6 +92,11 @@ simulate_claims <- function(
     shortcuts = TRUE,
     progress = NULL
 ) {
+  claims_check_flag(truncate_at_zero, "truncate_at_zero")
+  claims_check_flag(parallel, "parallel")
+  claims_check_flag(gross, "gross")
+  claims_check_flag(shortcuts, "shortcuts")
+
   frequency_id <- claims_distribution_id(frequency, freq_dist_options, "frequency")
   severity_id <- claims_distribution_id(severity, sev_dist_options, "severity")
   freq_params <- claims_distribution_params(frequency_params, freq_dist_options[[frequency_id]], "frequency_params")
@@ -215,6 +220,10 @@ claims_distribution_params <- function(params, object, arg) {
   }
   given <- names(params)
   if (!is.null(given) && any(given != "")) {
+    if (any(is.na(given) | given == "")) {
+      stop("The parameters in ", arg, " must be all named or all unnamed: name every one (",
+           paste(friendly, collapse = ", "), ") or none.", call. = FALSE)
+    }
     position <- match(given, friendly)
     by_id <- match(given, object@paramIDs)
     position[is.na(position)] <- by_id[is.na(position)]
@@ -224,6 +233,18 @@ claims_distribution_params <- function(params, object, arg) {
     params <- params[order(position)]
   }
   unname(as.numeric(params))
+}
+
+#' Check that an option is a single TRUE or FALSE
+#'
+#' @param x The value given by the user.
+#' @param arg The argument name, for the error message.
+#' @noRd
+claims_check_flag <- function(x, arg) {
+  if (!(is.logical(x) && length(x) == 1 && !is.na(x))) {
+    stop(arg, " must be TRUE or FALSE.", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' Turn a layer name into its short name

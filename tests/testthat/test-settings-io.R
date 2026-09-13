@@ -44,6 +44,28 @@ test_that("only the slices in use are restored", {
   expect_false(any(c("slice_pareto_param_3", "slice_pareto_param_4") %in% ids))
 })
 
+test_that("the truncation switch is restored once, after the Normal severity", {
+  example <- sim_settings_collect(sim_settings_examples[["Simple: Normal claims truncated at zero"]])
+  entries <- sim_settings_plan(sim_settings_migrate(example$inputs, example$version))
+  ids <- vapply(entries, `[[`, character(1), "id")
+  expect_equal(sum(ids == "sevTruncateAtZero"), 1)
+  truncate <- entries[[which(ids == "sevTruncateAtZero")]]
+  expect_true(truncate$value)
+  expect_true(truncate$gate(list(sevDistr = "Normal")))
+  expect_false(truncate$gate(list(sevDistr = "LogNormal")))
+
+  #other severities do not use the switch
+  motor <- sim_settings_plan(sim_settings_examples[["Motor: excess of loss layer"]])
+  expect_false("sevTruncateAtZero" %in% vapply(motor, `[[`, character(1), "id"))
+
+  #loading the example queues the switch once, to be set when the Normal is on the page
+  shiny::testServer(sim_settings_io_server, {
+    session$setInputs(settingsIO_example = "Simple: Normal claims truncated at zero", settingsIO_load_example = 1)
+    queued <- vapply(pending(), `[[`, character(1), "id")
+    expect_equal(sum(queued == "sevTruncateAtZero"), 1)
+  })
+})
+
 test_that("six Pareto slices can be simulated", {
   res <- run_simulation(
     numOfSimulations = 500, paretoSlice = TRUE, pareto_slice_times = 6,

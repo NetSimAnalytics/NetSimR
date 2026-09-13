@@ -3,7 +3,8 @@
 #' @param input Input for the server function.
 #' @param output Output for the server function.
 #' @param session Session for the server function.
-#' @return Returns server rendering for the shiny application.
+#' @return Called by shiny for its side effects, the outputs and observers of a
+#'   session; the value is not used.
 #' @import shiny
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
 #' @importFrom plotly plotlyOutput
@@ -246,13 +247,21 @@ GLMFittingToolServer <- function(input, output, session) {
     }
     rhs <- paste(c(offset_term(spec$offset, spec$offset_log), terms_text), collapse = " + ")
     model_formula <- stats::as.formula(paste(term(spec$response), "~", rhs), env = globalenv())
-    # a text response of a binomial model is a factor: its first level is failure
-    if (spec$family == "binomial" && (is.character(model_data[[spec$response]]) || is.logical(model_data[[spec$response]]))) {
+    warnings <- character(0)
+    # a text response of a binomial model is a factor: glm() takes its first level as failure and
+    # every other level as success; a logical response is left as it is, TRUE being success
+    if (spec$family == "binomial" && is.character(model_data[[spec$response]])) {
       model_data[[spec$response]] <- factor(model_data[[spec$response]])
+      outcomes <- levels(model_data[[spec$response]])
+      if (length(outcomes) > 2) {
+        warnings <- paste0("the response has ", length(outcomes), " values: '", outcomes[1],
+                           "' is failure and every other value is success")
+      }
     }
-    # the call is written out, so that the summary shows the real formula, family and weights,
-    # and update() works on a downloaded model; the weights are a column of the data, so the rows
-    # left out for missing values leave out their weight too
+    # the call is written out, so that the summary shows the real formula, family and weights; it
+    # refers to the data as model_data, so update() on a downloaded model needs the data assigned to
+    # model_data or passed as data =. The weights are a column of the data, so the rows left out
+    # for missing values leave out their weight too
     family_call <- call(spec$family, link = link)
     weights_arg <- if (spec$weights != "None") as.name(spec$weights) else NULL
     fit_call <- if (is.null(weights_arg)) {
@@ -261,9 +270,8 @@ GLMFittingToolServer <- function(input, output, session) {
       bquote(stats::glm(.(model_formula), family = .(family_call), data = model_data, weights = .(weights_arg),
                         na.action = stats::na.exclude))
     }
-    warnings <- character(0)
     if (spec$offset != "None" && spec$offset_log && link != "log") {
-      warnings <- "an exposure offset only multiplies the mean with the log link"
+      warnings <- c(warnings, "an exposure offset only multiplies the mean with the log link")
     }
     model <- withCallingHandlers(
       eval(fit_call),
@@ -295,6 +303,12 @@ GLMFittingToolServer <- function(input, output, session) {
   # predictions for every row of the data the model was fitted to (NA where a variable is missing)
   model_predictions <- function(result) {
     unname(stats::predict(result$model, type = "response"))
+  }
+
+  # the response as glm() codes it (a text binomial response is 0 for its first level and 1 for
+  # every other), for every row of the data (NA where the fit left the row out)
+  model_actuals <- function(result) {
+    unname(stats::naresid(result$model$na.action, result$model$y))
   }
 
   fitted_model <- reactive({
@@ -460,7 +474,9 @@ GLMFittingToolServer <- function(input, output, session) {
       class = "glm-downloads",
       downloadButton("download_model", "Model (RDS)", class = "btn-outline-glm"),
       downloadButton("download_summary", "Model summary (text)", class = "btn-outline-glm"),
-      downloadButton("download_data_with_predictions", "Data with predictions (CSV)", class = "btn-outline-glm")
+      downloadButton("download_data_with_predictions", "Data with predictions (CSV)", class = "btn-outline-glm"),
+      dft_help("The model refers to its data as model_data: to update() it in R, assign the data to ",
+               "model_data first, or pass it to update() as data =.")
     )
   })
 
@@ -506,8 +522,8 @@ GLMFittingToolServer <- function(input, output, session) {
     df <- result$data
     variable <- input$visualize_variable
     validate(need(!is.null(variable) && variable %in% names(df), "Choose the explanatory variable."))
-    actual <- df[[spec$response]]
-    if (!is.numeric(actual)) actual <- as.numeric(as.factor(actual)) - 1
+    # the response as the model codes it, on the same scale as the prediction
+    actual <- model_actuals(result)
     predicted <- model_predictions(result)
     # the exposure: the offset column when the offset is its log, exp(offset) for a raw offset with the log link
     exposure <- if (spec$offset == "None") {

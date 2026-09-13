@@ -887,9 +887,6 @@ sim_run_state_js <- "
 })();
 "
 
-#' UI file for the Shiny NetSimR Simulator Tool
-#'
-#' @return Returns the UI code for the shiny application.
 #' The Pareto slices section of the Tail adjustments card
 #'
 #' All slice rows are in the page; the hidden number input pareto_slice_times decides
@@ -946,6 +943,9 @@ sim_pareto_slices_ui <- function() {
   )
 }
 
+#' UI file for the Shiny NetSimR Simulator Tool
+#'
+#' @return Returns the UI code for the shiny application.
 shiny_simulator_ui <- bslib::page_navbar(
   title = div(
     class = "sim-brand",
@@ -1108,8 +1108,9 @@ shiny_simulator_ui <- bslib::page_navbar(
       bslib::card(
         sim_card_header("gear", "Simulation", "Run settings and outputs"),
         bslib::card_body(
+          #the same limits as the validation in find_missing_simulation_settings()
           numericInput('numberOfSimulations', 'Number of simulations',
-                       value = 50000L, min = 1000L, max = 5000000L, step = 10000L),
+                       value = 50000L, min = 1L, max = max_number_of_simulations, step = 1L),
           bslib::input_switch('seedSetBinary', 'Custom seed', value = FALSE),
           uiOutput("seed_value"),
           bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),

@@ -533,9 +533,12 @@ dft_log_switch <- function(id) {
   bslib::input_switch(id, "Log scale for claim size", value = TRUE)
 }
 
-#' UI file for the Shiny distribution fitting tool
+#' User interface of the Shiny distribution fitting tool
 #'
-#' @return Returns the UI code for the shiny application.
+#' The page is built when the package is installed;
+#' run_shiny_distribution_fitting_tool() pairs it with
+#' distribution_fitting_tool_Server.
+#' @return The user interface of the application, a bslib navbar page.
 distribution_fitting_tool_UI <- bslib::page_navbar(
   title = div(
     class = "sim-brand",

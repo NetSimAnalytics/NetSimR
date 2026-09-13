@@ -34,11 +34,11 @@ simulate_claims(
 
 \item{frequency}{Name of the claim count distribution; see Details.}
 
-\item{frequency_params}{Parameters of the claim count distribution, in the order of Details or named.}
+\item{frequency_params}{Parameters of the claim count distribution, either all unnamed in the order of Details or all named.}
 
 \item{severity}{Name of the claim size distribution; see Details.}
 
-\item{severity_params}{Parameters of the claim size distribution, in the order of Details or named.}
+\item{severity_params}{Parameters of the claim size distribution, either all unnamed in the order of Details or all named.}
 
 \item{seed}{A whole number for a reproducible run. NULL (the default) uses the current random number stream, so \code{set.seed()} before the call also makes the run reproducible.}
 

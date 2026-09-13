@@ -2,8 +2,15 @@
 
 #' Parameter to set the maximum number of pareto slices
 #'
-#' @return The the maximum number of Pareto Slices.
+#' @return The maximum number of Pareto Slices.
 max_number_of_pareto_slices <- 6
+
+#' The largest number of simulations a run may have
+#'
+#' Used by the settings validation and by the number of simulations input of the app.
+#'
+#' @noRd
+max_number_of_simulations <- 10000000L
 
 #' Random Pareto generator with a minimum value
 #'
@@ -230,8 +237,12 @@ freq_dist_parameter_placeholders <- data.frame(
 
 #' A vector with the severity distribution objects
 #'
-#' The Normal distribution has its own parameter ids (normal_mean, normal_sd), so that
-#' switching between the Normal and the Log-Normal does not carry values across.
+#' A named list of \code{distributionClass} objects, one for each severity distribution
+#' of the simulator: Normal, LogNormal, Gamma, Exponential, Pareto and Fixed_Severity.
+#' The names are the values accepted by the \code{sevDistr} argument of
+#' \code{simulate_function()}. The Normal distribution has its own parameter ids
+#' (normal_mean, normal_sd), so that switching between the Normal and the Log-Normal in
+#' the app does not carry values across.
 #'
 #' @return The severity distribution objects.
 sev_dist_options <- c(
@@ -563,8 +574,11 @@ find_missing_simulation_settings <- function(settings) {
   if (!is_number(s$numOfSimulations)) {
     problems <- c(problems, "Number of simulations")
   } else if (s$numOfSimulations != round(s$numOfSimulations) ||
-             s$numOfSimulations < 1 || s$numOfSimulations > 10000000) {
-    problems <- c(problems, "Number of simulations must be a whole number between 1 and 10,000,000")
+             s$numOfSimulations < 1 || s$numOfSimulations > max_number_of_simulations) {
+    problems <- c(problems, paste(
+      "Number of simulations must be a whole number between 1 and"
+      ,format(max_number_of_simulations, big.mark = ",")
+    ))
   }
   if (!is.null(s$chunk_size)) check_amount(s$chunk_size, "Chunk size", minimum = 1, whole = TRUE)
   check_params(s$freq_params, s$freqDistr, freq_dist_options, "Frequency")
@@ -574,6 +588,10 @@ find_missing_simulation_settings <- function(settings) {
       problems <- c(problems, "Seed value")
     } else if (s$seedValue != round(s$seedValue)) {
       problems <- c(problems, "Seed value must be a whole number")
+    } else if (abs(s$seedValue) > .Machine$integer.max) {
+      #set.seed() only takes integers
+      largest <- format(.Machine$integer.max, big.mark = ",")
+      problems <- c(problems, paste0("Seed value must be between -", largest, " and ", largest))
     }
   }
 
@@ -639,6 +657,8 @@ find_missing_simulation_settings <- function(settings) {
   problems
 }
 
+#' Simulate insurance claims with reinsurance structures
+#'
 #' A function to simulate frequency - severity of insurance claims using chunked vectorisation.
 #' The function applies severity cap, reinsurance structure for each and every loss claim,
 #' reinsurance structure for aggregate claims, and allows for piecewise pareto slices
@@ -648,6 +668,8 @@ find_missing_simulation_settings <- function(settings) {
 #' parallel. With \code{seedSetBinary = TRUE} the run is reproducible from \code{seedValue}
 #' and the caller's random number stream is left unchanged; otherwise the seed is drawn
 #' from the caller's stream, so \code{set.seed()} before the call also makes it reproducible.
+#' The streams always use Inversion for normal draws and Rejection sampling, so a seed
+#' gives the same results whatever the caller's \code{RNGkind()}, which is restored afterwards.
 #' Results depend on the chunk size, which by default adapts to the expected number of
 #' claims per simulation.
 #'
@@ -655,7 +677,7 @@ find_missing_simulation_settings <- function(settings) {
 #' @param freq_params A vector of the frequency distribution parameters.
 #' @param sev_params A vector of the severity distribution parameters.
 #' @param seedSetBinary True if there is a fixed seed, otherwise false.
-#' @param seedValue The seed value.
+#' @param seedValue The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}.
 #' @param freqDistr The frequency distribution. Options are as per the freq_dist_options.
 #' @param sevDistr The severity distribution. Options are as per the sev_dist_options.
 #' @param paretoSlice True if there is Pareto slicing.
@@ -672,7 +694,7 @@ find_missing_simulation_settings <- function(settings) {
 #' @param reinsurance_structure_al_limit_amount The limit for aggregate reinsurance structure.
 #' @param reinsuranceStructureLimitedReinstatements True if there is a limit in reinstatements, otherwise false.
 #' @param reinsuranceStructureReinstatementLimit The reinstatement limit.
-#' @param multiprocessing True if multiprocessing is used, otherwise false. An already active multi-worker future plan is reused; otherwise a multisession plan is started for the call and the caller's plan is restored afterwards.
+#' @param multiprocessing True to run the chunks in parallel with the future package, otherwise false. A future plan with more than one worker that the caller has already set is reused and left running. Otherwise the call starts a multisession plan with one worker per available core (\code{parallelly::availableCores()}), shuts those workers down when it finishes and restores the caller's plan, so every such call pays the start-up cost again. To choose the number of workers and reuse them across calls, set a plan first, e.g. \code{future::plan(future::multisession, workers = 4)}.
 #' @param sevTruncateAtZero True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.
 #' @param chunk_size The number of simulations processed per vectorised batch. By default (NULL) it is chosen from the expected number of claims per simulation, so that a batch holds about a million claims (between 100 and 10,000 simulations).
 #' @param gross True (the default) to return the gross total claims before reinsurance. Set it to FALSE when only the totals after the structures are needed: with an each-and-every-loss layer this allows drawing only the claims that reach the layer, which is much faster.
@@ -805,14 +827,17 @@ simulate_function <- function(
   }
   saved_kind <- RNGkind()
   on.exit({
-    RNGkind(saved_kind[1], saved_kind[2], saved_kind[3])
+    #restoring a "Rounding" sample kind warns; the caller chose it, so the warning is not ours
+    suppressWarnings(RNGkind(saved_kind[1], saved_kind[2], saved_kind[3]))
     if (is.null(saved_seed)) {
       if (exists(".Random.seed", envir = global_env, inherits = FALSE)) rm(".Random.seed", envir = global_env)
     } else {
       assign(".Random.seed", saved_seed, envir = global_env)
     }
   }, add = TRUE)
-  set.seed(base_seed, kind = "L'Ecuyer-CMRG")
+  #the normal and sample kinds are pinned too (the streams carry them), so that a seed gives
+  #the same results whatever the caller's RNGkind()
+  set.seed(base_seed, kind = "L'Ecuyer-CMRG", normal.kind = "Inversion", sample.kind = "Rejection")
   chunk_seeds <- vector("list", n_chunks)
   stream <- get(".Random.seed", envir = global_env)
   for (i in seq_len(n_chunks)) {

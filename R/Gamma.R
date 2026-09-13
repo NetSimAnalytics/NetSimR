@@ -12,7 +12,8 @@
 #' IGamma(1,1)
 #' IGamma(0.1,2)
 IGamma<-function(a,x){
-  gamma(a) * pgamma(x, shape = a, scale = 1, lower.tail = FALSE)
+  # combined on the log scale, so that gamma(a) does not overflow (a > 171.6) when the product is finite
+  exp(lgamma(a) + pgamma(x, shape = a, scale = 1, lower.tail = FALSE, log.p = TRUE))
 }
 
 
@@ -66,8 +67,8 @@ ExposureCurveGamma<-function(x,shape,rate){
 #' @return The value of the Increased Limit Factor curve from \code{xLow} to \code{xHigh} with Claim Severity from a Gamma distribution with parameters \code{shape} and \code{rate}.
 #' @export
 #' @examples
-#' ILFGamma(1000,700,1,0.0005)
-#' ILFGamma(1200,1000,1.5,0.0006)
+#' ILFGamma(700,1000,1,0.0005)
+#' ILFGamma(1000,1200,1.5,0.0006)
 ILFGamma<-function(xLow,xHigh,shape,rate){
   GammaCappedMean(xHigh,shape,rate)/GammaCappedMean(xLow,shape,rate)
 }

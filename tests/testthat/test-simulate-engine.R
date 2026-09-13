@@ -9,6 +9,30 @@ test_that("a fixed seed leaves the caller's random number stream unchanged", {
   expect_identical(RNGkind()[1], "Mersenne-Twister")
 })
 
+test_that("a fixed seed gives the same results whatever the caller's normal and sample kinds", {
+  old_kind <- RNGkind()
+  on.exit(suppressWarnings(RNGkind(old_kind[1], old_kind[2], old_kind[3])), add = TRUE)
+  RNGkind("default", "default", "default")
+  expected <- run_simulation(numOfSimulations = 500)
+
+  RNGkind(normal.kind = "Box-Muller")
+  set.seed(5)
+  seed_before <- .Random.seed
+  expect_identical(run_simulation(numOfSimulations = 500), expected)
+  expect_identical(RNGkind()[2], "Box-Muller")
+  expect_identical(.Random.seed, seed_before)
+
+  #restoring the "Rounding" sample kind afterwards must not warn
+  RNGkind(normal.kind = "Inversion")
+  suppressWarnings(RNGkind(sample.kind = "Rounding"))
+  suppressWarnings(set.seed(5))
+  seed_before <- .Random.seed
+  expect_no_warning(res <- run_simulation(numOfSimulations = 500))
+  expect_identical(res, expected)
+  expect_identical(RNGkind()[3], "Rounding")
+  expect_identical(.Random.seed, seed_before)
+})
+
 test_that("without a fixed seed, set.seed() before the call makes the run reproducible", {
   set.seed(9)
   first <- run_simulation(seedSetBinary = FALSE, seedValue = NULL)

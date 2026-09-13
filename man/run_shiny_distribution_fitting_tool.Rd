@@ -7,7 +7,9 @@
 run_shiny_distribution_fitting_tool()
 }
 \value{
-Opens the distribution fitting tool application
+A shiny app object. Printing it, as happens when the function is
+  called at the console, opens the application; it can also be passed to
+  shiny::runApp().
 }
 \description{
 A function to run the distribution fitting tool application

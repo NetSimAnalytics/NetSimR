@@ -97,6 +97,24 @@ test_that("truncation is used for the Normal and ignored with a warning otherwis
                  "truncate_at_zero is ignored")
 })
 
+test_that("the TRUE/FALSE options must be a single TRUE or FALSE", {
+  #gross = NA used to drop the gross column silently
+  run <- function(...) simulate_claims(100, "Poisson", 3, "LogNormal", c(6, 1.5), seed = 1, ...)
+  expect_error(run(gross = NA), "gross must be TRUE or FALSE")
+  expect_error(run(gross = "yes"), "gross must be TRUE or FALSE")
+  expect_error(run(shortcuts = c(TRUE, FALSE)), "shortcuts must be TRUE or FALSE")
+  expect_error(run(parallel = NA), "parallel must be TRUE or FALSE")
+  expect_error(run(parallel = 1), "parallel must be TRUE or FALSE")
+  expect_error(run(truncate_at_zero = NULL), "truncate_at_zero must be TRUE or FALSE")
+})
+
+test_that("parameters mixing named and unnamed values get a clear error", {
+  expect_error(simulate_claims(100, "Poisson", 3, "LogNormal", c(8, sdlog = 1.5)),
+               "severity_params must be all named or all unnamed.*meanlog, sdlog")
+  expect_error(simulate_claims(100, "Negative_Binomial", list(2, beta = 1.5), "LogNormal", c(8, 1.5)),
+               "frequency_params must be all named or all unnamed.*r, beta")
+})
+
 test_that("gross = FALSE and the progress callback pass through", {
   calls <- 0
   res <- simulate_claims(1000, "Poisson", 3, "LogNormal", c(6, 1.5), seed = 1, gross = FALSE,

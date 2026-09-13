@@ -1,7 +1,7 @@
 Changes in Version 0.1.0
 
-  o First official release of the package on CRAN. See citation("NetSimR")
-    for the accompanying manuscripts.
+  o First official release of the package on CRAN. The accompanying articles
+    are listed in the package description.
 
 
 Changes in Version 0.1.1
@@ -33,10 +33,14 @@ Changes in Version 0.1.5
 
 Changes in Version 0.1.6
 
-  o Fewer dependencies: data.table, parallel, scales, shinyjs, MASS and Pareto are
-    no longer imported. The Gamma maximum likelihood fit and the piecewise Pareto
-    fit of the distribution fitting tool are now computed with base R and give the
-    same results as before.
+  o Updated the shiny simulation tool.
+
+Changes in Version 0.2.0
+
+  o Fewer dependencies: rmarkdown, shinybusy, data.table, scales, shinyjs, MASS
+    and Pareto are no longer imported. The Gamma maximum likelihood fit and the
+    piecewise Pareto fit of the distribution fitting tool are now computed with
+    base R and give the same results as before.
   o The database drivers of the GLM fitting tool (DBI, RMySQL, RSQLite, RODBC,
     RPostgreSQL) moved from Imports to Suggests, so they are no longer installed
     with the package. The tool shows a message naming the package to install when
@@ -161,3 +165,35 @@ Changes in Version 0.1.6
     short argument names (n_sims, frequency, severity_params, eel_layer,
     agg_limit, ...), distributions chosen by name in any case, parameters
     that may be named, and defaults for every optional feature.
+  o ParetoCappedMean() now returns the cap when it is at or below the scale
+    (it gave wrong values, 0 or NaN before), which also fixes
+    ExposureCurvePareto() and ILFPareto() for small limits, and it stays
+    accurate for shapes very close to 1.
+  o The sliced Gamma-Pareto and LogNormal-Pareto functions work with vectors
+    of parameters (extra values were silently dropped, and the exposure curve
+    could return wrong values). qSlicedGammaPareto() and qSlicedLNormPareto()
+    stay accurate for probabilities very close to 1. IGamma() no longer
+    returns Inf for large shapes when the result is finite.
+  o simulate_claims() checks that gross, shortcuts, parallel and
+    truncate_at_zero are a single TRUE or FALSE, and gives a clearer error
+    when distribution parameters mix named and unnamed values.
+  o GLM fitting tool: the actual against predicted chart codes a binomial
+    response as glm() does, so a text response with more than two values
+    shows the share of responses other than the first value, and an all-TRUE
+    logical response is no longer treated as failures. The app says which
+    value it takes as failure when a text response has more than two values.
+  o GLM fitting tool: the download section explains that the saved model
+    refers to its data as model_data, so update() needs the data assigned to
+    model_data or passed as data =.
+  o Distribution fitting tool: the sliced Pareto table note says that the
+    alpha of the layer between the slicing points is a least-squares fit; only
+    the tail alphas are maximum likelihood estimates.
+  o Claims simulator: a failed run keeps the previous results, downloads and
+    results tabs, and shows the error.
+  o Claims simulator: the app restores the user's future plan when the session
+    ends or a run fails, and only shuts down workers it started.
+  o Seeds outside the integer range are rejected with a clear message, and a
+    fixed seed gives the same results whatever the caller's RNGkind().
+  o Claims simulator: the number of simulations input accepts 1 to
+    10,000,000, the same range as the validation.
+  o bslib 0.9.0 or later is required.

@@ -1,5 +1,11 @@
 #the distribution fitting and GLM fitting tools, driven through shiny::testServer()
 
+#the servers call functions the package imports with importFrom(): run on the installed package they are
+#found in its namespace, but run on the R/ files sourced into an environment they are not, so attach them
+if (!exists("renderPlotly", mode = "function")) {
+  for (pkg in c("plotly", "fitdistrplus")) suppressPackageStartupMessages(library(pkg, character.only = TRUE))
+}
+
 write_claims_csv <- function() {
   set.seed(10)
   d <- data.frame(counts = rpois(300, 3), w = sample(1:4, 300, TRUE), sev = round(exp(rnorm(300, 7, 1.2))), txt = "x")
@@ -43,7 +49,7 @@ test_that("distribution fitting tool fits frequency and severity distributions",
     expect_equal(sev_gamma_fit()$estimate, fit_gamma_mle(cleaned)$estimate)
     expect_equal(sev_pareto_alpha(), length(cleaned) / sum(log(cleaned / min(cleaned))))
     #the lognormal fit is the maximum likelihood fit fitdistrplus gives
-    expect_equal(unname(sev_lnorm_fit()$estimate), unname(fitdist(cleaned, "lnorm")$estimate))
+    expect_equal(unname(sev_lnorm_fit()$estimate), unname(fitdistrplus::fitdist(cleaned, "lnorm")$estimate))
     expect_match(output$sev_param_summary$html, "LogNormal")
     expect_match(output$sev_param_summary$html, "Gamma")
     expect_true(is.character(output$sev_fit_plot) || is.list(output$sev_fit_plot))
@@ -226,14 +232,56 @@ test_that("GLM fitting tool checks the formula, reads text binomial responses an
     expect_length(predictions, 150)
     expect_true(is.na(predictions[1]))
     expect_equal(predictions, unname(fitted(fitted_model())))
-    #the call names the family, so the downloaded model can be updated
+    #the call names the family, so update() on the downloaded model refits it, given the data
     expect_match(paste(deparse(fitted_model()$call), collapse = ""), "poisson(link = \"log\")", fixed = TRUE)
+    expect_equal(coef(update(fitted_model(), . ~ . - grp, data = d, na.action = na.omit)),
+                 coef(glm(y ~ claim + age, data = d, family = poisson)))
     #the model does not carry the Shiny session (and its inputs, such as a password) in its environment
     expect_identical(environment(formula(fitted_model())), globalenv())
     expect_identical(environment(fitted_model()$terms), globalenv())
     #warnings of the fit are kept and shown, not swallowed
     session$setInputs(response_variable = "age", glm_distribution = "binomial", link_function = "logit", formula = "y", fit_model = 4)
     expect_true(length(fit_result()$warnings) > 0 || is.null(fitted_model()))
+  })
+})
+
+test_that("GLM fitting tool charts a text binomial response with more than two values as glm() codes it", {
+  set.seed(11)
+  d <- data.frame(outcome = sample(c("none", "small", "large"), 240, TRUE), age = rnorm(240, 40, 10),
+                  grp = sample(c("a", "b", "c"), 240, TRUE))
+  d$age[1] <- NA
+  path <- write_csv(d)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = path, name = "m.csv"), submit = 1)
+    session$setInputs(response_variable = "outcome", glm_distribution = "binomial", link_function = "logit",
+                      offset = "None", weights = "None", formula = "age", fit_model = 1)
+    #glm() takes the first level ("large") as failure and the two others as success, and the tool says so
+    reference <- glm(factor(outcome) ~ age, data = d, family = binomial)
+    expect_equal(coef(fitted_model()), coef(reference))
+    expect_match(paste(fit_result()$warnings, collapse = " "), "3 values: 'large' is failure")
+    session$setInputs(visualize_variable = "grp", number_of_bands_input = 10, execute_visualization = 1)
+    #per band, the actual is the share of responses other than "large" and the predicted its fitted mean
+    used <- !is.na(d$age)
+    expect_equal(fitness_data()$band, c("a", "b", "c"))
+    expect_equal(fitness_data()$actual, as.numeric(tapply(d$outcome[used] != "large", d$grp[used], mean)))
+    expect_equal(fitness_data()$predicted, as.numeric(tapply(fitted(reference), d$grp[used], mean)))
+    expect_true(all(fitness_data()$actual >= 0 & fitness_data()$actual <= 1))
+    expect_equal(attr(fitness_data(), "dropped"), 1)
+  })
+})
+
+test_that("GLM fitting tool leaves a logical binomial response as it is, TRUE being success", {
+  #every response TRUE: made a factor, TRUE would be the first level, that is failure
+  d <- data.frame(hit = TRUE, x = 1:20)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = write_csv(d), name = "l.csv"), submit = 1)
+    expect_true(is.logical(selected_data()$hit))
+    session$setInputs(response_variable = "hit", glm_distribution = "binomial", link_function = "logit",
+                      offset = "None", weights = "None", formula = "", fit_model = 1)
+    expect_equal(unname(fitted_model()$y), rep(1, 20))
+    expect_true(all(model_predictions(fit_result()) > 0.99))
+    session$setInputs(visualize_variable = "x", number_of_bands_input = 2, band_method = "width", execute_visualization = 1)
+    expect_equal(fitness_data()$actual, c(1, 1))
   })
 })
 
@@ -253,11 +301,25 @@ test_that("GLM fitting tool saves settings without the password and restores col
     session$setInputs(data_source = "CSV File", csv_file = list(datapath = csv$path, name = "glm.csv"), submit = 1)
     session$flushReact()
     expect_equal(pending_columns(), list())
-    #a file that is not a settings file is refused without an error
+    #a file that is not a settings file is refused without an error: text, a truncated file,
+    #an object that is not a list, and lists with no usable input
     junk <- tempfile(fileext = ".rds")
     writeLines("not a settings file", junk)
     session$setInputs(load_config = list(datapath = junk, name = "junk.rds"))
     expect_equal(pending_columns(), list())
+    truncated <- tempfile(fileext = ".rds")
+    writeBin(readBin(settings_file, "raw", 20), truncated)
+    others <- list(1:3, new.env(), list(1, 2), list(tool = glm_settings_tool, inputs = "x"),
+                   list(response_variable = list("y"), formula = NA_character_, number_of_bands_input = "ten"))
+    files <- c(truncated, vapply(others, function(x) {
+      path <- tempfile(fileext = ".rds")
+      saveRDS(x, path)
+      path
+    }, character(1)))
+    for (i in seq_along(files)) {
+      session$setInputs(load_config = list(datapath = files[i], name = paste0("junk", i, ".rds")))
+      expect_equal(pending_columns(), list())
+    }
   })
 })
 

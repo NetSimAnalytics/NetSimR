@@ -3,7 +3,8 @@
 #' @param input Input for the server function.
 #' @param output Output for the server function.
 #' @param session Session for the server function.
-#' @return Returns server rendering for the shiny application.
+#' @return Called by shiny for its side effects, the outputs and observers of a
+#'   session; the value is not used.
 #' @import shiny
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
 #' @importFrom fitdistrplus fitdist
@@ -58,6 +59,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     list(estimate = c(meanlog = meanlog, sdlog = sqrt(mean((log(x) - meanlog)^2))))
   }
 
+  # least squares fit of the Pareto alpha of the layer between the slicing points to the empirical cdf
   fit_slice_pareto <- function (sev_data, slic_pont_lft, slic_pont_rght) {
     z <- subset(sev_data, sev_data > slic_pont_lft)
     w <- subset(z, z <= slic_pont_rght)
@@ -550,7 +552,8 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     dft_html_table(
       c("Model", "Part", "Parameter 1", "Parameter 2", "K-S distance"), rows,
       best = if (any(is.finite(ks))) c(1, 2, 4)[which.min(ks)], best_label = "Closest",
-      note = "The body is fitted to the empirical cdf by least squares; the Pareto tails by maximum likelihood."
+      note = paste("The body and the alpha of the layer between the points are fitted to the empirical cdf by least squares;",
+                   "the alphas of the tails above each point are maximum likelihood estimates.")
     )
   })
 

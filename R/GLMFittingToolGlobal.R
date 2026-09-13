@@ -1,6 +1,8 @@
-#' A function to run the glm fitting tool application
+#' A function to run the GLM fitting tool application
 #'
-#' @return Opens the glm fitting tool application
+#' @return A shiny app object. Printing it, as happens when the function is
+#'   called at the console, opens the application; it can also be passed to
+#'   shiny::runApp().
 #' @export
 #' @examples
 #' if (interactive()) {

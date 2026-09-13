@@ -13,17 +13,26 @@
 #' @import stats
 #' @import utils
 shiny_simulator_server <- function(input, output, session) {
-  #ensure any future workers are cleaned up when the session ends
-  session$onSessionEnded(function() {
-    future::plan(future::sequential)
-  })
+  #the future plan in effect when the app starts; the app puts it back when the session
+  #ends or a run fails, and only shuts down workers that it started itself
+  original_plan <- future::plan()
+  app_started_workers <- FALSE
+  restore_original_plan <- function() {
+    if (!app_started_workers) return(invisible(FALSE))
+    app_started_workers <<- FALSE
+    future::plan(original_plan)
+    invisible(TRUE)
+  }
+  session$onSessionEnded(restore_original_plan)
 
   #start the parallel workers once, when multiprocessing is switched on, so that every
-  #run reuses the warm workers instead of paying the start-up cost each time
+  #run reuses the warm workers instead of paying the start-up cost each time;
+  #a multi-worker plan that the user has set is used as it is
   start_parallel_workers <- function() {
     if (future::nbrOfWorkers() > 1) return(invisible(FALSE))
     showNotification("Starting parallel workers...", type = "message", duration = 3, id = "parallel_workers_notice")
     future::plan(future::multisession)
+    app_started_workers <<- TRUE
     invisible(TRUE)
   }
   observeEvent(input$multiprocessingBinary, {
@@ -33,7 +42,9 @@ shiny_simulator_server <- function(input, output, session) {
   #seed input
   output$seed_value <- renderUI({
     if (input$seedSetBinary) {
-      numericInput('seedValue', 'Seed value', value = 1, min = 1, step = 1)
+      #set.seed() takes any whole number in the integer range
+      numericInput('seedValue', 'Seed value', value = 1, min = -.Machine$integer.max,
+                   max = .Machine$integer.max, step = 1)
     }
   })
 
@@ -264,29 +275,28 @@ shiny_simulator_server <- function(input, output, session) {
     }
     removeNotification("missing_settings_notice")
 
-    simulation_settings <<- new_settings
-
     on.exit(gc(), add = TRUE)
 
     #workers may have been shut down after an earlier error; make sure they are up before a parallel run
-    if (isTRUE(simulation_settings$multiprocessing)) start_parallel_workers()
+    if (isTRUE(new_settings$multiprocessing)) start_parallel_workers()
 
     #run simmulations
-    simulated_data$data <- tryCatch(
+    results <- tryCatch(
       {
-        if (isTRUE(simulation_settings$multiprocessing)) {
+        if (isTRUE(new_settings$multiprocessing)) {
           showNotification("Running the simulations on the parallel workers...", type = "message", duration = 3, id = "parallel_run_notice")
-          do.call(simulate_function, simulation_settings)
+          do.call(simulate_function, new_settings)
         } else {
           #sequential runs report their progress chunk by chunk
           shiny::withProgress(message = "Simulating", value = 0, {
-            do.call(simulate_function, c(simulation_settings, list(
+            do.call(simulate_function, c(new_settings, list(
               progress = function(value, detail) shiny::setProgress(value, detail = detail)
             )))
           })
         }
       }, error = function(cond) {
-        future::plan(future::sequential)
+        #the workers may be broken after an error; shut down the ones the app started
+        restore_original_plan()
         showNotification(
           paste("Error:", conditionMessage(cond)),
           type = "error",
@@ -297,16 +307,19 @@ shiny_simulator_server <- function(input, output, session) {
       }
     )
 
-    #record the run for the results tabs, only when it produced data
-    if (!is.null(simulated_data$data)) {
-      run_counter <<- run_counter + 1L
-      last_run(list(
-        id = run_counter
-        ,settings = simulation_settings
-        ,data = simulated_data$data
-        ,finished = Sys.time()
-      ))
-    }
+    #a failed run keeps the previous results, so the downloads and the results tabs still agree
+    if (is.null(results)) return(NULL)
+
+    #record the run for the downloads and the results tabs
+    simulation_settings <<- new_settings
+    simulated_data$data <- results
+    run_counter <<- run_counter + 1L
+    last_run(list(
+      id = run_counter
+      ,settings = simulation_settings
+      ,data = simulated_data$data
+      ,finished = Sys.time()
+    ))
   })
 
   #the browser shows "Preparing report..." on click; the report handler re-enables the button

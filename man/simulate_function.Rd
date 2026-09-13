@@ -2,9 +2,7 @@
 % Please edit documentation in R/ShinySimulatorGlobal.R
 \name{simulate_function}
 \alias{simulate_function}
-\title{A function to simulate frequency - severity of insurance claims using chunked vectorisation.
-The function applies severity cap, reinsurance structure for each and every loss claim,
-reinsurance structure for aggregate claims, and allows for piecewise pareto slices}
+\title{Simulate insurance claims with reinsurance structures}
 \usage{
 simulate_function(
   numOfSimulations,
@@ -45,7 +43,7 @@ simulate_function(
 
 \item{seedSetBinary}{True if there is a fixed seed, otherwise false.}
 
-\item{seedValue}{The seed value.}
+\item{seedValue}{The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}.}
 
 \item{freqDistr}{The frequency distribution. Options are as per the freq_dist_options.}
 
@@ -79,7 +77,7 @@ simulate_function(
 
 \item{reinsuranceStructureReinstatementLimit}{The reinstatement limit.}
 
-\item{multiprocessing}{True if multiprocessing is used, otherwise false. An already active multi-worker future plan is reused; otherwise a multisession plan is started for the call and the caller's plan is restored afterwards.}
+\item{multiprocessing}{True to run the chunks in parallel with the future package, otherwise false. A future plan with more than one worker that the caller has already set is reused and left running. Otherwise the call starts a multisession plan with one worker per available core (\code{parallelly::availableCores()}), shuts those workers down when it finishes and restores the caller's plan, so every such call pays the start-up cost again. To choose the number of workers and reuse them across calls, set a plan first, e.g. \code{future::plan(future::multisession, workers = 4)}.}
 
 \item{sevTruncateAtZero}{True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.}
 
@@ -106,6 +104,8 @@ derived from one seed, so a run gives the same results whether or not it runs in
 parallel. With \code{seedSetBinary = TRUE} the run is reproducible from \code{seedValue}
 and the caller's random number stream is left unchanged; otherwise the seed is drawn
 from the caller's stream, so \code{set.seed()} before the call also makes it reproducible.
+The streams always use Inversion for normal draws and Rejection sampling, so a seed
+gives the same results whatever the caller's \code{RNGkind()}, which is restored afterwards.
 Results depend on the chunk size, which by default adapts to the expected number of
 claims per simulation.
 }

@@ -268,12 +268,12 @@ glm_family_links <- list(
   inverse.gaussian = c("1/mu^2", "inverse", "log", "identity")
 )
 
-#' UI file for the Shiny GLM fitting tool
+#' User interface of the Shiny GLM fitting tool
 #'
 #' A function of the request, so that it is built when the app starts, after
 #' every helper of the package is defined.
 #' @param request The request, supplied by shiny.
-#' @return Returns the UI code for the shiny application.
+#' @return The user interface of the application, a bslib navbar page.
 GLMFittingToolUI <- function(request) {
   bslib::page_navbar(
     title = div(

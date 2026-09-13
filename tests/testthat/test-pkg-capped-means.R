@@ -115,4 +115,59 @@ test_that("IGamma is the upper incomplete gamma function", {
   expect_equal(IGamma(1, 1), exp(-1))
   expect_equal(IGamma(0.1, 2), gamma(0.1) * pgamma(2, 0.1, lower.tail = FALSE))
   expect_equal(IGamma(2.5, 0), gamma(2.5))
+  expect_equal(IGamma(50, 30), gamma(50) * pgamma(30, 50, lower.tail = FALSE))
+})
+
+test_that("IGamma does not overflow when gamma(a) does but the result is finite", {
+  #gamma(180) overflows, so this used to return Inf; the true value is about 6.18e102
+  a <- 180; x <- 1000
+  #numerical reference on the log scale: integral of t^(a - 1) exp(-t) from x to Inf, scaled by its value at x
+  logScale <- (a - 1) * log(x) - x
+  integral <- integrate(function(t) exp((a - 1) * log(t) - t - logScale), x, Inf, rel.tol = 1e-12)$value
+  expect_true(is.finite(IGamma(a, x)))
+  expect_equal(log(IGamma(a, x)), logScale + log(integral), tolerance = 1e-10)
+  #a true value beyond the double range is still Inf, now without a warning from gamma()
+  expect_no_warning(expect_equal(IGamma(200, 150), Inf))
+})
+
+test_that("the ILFGamma example has xLow below xHigh", {
+  expect_gt(ILFGamma(700, 1000, 1, 0.0005), 1)
+  expect_gt(ILFGamma(1000, 1200, 1.5, 0.0006), 1)
+})
+
+test_that("ParetoCappedMean returns the cap when it is at or below the scale", {
+  #no claim is below the scale, so min(X, cap) = cap
+  expect_equal(ParetoCappedMean(50, 100, 2), 50)
+  expect_equal(ParetoCappedMean(80, 100, 2), 80)
+  expect_equal(ParetoCappedMean(50, 100, 1), 50)
+  expect_equal(ParetoCappedMean(0, 100, 2), 0)
+  expect_equal(ParetoCappedMean(100, 100, c(0.5, 1, 2)), c(100, 100, 100))
+  #mixed with caps above the scale in one call, every argument recycled
+  expect_equal(ParetoCappedMean(c(50, 800, 80), c(100, 100, 200), c(2, 1.1, 1)),
+               c(50, ParetoCappedMean(800, 100, 1.1), 80))
+  #numerical reference: the integral of the survival function, which is 1 below the scale
+  for (case in list(c(50, 100, 2), c(80, 100, 0.5), c(150, 100, 2), c(5000, 100, 0.7), c(5000, 100, 1 + 1e-4))) {
+    survival <- function(x) ifelse(x < case[2], 1, (case[2] / x)^case[3])
+    reference <- integrate(survival, 0, case[1], rel.tol = 1e-11, subdivisions = 1000L)$value
+    expect_equal(ParetoCappedMean(case[1], case[2], case[3]), reference, tolerance = 1e-8)
+  }
+  #the exposure curve and the ILF use the corrected capped mean
+  expect_equal(ExposureCurvePareto(50, 100, 2), 0.25)
+  expect_equal(ILFPareto(50, 150, 100, 2), (100 * (1 + (1 - 100 / 150))) / 50)
+  expect_true(is.finite(ILFPareto(50, 150, 100, 2)))
+})
+
+test_that("ParetoCappedMean is accurate for shapes close to 1", {
+  #series of scale * (1 + (exp(t * L) - 1) / t) in t = 1 - shape, with L = log(cap / scale)
+  L <- log(8)
+  for (e in c(1e-15, 1e-12, 1e-9, 1e-6, -1e-6, -1e-12)) {
+    t <- -e
+    reference <- 100 * (1 + L + t * L^2 / 2 + t^2 * L^3 / 6)
+    expect_equal(ParetoCappedMean(800, 100, 1 + e), reference, tolerance = 1e-13)
+  }
+  #shape 1 + 1e-12 used to give 307.9503 instead of 307.9442 through cancellation
+  expect_lt(abs(ParetoCappedMean(800, 100, 1 + 1e-12) - 100 * (1 + L)), 1e-9)
+  #an infinite cap gives the mean scale * shape / (shape - 1), using the shape as stored in double precision
+  shape <- 1 + 1e-12
+  expect_equal(ParetoCappedMean(Inf, 100, shape), 100 * shape / (shape - 1), tolerance = 1e-12)
 })

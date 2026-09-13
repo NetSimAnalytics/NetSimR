@@ -7,7 +7,7 @@
 #' @param cap A positive real number -  the claim severity cap.
 #' @param scale A positive real number - the scale parameter of the Claim Severity's Pareto distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
-#' @return An interim calculation for the mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}.
+#' @return An interim calculation for the mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}. It is the closed form for \code{cap >= scale} and \code{shape != 1}; use \code{\link{ParetoCappedMean}} for the capped mean itself.
 #' @export
 #' @examples
 #' ParetoCappedMeanCalc(800,100,1.1)
@@ -31,18 +31,30 @@ ParetoCappedMeanCalc<-function(cap,scale,shape){
 #' @param cap A positive real number -  the claim severity cap.
 #' @param scale A positive real number - the scale parameter of the Claim Severity's Pareto distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
-#' @return The mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}.
+#' @return The mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}. A cap at or below \code{scale} is returned unchanged, as no claim is smaller than \code{scale}. The arguments are recycled to a common length.
 #' @export
 #' @examples
 #' ParetoCappedMean(600,200,1.2)
 #' ParetoCappedMean(800,100,1)
 #' ParetoCappedMean(1000,500,0.8)
+#' ParetoCappedMean(50,100,2)
 ParetoCappedMean<-function(cap,scale,shape){
+  # recycle every argument to a common length
   df<-data.frame(cap,scale,shape)
-  # At shape == 1 the general formula is 0/0; its limit is scale * (1 + log(cap / scale)).
-  ifelse(df$shape==1
-         ,scale*(1+log(cap/scale))
-         ,ParetoCappedMeanCalc(cap,scale,shape)
+  cap<-df$cap; scale<-df$scale; shape<-df$shape
+  # E[min(X, cap)] = scale + integral of (scale / x)^shape from scale to cap
+  #                = scale * (1 + (exp((1 - shape) * L) - 1) / (1 - shape)), L = log(cap / scale).
+  # expm1() keeps this accurate as shape -> 1, where the limit is scale * (1 + L).
+  # pmax() avoids log() warnings for caps below the scale, which are returned unchanged.
+  logRatio<-log(pmax(cap/scale,1))
+  oneMinusShape<-1-shape
+  tailTerm<-ifelse(oneMinusShape==0
+                   ,logRatio
+                   ,expm1(oneMinusShape*logRatio)/oneMinusShape
+  )
+  ifelse(cap<=scale
+         ,cap
+         ,scale*(1+tailTerm)
   )
 }
 
@@ -53,7 +65,7 @@ ParetoCappedMean<-function(cap,scale,shape){
 #' @param x A positive real number -  the claim amount where the exposure curve will be evaluated.
 #' @param scale A positive real number - the scale parameter of the Claim Severity's Pareto distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
-#' @return The value of the Exposure curve at \code{x} with Claim Severity from a Pareto distribution with parameters \code{scale} and \code{shape}.
+#' @return The value of the Exposure curve at \code{x} with Claim Severity from a Pareto distribution with parameters \code{scale} and \code{shape}. The exposure curve divides by the mean, which is infinite when \code{shape <= 1}; the function returns 0 in that case.
 #' @export
 #' @examples
 #' ExposureCurvePareto(700,500,1.2)

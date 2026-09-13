@@ -82,6 +82,23 @@ test_that("a fixed seed must be a whole number", {
   expect_equal(nrow(run_simulation(numOfSimulations = 100, seedSetBinary = FALSE, seedValue = NULL)), 100)
 })
 
+test_that("a fixed seed must lie in the integer range that set.seed() accepts", {
+  expect_true(any(grepl("Seed value must be between", find_missing_simulation_settings(base_settings(seedValue = 1e10)))))
+  expect_settings_error("Seed value must be between", seedValue = 1e10)
+  expect_settings_error("Seed value must be between", seedValue = -1e10)
+  expect_settings_error("Seed value must be between", seedValue = .Machine$integer.max + 1)
+  expect_settings_error("Seed", seedValue = Inf)
+  expect_equal(nrow(run_simulation(numOfSimulations = 100, seedValue = .Machine$integer.max)), 100)
+  expect_equal(nrow(run_simulation(numOfSimulations = 100, seedValue = -.Machine$integer.max)), 100)
+})
+
+test_that("the app's number of simulations input has the limits that validation applies", {
+  html <- as.character(shiny_simulator_ui)
+  expect_match(html, 'id="numberOfSimulations"[^>]*min="1"[^>]*max="10000000"')
+  expect_length(find_missing_simulation_settings(base_settings(numOfSimulations = max_number_of_simulations)), 0)
+  expect_settings_error("Number of simulations.*10,000,000", numOfSimulations = max_number_of_simulations + 1)
+})
+
 test_that("a Normal with no probability above zero cannot be truncated at zero", {
   expect_settings_error("zero|truncat", sevDistr = "Normal", sev_params = c(-1000, 1), sevTruncateAtZero = TRUE)
   #the same Normal is accepted when truncation is off

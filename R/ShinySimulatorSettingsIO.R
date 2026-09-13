@@ -196,7 +196,8 @@ sim_settings_plan <- function(inputs) {
   add("sevDistr", "radio")
   add("reinsuranceStructureEEL", "radio")
   add("reinsuranceStructureAL", "radio")
-  for (id in c("seedSetBinary", "multiprocessingBinary", "sevCapBinary", "sevTruncateAtZero")) {
+  #the truncation switch waits for the Normal severity, in stage two
+  for (id in c("seedSetBinary", "multiprocessingBinary", "sevCapBinary")) {
     add(id, "switch")
   }
   add("numberOfSimulations", "numeric")
