@@ -3,7 +3,7 @@
 #' Parameter to set the maximum number of pareto slices
 #'
 #' @return The the maximum number of Pareto Slices.
-max_number_of_pareto_slices = 5
+max_number_of_pareto_slices <- 5
 
 #' Random Pareto generator
 #'
@@ -12,6 +12,21 @@ max_number_of_pareto_slices = 5
 #' @param x_m A positive real number. The minimum value for the Pareto distribution.
 #' @return A vector of \code{n} random Pareto variables with parameters \code{alpha} and \code{x_m}.
 rpareto <- function(n, alpha, x_m) x_m / runif(n)^(1/alpha)
+
+#' Random Normal generator truncated at zero
+#'
+#' Draws from the Normal distribution conditional on being positive, by inverse-CDF sampling:
+#' u ~ U(pnorm(0, mean, sd), 1) and x = qnorm(u, mean, sd).
+#'
+#' @param n Number of values to generate.
+#' @param mean The mean of the underlying Normal distribution.
+#' @param sd The standard deviation of the underlying Normal distribution.
+#' @return A vector of \code{n} positive random values.
+#' @noRd
+rnorm_truncated_at_zero <- function(n, mean, sd) {
+  lower <- pnorm(0, mean = mean, sd = sd)
+  qnorm(runif(n, min = lower, max = 1), mean = mean, sd = sd)
+}
 
 #' Apply severity cap function
 #'
@@ -77,7 +92,7 @@ freq_dist_options <- c(
     distrID='Poisson'
     ,distr_label='Poisson'
     ,paramIDs=c("lamda")
-    ,param_labels=c("lamda")
+    ,param_labels=c("lambda (mean claims)")
     ,param_min_values=c(0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rpois(n = number_of_simulations, lambda = parameters[1])
@@ -87,7 +102,7 @@ freq_dist_options <- c(
     distrID='Negative_Binomial'
     ,distr_label='Negative Binomial'
     ,paramIDs=c("r", "beta")
-    ,param_labels=c("r", "beta")
+    ,param_labels=c("r (shape)", "beta (scale)")
     ,param_min_values=c(0,0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rpois(n = number_of_simulations, lambda = rgamma(n =number_of_simulations, shape = parameters[1], scale = parameters[2]))
@@ -97,7 +112,7 @@ freq_dist_options <- c(
     distrID='Binomial'
     ,distr_label='Binomial'
     ,paramIDs=c("n", "p")
-    ,param_labels=c("n", "p")
+    ,param_labels=c("n (number of trials)", "p (probability)")
     ,param_min_values=c(0,0)
     ,param_max_values=c(NA,1)
     ,param_whole_numbers=c(TRUE, FALSE)
@@ -109,7 +124,7 @@ freq_dist_options <- c(
     distrID='Fixed_number_of_Counts'
     ,distr_label='Fixed number of Counts'
     ,paramIDs=c("FixedNumberOfCounts")
-    ,param_labels=c("FixedNumberOfCounts")
+    ,param_labels=c("Number of claims")
     ,param_min_values=c(0)
     ,param_whole_numbers=c(TRUE)
     ,simulate_func = function(number_of_simulations, parameters){return(
@@ -122,8 +137,8 @@ freq_dist_options <- c(
 #'
 #' @return The frequency distribution parameter placeholders.
 freq_dist_parameter_placeholders <- data.frame(
-  param_number = 1:max(sapply(freq_dist_options, function(x) length(x@paramIDs)))
-  ,param_id = paste0("freq_param_", 1:max(sapply(freq_dist_options, function(x) length(x@paramIDs))))
+  param_number = seq_len(max(vapply(freq_dist_options, function(x) length(x@paramIDs), integer(1))))
+  ,param_id = paste0("freq_param_", seq_len(max(vapply(freq_dist_options, function(x) length(x@paramIDs), integer(1)))))
 )
 
 #' A vector with the severity distribution objects
@@ -134,7 +149,7 @@ sev_dist_options <- c(
     distrID='Normal'
     ,distr_label='Normal'
     ,paramIDs=c("mu", "sigma")
-    ,param_labels=c("mu", "sigma")
+    ,param_labels=c("Mean", "Standard deviation")
     ,param_min_values=c(0, 0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rnorm(n = number_of_simulations, mean = parameters[1], sd = parameters[2])
@@ -144,7 +159,7 @@ sev_dist_options <- c(
     distrID='LogNormal'
     ,distr_label='Log-Normal'
     ,paramIDs=c("mu", "sigma")
-    ,param_labels=c("mu", "sigma")
+    ,param_labels=c("mu (mean of log)", "sigma (sd of log)")
     ,param_min_values=c(0,0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rlnorm(n = number_of_simulations, meanlog = parameters[1], sdlog = parameters[2])
@@ -154,7 +169,7 @@ sev_dist_options <- c(
     distrID='Gamma'
     ,distr_label='Gamma'
     ,paramIDs=c("shape", "scale")
-    ,param_labels=c("shape", "scale")
+    ,param_labels=c("Shape", "Scale")
     ,param_min_values=c(0,0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rgamma(n = number_of_simulations, shape = parameters[1], scale = parameters[2])
@@ -164,7 +179,7 @@ sev_dist_options <- c(
     distrID='Exponential'
     ,distr_label='Exponential'
     ,paramIDs=c("rate")
-    ,param_labels=c("rate")
+    ,param_labels=c("Rate")
     ,param_min_values=c(0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rexp(n = number_of_simulations, rate = parameters[1])
@@ -174,7 +189,7 @@ sev_dist_options <- c(
     distrID='Pareto'
     ,distr_label='Pareto'
     ,paramIDs=c("alpha", "x_m")
-    ,param_labels=c("alpha", "x_m")
+    ,param_labels=c("alpha (shape)", "x_m (minimum)")
     ,param_min_values=c(0, 0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rpareto(n = number_of_simulations, alpha = parameters[1], x_m = parameters[2])
@@ -184,7 +199,7 @@ sev_dist_options <- c(
     distrID='Fixed_Severity'
     ,distr_label='Fixed Severity'
     ,paramIDs=c("Fixed_sev_amount")
-    ,param_labels=c("Fixed Severity Amount")
+    ,param_labels=c("Claim amount")
     ,param_min_values=c(0)
     ,simulate_func = function(number_of_simulations, parameters){return(
       rep(parameters[1], number_of_simulations)
@@ -196,9 +211,91 @@ sev_dist_options <- c(
 #'
 #' @return The severity distribution parameter placeholders.
 sev_dist_parameter_placeholders <- data.frame(
-  param_number = 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs)))
-  ,param_id = paste0("sev_param_", 1:max(sapply(sev_dist_options, function(x) length(x@paramIDs))))
+  param_number = seq_len(max(vapply(sev_dist_options, function(x) length(x@paramIDs), integer(1))))
+  ,param_id = paste0("sev_param_", seq_len(max(vapply(sev_dist_options, function(x) length(x@paramIDs), integer(1)))))
 )
+
+#' Mean and standard deviation implied by a distribution's parameters
+#'
+#' @param options \code{freq_dist_options} or \code{sev_dist_options}.
+#' @param id The distribution's \code{distrID}.
+#' @param params A numeric vector (or list) of parameters in \code{paramIDs} order.
+#' @param truncate_at_zero If TRUE and the distribution is the Normal, the moments of the
+#' Normal truncated at zero are returned. Ignored for other distributions.
+#' @return A named numeric vector \code{c(mean = , sd = )}. Both are NA when the parameters
+#' are missing or invalid, and Inf when the moment does not exist (e.g. Pareto alpha <= 1).
+#' @noRd
+distribution_moments <- function(options, id, params, truncate_at_zero = FALSE) {
+  unavailable <- c(mean = NA_real_, sd = NA_real_)
+  if (!(is.character(id) && length(id) == 1 && id %in% names(options))) return(unavailable)
+  object <- options[[id]]
+  n_params <- length(object@paramIDs)
+
+  #inputs that have not been filled in arrive as NULL entries in a list
+  as_number <- function(v) if (is.numeric(v) && length(v) == 1) as.numeric(v) else NA_real_
+  p <- if (is.list(params)) vapply(params, as_number, numeric(1)) else suppressWarnings(as.numeric(params))
+  if (length(p) < n_params) return(unavailable)
+  p <- p[seq_len(n_params)]
+  if (anyNA(p)) return(unavailable)
+
+  #parameters outside their allowed range (or fractional where whole numbers are required) are invalid
+  pad <- function(x, fill) c(x, rep(fill, max(0, n_params - length(x))))[seq_len(n_params)]
+  mins <- pad(object@param_min_values, NA)
+  maxs <- pad(object@param_max_values, NA)
+  whole <- pad(object@param_whole_numbers, FALSE)
+  if (any(!is.na(mins) & p < mins) || any(!is.na(maxs) & p > maxs)) return(unavailable)
+  if (any((whole %in% TRUE) & p != round(p))) return(unavailable)
+
+  moments <- switch(
+    id
+    ,Poisson = c(p[1], sqrt(p[1]))
+    #Poisson-Gamma mixture with Gamma shape r and scale beta
+    ,Negative_Binomial = c(p[1] * p[2], sqrt(p[1] * p[2] * (1 + p[2])))
+    ,Binomial = c(p[1] * p[2], sqrt(p[1] * p[2] * (1 - p[2])))
+    ,Fixed_number_of_Counts = c(p[1], 0)
+    ,Normal = if (isTRUE(truncate_at_zero)) truncated_normal_moments(p[1], p[2]) else c(p[1], p[2])
+    ,LogNormal = c(exp(p[1] + p[2]^2 / 2), sqrt(exp(2 * p[1] + p[2]^2) * (exp(p[2]^2) - 1)))
+    ,Gamma = c(p[1] * p[2], sqrt(p[1]) * p[2])
+    ,Exponential = if (p[1] > 0) c(1 / p[1], 1 / p[1]) else unavailable
+    ,Pareto = pareto_moments(p[1], p[2])
+    ,Fixed_Severity = c(p[1], 0)
+    ,unavailable
+  )
+  moments <- as.numeric(moments)
+  moments[is.nan(moments)] <- NA_real_
+  c(mean = moments[1], sd = moments[2])
+}
+
+#' Mean and standard deviation of the Normal distribution truncated at zero
+#'
+#' @param mu Mean of the underlying Normal distribution.
+#' @param sigma Standard deviation of the underlying Normal distribution.
+#' @return A numeric vector of length two: the mean and the standard deviation. NA when
+#' (almost) no probability mass lies above zero.
+#' @noRd
+truncated_normal_moments <- function(mu, sigma) {
+  if (sigma == 0) return(if (mu > 0) c(mu, 0) else c(NA_real_, NA_real_))
+  alpha <- -mu / sigma
+  tail <- pnorm(alpha, lower.tail = FALSE)
+  if (tail < 1e-9) return(c(NA_real_, NA_real_))
+  lambda <- dnorm(alpha) / tail
+  variance <- sigma^2 * (1 + alpha * lambda - lambda^2)
+  c(mu + sigma * lambda, sqrt(max(variance, 0)))
+}
+
+#' Mean and standard deviation of the Pareto distribution
+#'
+#' @param alpha The shape parameter.
+#' @param x_m The minimum value.
+#' @return A numeric vector of length two: the mean (Inf when alpha <= 1) and the
+#' standard deviation (Inf when alpha <= 2). NA when the parameters are not positive.
+#' @noRd
+pareto_moments <- function(alpha, x_m) {
+  if (alpha <= 0 || x_m <= 0) return(c(NA_real_, NA_real_))
+  mean_value <- if (alpha > 1) alpha * x_m / (alpha - 1) else Inf
+  sd_value <- if (alpha > 2) x_m / (alpha - 1) * sqrt(alpha / (alpha - 2)) else Inf
+  c(mean_value, sd_value)
+}
 
 #' Find missing or non-numeric simulation settings
 #'
@@ -235,24 +332,46 @@ find_missing_simulation_settings <- function(settings) {
     }
   }
 
-  check(s$numOfSimulations, "Number of simulations")
+  if (!is_number(s$numOfSimulations)) {
+    problems <- c(problems, "Number of simulations")
+  } else if (s$numOfSimulations != round(s$numOfSimulations) ||
+             s$numOfSimulations < 1 || s$numOfSimulations > 10000000) {
+    problems <- c(problems, "Number of simulations must be a whole number between 1 and 10,000,000")
+  }
   check_params(s$freq_params, s$freqDistr, freq_dist_options, "Frequency")
   check_params(s$sev_params, s$sevDistr, sev_dist_options, "Severity")
-  if (isTRUE(s$seedSetBinary)) check(s$seedValue, "Seed value")
+  if (isTRUE(s$seedSetBinary)) {
+    if (!is_number(s$seedValue)) {
+      problems <- c(problems, "Seed value")
+    } else if (s$seedValue != round(s$seedValue)) {
+      problems <- c(problems, "Seed value must be a whole number")
+    }
+  }
+
+  #a Normal truncated at zero needs some probability mass above zero to sample from
+  if (isTRUE(s$sevTruncateAtZero) && identical(s$sevDistr, "Normal")) {
+    sev <- suppressWarnings(as.numeric(unlist(s$sev_params)))
+    if (length(sev) == 2 && !anyNA(sev) && pnorm(0, sev[1], sev[2], lower.tail = FALSE) < 1e-9) {
+      problems <- c(problems, paste(
+        "Severity Normal truncated at zero has almost no probability above zero",
+        "(increase the mean or reduce the standard deviation)"
+      ))
+    }
+  }
 
   if (isTRUE(s$paretoSlice)) {
     if (!is_number(s$pareto_slice_times)) {
       problems <- c(problems, "Number of Pareto Slices")
     } else {
       for (j in seq_len(s$pareto_slice_times)) {
-        check(nth(s$slice_pareto_alphas, j), paste("Sliced alpha", j))
-        check(nth(s$slice_pareto_x_ms, j), paste("Sliced x_m", j))
+        check(nth(s$slice_pareto_alphas, j), paste("Slice", j, "alpha"))
+        check(nth(s$slice_pareto_x_ms, j), paste("Slice", j, "threshold (x_m)"))
       }
       #each slice replaces the tail above its threshold, so thresholds must increase
       x_ms <- utils::head(suppressWarnings(as.numeric(unlist(s$slice_pareto_x_ms))), s$pareto_slice_times)
       if (length(x_ms) == s$pareto_slice_times && length(x_ms) > 1 &&
           !anyNA(x_ms) && any(diff(x_ms) <= 0)) {
-        problems <- c(problems, "Sliced x_m values must increase from one slice to the next")
+        problems <- c(problems, "Slice thresholds must increase from one slice to the next")
       }
     }
   }
@@ -312,12 +431,32 @@ find_missing_simulation_settings <- function(settings) {
 #' @param reinsurance_structure_al_limit_amount The limit for aggregate reinsurance structure.
 #' @param reinsuranceStructureLimitedReinstatements True if there is a limit in reinstatements, otherwise false.
 #' @param reinsuranceStructureReinstatementLimit The reinstatement limit.
-#' @param multiprocessing True if multiprocessing is used, otherwise false.
+#' @param multiprocessing True if multiprocessing is used, otherwise false. An already active multi-worker future plan is reused; otherwise a multisession plan is started for the call and the caller's plan is restored afterwards.
+#' @param sevTruncateAtZero True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.
 #' @param chunk_size The number of simulations processed per vectorised batch. Defaults to 10000.
-#' @return A data frame with claims counts, ceded claims and the number of reinstatements used.
+#' @return A data frame with one row per simulation: the claim count, the total claims after the reinsurance structures, the gross total claims before them, and the number of reinstatements used (when reinstatements are limited).
 #' Stops with an error that names any required setting that is missing or not a number.
 #' @export
-#' @import data.table
+#' @examples
+#' # 1,000 simulated years of Poisson claim counts with Normal claim sizes, no reinsurance
+#' results <- simulate_function(
+#'   numOfSimulations = 1000, freq_params = 3, sev_params = c(1000, 200),
+#'   seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
+#'   reinsuranceStructureEEL = "No Reinsurance Structure",
+#'   reinsuranceStructureAL = "No Reinsurance Structure", multiprocessing = FALSE
+#' )
+#' summary(results$total_claims)
+#'
+#' # the same claims ceded to a layer of 1,500 excess of 800 on each claim
+#' layer <- simulate_function(
+#'   numOfSimulations = 1000, freq_params = 3, sev_params = c(1000, 200),
+#'   seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
+#'   reinsuranceStructureEEL = "Limited Layer",
+#'   reinsurance_structure_eel_dedctible_amount = 800,
+#'   reinsurance_structure_eel_limit_amount = 1500,
+#'   reinsuranceStructureAL = "No Reinsurance Structure", multiprocessing = FALSE
+#' )
+#' mean(layer$total_claims)
 simulate_function <- function(
     numOfSimulations,
     freq_params,
@@ -341,6 +480,7 @@ simulate_function <- function(
     reinsuranceStructureLimitedReinstatements,
     reinsuranceStructureReinstatementLimit,
     multiprocessing,
+    sevTruncateAtZero = FALSE,
     chunk_size = 10000
 ){
   #collect the settings; arguments not needed for the chosen options may be omitted,
@@ -370,6 +510,14 @@ simulate_function <- function(
     slice_pareto_x_ms <- as.numeric(unlist(slice_pareto_x_ms))
   }
 
+  #the Normal severity can be truncated at zero so that no claim is negative
+  simulate_severities <- sev_dist_options[[sevDistr]]@simulate_func
+  if (isTRUE(sevTruncateAtZero) && sevDistr == "Normal") {
+    simulate_severities <- function(number_of_simulations, parameters) {
+      rnorm_truncated_at_zero(n = number_of_simulations, mean = parameters[1], sd = parameters[2])
+    }
+  }
+
   #set custom seed
   if(isTRUE(seedSetBinary)){set.seed(seedValue)}
 
@@ -391,13 +539,13 @@ simulate_function <- function(
 
     #edge case: chunk has zero claims across all simulations
     if(total_claims_needed == 0){
-      return(list(claim_counts = counts, total_claims = rep(0, this_n)))
+      return(list(claim_counts = counts, total_claims = rep(0, this_n), gross_claims = rep(0, this_n)))
     }
 
     sim_id <- rep.int(seq_len(this_n), counts)
 
     #simulate all individual severities for the chunk in one vectorised call
-    claims <- sev_dist_options[[sevDistr]]@simulate_func(
+    claims <- simulate_severities(
       number_of_simulations = total_claims_needed
       ,parameters = sev_params
     )
@@ -419,6 +567,9 @@ simulate_function <- function(
       ,severity_cap_amount = sev_cap_amount
     )
 
+    #keep the gross claims (after tail adjustments and the cap, before any reinsurance)
+    gross_claims <- claims
+
     #apply EEL deductible/limit per individual claim
     claims <- apply_deductible_limit(
       claims
@@ -427,14 +578,16 @@ simulate_function <- function(
       ,limit = reinsurance_structure_eel_limit_amount
     )
 
-    #aggregate individual claims back to simulation-level totals via data.table
-    dt <- data.table::data.table(sim_id = sim_id, claim = claims)
-    agg <- stats::aggregate(claim ~ sim_id, data = dt, FUN = sum)
-    names(agg)[names(agg) == "claim"] <- "total_claims"
+    #sum individual claims back to simulation-level totals, gross and after the EEL structure;
+    #simulations with no claims keep a total of zero
+    sums <- rowsum(cbind(gross = gross_claims, total = claims), sim_id)
+    ids <- as.integer(rownames(sums))
     totals <- numeric(this_n)
-    totals[agg[["sim_id"]]] <- agg[["total_claims"]]
+    gross_totals <- numeric(this_n)
+    totals[ids] <- sums[, "total"]
+    gross_totals[ids] <- sums[, "gross"]
 
-    return(list(claim_counts = counts, total_claims = totals))
+    return(list(claim_counts = counts, total_claims = totals, gross_claims = gross_totals))
   }
 
   #shiny progress bars and notifications only work inside a running shiny app
@@ -451,9 +604,12 @@ simulate_function <- function(
 
   #run chunks, optionally in parallel across chunks (not per-simulation)
   if (isTRUE(multiprocessing)) {
-    #restore the caller's future plan afterwards
-    old_plan <- future::plan(future::multisession)
-    on.exit(future::plan(old_plan), add = TRUE)
+    #reuse workers that are already running (e.g. the app keeps a warm multisession plan);
+    #otherwise start a plan for this call and restore the caller's plan afterwards
+    if (future::nbrOfWorkers() <= 1) {
+      old_plan <- future::plan(future::multisession)
+      on.exit(future::plan(old_plan), add = TRUE)
+    }
 
     if (in_shiny_session) {
       shiny::showNotification(
@@ -491,6 +647,7 @@ simulate_function <- function(
   data <- data.frame(
     claim_counts = unlist(lapply(chunk_results, `[[`, "claim_counts"), use.names = FALSE)
     ,total_claims = unlist(lapply(chunk_results, `[[`, "total_claims"), use.names = FALSE)
+    ,gross_claims = round(unlist(lapply(chunk_results, `[[`, "gross_claims"), use.names = FALSE), 2)
   )
   rm(chunk_results); gc(FALSE)
 
@@ -528,4 +685,10 @@ simulate_function <- function(
 #'
 #' @return Opens the shiny simulator application
 #' @export
-run_shiny_simulator = function(){shinyApp(ui = shiny_simulator_ui, server = shiny_simulator_server)}
+#' @examples
+#' if (interactive()) {
+#'   run_shiny_simulator()
+#' }
+run_shiny_simulator <- function() {
+  shinyApp(ui = shiny_simulator_ui, server = shiny_simulator_server)
+}

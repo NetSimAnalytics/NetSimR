@@ -29,6 +29,7 @@ simulate_function(
   reinsuranceStructureLimitedReinstatements,
   reinsuranceStructureReinstatementLimit,
   multiprocessing,
+  sevTruncateAtZero = FALSE,
   chunk_size = 10000
 )
 }
@@ -75,16 +76,39 @@ simulate_function(
 
 \item{reinsuranceStructureReinstatementLimit}{The reinstatement limit.}
 
-\item{multiprocessing}{True if multiprocessing is used, otherwise false.}
+\item{multiprocessing}{True if multiprocessing is used, otherwise false. An already active multi-worker future plan is reused; otherwise a multisession plan is started for the call and the caller's plan is restored afterwards.}
+
+\item{sevTruncateAtZero}{True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.}
 
 \item{chunk_size}{The number of simulations processed per vectorised batch. Defaults to 10000.}
 }
 \value{
-A data frame with claims counts, ceded claims and the number of reinstatements used.
+A data frame with one row per simulation: the claim count, the total claims after the reinsurance structures, the gross total claims before them, and the number of reinstatements used (when reinstatements are limited).
 Stops with an error that names any required setting that is missing or not a number.
 }
 \description{
 A function to simulate frequency - severity of insurance claims using chunked vectorisation.
 The function applies severity cap, reinsurance structure for each and every loss claim,
 reinsurance structure for aggregate claims, and allows for piecewise pareto slices.
+}
+\examples{
+# 1,000 simulated years of Poisson claim counts with Normal claim sizes, no reinsurance
+results <- simulate_function(
+  numOfSimulations = 1000, freq_params = 3, sev_params = c(1000, 200),
+  seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
+  reinsuranceStructureEEL = "No Reinsurance Structure",
+  reinsuranceStructureAL = "No Reinsurance Structure", multiprocessing = FALSE
+)
+summary(results$total_claims)
+
+# the same claims ceded to a layer of 1,500 excess of 800 on each claim
+layer <- simulate_function(
+  numOfSimulations = 1000, freq_params = 3, sev_params = c(1000, 200),
+  seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
+  reinsuranceStructureEEL = "Limited Layer",
+  reinsurance_structure_eel_dedctible_amount = 800,
+  reinsurance_structure_eel_limit_amount = 1500,
+  reinsuranceStructureAL = "No Reinsurance Structure", multiprocessing = FALSE
+)
+mean(layer$total_claims)
 }

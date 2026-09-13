@@ -5,19 +5,16 @@
 #' @param session Session for the server function.
 #' @return Returns server rendering for the shiny application.
 #' @import shiny
-#' @import MASS
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
-#' @import fitdistrplus
-#' @import Pareto
-#' @import reactable
+#' @importFrom fitdistrplus fitdist
 
-distribution_fitting_tool_Server = function(input, output, session) {
+distribution_fitting_tool_Server <- function(input, output, session) {
 
   ######################
   #help functions
   ######################
 
-  clean_and_convert_to_numeric <- function(input_vector, greater_than_zero = F){
+  clean_and_convert_to_numeric <- function(input_vector, greater_than_zero = FALSE){
     # Remove non-numeric elements
     numeric_data <- as.numeric(input_vector[!is.na(as.numeric(input_vector))])
     # Remove negative values
@@ -51,10 +48,17 @@ distribution_fitting_tool_Server = function(input, output, session) {
   existence_check_shiny <- function(df){
     tryCatch({
       df
-      return(T)
+      return(TRUE)
     },
-    shiny.silent.error = function(e) {return(F)}
+    shiny.silent.error = function(e) {return(FALSE)}
     )
+  }
+
+  # reports a failed fit to the user (instead of the console) and returns NA
+  # parameters so that the dependent outputs show NA rather than an error
+  failed_fit <- function(what, e, n_par) {
+    showNotification(paste0(what, " failed: ", conditionMessage(e)), type = "error", duration = 10)
+    list(par = rep(NA_real_, n_par))
   }
 
 
@@ -65,8 +69,7 @@ distribution_fitting_tool_Server = function(input, output, session) {
     SumOfSquares <- function(data, par) {
       sum((1 - (slic_pont_lft / data$severity)^par[1] - data$empirical)^2)
     }
-    x=1
-    result <- optim(par = x, SumOfSquares, data = dat, lower = 0.0001, method = "L-BFGS-B")
+    result <- optim(par = 1, SumOfSquares, data = dat, lower = 0.0001, method = "L-BFGS-B")
     return(result$par)
   }
 
@@ -77,8 +80,7 @@ distribution_fitting_tool_Server = function(input, output, session) {
   data <- reactive({
     req(input$file1)
     inFile <- input$file1
-    header <- if (input$data_includes_header) TRUE else FALSE
-    df <- read.csv(inFile$datapath, header = header, sep = input$sep, quote = input$quote)
+    df <- read.csv(inFile$datapath, header = isTRUE(input$data_includes_header), sep = input$sep, quote = input$quote)
     updateSelectInput(session, inputId = 'counts_var', label = 'Frequency Variable',
                       choices = names(df), selected = names(df))
     updateSelectInput(session, inputId = 'counts_weights_var', label = 'Weights Variable',
@@ -173,7 +175,7 @@ distribution_fitting_tool_Server = function(input, output, session) {
 
   output$freq_fit_plot <- renderPlotly({
     x_axis <- generate_xaxis_points(counts_data(), 1000)
-    empirical_cdf <- unlist(lapply(x_axis, function(x) sum(counts_data() <= x)))/length(counts_data())
+    empirical_cdf <- empirical_cdf_at(x_axis, counts_data())
     p <- plot_ly(x = x_axis, y = empirical_cdf, type = "scatter", mode = "lines", name = "Empirical cdf")
     p <- layout(p, xaxis = list(title = "Claim frequency"), yaxis = list(title = "CDF"))
     p <- layout(p, title =  "Claim Frequency CDF and model fit")
@@ -189,12 +191,12 @@ distribution_fitting_tool_Server = function(input, output, session) {
   ######################
 
   severity_data <- eventReactive(input$execute_sev_analysis, {
-    clean_and_convert_to_numeric(data()[, input$severity_var], T)
+    clean_and_convert_to_numeric(data()[, input$severity_var], TRUE)
   })
 
   sev_norm_fit <- reactive({fitdist(severity_data(), "norm")})
   sev_lnorm_fit <- reactive({fitdist(severity_data(), "lnorm")})
-  sev_gamma_fit <- reactive({fitdistr(severity_data(), 'gamma', method = "L-BFGS-B", lower = c(0, 0), start = list(scale = 1, shape = 1))})
+  sev_gamma_fit <- reactive({fit_gamma_mle(severity_data())})
 
   sev_pareto_xm <- reactive({ min(severity_data()) })
   sev_pareto_alpha <- reactive({ length(severity_data())/(sum(log(severity_data()))-length(severity_data())*log(sev_pareto_xm())) })
@@ -238,10 +240,11 @@ distribution_fitting_tool_Server = function(input, output, session) {
   output$sev_fit_plot <- renderPlotly({
     x_axis <- generate_xaxis_points(severity_data(), 1000)
     x_axis_after_log_option <- if (input$sev_fit_log_scale) {log(x_axis)} else {x_axis}
-    empirical_cdf <- unlist(lapply(x_axis, function(x) sum(severity_data() <= x)))/length(severity_data())
+    empirical_cdf <- empirical_cdf_at(x_axis, severity_data())
+    log_scale_label <- if (input$sev_fit_log_scale) "Log Scale" else ""
     p <- plot_ly(x = x_axis_after_log_option, y = empirical_cdf, type = "scatter", mode = "lines", name = "Empirical cdf")
-    p <- layout(p, xaxis = list(title = paste("Claim Severity", ifelse(T,"Log Scale",""))), yaxis = list(title = "Severity log scale"))
-    p <- layout(p, title =  paste("Claim Severity and severity model fit", ifelse(T,"Log Scale","")))
+    p <- layout(p, xaxis = list(title = paste("Claim Severity", log_scale_label)), yaxis = list(title = "CDF"))
+    p <- layout(p, title =  paste("Claim Severity and severity model fit", log_scale_label))
     normal_cdf <- pnorm(x_axis, mean=sev_norm_fit()$estimate[1], sd=sev_norm_fit()$estimate[2])
     p <- add_lines(p, x = x_axis_after_log_option, y = normal_cdf, type = 'scatter', mode = 'lines', name = 'Normal cdf')
     lnormal_cdf <- plnorm(x_axis, meanlog=sev_lnorm_fit()$estimate[1], sdlog=sev_lnorm_fit()$estimate[2])
@@ -261,7 +264,7 @@ distribution_fitting_tool_Server = function(input, output, session) {
   ######################
 
   sliced_sev_data <- eventReactive(input$execute_sliced_sev_analysis, {
-    clean_and_convert_to_numeric(data()[, input$sliced_sev_var], T)
+    clean_and_convert_to_numeric(data()[, input$sliced_sev_var], TRUE)
   })
 
   x_axis_sliced_sev <- eventReactive(input$execute_sliced_sev_analysis, {
@@ -269,9 +272,13 @@ distribution_fitting_tool_Server = function(input, output, session) {
   })
 
   output$mean_excess_func_plot <- renderPlotly({
+    x_axis <- x_axis_sliced_sev()
+    mean_excess <- mean_excess_at(x_axis, sliced_sev_data())
+    # no claim exceeds the largest point, so its mean excess is undefined
+    defined <- is.finite(mean_excess)
     p <- plot_ly(
-      y = unlist(lapply(x_axis_sliced_sev(), function(x) mean(x_axis_sliced_sev()[x_axis_sliced_sev() >= x])))
-      ,x = x_axis_sliced_sev(), type = "scatter", mode = "lines"
+      y = mean_excess[defined]
+      ,x = x_axis[defined], type = "scatter", mode = "lines"
     )
     p <- layout(
       p,
@@ -308,7 +315,6 @@ distribution_fitting_tool_Server = function(input, output, session) {
       ,min = input$slicing_point_left
       ,value = (input$slicing_point_left+round(max(sliced_sev_data()),0))/2
     )
-    update
   })
 
   slc_sev_lnorm_fit <- reactive({fitdist(sliced_sev_data(), "lnorm")})
@@ -322,11 +328,10 @@ distribution_fitting_tool_Server = function(input, output, session) {
         sum((plnorm(data$severity, meanlog = par[1], sdlog = par[2]) - data$empirical)^2)
       }
       result <- optim(par = c(mean(log(w)), sd(log(w))), SumOfSquares, data = dat, lower=0.0001, method = "L-BFGS-B")
-      if(result$convergence != 0) {return(NULL)}
+      if(result$convergence != 0) {stop("the optimisation did not converge")}
       return(result)
     }, error = function(e) {
-      cat("An error occurred:", conditionMessage(e), "\n")
-      return(e)
+      failed_fit("Sliced LogNormal fit", e, 2)
     })
   })
 
@@ -338,8 +343,7 @@ distribution_fitting_tool_Server = function(input, output, session) {
       if(!existence_check_shiny(sliced_sev_data())){return(1)}
       return(fit_slice_pareto(sliced_sev_data(), input$slicing_point_left, input$slicing_point_right))
     }, error = function(e) {
-      cat("An error occurred: ", conditionMessage(e), "\n")
-      return(e)
+      failed_fit("Sliced Pareto fit", e, 1)$par
     })
   })
   paretoX2Alpha <- reactive({ length(zGreaterThanXm2())/(sum(log(zGreaterThanXm2()))-length(zGreaterThanXm2())*log(input$slicing_point_right)) })
@@ -371,10 +375,11 @@ distribution_fitting_tool_Server = function(input, output, session) {
     }
 
     x_axis_after_log_option <- if (input$sev_cens_fit_log_scale) {log(x_axis_sliced_sev())} else {x_axis_sliced_sev()}
-    empirical_cdf <- unlist(lapply(x_axis_sliced_sev(), function(x) sum(sliced_sev_data() <= x)))/length(sliced_sev_data())
+    empirical_cdf <- empirical_cdf_at(x_axis_sliced_sev(), sliced_sev_data())
+    log_scale_label <- if (input$sev_cens_fit_log_scale) "Log Scale" else ""
     p <- plot_ly(x = x_axis_after_log_option, y = empirical_cdf, type = "scatter", mode = "lines", name = "Empirical cdf")
-    p <- layout(p, xaxis = list(title = paste("Claim Severity", ifelse(T,"Log Scale",""))), yaxis = list(title = "Severity log scale"))
-    p <- layout(p, title =  paste("Claim Severity and severity model fit", ifelse(T,"Log Scale","")))
+    p <- layout(p, xaxis = list(title = paste("Claim Severity", log_scale_label)), yaxis = list(title = "CDF"))
+    p <- layout(p, title =  paste("Claim Severity and severity model fit", log_scale_label))
     lnormal_cdf <- plnorm(x_axis_sliced_sev(), meanlog=slc_sev_lnorm_fit()$estimate[1], sdlog=slc_sev_lnorm_fit()$estimate[2])
     p <- add_lines(p, x = x_axis_after_log_option, y = lnormal_cdf, type = 'scatter', mode = 'lines', name = 'LogNormal cdf')
     LogNormalParetoInv <- LogNormalParetoInv(x_axis_sliced_sev())
@@ -435,16 +440,18 @@ distribution_fitting_tool_Server = function(input, output, session) {
 
 
   piecewise_sev_data <- eventReactive(input$execute_piecewise_sev_analysis, {
-    sort(clean_and_convert_to_numeric(data()[, input$piecewise_pareto_var], T))
+    sort(clean_and_convert_to_numeric(data()[, input$piecewise_pareto_var], TRUE))
   })
 
   # Create a reactive to generate the dynamic sliders
   dynamic_sliders <- eventReactive(list(input$num_pareto_slices, input$execute_piecewise_sev_analysis), {
     num_sliders <- input$num_pareto_slices
-    slider_list <- lapply(1:num_sliders, function(i) {
-      min_val <- sort(piecewise_sev_data())[2]
-      max_val <- sort(piecewise_sev_data())[length(piecewise_sev_data())-1]
-      sliderInput(paste0("slider_", i), label = paste("Slider", i), min = min_val, max = max_val, value = quantile(piecewise_sev_data(), (i/(input$num_pareto_slices+1))^0.1))
+    # piecewise_sev_data() is sorted: the sliders range from the second smallest to the second largest claim
+    sorted_claims <- piecewise_sev_data()
+    min_val <- sorted_claims[2]
+    max_val <- sorted_claims[length(sorted_claims) - 1]
+    slider_list <- lapply(seq_len(num_sliders), function(i) {
+      sliderInput(paste0("slider_", i), label = paste("Slider", i), min = min_val, max = max_val, value = quantile(sorted_claims, (i/(num_sliders+1))^0.1))
     })
     do.call(fluidRow, slider_list)
   })
@@ -455,18 +462,16 @@ distribution_fitting_tool_Server = function(input, output, session) {
   })
 
   piecwise_pareto_mu <- reactive({
-    mu_values <- c(min(piecewise_sev_data()), input$slider_1)
-    if (input$num_pareto_slices>1) {
-      for (i in 2:input$num_pareto_slices) {
-        mu_values <- append(mu_values, input[[paste0('slider_', i)]])
-      }
-    }
-    mu_values <- sort(mu_values)
-    return(mu_values)
+    # nothing to do until the analysis has been executed
+    lowest_claim <- min(piecewise_sev_data())
+    num_sliders <- req(input$num_pareto_slices)
+    # sliders that are not rendered yet are NULL and are dropped by unlist()
+    slider_values <- unlist(lapply(seq_len(num_sliders), function(i) input[[paste0('slider_', i)]]))
+    sort(c(lowest_claim, slider_values))
   })
 
   piecwise_pareto_alpha <- reactive({
-    Pareto::PiecewisePareto_ML_Estimator_Alpha(piecewise_sev_data(), piecwise_pareto_mu())
+    piecewise_pareto_alpha(piecewise_sev_data(), piecwise_pareto_mu())
   })
 
   output$fitted_sliced_pareto <- renderTable({
@@ -477,8 +482,8 @@ distribution_fitting_tool_Server = function(input, output, session) {
   })
 
 
-  empirical_piecwise_cdf <- reactive({1:length(piecewise_sev_data())/(length(piecewise_sev_data())+1)})
-  predicted_piecwise_cdf <- reactive({Pareto::pPiecewisePareto(piecewise_sev_data(), piecwise_pareto_mu(), piecwise_pareto_alpha())})
+  empirical_piecwise_cdf <- reactive({seq_along(piecewise_sev_data())/(length(piecewise_sev_data())+1)})
+  predicted_piecwise_cdf <- reactive({piecewise_pareto_cdf(piecewise_sev_data(), piecwise_pareto_mu(), piecwise_pareto_alpha())})
   output$piecewise_pareto_ks_test <- renderText({paste(
     'k-s test:'
     ,round(max(abs(empirical_piecwise_cdf() - predicted_piecwise_cdf())),4)

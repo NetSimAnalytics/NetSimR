@@ -6,29 +6,79 @@
 #' @return Returns server rendering for the shiny application.
 #' @import shiny
 #' @import future.apply
-#' @import data.table
 #' @importFrom future plan
 #' @importFrom future sequential
 #' @importFrom future multisession
 #' @import methods
 #' @import stats
-#' @import scales
 #' @import utils
-#' @import reactable
-shiny_simulator_server = function(input, output, session) {
-  #set data.table threads once per session, leave one core free for the main process
-  data.table::setDTthreads(max(1, parallel::detectCores() - 1))
-
+shiny_simulator_server <- function(input, output, session) {
   #ensure any future workers are cleaned up when the session ends
   session$onSessionEnded(function() {
     future::plan(future::sequential)
   })
 
+  #start the parallel workers once, when multiprocessing is switched on, so that every
+  #run reuses the warm workers instead of paying the start-up cost each time
+  start_parallel_workers <- function() {
+    if (future::nbrOfWorkers() > 1) return(invisible(FALSE))
+    showNotification("Starting parallel workers...", type = "message", duration = 3, id = "parallel_workers_notice")
+    future::plan(future::multisession)
+    invisible(TRUE)
+  }
+  observeEvent(input$multiprocessingBinary, {
+    if (isTRUE(input$multiprocessingBinary)) start_parallel_workers()
+  })
+
   #seed input
   output$seed_value <- renderUI({
     if (input$seedSetBinary) {
-      sliderInput('seedValue', 'Seed value', min=1, max=100, value=1, step=1)
+      numericInput('seedValue', 'Seed value', value = 1, min = 1, step = 1)
     }
+  })
+
+  #implied mean and standard deviation of the chosen distributions, updated as parameters are typed
+  distribution_inputs <- function(options, id) {
+    lapply(options[[id]]@paramIDs, function(x) input[[x]])
+  }
+  freq_moments <- reactive({
+    req(input$freqDistr)
+    distribution_moments(freq_dist_options, input$freqDistr, distribution_inputs(freq_dist_options, input$freqDistr))
+  })
+  sev_moments <- reactive({
+    req(input$sevDistr)
+    distribution_moments(
+      sev_dist_options, input$sevDistr, distribution_inputs(sev_dist_options, input$sevDistr)
+      ,truncate_at_zero = isTRUE(input$sevTruncateAtZero) && input$sevDistr == "Normal"
+    )
+  })
+  format_moment <- function(x) {
+    if (is.infinite(x)) return("infinite")
+    format(signif(x, 4), big.mark = ",", scientific = FALSE, trim = TRUE)
+  }
+  render_implied_moments <- function(moments) {
+    if (anyNA(moments)) {
+      return(div(class = "sim-implied sim-implied-empty", "Enter the parameters to see the implied mean"))
+    }
+    div(
+      class = "sim-implied"
+      ,"Implied mean ", tags$strong(format_moment(moments[["mean"]]))
+      ,paste0(" ", intToUtf8(183), " "), "SD ", tags$strong(format_moment(moments[["sd"]]))
+    )
+  }
+  output$freq_implied_moments <- renderUI(render_implied_moments(freq_moments()))
+  output$sev_implied_moments <- renderUI(render_implied_moments(sev_moments()))
+
+  #expected gross claims per period, E[N] * E[X]; hidden while either figure is unavailable
+  output$expected_gross_claims <- renderUI({
+    expected <- freq_moments()[["mean"]] * sev_moments()[["mean"]]
+    if (is.na(expected)) return(NULL)
+    div(
+      class = "sim-expected"
+      ,div(class = "sim-expected-label", "Expected gross claims per period")
+      ,div(class = "sim-expected-value", format_moment(expected))
+      ,div(class = "sim-expected-note", "before tail adjustments and reinsurance")
+    )
   })
 
   #help function to render freq/sev parameters
@@ -58,19 +108,20 @@ shiny_simulator_server = function(input, output, session) {
   })
 
   #render Pareto slice parameters
-  output$pareto_slice_times <- renderUI({
+  #dynamic sections use "<input id>_ui" as their output id, so no id is shared by an input and an output
+  output$pareto_slice_times_ui <- renderUI({
     if (input$paretoSlice) {
       selectInput("pareto_slice_times","Number of Pareto Slices",1:max_number_of_pareto_slices)
     }
   })
 
   lapply(1:(2*max_number_of_pareto_slices), function(i) {
-    output[[paste0("slice_pareto_param_", i)]] <- renderUI({
+    output[[paste0("slice_pareto_param_", i, "_ui")]] <- renderUI({
       req(input$pareto_slice_times)
       if(input$paretoSlice){if(as.numeric(input$pareto_slice_times)*2>=i){
         numericInput(
           inputId = paste0("slice_pareto_param_", i)
-          ,label = ifelse(i %% 2, paste("Sliced alpha", (1+i)/2), paste('Sliced x_m', i/2))
+          ,label = ifelse(i %% 2, paste("Slice", (1+i)/2, "alpha"), paste("Slice", i/2, "threshold (x_m)"))
           ,value = NULL
           ,min = 0
         )
@@ -79,7 +130,7 @@ shiny_simulator_server = function(input, output, session) {
   })
 
   #render severity cap amount
-  output$sev_cap_amount <- renderUI({
+  output$sev_cap_amount_ui <- renderUI({
     if (input$sevCapBinary) {
       numericInput('sev_cap_amount', 'Severity Cap Amount', value = NULL, min = 0)
     }
@@ -98,13 +149,13 @@ shiny_simulator_server = function(input, output, session) {
     }
   })
 
-  output$reinsuranceStructureLimitedReinstatements <- renderUI({
+  output$reinsuranceStructureLimitedReinstatements_ui <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Limited Layer')) {
-      checkboxInput('reinsuranceStructureLimitedReinstatements', 'Limited Reinstatments', value = F)
+      checkboxInput('reinsuranceStructureLimitedReinstatements', 'Limited reinstatements', value = FALSE)
     }
   })
 
-  output$reinsuranceStructureReinstatementLimit <- renderUI({
+  output$reinsuranceStructureReinstatementLimit_ui <- renderUI({
     req(input$reinsuranceStructureLimitedReinstatements)
     if (input$reinsuranceStructureEEL %in% c('Limited Layer')) {
       if(input$reinsuranceStructureLimitedReinstatements) {
@@ -126,9 +177,20 @@ shiny_simulator_server = function(input, output, session) {
     }
   })
 
+  #save and load of the simulator settings, with built-in examples
+  sim_settings_io_server(input, output, session)
+
   #create simulation data dataFrame reactive to enable download buttons & simulation settings list
   simulated_data <- reactiveValues(data=NULL)
   simulation_settings <- list()
+
+  #the latest successful run (id, settings, data, finished), for the results tabs
+  last_run <- reactiveVal(NULL)
+  run_counter <- 0L
+
+  #in-app Report and Compare tabs (R/ShinySimulatorTabs.R); both follow last_run
+  sim_report_tab_server("report", last_run, reactive(input$sim_navbar))
+  sim_compare_tab_server("compare", last_run)
 
   #run simulation button
   #the browser disables the button and shows "Running..." on click; this message re-enables it
@@ -137,6 +199,8 @@ shiny_simulator_server = function(input, output, session) {
 
     #collect the settings for this run
     pareto_slice_count <- if (is.null(input$pareto_slice_times)) 0 else as.numeric(input$pareto_slice_times)
+    #sapply on purpose: it gives a numeric vector when every field is filled in, and a list
+    #when a field is still empty (NULL), which find_missing_simulation_settings() reports by name
     new_settings <- list(
       freq_params = unname(sapply(
         freq_dist_options[[input$freqDistr]]@paramIDs
@@ -170,6 +234,7 @@ shiny_simulator_server = function(input, output, session) {
       ,reinsurance_structure_al_dedctible_amount = input$reinsurance_structure_al_dedctible_amount
       ,reinsurance_structure_al_limit_amount = input$reinsurance_structure_al_limit_amount
       ,multiprocessing = input$multiprocessingBinary
+      ,sevTruncateAtZero = isTRUE(input$sevTruncateAtZero) && input$sevDistr == "Normal"
       ,reinsuranceStructureLimitedReinstatements = input$reinsuranceStructureLimitedReinstatements
       ,reinsuranceStructureReinstatementLimit = input$reinsuranceStructureReinstatementLimit
     )
@@ -194,6 +259,9 @@ shiny_simulator_server = function(input, output, session) {
 
     on.exit(gc(), add = TRUE)
 
+    #workers may have been shut down after an earlier error; make sure they are up before a parallel run
+    if (isTRUE(simulation_settings$multiprocessing)) start_parallel_workers()
+
     #run simmulations
     simulated_data$data <- tryCatch(
       {
@@ -205,10 +273,21 @@ shiny_simulator_server = function(input, output, session) {
           type = "error",
           duration = NULL
         )
-        print(cond)
+        message("Simulation failed: ", conditionMessage(cond))
         NULL
       }
     )
+
+    #record the run for the results tabs, only when it produced data
+    if (!is.null(simulated_data$data)) {
+      run_counter <<- run_counter + 1L
+      last_run(list(
+        id = run_counter
+        ,settings = simulation_settings
+        ,data = simulated_data$data
+        ,finished = Sys.time()
+      ))
+    }
   })
 
   #the browser shows "Preparing report..." on click; the report handler re-enables the button
@@ -253,7 +332,7 @@ shiny_simulator_server = function(input, output, session) {
           write_simulation_report(
             file = file,
             settings = simulation_settings,
-            total_claims = simulated_data$data$total_claims
+            results = simulated_data$data
           ),
           error = function(cond) {
             #without this the download just fails, with the reason only in the R console
@@ -275,10 +354,11 @@ shiny_simulator_server = function(input, output, session) {
   dynamic_outputs <- c(
     freq_dist_parameter_placeholders$param_id
     ,sev_dist_parameter_placeholders$param_id
-    ,paste0("slice_pareto_param_", 1:(2*max_number_of_pareto_slices))
+    ,paste0("slice_pareto_param_", seq_len(2*max_number_of_pareto_slices), "_ui")
     ,"reinsuranceStructureDeductibleEEL", "reinsuranceStructureLimitEEL"
     ,"reinsuranceStructureDeductibleAL", "reinsuranceStructureLimitAL"
     ,"downloadDataButton", "downloadReportButton"
+    ,"freq_implied_moments", "sev_implied_moments", "expected_gross_claims"
   )
   for (output_name in dynamic_outputs) {
     outputOptions(output, output_name, suspendWhenHidden = FALSE)

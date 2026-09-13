@@ -30,3 +30,55 @@ Changes in Version 0.1.5
   o Increased the maximum csv file size for glm builder and distribution fitting to 64gb
   o Fixed bug loading inputs for GLM builder
   o Added piecewise pareto fit to distribution fitting tool
+
+Changes in Version 0.1.6
+
+  o Fewer dependencies: data.table, parallel, scales, shinyjs, MASS and Pareto are
+    no longer imported. The Gamma maximum likelihood fit and the piecewise Pareto
+    fit of the distribution fitting tool are now computed with base R and give the
+    same results as before.
+  o The database drivers of the GLM fitting tool (DBI, RMySQL, RSQLite, RODBC,
+    RPostgreSQL) moved from Imports to Suggests, so they are no longer installed
+    with the package. The tool shows a message naming the package to install when
+    a database type is selected whose driver is missing.
+  o The GLM and distribution fitting tools raise the shiny upload limit only while
+    they run and restore the option when they stop; loading the package no longer
+    changes options(shiny.maxRequestSize).
+  o GammaCappedMean() and LNormCappedMean() are computed with pgamma() and pnorm()
+    directly: no NaN for large shapes (gamma() overflow) and no loss of precision
+    for caps far above or far below the mean. Results elsewhere are unchanged up
+    to floating point.
+  o ParetoCappedMean() with shape == 1 uses the exact limit
+    scale * (1 + log(cap / scale)) instead of averaging shape +/- 0.0001; values
+    change by less than 1e-6 relative to before.
+  o An infinite cap now gives the uncapped mean (or Inf when the mean is infinite)
+    in the capped mean, exposure curve and ILF functions, instead of NaN.
+  o Distribution fitting tool: the mean excess function plot now shows the
+    empirical mean excess of the claims (mean of the claims above each point,
+    less the point) instead of a mean over the plotted grid points; fitting
+    errors are shown in the app instead of the console; the severity cdf plots
+    are labelled correctly when the log scale is off.
+  o GLM fitting tool: model fitting errors are shown in the app.
+  o IGamma() documentation corrected: it is the upper incomplete gamma function.
+  o Added examples to run_shiny_glm_fitting_tool() and
+    run_shiny_distribution_fitting_tool(), and a testthat suite.
+  o Claims simulator: redesigned interface with light, dark and system themes;
+    a Report tab that shows the full report inside the app; a Compare tab that
+    keeps up to six runs with side-by-side metrics and a return-period chart;
+    save and load of settings, and three built-in examples.
+  o Claims simulator inputs: clearer parameter labels, the implied mean and
+    standard deviation of each distribution shown while typing, number boxes for
+    the simulations and seed, and checks that name any missing or invalid
+    setting before a run (including whole-number claim counts and increasing
+    Pareto slice thresholds).
+  o New option to truncate Normal claim sizes at zero, so no claim is negative
+    (argument sevTruncateAtZero of simulate_function()).
+  o simulate_function() also returns the gross total claims before reinsurance,
+    works outside a Shiny session, reuses running parallel workers and has
+    examples.
+  o The simulation report is built in R and no longer needs pandoc or
+    rmarkdown. It adds gross, ceded and net figures, layer metrics, simulation
+    accuracy, claim frequency and return periods, and follows the light or dark
+    theme. TVaR now averages exactly the worst share of simulations.
+  o Shiny's built-in busy indicators replace the shinybusy package in the
+    simulator and the GLM fitting tool.

@@ -2,7 +2,7 @@
 #'
 #' @return Returns the UI code for the shiny application.
 
-distribution_fitting_tool_UI = fluidPage(
+distribution_fitting_tool_UI <- fluidPage(
 
 
 
@@ -44,7 +44,7 @@ distribution_fitting_tool_UI = fluidPage(
       sidebarLayout(
         sidebarPanel(
           selectInput(inputId='counts_var', label='Claim Counts variable',choices=""),
-          checkboxInput("counts_weighted_var", "Weigthed counts fit", value = F),
+          checkboxInput("counts_weighted_var", "Weigthed counts fit", value = FALSE),
           conditionalPanel(
             condition = "input.counts_weighted_var",
             selectInput(inputId='counts_weights_var', label='Weigths variable',choices="")
@@ -92,7 +92,7 @@ distribution_fitting_tool_UI = fluidPage(
                       min = 1,
                       max = 200,
                       value = 20),
-          checkboxInput("sev_fit_log_scale", "Log Scale for Severity cdf", value = F),
+          checkboxInput("sev_fit_log_scale", "Log Scale for Severity cdf", value = FALSE),
           tabPanel(title="Severity parameters summary",
                    strong("Severity parameters fitted"),
                    verbatimTextOutput("sev_param_summary"))
@@ -131,7 +131,7 @@ distribution_fitting_tool_UI = fluidPage(
             max = 20,
             value = 10
           ),
-          checkboxInput("sev_cens_fit_log_scale", "Log Scale for Severity cdf", value = F),
+          checkboxInput("sev_cens_fit_log_scale", "Log Scale for Severity cdf", value = FALSE),
           tabPanel(
             title="Sliced Severity parameters summary",
             strong("Sliced Severity parameters fitted"),
@@ -158,7 +158,7 @@ distribution_fitting_tool_UI = fluidPage(
           br(),
           p('Note: the above will remove any negative, zero or non numeric values'),
           br(),
-          checkboxInput("piecewise_pareto_fit_log_scale", "Log Scale for Severity cdf", value = F)
+          checkboxInput("piecewise_pareto_fit_log_scale", "Log Scale for Severity cdf", value = FALSE)
         ),
         mainPanel(
           tableOutput("fitted_sliced_pareto"),

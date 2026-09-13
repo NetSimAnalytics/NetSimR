@@ -12,3 +12,8 @@ Opens the glm fitting tool application
 \description{
 A function to run the glm fitting tool application
 }
+\examples{
+if (interactive()) {
+  run_shiny_glm_fitting_tool()
+}
+}

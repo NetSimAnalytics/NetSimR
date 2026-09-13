@@ -2,13 +2,18 @@
 % Please edit documentation in R/distribution_fitting_tool_global.R
 \name{run_shiny_distribution_fitting_tool}
 \alias{run_shiny_distribution_fitting_tool}
-\title{A function to run the glm fitting tool application}
+\title{A function to run the distribution fitting tool application}
 \usage{
 run_shiny_distribution_fitting_tool()
 }
 \value{
-Opens the glm fitting tool application
+Opens the distribution fitting tool application
 }
 \description{
-A function to run the glm fitting tool application
+A function to run the distribution fitting tool application
+}
+\examples{
+if (interactive()) {
+  run_shiny_distribution_fitting_tool()
+}
 }

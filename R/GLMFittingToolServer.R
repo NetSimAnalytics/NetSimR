@@ -5,84 +5,68 @@
 #' @param session Session for the server function.
 #' @return Returns server rendering for the shiny application.
 #' @import shiny
-#' @import DBI
-#' @importFrom RMySQL MySQL
-#' @importFrom RSQLite SQLite
-#' @import RODBC
-#' @import RPostgreSQL
-#' @importFrom shinyjs useShinyjs
 #' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
-#' @import reactable
 #' @importFrom plotly plotlyOutput
-#' @importFrom bslib page_navbar nav_panel layout_columns card card_body card_header navbar_options bs_theme font_google
-GLMFittingToolServer = function(input, output, session) {
+GLMFittingToolServer <- function(input, output, session) {
 
   #import data
   selected_data <- eventReactive(input$submit, {
     result <- tryCatch({
       if (input$data_source == "Database") {
-        # need to test all connectors work
+        # The database driver packages are optional (Suggests): check the one
+        # needed for the selected database type before trying to connect
+        if (!glm_tool_db_package_available(input$db_type)) {
+          return(NULL)
+        }
         if (input$db_type == "MySQL") {
           port <- if (input$db_port == "") 3306 else as.numeric(input$db_port)
-          con <- dbConnect(RMySQL::MySQL(),
-                           host = input$db_host,
-                           user = input$db_user,
-                           password = input$db_password,
-                           port = port,
-                           dbname = input$db_name)
-          # Execute the query
-          df_input <- dbGetQuery(con, input$sql_query)
-          # Close the connection
-          dbDisconnect(con)
+          df_input <- glm_tool_query_dbi(
+            RMySQL::MySQL(),
+            input$sql_query,
+            host = input$db_host,
+            user = input$db_user,
+            password = input$db_password,
+            port = port,
+            dbname = input$db_name
+          )
 
         } else if (input$db_type == "SQLite") {
-          con <- dbConnect(RSQLite::SQLite(),
-                           dbname = input$db_name)
-          # Execute the query
-          df_input <- dbGetQuery(con, input$sql_query)
-          # Close the connection
-          dbDisconnect(con)
+          df_input <- glm_tool_query_dbi(
+            RSQLite::SQLite(),
+            input$sql_query,
+            dbname = input$db_name
+          )
 
         } else if (input$db_type == "SQL Server") {
-          if (isTRUE(input$windows_auth)) {
+          connection_string <- if (isTRUE(input$windows_auth)) {
             # Use Windows authentication
-            con <- odbcDriverConnect(
-              connection = paste0(
-                "Driver={SQL Server};Server=", input$db_host,
-                ";Database=", input$db_name,
-                ";Trusted_Connection=yes"
-              )
+            paste0(
+              "Driver={SQL Server};Server=", input$db_host,
+              ";Database=", input$db_name,
+              ";Trusted_Connection=yes"
             )
           } else {
-            # Ask for username and password
-            con <- odbcDriverConnect(
-              connection = paste0(
-                "Driver={SQL Server};Server=", input$db_host,
-                ";Database=", input$db_name,
-                ";Uid=", input$db_user,
-                ";Pwd=", input$db_password
-              )
+            # Use username and password
+            paste0(
+              "Driver={SQL Server};Server=", input$db_host,
+              ";Database=", input$db_name,
+              ";Uid=", input$db_user,
+              ";Pwd=", input$db_password
             )
           }
-          # Execute the query
-          df_input <- sqlQuery(con, input$sql_query)
-          # Close the connection
-          odbcClose(con)
+          df_input <- glm_tool_query_odbc(connection_string, input$sql_query)
 
         } else if (input$db_type == "PostgreSQL") {
           port <- if (input$db_port == "") 5432 else as.numeric(input$db_port)
-          con <- dbConnect(
+          df_input <- glm_tool_query_dbi(
             RPostgreSQL::PostgreSQL(),
+            input$sql_query,
             host = input$db_host,
             port = port,
             dbname = input$db_name,
             user = input$db_user,
             password = input$db_password
           )
-          # Execute the query
-          df_input <- dbGetQuery(con, input$sql_query)
-          # Close the connection
-          dbDisconnect(con)
         }
 
         #return data
@@ -148,19 +132,17 @@ GLMFittingToolServer = function(input, output, session) {
 
   fitted_model <- eventReactive(input$fit_model, {
     tryCatch({
-      offset_formula <- if (input$offset != "None") paste("offset(", input$offset, ") +", sep = "")
-      formula_str <- paste(input$response_variable, "~", offset_formula, input$formula)
-      glm_model <- glm(
-        as.formula(formula_str)
-        ,data = selected_data()
-        #not working need to fix
-        ,weights = if (input$weights != "None") eval(parse(text = input$weights)) else NULL
-        ,family = eval(parse(text = paste0(input$glm_distribution, '(link = ', input$link_function,')')))
-      )
-      return(glm_model)
+      offset_formula <- if (input$offset != "None") paste0("offset(", input$offset, ") + ") else ""
+      model_formula <- as.formula(paste(input$response_variable, "~", offset_formula, input$formula))
+      model_data <- selected_data()
+      # glm() looks the weights up in the data first and then in the formula's environment, i.e. here
+      model_weights <- if (input$weights != "None") model_data[[input$weights]] else NULL
+      # the family functions (gaussian, poisson, binomial, Gamma, inverse.gaussian) live in stats
+      model_family <- getExportedValue("stats", input$glm_distribution)(link = input$link_function)
+      glm(model_formula, data = model_data, weights = model_weights, family = model_family)
     }, error = function(e) {
-      message("Model fitting failed:", e)
-      return(NULL)
+      showNotification(paste("Model fitting failed:", conditionMessage(e)), type = "error", duration = 10)
+      NULL
     })
   })
 

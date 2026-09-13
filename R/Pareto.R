@@ -13,7 +13,15 @@
 #' ParetoCappedMeanCalc(800,100,1.1)
 #' ParetoCappedMeanCalc(1000,500,0.9)
 ParetoCappedMeanCalc<-function(cap,scale,shape){
-  (shape * scale - cap * (scale/cap)^shape)/(shape-1)
+  # cap * (scale / cap)^shape = scale^shape * cap^(1 - shape), which is 0 for an
+  # infinite cap when shape > 1 (finite mean) and Inf when shape < 1 (infinite mean)
+  capTerm <- cap * (scale/cap)^shape
+  # the arguments are recycled to the length of capTerm, so recycle cap and shape the same way
+  infiniteCap <- which(rep_len(cap, length(capTerm)) == Inf)
+  if (length(infiniteCap) > 0) {
+    capTerm[infiniteCap] <- ifelse(rep_len(shape, length(capTerm))[infiniteCap] > 1, 0, Inf)
+  }
+  (shape * scale - capTerm)/(shape-1)
 }
 
 
@@ -31,8 +39,9 @@ ParetoCappedMeanCalc<-function(cap,scale,shape){
 #' ParetoCappedMean(1000,500,0.8)
 ParetoCappedMean<-function(cap,scale,shape){
   df<-data.frame(cap,scale,shape)
+  # At shape == 1 the general formula is 0/0; its limit is scale * (1 + log(cap / scale)).
   ifelse(df$shape==1
-         ,(ParetoCappedMeanCalc(cap,scale,shape+0.0001)+ParetoCappedMeanCalc(cap,scale,shape-0.0001))/2
+         ,scale*(1+log(cap/scale))
          ,ParetoCappedMeanCalc(cap,scale,shape)
   )
 }

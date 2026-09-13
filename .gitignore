@@ -50,3 +50,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# testthat writes failing-test snapshots here
+tests/testthat/_problems/

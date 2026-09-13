@@ -423,24 +423,60 @@ body {
   }
 }
 
-/* Slider */
-.irs--shiny .irs-grid-text {
+/* Implied moments under the distribution parameters */
+.sim-implied {
+  font-size: 0.85rem;
   color: var(--sim-muted);
+  margin: -0.25rem 0 0.5rem 0;
 }
 
-[data-bs-theme='dark'] .irs--shiny .irs-line {
-  background: #1e293b;
-  border-color: #334155;
+.sim-implied strong {
+  font-weight: 700;
+  color: var(--sim-heading);
 }
 
-[data-bs-theme='dark'] .irs--shiny .irs-min,
-[data-bs-theme='dark'] .irs--shiny .irs-max {
-  background: #1e293b;
-  color: #cbd5e1;
+.sim-implied-empty {
+  font-style: italic;
 }
 
-[data-bs-theme='dark'] .irs--shiny .irs-grid-pol {
-  background: #475569;
+.sim-truncate {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--sim-border);
+}
+
+/* Expected gross claims in the simulation panel */
+#expected_gross_claims:empty {
+  display: none;
+}
+
+.sim-expected {
+  background: var(--sim-accent-soft);
+  border: 1px solid var(--sim-border);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.sim-expected-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sim-accent-text);
+}
+
+.sim-expected-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--sim-heading);
+  line-height: 1.3;
+}
+
+.sim-expected-note {
+  font-size: 0.78rem;
+  color: var(--sim-muted);
 }
 
 /* Select inputs */
@@ -787,7 +823,7 @@ sim_run_state_js <- "
 #' UI file for the Shiny NetSimR Simulator Tool
 #'
 #' @return Returns the UI code for the shiny application.
-shiny_simulator_ui = bslib::page_navbar(
+shiny_simulator_ui <- bslib::page_navbar(
   title = div(
     class = "sim-brand",
     div(class = "sim-brand-mark", icon("dice")),
@@ -893,13 +929,13 @@ shiny_simulator_ui = bslib::page_navbar(
         class = "sim-stat",
         div(class = "sim-stat-label", icon("chart-bar"), "Frequency models"),
         div(class = "sim-stat-value",
-            paste(unname(sapply(freq_dist_options, function(x) x@distr_label)), collapse = paste0(" ", intToUtf8(183), " ")))
+            paste(unname(vapply(freq_dist_options, function(x) x@distr_label, character(1))), collapse = paste0(" ", intToUtf8(183), " ")))
       ),
       div(
         class = "sim-stat",
         div(class = "sim-stat-label", icon("chart-line"), "Severity models"),
         div(class = "sim-stat-value",
-            paste(unname(sapply(sev_dist_options, function(x) x@distr_label)), collapse = paste0(" ", intToUtf8(183), " ")))
+            paste(unname(vapply(sev_dist_options, function(x) x@distr_label, character(1))), collapse = paste0(" ", intToUtf8(183), " ")))
       ),
       div(
         class = "sim-stat",
@@ -949,13 +985,14 @@ shiny_simulator_ui = bslib::page_navbar(
       bslib::card(
         sim_card_header("gear", "Simulation", "Run settings and outputs"),
         bslib::card_body(
-          sliderInput('numberOfSimulations', 'Number of simulations',
-                      min = 10*1000, max = 1000*1000, value = 50*1000, step = 10*1000,
-                      sep = ",", width = "100%"),
+          numericInput('numberOfSimulations', 'Number of simulations',
+                       value = 50000L, min = 1000L, max = 5000000L, step = 10000L),
           bslib::input_switch('seedSetBinary', 'Custom seed', value = FALSE),
           uiOutput("seed_value"),
           bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),
           helpText("Runs chunks in parallel. Faster for large runs, but without live progress."),
+
+          uiOutput("expected_gross_claims"),
 
           tags$hr(class = "sim-divider"),
 
@@ -970,7 +1007,11 @@ shiny_simulator_ui = bslib::page_navbar(
             uiOutput("downloadReportButton"),
             div(class = "sim-downloads-hint", icon("circle-info"),
                 "Run a simulation to enable the downloads.")
-          )
+          ),
+
+          #save and load settings, and built-in examples (R/ShinySimulatorSettingsIO.R)
+          tags$hr(class = "sim-divider"),
+          sim_settings_io_ui()
         )
       ),
 
@@ -988,16 +1029,17 @@ shiny_simulator_ui = bslib::page_navbar(
                 inputId = 'freqDistr',
                 label = NULL,
                 inline = TRUE,
-                choiceNames = unname(sapply(freq_dist_options, function(x) x@distr_label)),
-                choiceValues = unname(sapply(freq_dist_options, function(x) x@distrID))
+                choiceNames = unname(vapply(freq_dist_options, function(x) x@distr_label, character(1))),
+                choiceValues = unname(vapply(freq_dist_options, function(x) x@distrID, character(1)))
               )
             ),
             div(class = "sim-section-label mt-2", "Parameters"),
             div(
               class = "param-grid",
-              lapply(1:max(sapply(freq_dist_options, function(x) length(x@paramIDs))),
+              lapply(seq_len(max(vapply(freq_dist_options, function(x) length(x@paramIDs), integer(1)))),
                      function(i){ uiOutput(paste0('freq_param_', i)) })
-            )
+            ),
+            uiOutput("freq_implied_moments")
           )
         ),
 
@@ -1011,15 +1053,22 @@ shiny_simulator_ui = bslib::page_navbar(
                 inputId = 'sevDistr',
                 label = NULL,
                 inline = TRUE,
-                choiceNames = unname(sapply(sev_dist_options, function(x) x@distr_label)),
-                choiceValues = unname(sapply(sev_dist_options, function(x) x@distrID))
+                choiceNames = unname(vapply(sev_dist_options, function(x) x@distr_label, character(1))),
+                choiceValues = unname(vapply(sev_dist_options, function(x) x@distrID, character(1)))
               )
             ),
             div(class = "sim-section-label mt-2", "Parameters"),
             div(
               class = "param-grid",
-              lapply(1:max(sapply(sev_dist_options, function(x) length(x@paramIDs))),
+              lapply(seq_len(max(vapply(sev_dist_options, function(x) length(x@paramIDs), integer(1)))),
                      function(i){ uiOutput(paste0('sev_param_', i)) })
+            ),
+            uiOutput("sev_implied_moments"),
+            conditionalPanel(
+              condition = "input.sevDistr == 'Normal'",
+              class = "sim-truncate",
+              bslib::input_switch('sevTruncateAtZero', 'Truncate at zero', value = FALSE),
+              helpText("Draws claims from the Normal distribution conditional on being positive, so no claim is negative.")
             )
           )
         ),
@@ -1032,17 +1081,17 @@ shiny_simulator_ui = bslib::page_navbar(
               div(
                 bslib::input_switch('paretoSlice', 'Apply Pareto slices', value = FALSE),
                 helpText("Splices a Pareto tail onto the severity distribution above chosen thresholds."),
-                uiOutput("pareto_slice_times"),
+                uiOutput("pareto_slice_times_ui"),
                 div(
                   class = "param-grid-2",
                   lapply(1:(max_number_of_pareto_slices*2),
-                         function(i){ uiOutput(paste0('slice_pareto_param_', i)) })
+                         function(i){ uiOutput(paste0('slice_pareto_param_', i, '_ui')) })
                 )
               ),
               div(
                 bslib::input_switch('sevCapBinary', 'Severity cap', value = FALSE),
                 helpText("Caps any single claim at a maximum amount."),
-                uiOutput("sev_cap_amount")
+                uiOutput("sev_cap_amount_ui")
               )
             )
           )
@@ -1063,8 +1112,8 @@ shiny_simulator_ui = bslib::page_navbar(
               uiOutput("reinsuranceStructureDeductibleEEL"),
               uiOutput("reinsuranceStructureLimitEEL")
             ),
-            uiOutput("reinsuranceStructureLimitedReinstatements"),
-            uiOutput("reinsuranceStructureReinstatementLimit")
+            uiOutput("reinsuranceStructureLimitedReinstatements_ui"),
+            uiOutput("reinsuranceStructureReinstatementLimit_ui")
           )
         ),
 
@@ -1088,6 +1137,11 @@ shiny_simulator_ui = bslib::page_navbar(
       )
     )
   ),
+
+  # ------------------------------------------------ Report and Compare tabs
+  #defined in R/ShinySimulatorTabs.R
+  sim_report_tab_ui("report"),
+  sim_compare_tab_ui("compare"),
 
   bslib::nav_spacer(),
   bslib::nav_item(sim_theme_switch())

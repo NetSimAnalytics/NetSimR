@@ -2,11 +2,11 @@
 #Gamma Functions
 ################
 
-#' Lower incomplete gamma function
+#' Upper incomplete gamma function
 #'
+#' @param a A positive real number - the shape parameter.
 #' @param x A positive real number.
-#' @param a A positive real number.
-#' @return The value of the lower incomplete gamma function at \code{x} with shape parameter \code{a}.
+#' @return The value of the upper incomplete gamma function at \code{x} with shape parameter \code{a}, i.e. \code{gamma(a) * pgamma(x, a, lower.tail = FALSE)}.
 #' @export
 #' @examples
 #' IGamma(1,1)
@@ -28,7 +28,15 @@ IGamma<-function(a,x){
 #' GammaCappedMean(700,1,0.0005)
 #' GammaCappedMean(1000,1.5,0.0006)
 GammaCappedMean<- function(cap,shape,rate){
-  (shape * gamma(shape) + rate * cap * IGamma(shape, rate * cap) - IGamma(1 + shape, rate * cap))/(rate * gamma(shape))
+  # E[min(X, cap)] = (shape / rate) * P(shape + 1, rate * cap) + cap * Q(shape, rate * cap),
+  # where P and Q are the regularised lower and upper incomplete gamma functions.
+  # Written with pgamma() directly (rather than gamma() and IGamma()) so that it
+  # does not overflow for large shapes and does not lose precision for small caps.
+  rateCap <- rate * cap
+  capTerm <- cap * pgamma(rateCap, shape = shape, lower.tail = FALSE)
+  # an infinite cap contributes nothing (Inf * 0 would be NaN); cap is recycled to the result length
+  capTerm[which(rep_len(cap, length(capTerm)) == Inf)] <- 0
+  shape / rate * pgamma(rateCap, shape = shape + 1) + capTerm
 }
 
 
