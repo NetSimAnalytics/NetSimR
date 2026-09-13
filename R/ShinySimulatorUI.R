@@ -497,6 +497,66 @@ body {
   border-radius: 10px !important;
 }
 
+/* Pareto slices */
+.sim-slices-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.sim-slices-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sim-label);
+}
+
+.sim-hidden-input {
+  display: none;
+}
+
+.sim-slice-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem 0;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--sim-border);
+  border-radius: 12px;
+  background: var(--sim-input-bg);
+}
+
+.sim-slice-badge {
+  flex: 0 0 28px;
+  height: 28px;
+  margin-bottom: 1.35rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+}
+
+.sim-slice-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sim-slice-remove {
+  margin-bottom: 1.2rem;
+}
+
+.sim-slices-note {
+  font-size: 0.85rem;
+  color: var(--sim-muted);
+  font-style: italic;
+  margin: 0.25rem 0 0.6rem 0;
+}
+
 /* ---------- Buttons ---------- */
 .btn {
   border-radius: 10px;
@@ -823,6 +883,62 @@ sim_run_state_js <- "
 #' UI file for the Shiny NetSimR Simulator Tool
 #'
 #' @return Returns the UI code for the shiny application.
+#' The Pareto slices section of the Tail adjustments card
+#'
+#' All slice rows are in the page; the hidden number input pareto_slice_times decides
+#' which are shown. The add button and the remove button of each row change it on the
+#' server, and a saved settings file restores it like any other number.
+#'
+#' @return A tag list.
+#' @noRd
+sim_pareto_slices_ui <- function() {
+  count <- "(Number(input.pareto_slice_times) || 0)"
+  tagList(
+    div(
+      class = "sim-slices-head",
+      span(class = "sim-slices-title", "Pareto slices"),
+      conditionalPanel(
+        condition = paste(count, "<", max_number_of_pareto_slices),
+        actionButton("add_pareto_slice", "Add slice", icon = icon("plus"), class = "btn-sm btn-outline-primary")
+      )
+    ),
+    helpText("Splices a Pareto tail onto the severity distribution above each threshold. Thresholds must increase from one slice to the next."),
+    div(
+      class = "sim-hidden-input",
+      numericInput("pareto_slice_times", "Number of Pareto slices", value = 0, min = 0,
+                   max = max_number_of_pareto_slices, step = 1)
+    ),
+    conditionalPanel(
+      condition = paste(count, "== 0"),
+      div(class = "sim-slices-note", "No slices: the severity distribution is used as it is.")
+    ),
+    lapply(seq_len(max_number_of_pareto_slices), function(i) {
+      conditionalPanel(
+        condition = paste(count, ">=", i),
+        div(
+          class = "sim-slice-row",
+          div(class = "sim-slice-badge", i, title = paste("Slice", i)),
+          div(
+            class = "param-grid-2 sim-slice-fields",
+            numericInput(paste0("slice_pareto_param_", 2 * i - 1), "Alpha", value = NULL, min = 0),
+            numericInput(paste0("slice_pareto_param_", 2 * i), "Threshold (x_m)", value = NULL, min = 0)
+          ),
+          tags$button(
+            id = paste0("remove_pareto_slice_", i), type = "button",
+            class = "btn btn-sm btn-outline-secondary action-button sim-slice-remove",
+            title = paste("Remove slice", i), `aria-label` = paste("Remove slice", i),
+            icon("xmark")
+          )
+        )
+      )
+    }),
+    conditionalPanel(
+      condition = paste(count, ">=", max_number_of_pareto_slices),
+      div(class = "sim-slices-note", paste("The maximum of", max_number_of_pareto_slices, "slices is reached."))
+    )
+  )
+}
+
 shiny_simulator_ui <- bslib::page_navbar(
   title = div(
     class = "sim-brand",
@@ -1079,14 +1195,7 @@ shiny_simulator_ui <- bslib::page_navbar(
             bslib::layout_columns(
               col_widths = bslib::breakpoints(sm = 12, md = c(7, 5)),
               div(
-                bslib::input_switch('paretoSlice', 'Apply Pareto slices', value = FALSE),
-                helpText("Splices a Pareto tail onto the severity distribution above chosen thresholds."),
-                uiOutput("pareto_slice_times_ui"),
-                div(
-                  class = "param-grid-2",
-                  lapply(1:(max_number_of_pareto_slices*2),
-                         function(i){ uiOutput(paste0('slice_pareto_param_', i, '_ui')) })
-                )
+                sim_pareto_slices_ui()
               ),
               div(
                 bslib::input_switch('sevCapBinary', 'Severity cap', value = FALSE),

@@ -107,26 +107,35 @@ shiny_simulator_server <- function(input, output, session) {
     })
   })
 
-  #render Pareto slice parameters
-  #dynamic sections use "<input id>_ui" as their output id, so no id is shared by an input and an output
-  output$pareto_slice_times_ui <- renderUI({
-    if (input$paretoSlice) {
-      selectInput("pareto_slice_times","Number of Pareto Slices",1:max_number_of_pareto_slices)
-    }
+  #Pareto slices: the hidden input pareto_slice_times holds the number of slices and decides
+  #which slice rows the UI shows; the add and remove buttons change it, and saved settings
+  #restore it like any other number
+  pareto_slice_count <- reactive({
+    n <- suppressWarnings(as.numeric(input$pareto_slice_times))
+    if (length(n) != 1 || is.na(n)) 0 else min(max(round(n), 0), max_number_of_pareto_slices)
+  })
+  #slice j has its alpha in slice_pareto_param_(2j - 1) and its threshold in slice_pareto_param_(2j)
+  slice_input_id <- function(slice, part) paste0("slice_pareto_param_", 2 * slice - (part == "alpha"))
+
+  observeEvent(input$add_pareto_slice, {
+    n <- pareto_slice_count()
+    if (n < max_number_of_pareto_slices) updateNumericInput(session, "pareto_slice_times", value = n + 1)
   })
 
-  lapply(1:(2*max_number_of_pareto_slices), function(i) {
-    output[[paste0("slice_pareto_param_", i, "_ui")]] <- renderUI({
-      req(input$pareto_slice_times)
-      if(input$paretoSlice){if(as.numeric(input$pareto_slice_times)*2>=i){
-        numericInput(
-          inputId = paste0("slice_pareto_param_", i)
-          ,label = ifelse(i %% 2, paste("Slice", (1+i)/2, "alpha"), paste("Slice", i/2, "threshold (x_m)"))
-          ,value = NULL
-          ,min = 0
-        )
-      }}
-    })
+  lapply(seq_len(max_number_of_pareto_slices), function(i) {
+    observeEvent(input[[paste0("remove_pareto_slice_", i)]], {
+      n <- pareto_slice_count()
+      if (i > n) return()
+      #move the later slices up one place and clear the last one, so no values are lost
+      for (j in seq_len(n - i) + i - 1) {
+        for (part in c("alpha", "threshold")) {
+          value <- input[[slice_input_id(j + 1, part)]]
+          updateNumericInput(session, slice_input_id(j, part), value = if (is.null(value)) NA else value)
+        }
+      }
+      for (part in c("alpha", "threshold")) updateNumericInput(session, slice_input_id(n, part), value = NA)
+      updateNumericInput(session, "pareto_slice_times", value = n - 1)
+    }, ignoreInit = TRUE)
   })
 
   #render severity cap amount
@@ -198,7 +207,7 @@ shiny_simulator_server <- function(input, output, session) {
     on.exit(session$sendCustomMessage("netsimr-run-finished", TRUE), add = TRUE)
 
     #collect the settings for this run
-    pareto_slice_count <- if (is.null(input$pareto_slice_times)) 0 else as.numeric(input$pareto_slice_times)
+    slice_count <- pareto_slice_count()
     #sapply on purpose: it gives a numeric vector when every field is filled in, and a list
     #when a field is still empty (NULL), which find_missing_simulation_settings() reports by name
     new_settings <- list(
@@ -215,16 +224,16 @@ shiny_simulator_server <- function(input, output, session) {
       ,seedValue = input$seedValue
       ,freqDistr = input$freqDistr
       ,sevDistr = input$sevDistr
-      ,paretoSlice = input$paretoSlice
-      ,pareto_slice_times = as.numeric(input$pareto_slice_times)
-      ,slice_pareto_alphas = if(input$paretoSlice){unname(sapply(
-        seq_len(pareto_slice_count)
-        ,function(y) input[[paste0("slice_pareto_param_", y*2-1)]]
-      ))}
-      ,slice_pareto_x_ms = if(input$paretoSlice){unname(sapply(
-        seq_len(pareto_slice_count)
-        ,function(y) input[[paste0("slice_pareto_param_", y*2)]]
-      ))}
+      ,paretoSlice = slice_count > 0
+      ,pareto_slice_times = if (slice_count > 0) slice_count
+      ,slice_pareto_alphas = if (slice_count > 0) unname(sapply(
+        seq_len(slice_count)
+        ,function(y) input[[slice_input_id(y, "alpha")]]
+      ))
+      ,slice_pareto_x_ms = if (slice_count > 0) unname(sapply(
+        seq_len(slice_count)
+        ,function(y) input[[slice_input_id(y, "threshold")]]
+      ))
       ,sevCapBinary = input$sevCapBinary
       ,sev_cap_amount = input$sev_cap_amount
       ,reinsuranceStructureEEL = input$reinsuranceStructureEEL
@@ -364,7 +373,6 @@ shiny_simulator_server <- function(input, output, session) {
   dynamic_outputs <- c(
     freq_dist_parameter_placeholders$param_id
     ,sev_dist_parameter_placeholders$param_id
-    ,paste0("slice_pareto_param_", seq_len(2*max_number_of_pareto_slices), "_ui")
     ,"reinsuranceStructureDeductibleEEL", "reinsuranceStructureLimitEEL"
     ,"reinsuranceStructureDeductibleAL", "reinsuranceStructureLimitAL"
     ,"downloadDataButton", "downloadReportButton"

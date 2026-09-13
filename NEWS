@@ -106,3 +106,7 @@ Changes in Version 0.1.6
   o The Normal severity has its own parameter ids in the simulator, so values
     no longer carry over between the Normal and the Log-Normal. Settings files
     saved by earlier versions still load.
+  o Claims simulator: up to six Pareto slices, added with an Add slice button
+    and removed with a button on each slice; removing a slice moves the later
+    slices up. The switch and the number-of-slices list are gone. Settings
+    files saved with the old switch still load.

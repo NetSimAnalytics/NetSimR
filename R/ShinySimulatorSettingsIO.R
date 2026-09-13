@@ -26,7 +26,7 @@ sim_settings_input_ids <- function() {
     ,unlist(lapply(freq_dist_options, function(x) x@paramIDs), use.names = FALSE)
     ,unlist(lapply(sev_dist_options, function(x) x@paramIDs), use.names = FALSE)
     ,"numberOfSimulations", "seedSetBinary", "seedValue", "multiprocessingBinary"
-    ,"paretoSlice", "pareto_slice_times"
+    ,"pareto_slice_times"
     ,paste0("slice_pareto_param_", seq_len(2 * max_number_of_pareto_slices))
     ,"sevCapBinary", "sev_cap_amount", "sevTruncateAtZero"
     ,"reinsuranceStructureEEL"
@@ -113,6 +113,11 @@ sim_settings_validate <- function(x) {
 #' @return The inputs, with old ids renamed.
 #' @noRd
 sim_settings_migrate <- function(inputs, version) {
+  #older files have a switch that turned the Pareto slices on; now the number of slices does
+  if ("paretoSlice" %in% names(inputs)) {
+    if (!isTRUE(inputs$paretoSlice)) inputs$pareto_slice_times <- 0
+    inputs$paretoSlice <- NULL
+  }
   if (is.numeric(version) && length(version) == 1 && !is.na(version) && version < 2 &&
       identical(inputs$sevDistr, "Normal")) {
     if (is.null(inputs$normal_mean)) inputs$normal_mean <- inputs$mu
@@ -191,7 +196,7 @@ sim_settings_plan <- function(inputs) {
   add("sevDistr", "radio")
   add("reinsuranceStructureEEL", "radio")
   add("reinsuranceStructureAL", "radio")
-  for (id in c("seedSetBinary", "multiprocessingBinary", "paretoSlice", "sevCapBinary", "sevTruncateAtZero")) {
+  for (id in c("seedSetBinary", "multiprocessingBinary", "sevCapBinary", "sevTruncateAtZero")) {
     add(id, "switch")
   }
   add("numberOfSimulations", "numeric")
@@ -216,18 +221,12 @@ sim_settings_plan <- function(inputs) {
   if (isTRUE(inputs$seedSetBinary)) {
     add("seedValue", "numeric", gate = function(input) isTRUE(input$seedSetBinary))
   }
-  if (isTRUE(inputs$paretoSlice)) {
-    add("pareto_slice_times", "select", gate = function(input) isTRUE(input$paretoSlice))
-    slices <- suppressWarnings(as.numeric(inputs$pareto_slice_times))
-    if (length(slices) == 1 && !is.na(slices)) {
-      slices <- min(slices, max_number_of_pareto_slices)
-      for (i in seq_len(2 * slices)) {
-        add(
-          paste0("slice_pareto_param_", i), "numeric"
-          ,gate = function(input) isTRUE(input$paretoSlice) && same(input$pareto_slice_times, slices)
-        )
-      }
-    }
+  #the slice rows are always in the page; the number of slices decides which are shown
+  slices <- suppressWarnings(as.numeric(inputs$pareto_slice_times))
+  if (length(slices) == 1 && !is.na(slices)) {
+    slices <- min(max(round(slices), 0), max_number_of_pareto_slices)
+    add("pareto_slice_times", "numeric")
+    for (i in seq_len(2 * slices)) add(paste0("slice_pareto_param_", i), "numeric")
   }
   if (isTRUE(inputs$sevCapBinary)) {
     add("sev_cap_amount", "numeric", gate = function(input) isTRUE(input$sevCapBinary))
@@ -269,7 +268,7 @@ sim_settings_examples <- list(
     ,numberOfSimulations = 50000
     ,seedSetBinary = TRUE, seedValue = 1
     ,multiprocessingBinary = FALSE
-    ,paretoSlice = FALSE
+    ,pareto_slice_times = 0
     ,sevCapBinary = FALSE
     ,sevTruncateAtZero = FALSE
     ,reinsuranceStructureEEL = "Limited Layer"
@@ -285,7 +284,7 @@ sim_settings_examples <- list(
     ,numberOfSimulations = 50000
     ,seedSetBinary = FALSE
     ,multiprocessingBinary = FALSE
-    ,paretoSlice = TRUE, pareto_slice_times = 1
+    ,pareto_slice_times = 1
     ,slice_pareto_param_1 = 1.8, slice_pareto_param_2 = 150000
     ,sevCapBinary = TRUE, sev_cap_amount = 5000000
     ,sevTruncateAtZero = FALSE
@@ -301,7 +300,7 @@ sim_settings_examples <- list(
     ,numberOfSimulations = 20000
     ,seedSetBinary = FALSE
     ,multiprocessingBinary = FALSE
-    ,paretoSlice = FALSE
+    ,pareto_slice_times = 0
     ,sevCapBinary = FALSE
     ,reinsuranceStructureEEL = "No Reinsurance Structure"
     ,reinsuranceStructureAL = "No Reinsurance Structure"

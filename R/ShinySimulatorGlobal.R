@@ -3,7 +3,7 @@
 #' Parameter to set the maximum number of pareto slices
 #'
 #' @return The the maximum number of Pareto Slices.
-max_number_of_pareto_slices <- 5
+max_number_of_pareto_slices <- 6
 
 #' Random Pareto generator with a minimum value
 #'
