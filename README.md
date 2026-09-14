@@ -1,5 +1,7 @@
 # NetSimR
 
+[![R-CMD-check](https://github.com/NetSimAnalytics/NetSimR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/NetSimAnalytics/NetSimR/actions/workflows/R-CMD-check.yaml)
+
 NetSimR is an R package of actuarial functions for non-life insurance and
 reinsurance pricing, reserving and capital modelling, with three Shiny tools
 for simulating claims and fitting distributions and GLMs.
