@@ -50,3 +50,28 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
+
+      # job logs need admin rights to download, but annotations are public: show the
+      # problems of a failed check as annotations on the run
+      - name: Show check problems as annotations
+        if: failure()
+        shell: Rscript {0}
+        run: |
+          esc <- function(x) gsub("\n", "%0A", gsub("\r", "%0D", gsub("%", "%25", x, fixed = TRUE), fixed = TRUE), fixed = TRUE)
+          note <- function(title, text) {
+            text <- paste(text, collapse = "\n")
+            if (nchar(text) > 3500) text <- paste0("...\n", substring(text, nchar(text) - 3500))
+            cat("::error title=", title, "::", esc(text), "\n", sep = "")
+          }
+          dirs <- list.files("check", pattern = "[.]Rcheck$", full.names = TRUE)
+          if (!length(dirs)) quit(save = "no")
+          log <- readLines(file.path(dirs[1], "00check.log"), warn = FALSE)
+          starts <- grep("[.][.][.] .*(ERROR|WARNING)$", log)
+          for (s in head(starts, 6)) {
+            nxt <- grep("^[*] ", log)
+            e <- min(c(nxt[nxt > s], length(log) + 1)) - 1
+            note(log[s], log[s:e])
+          }
+          for (f in list.files(file.path(dirs[1], "tests"), pattern = "[.]Rout[.]fail$", full.names = TRUE)) {
+            note(basename(f), tail(readLines(f, warn = FALSE), 80))
+          }
