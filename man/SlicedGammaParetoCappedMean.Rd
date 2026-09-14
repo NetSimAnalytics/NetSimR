@@ -18,7 +18,7 @@ SlicedGammaParetoCappedMean(cap, GShape, GRate, SlicePoint, PShape)
 \item{PShape}{A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.}
 }
 \value{
-The mean of the claim severity capped at \code{cap} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A negative \code{cap} or a non-positive parameter is an error; \code{NA} values give \code{NA}.
+The mean of the claim severity capped at \code{cap} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-numeric argument, a negative \code{cap} or a non-positive parameter is an error; \code{NA} values give \code{NA}.
 }
 \description{
 Sliced Gamma Pareto capped mean
@@ -28,3 +28,12 @@ SlicedGammaParetoCappedMean(3000,1,0.0005,1000,1.2)
 SlicedGammaParetoCappedMean(1000,1.1,0.0006,2000,1.6)
 SlicedGammaParetoCappedMean(2000,1.2,0.0004,3000,1.4)
 }
+\seealso{
+Other capped mean functions:
+\code{\link[=GammaCappedMean]{GammaCappedMean()}},
+\code{\link[=LNormCappedMean]{LNormCappedMean()}},
+\code{\link[=ParetoCappedMean]{ParetoCappedMean()}},
+\code{\link[=ParetoCappedMeanCalc]{ParetoCappedMeanCalc()}},
+\code{\link[=SlicedLNormParetoCappedMean]{SlicedLNormParetoCappedMean()}}
+}
+\concept{capped mean functions}

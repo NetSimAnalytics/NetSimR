@@ -38,6 +38,30 @@ display_digits <- function(x) {
   min(10, 2 - floor(log10(largest)))
 }
 
+#' Return periods marked on the x axis of the return-period charts
+#'
+#' Shared by the report and the Compare tab; each chart keeps the ticks up to its own
+#' longest return period (a tenth of the simulations, so 1 in 1,000,000 at the largest
+#' run of 10,000,000 simulations).
+#' @noRd
+return_period_axis_ticks <- c(2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
+                              1e5, 2e5, 5e5, 1e6)
+
+#' Labels for amount ticks on a chart axis
+#'
+#' Whole numbers with thousands separators from 100 up, and scientific notation from
+#' 1e15 up, where the fixed format would give labels too wide for the chart (e.g. the
+#' totals of a Pareto severity with a tiny alpha).
+#'
+#' @param at The tick values.
+#' @return A character vector of labels, one per tick.
+#' @noRd
+axis_amount_labels <- function(at) {
+  largest <- max(c(abs(at[is.finite(at)]), 0))
+  if (largest >= 1e15) return(format(at, scientific = TRUE, digits = 3, trim = TRUE))
+  if (largest >= 100) formatC(at, format = "f", digits = 0, big.mark = ",") else format(at, trim = TRUE)
+}
+
 #' TVaR of an already sorted vector
 #'
 #' The average of the worst (1 - p) share of simulations, which stays correct when
@@ -69,7 +93,9 @@ sorted_tvar <- function(sorted, p) {
 #'   or "mixed"), \code{modelled_label}, \code{totals}, \code{stats},
 #'   \code{percentiles}, \code{percentiles_dropped}, \code{gross}, \code{layer}
 #'   and \code{frequency}. \code{gross}, \code{layer} and \code{frequency} are
-#'   \code{NULL} when they do not apply.
+#'   \code{NULL} when they do not apply. \code{gross} holds \code{table}, \code{series}
+#'   and \code{unknown}, the number of simulations whose gross and modelled totals are
+#'   both infinite, so that their difference is unknown (NA) and its column blank.
 #' @noRd
 summarise_simulation <- function(settings, results) {
   s <- settings
@@ -87,7 +113,12 @@ summarise_simulation <- function(settings, results) {
 
   is_blank <- function(x) is.null(x) || length(x) == 0 || all(is.na(x))
   is_number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
-  sd_or_na <- function(x) if (n > 1) stats::sd(x) else NA_real_
+  #infinite totals give a NaN standard deviation; it is reported as missing (NA)
+  sd_or_na <- function(x) {
+    if (n < 2) return(NA_real_)
+    value <- stats::sd(x)
+    if (is.nan(value)) NA_real_ else value
+  }
 
   # ---------- what the modelled totals represent ----------
   eel <- s$reinsuranceStructureEEL
@@ -161,6 +192,10 @@ summarise_simulation <- function(settings, results) {
   gross_summary <- NULL
   if (!is.null(gross) && role != "gross") {
     difference <- gross - totals
+    #when the gross and the modelled total are both infinite, the difference is unknown
+    #(Inf - Inf is NaN); it is kept as NA, and that series gets no statistics
+    unknown <- is.infinite(gross) & is.infinite(totals)
+    difference[unknown] <- NA_real_
     series <- switch(
       role,
       ceded = list(Gross = gross, Ceded = totals, Net = difference),
@@ -169,11 +204,15 @@ summarise_simulation <- function(settings, results) {
     )
     gross_mean <- mean(gross)
     columns <- lapply(series, function(x) {
+      #sort() would drop the unknown values and give statistics of the others only
+      if (anyNA(x)) return(rep(NA_real_, 7))
       x_sorted <- sort(x)
       x_mean <- mean(x)
+      share <- if (gross_mean > 0) x_mean / gross_mean else NA_real_
       c(
         x_mean,
-        if (gross_mean > 0) x_mean / gross_mean else NA_real_,
+        #Inf / Inf, when both means are infinite
+        if (is.nan(share)) NA_real_ else share,
         sd_or_na(x),
         sorted_quantile(x_sorted, c(0.5, 0.99, 0.995)),
         sorted_tvar(x_sorted, 0.995)
@@ -185,7 +224,7 @@ summarise_simulation <- function(settings, results) {
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
-    gross_summary <- list(table = table, series = series)
+    gross_summary <- list(table = table, series = series, unknown = sum(unknown))
   }
 
   # ---------- layer metrics ----------

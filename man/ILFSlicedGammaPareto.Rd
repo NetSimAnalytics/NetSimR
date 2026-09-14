@@ -30,3 +30,11 @@ ILFSlicedGammaPareto(2000,3000,1,0.0005,1000,1.2)
 ILFSlicedGammaPareto(800,1000,1.1,0.0006,2000,1.6)
 ILFSlicedGammaPareto(1200,2000,1.2,0.0004,3000,1.4)
 }
+\seealso{
+Other ILF functions:
+\code{\link[=ILFGamma]{ILFGamma()}},
+\code{\link[=ILFLNorm]{ILFLNorm()}},
+\code{\link[=ILFPareto]{ILFPareto()}},
+\code{\link[=ILFSlicedLNormPareto]{ILFSlicedLNormPareto()}}
+}
+\concept{ILF functions}

@@ -129,3 +129,46 @@ test_that("matrix and named input keep their shape", {
   expect_named(SlicedGammaParetoCappedMean(c(low = 500, high = 5000), 2, 0.001, 1000, 1.5), c("low", "high"))
   expect_named(ExposureCurvePareto(c(low = 500, high = 5000), 400, 1.5), c("low", "high"))
 })
+
+test_that("non-numeric arguments are an error that names them", {
+  #these used to fail with "non-numeric argument to binary operator"
+  expect_error(GammaCappedMean("700", 1, 0.0005), "cap must be numeric")
+  expect_error(ParetoCappedMean(600, "200", 1.2), "scale must be numeric")
+  expect_error(SlicedLNormParetoMean(6, 1.5, 1000, list(1.2)), "shape must be numeric")
+  #every argument of every function, including mu and the claim amounts of the sliced cdfs
+  for (name in names(analytic_cases)) {
+    case <- analytic_cases[[name]]
+    args <- c(case$amounts, case$pars, case$after)
+    for (arg in names(args)) {
+      bad <- args
+      bad[[arg]] <- as.character(bad[[arg]])
+      expect_error(do.call(case$f, bad), paste(arg, "must be numeric"), info = paste(name, arg))
+    }
+  }
+  expect_error(erf("a"), "x must be numeric")
+  err <- tryCatch(LNormCappedMean(1000, "6", 1.5), error = identity)
+  expect_identical(conditionCall(err)[[1]], as.name("LNormCappedMean"))
+  #missing values of any type still give NA
+  expect_true(is.na(GammaCappedMean(NA_character_, 1, 1)))
+  expect_true(is.na(LNormCappedMean(1000, NA, 1.5)))
+})
+
+test_that("lengths that do not recycle are an error for every function", {
+  #GammaCappedMean, LNormCappedMean, IGamma and the ILFs used to recycle with a warning
+  expect_error(GammaCappedMean(c(1, 2), 1, c(1, 2, 3)), "cannot be recycled")
+  for (name in names(analytic_cases)) {
+    case <- analytic_cases[[name]]
+    args <- c(case$amounts, case$pars, case$after)
+    bad <- args
+    bad[[1]] <- rep(bad[[1]], 2)
+    bad[[2]] <- rep(bad[[2]], 3)
+    expect_error(do.call(case$f, bad), "cannot be recycled", info = name)
+    #lengths that do recycle give the longest length
+    good <- args
+    good[[1]] <- rep(good[[1]], 2)
+    good[[2]] <- rep(good[[2]], 4)
+    expect_length(do.call(case$f, good), 4)
+  }
+  err <- tryCatch(ILFGamma(1:2, 1:3, 1, 1), error = identity)
+  expect_identical(conditionCall(err)[[1]], as.name("ILFGamma"))
+})

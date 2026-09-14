@@ -29,3 +29,11 @@ Increased Limit Factor Curve from a Sliced LogNormal Pareto severity distributio
 ILFSlicedLNormPareto(800,1200,6,1.5,1000,1.2)
 ILFSlicedLNormPareto(2000,4000,7,1.6,3000,1.4)
 }
+\seealso{
+Other ILF functions:
+\code{\link[=ILFGamma]{ILFGamma()}},
+\code{\link[=ILFLNorm]{ILFLNorm()}},
+\code{\link[=ILFPareto]{ILFPareto()}},
+\code{\link[=ILFSlicedGammaPareto]{ILFSlicedGammaPareto()}}
+}
+\concept{ILF functions}

@@ -14,7 +14,7 @@ apply_deductible_limit(
 \arguments{
 \item{gross_claims_data}{A vector of Claims.}
 
-\item{reinsurance_structure}{The chosen reinsurance structure. Options are: 'No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer'.}
+\item{reinsurance_structure}{The chosen reinsurance structure, a single string. Options are: 'No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer'; anything else is an error.}
 
 \item{deductible}{The deductible of the reinsurance structure, zero or more. Not used by 'No Reinsurance Structure'.}
 

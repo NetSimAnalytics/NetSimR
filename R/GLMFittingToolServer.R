@@ -5,9 +5,8 @@
 #' @param session Session for the server function.
 #' @return Called by shiny for its side effects, the outputs and observers of a
 #'   session; the value is not used.
+#' @keywords internal
 #' @import shiny
-#' @importFrom plotly plot_ly add_lines layout add_bars renderPlotly
-#' @importFrom plotly plotlyOutput
 GLMFittingToolServer <- function(input, output, session) {
 
   ######################
@@ -118,7 +117,8 @@ GLMFittingToolServer <- function(input, output, session) {
   data_columns <- reactive(names(selected_data()))
   numeric_columns <- reactive(names(selected_data())[vapply(selected_data(), is.numeric, logical(1))])
 
-  preview_rows <- 10000
+  # the preview shows the first rows; the model uses every row
+  preview_rows <- 100
 
   output$data_overview <- renderUI({
     df <- req(selected_data())
@@ -133,19 +133,12 @@ GLMFittingToolServer <- function(input, output, session) {
     )
   })
 
-  # Display the query result or uploaded data in a data table
-  output$selected_input_data_table <- reactable::renderReactable({
+  # Display the first rows of the query result or uploaded data in a table
+  output$selected_input_data_table <- renderUI({
     validate(need(input$submit, "Import data to see a preview here."))
     df <- selected_data()
     validate(need(!is.null(df), "No data has been imported."))
-    if (nrow(df) > preview_rows) df <- df[seq_len(preview_rows), , drop = FALSE]
-    reactable::reactable(
-      df,
-      searchable = TRUE, highlight = TRUE, compact = TRUE, resizable = TRUE,
-      defaultPageSize = 15, showPageSizeOptions = TRUE, pageSizeOptions = c(15, 50, 100),
-      defaultColDef = reactable::colDef(minWidth = 100),
-      theme = dft_reactable_theme()
-    )
+    dft_data_preview(df, preview_rows)
   })
 
   ######################
@@ -603,20 +596,21 @@ GLMFittingToolServer <- function(input, output, session) {
     weight <- if (spec$weights == "None") rep(1, nrow(df)) else df[[spec$weights]]
     grouping <- df[[variable]]
     bands <- or_default(input$number_of_bands_input, 10)
-    if (is.numeric(grouping) && length(unique(grouping[!is.na(grouping)])) > bands) {
-      breaks <- if (identical(input$band_method, "width")) {
-        bands
-      } else {
-        # bands with about the same number of rows each
-        unique(stats::quantile(grouping, seq(0, 1, length.out = bands + 1), na.rm = TRUE, names = FALSE))
-      }
-      grouping <- cut(grouping, breaks = breaks, include.lowest = TRUE, dig.lab = 6)
+    values <- sort(unique(grouping[!is.na(grouping)]))
+    if (is.numeric(grouping) && length(values) > bands) {
+      breaks <- glm_band_breaks(grouping, bands, or_default(input$band_method, "quantile"))
+      # readable labels ("18-24"), or cut()'s own when they would not be distinct
+      grouping <- cut(grouping, breaks = breaks, labels = glm_band_labels(breaks, all(values == round(values))),
+                      include.lowest = TRUE, dig.lab = 6)
     } else {
-      grouping <- factor(grouping, levels = sort(unique(grouping[!is.na(grouping)])))
+      grouping <- factor(grouping, levels = values, labels = if (is.numeric(values)) glm_value_labels(values) else values)
     }
     keep <- !is.na(actual) & !is.na(predicted) & !is.na(grouping) & is.finite(exposure) & is.finite(weight)
     validate(need(any(keep), "No row has the response, the prediction and the variable all present."))
     band <- droplevels(grouping[keep])
+    # text is not grouped: an ID would draw hundreds of unreadable bars
+    validate(need(nlevels(band) <= 100, paste0("'", variable, "' has ", format(nlevels(band), big.mark = ","),
+                                               " different values: choose a numeric variable, or one with at most 100 values.")))
     w <- weight[keep]
     e <- exposure[keep]
     total <- function(x) as.numeric(tapply(x, band, sum))
@@ -630,7 +624,20 @@ GLMFittingToolServer <- function(input, output, session) {
     )
     attr(plot_data, "dropped") <- sum(!keep)
     attr(plot_data, "exposure") <- if (!uses_exposure) NULL else if (spec$offset_log) spec$offset else paste0("exp(", spec$offset, ")")
+    attr(plot_data, "variable") <- variable
     plot_data
+  })
+
+  # the titles of the chart follow what it shows: an exposure only when the offset was used as one
+  fitness_labels <- reactive({
+    plot_data <- fitness_data()
+    spec <- isolate(fit_result()$spec)
+    exposure <- attr(plot_data, "exposure")
+    list(
+      x = attr(plot_data, "variable"),
+      y = if (!is.null(exposure)) paste(spec$response, "per unit of exposure") else paste("Average", spec$response),
+      bars = if (!is.null(exposure)) paste0("Exposure (", exposure, ")") else if (spec$weights != "None") paste0("Weight (", spec$weights, ")") else "Rows"
+    )
   })
 
   output$fitness_note <- renderUI({
@@ -643,34 +650,23 @@ GLMFittingToolServer <- function(input, output, session) {
     }
   })
 
-  output$fitness_plot <- renderPlotly({
+  # actual and predicted on the left axis, and the exposure (or weight, or rows) of each band
+  # as bars on a secondary axis on the right; redrawn in the other theme's colours when it changes
+  output$fitness_plot <- renderPlot({
     validate(need(input$execute_visualization, "Choose a variable and click Draw chart."))
     plot_data <- fitness_data()
-    spec <- isolate(fit_result()$spec)
-    colours <- dft_plot_colours(dark())
-    # the labels follow what the chart shows: an exposure only when the offset was used as one
-    exposure <- attr(plot_data, "exposure")
-    exposure_label <- if (!is.null(exposure)) paste0("Exposure (", exposure, ")") else if (spec$weights != "None") paste0("Weight (", spec$weights, ")") else "Rows"
-    p <- plot_ly(plot_data, x = ~band)
-    p <- add_bars(p, y = ~exposure, name = exposure_label, yaxis = "y2",
-                  marker = list(color = if (dark()) "rgba(20, 184, 166, 0.22)" else "rgba(13, 148, 136, 0.18)"),
-                  hovertemplate = "%{y:,.4~g}")
-    p <- plotly::add_trace(p, y = ~actual, name = "Actual", type = "scatter", mode = "lines+markers",
-                           line = list(color = colours$empirical, width = 2.5), marker = list(color = colours$empirical, size = 7))
-    p <- plotly::add_trace(p, y = ~predicted, name = "Predicted", type = "scatter", mode = "lines+markers",
-                           line = list(color = dft_model_palette[2], width = 2.5), marker = list(color = dft_model_palette[2], size = 7))
-    y_title <- if (!is.null(exposure)) paste(spec$response, "per unit of exposure") else paste("Average", spec$response)
-    p <- dft_plot_layout(p, isolate(input$visualize_variable), y_title, dark())
-    layout(
-      p,
-      xaxis = list(type = "category", categoryorder = "array", categoryarray = plot_data$band),
-      yaxis = list(rangemode = "tozero"),
-      yaxis2 = list(overlaying = "y", side = "right", showgrid = FALSE, rangemode = "tozero",
-                    title = list(text = exposure_label, font = list(color = colours$muted)),
-                    tickfont = list(color = colours$muted)),
-      margin = list(r = 70),
-      bargap = 0.15
+    labels <- fitness_labels()
+    dft_category_chart(
+      plot_data$band,
+      bars = list(name = labels$bars, values = plot_data$exposure, colour = "band_bar", y2 = labels$bars),
+      lines = list(list(name = "Actual", values = plot_data$actual, colour = "empirical"),
+                   list(name = "Predicted", values = plot_data$predicted, colour = dft_model_palette[2])),
+      x_title = labels$x, y_title = labels$y, dark = dark()
     )
+  }, bg = "transparent", res = 96, alt = function() {
+    labels <- tryCatch(fitness_labels(), error = function(e) NULL)
+    if (is.null(labels)) return("Actual and predicted chart")
+    paste0("Actual and predicted by band of ", labels$x, ". Left axis: ", labels$y, ". Bars on the right axis: ", labels$bars, ".")
   })
 
   ######################

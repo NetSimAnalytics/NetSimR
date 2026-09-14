@@ -3,6 +3,7 @@
 #' Parameter to set the maximum number of pareto slices
 #'
 #' @return The maximum number of Pareto Slices.
+#' @keywords internal
 max_number_of_pareto_slices <- 6
 
 #' The largest number of simulations a run may have
@@ -55,12 +56,13 @@ apply_severity_cap <- function(claims, severity_cap_boolean, severity_cap_amount
 #' A vector with the reinsurance structure options
 #'
 #' @return The reinsurance structure options
+#' @keywords internal
 reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer')
 
 #' Apply a deductible and limit to claims
 #'
 #' @param gross_claims_data A vector of Claims.
-#' @param reinsurance_structure The chosen reinsurance structure. Options are: 'No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer'.
+#' @param reinsurance_structure The chosen reinsurance structure, a single string. Options are: 'No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer'; anything else is an error.
 #' @param deductible The deductible of the reinsurance structure, zero or more. Not used by 'No Reinsurance Structure'.
 #' @param limit The limit of the reinsurance structure, zero or more. Used only by 'Limited Layer' and 'Exclude Layer'.
 #' @return A vector with one value per claim: for 'Unlimited Layer' and 'Limited Layer', the
@@ -74,6 +76,18 @@ reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer
 #' apply_deductible_limit(c(100, 50, 20), 'Limited Layer', 10, 30)
 #' apply_deductible_limit(c(100, 50, 20), 'Exclude Layer', 40, 20)
 apply_deductible_limit <- function(gross_claims_data, reinsurance_structure, deductible, limit){
+  #NA or several structures would otherwise give "missing value where TRUE/FALSE needed" or
+  #"the condition has length > 1" below
+  if (!(is.character(reinsurance_structure) && length(reinsurance_structure) == 1 &&
+        reinsurance_structure %in% reinsurance_structures_options)) {
+    given <- if (is.character(reinsurance_structure) && length(reinsurance_structure) == 1) {
+      paste0(" (got '", reinsurance_structure, "')")
+    } else {
+      ""
+    }
+    stop("Unknown reinsurance structure", given, ": reinsurance_structure must be one of ",
+         paste0("'", reinsurance_structures_options, "'", collapse = ", "), ".", call. = FALSE)
+  }
   if (reinsurance_structure == 'No Reinsurance Structure') {return(gross_claims_data)}
 
   #a negative amount would cede more than the claims (or less than nothing)
@@ -87,9 +101,8 @@ apply_deductible_limit <- function(gross_claims_data, reinsurance_structure, ded
 
   if (reinsurance_structure == 'Limited Layer') {return(limited_layer_claims)}
 
-  if (reinsurance_structure == 'Exclude Layer') {return(gross_claims_data - limited_layer_claims)}
-
-  stop("Unknown reinsurance structure: ", reinsurance_structure)
+  # 'Exclude Layer', the only option left
+  gross_claims_data - limited_layer_claims
 }
 
 #' A function slot that may be empty
@@ -111,6 +124,7 @@ setClassUnion("functionOrNULL", c("function", "NULL"))
 #' Allowed ranges are \code{param_min_values} and \code{param_max_values} (NA for no
 #' bound), with \code{param_min_strict} and \code{param_max_strict} marking bounds the
 #' value may not equal.
+#' @keywords internal
 distributionClass <- setClass(
   "distributionClass",
   slots = c(
@@ -163,6 +177,7 @@ distributionClass <- setClass(
 #' A vector with the frequency distribution objects
 #'
 #' @return The frequency distribution objects.
+#' @keywords internal
 freq_dist_options <- c(
   Poisson=distributionClass(
     distrID='Poisson'
@@ -239,6 +254,7 @@ freq_dist_options <- c(
 #' A data frame with the frequency distribution parameter placeholders
 #'
 #' @return The frequency distribution parameter placeholders.
+#' @keywords internal
 freq_dist_parameter_placeholders <- data.frame(
   param_number = seq_len(max(vapply(freq_dist_options, function(x) length(x@paramIDs), integer(1))))
   ,param_id = paste0("freq_param_", seq_len(max(vapply(freq_dist_options, function(x) length(x@paramIDs), integer(1)))))
@@ -254,6 +270,7 @@ freq_dist_parameter_placeholders <- data.frame(
 #' the app does not carry values across.
 #'
 #' @return The severity distribution objects.
+#' @keywords internal
 sev_dist_options <- c(
   Normal=distributionClass(
     distrID='Normal'
@@ -362,6 +379,7 @@ sev_dist_options <- c(
 #' A data frame with the severity distribution parameter placeholders
 #'
 #' @return The severity distribution parameter placeholders.
+#' @keywords internal
 sev_dist_parameter_placeholders <- data.frame(
   param_number = seq_len(max(vapply(sev_dist_options, function(x) length(x@paramIDs), integer(1))))
   ,param_id = paste0("sev_param_", seq_len(max(vapply(sev_dist_options, function(x) length(x@paramIDs), integer(1)))))
@@ -709,9 +727,10 @@ find_missing_simulation_settings <- function(settings) {
 #'
 #' Random numbers: each chunk of simulations uses its own L'Ecuyer-CMRG random stream,
 #' derived from one seed, so a run gives the same results whether or not it runs in
-#' parallel. With \code{seedSetBinary = TRUE} the run is reproducible from \code{seedValue}
-#' and the caller's random number stream is left unchanged; otherwise the seed is drawn
-#' from the caller's stream, so \code{set.seed()} before the call also makes it reproducible.
+#' parallel. With \code{seedSetBinary = TRUE} (the default when a \code{seedValue} is given)
+#' the run is reproducible from \code{seedValue} and the caller's random number stream is
+#' left unchanged; otherwise the seed is drawn from the caller's stream, so
+#' \code{set.seed()} before the call also makes it reproducible.
 #' The streams always use Inversion for normal draws and Rejection sampling, so a seed
 #' gives the same results whatever the caller's \code{RNGkind()}, which is restored afterwards.
 #' Results depend on the chunk size, which by default adapts to the expected number of
@@ -720,8 +739,8 @@ find_missing_simulation_settings <- function(settings) {
 #' @param numOfSimulations The number of simulations to run.
 #' @param freq_params A vector of the frequency distribution parameters.
 #' @param sev_params A vector of the severity distribution parameters.
-#' @param seedSetBinary True if there is a fixed seed, otherwise false.
-#' @param seedValue The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}.
+#' @param seedSetBinary True if there is a fixed seed (\code{seedValue}), otherwise false. Defaults to TRUE when a \code{seedValue} is given and FALSE otherwise, so a \code{seedValue} on its own makes the run reproducible; an explicit FALSE ignores \code{seedValue}.
+#' @param seedValue The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}, or NULL (the default) for no fixed seed.
 #' @param freqDistr The frequency distribution. Options are as per the freq_dist_options.
 #' @param sevDistr The severity distribution. Options are as per the sev_dist_options.
 #' @param paretoSlice True if there is Pareto slicing.
@@ -753,6 +772,8 @@ find_missing_simulation_settings <- function(settings) {
 #' limit, capped at the number of reinstatements, so reinstatements are counted pro rata to
 #' the amount recovered.
 #' Stops with an error that names any required setting that is missing or invalid.
+#' @seealso \code{\link{simulate_claims}}, a simpler interface with short argument names,
+#'   and \code{\link{run_shiny_simulator}} for the same model in an app.
 #' @export
 #' @examples
 #' # 1,000 simulated years of Poisson claim counts with Normal claim sizes, no reinsurance
@@ -775,7 +796,7 @@ simulate_function <- function(
     numOfSimulations,
     freq_params,
     sev_params,
-    seedSetBinary = FALSE,
+    seedSetBinary = !is.null(seedValue),
     seedValue = NULL,
     freqDistr,
     sevDistr,
@@ -987,7 +1008,7 @@ simulate_function <- function(
       old_plan <- future::plan(future::multisession)
       on.exit(future::plan(old_plan), add = TRUE)
     }
-    chunk_results <- future.apply::future_lapply(seq_len(n_chunks), run_chunk, future.seed = chunk_seeds)
+    chunk_results <- run_chunks_in_futures(run_chunk, chunk_seeds)
   } else {
     chunk_results <- vector("list", n_chunks)
     for (i in seq_len(n_chunks)) {
@@ -1042,9 +1063,42 @@ simulate_function <- function(
   return(data)
 }
 
+#' Run the chunks of a simulation on the workers of the current future plan
+#'
+#' Splits the chunks into one contiguous group per worker and runs each group in one
+#' future, so the setup cost is paid once per worker rather than once per chunk. Each
+#' chunk starts from its own random stream, set in the worker just before it runs, so the
+#' results are identical to a sequential run. An error in a chunk is raised again here
+#' with its message.
+#' @param run_chunk Function of the chunk index that returns the chunk's results.
+#' @param chunk_seeds List of L'Ecuyer-CMRG seeds (\code{.Random.seed} values), one per chunk.
+#' @return List of the chunk results, in chunk order.
+#' @noRd
+run_chunks_in_futures <- function(run_chunk, chunk_seeds) {
+  n_chunks <- length(chunk_seeds)
+  #min() also handles backends that report an infinite number of workers
+  groups <- parallel::splitIndices(n_chunks, min(n_chunks, future::nbrOfWorkers()))
+  futures <- lapply(groups, function(chunks) {
+    seeds <- chunk_seeds[chunks]
+    #the future's own seed is the first chunk's stream; giving one tells future that the
+    #expression uses random numbers, and draws nothing from the caller's stream
+    future::future({
+      lapply(seq_along(chunks), function(k) {
+        assign(".Random.seed", seeds[[k]], envir = globalenv())
+        run_chunk(chunks[[k]])
+      })
+    }, seed = seeds[[1]])
+  })
+  unlist(future::value(futures), recursive = FALSE, use.names = FALSE)
+}
+
 #' A function to run the shiny simulator application
 #'
-#' @return Opens the shiny simulator application
+#' @return A shiny app object (class \code{shiny.appobj}). Printing it, as happens when
+#'   \code{run_shiny_simulator()} is called at the console, opens the app; pass it to
+#'   \code{shiny::runApp()} to choose options such as the port.
+#' @seealso \code{\link{simulate_claims}} and \code{\link{simulate_function}}, which run
+#'   the same model from R code.
 #' @export
 #' @examples
 #' if (interactive()) {

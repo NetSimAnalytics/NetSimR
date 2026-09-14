@@ -12,7 +12,7 @@ IGamma(a, x)
 \item{x}{A non-negative real number.}
 }
 \value{
-The value of the upper incomplete gamma function at \code{x} with shape parameter \code{a}, i.e. \code{gamma(a) * pgamma(x, a, lower.tail = FALSE)}. A non-positive \code{a} or a negative \code{x} is an error.
+The value of the upper incomplete gamma function at \code{x} with shape parameter \code{a}, i.e. \code{gamma(a) * pgamma(x, a, lower.tail = FALSE)}. The arguments are recycled to a common length. A non-numeric or non-positive \code{a} or a negative \code{x} is an error.
 }
 \description{
 Upper incomplete gamma function
@@ -20,4 +20,7 @@ Upper incomplete gamma function
 \examples{
 IGamma(1,1)
 IGamma(0.1,2)
+}
+\seealso{
+\code{\link{GammaCappedMean}}
 }

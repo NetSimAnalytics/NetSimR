@@ -12,3 +12,4 @@ The maximum number of Pareto Slices.
 \description{
 Parameter to set the maximum number of pareto slices
 }
+\keyword{internal}

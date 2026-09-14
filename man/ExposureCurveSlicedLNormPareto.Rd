@@ -27,3 +27,11 @@ Exposure Curve from a Sliced LogNormal Pareto severity distribution
 ExposureCurveSlicedLNormPareto(1200,6,1.5,1000,1.2)
 ExposureCurveSlicedLNormPareto(4000,7,1.6,3000,1.4)
 }
+\seealso{
+Other exposure curve functions:
+\code{\link[=ExposureCurveGamma]{ExposureCurveGamma()}},
+\code{\link[=ExposureCurveLNorm]{ExposureCurveLNorm()}},
+\code{\link[=ExposureCurvePareto]{ExposureCurvePareto()}},
+\code{\link[=ExposureCurveSlicedGammaPareto]{ExposureCurveSlicedGammaPareto()}}
+}
+\concept{exposure curve functions}

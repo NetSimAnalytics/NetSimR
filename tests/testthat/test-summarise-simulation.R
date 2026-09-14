@@ -34,6 +34,23 @@ test_that("the summary has the documented fields with the right types", {
   expect_type(sm$frequency, "list")
 })
 
+test_that("infinite gross and modelled totals leave their difference unknown rather than NaN", {
+  settings <- base_settings(reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_dedctible_amount = 10,
+                            reinsurance_structure_eel_limit_amount = 5)
+  results <- data.frame(claim_counts = c(1, 1, 1, 1), total_claims = c(Inf, 90, 50, Inf), gross_claims = c(Inf, 95, 55, Inf))
+  sm <- summarise_simulation(settings, results)
+  expect_equal(sm$role, "net")
+  expect_equal(sm$gross$unknown, 2)
+  #Inf - Inf gave NaN, which sort() dropped, so the ceded statistics came from the other rows
+  expect_true(all(is.na(sm$gross$series$Ceded[c(1, 4)])))
+  expect_equal(sm$gross$series$Ceded[2:3], c(5, 5))
+  expect_true(all(is.na(sm$gross$table$Ceded)))
+  expect_equal(sm$gross$table$Net[1], Inf)
+  expect_false(any(is.nan(unlist(sm$gross$table[-1]))))
+  expect_false(is.nan(sm$stats$sd))
+  expect_equal(summarise_simulation(layered_settings(), run_layered_simulation(numOfSimulations = 200))$gross$unknown, 0)
+})
+
 test_that("the statistics follow their definitions", {
   totals <- as.numeric(1:1000)
   sm <- summarise_simulation(base_settings(), hand_results(1000))
@@ -139,7 +156,8 @@ test_that("the gross block splits gross into ceded and net", {
 
   ceded <- summarise_simulation(layered_settings(), results)$gross
   expect_type(ceded, "list")
-  expect_named(ceded, c("table", "series"))
+  expect_named(ceded, c("table", "series", "unknown"))
+  expect_equal(ceded$unknown, 0)
   expect_named(ceded$series, c("Gross", "Ceded", "Net"))
   expect_equal(ceded$series$Gross, gross)
   expect_equal(ceded$series$Ceded, totals)

@@ -25,3 +25,11 @@ Increased Limit Factor Curve from a LogNormal severity distribution
 ILFLNorm(1000,2000,6,1.5)
 ILFLNorm(1000,1500,5,1.6)
 }
+\seealso{
+Other ILF functions:
+\code{\link[=ILFGamma]{ILFGamma()}},
+\code{\link[=ILFPareto]{ILFPareto()}},
+\code{\link[=ILFSlicedGammaPareto]{ILFSlicedGammaPareto()}},
+\code{\link[=ILFSlicedLNormPareto]{ILFSlicedLNormPareto()}}
+}
+\concept{ILF functions}

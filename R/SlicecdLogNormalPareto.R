@@ -8,13 +8,15 @@
 #' @param sigma A positive real number -  the second parameter of the attritional Claim Severity's LogNormal distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the LogNormal distribution.
 #' @param shape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The mean of the claim severity with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @return The mean of the claim severity with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-numeric argument or a non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' SlicedLNormParetoMean(6,1.5,1000,1.2)
 #' SlicedLNormParetoMean(6.5,1.4,2000,1.6)
 #' SlicedLNormParetoMean(7,1.6,3000,1.4)
 SlicedLNormParetoMean<-function(mu, sigma, SlicePoint, shape){
+  check_numeric(mu = mu)
   check_positive(sigma = sigma, SlicePoint = SlicePoint, shape = shape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(mu = mu, sigma = sigma, SlicePoint = SlicePoint, shape = shape)
@@ -40,7 +42,8 @@ SlicedLNormParetoMean<-function(mu, sigma, SlicePoint, shape){
 #' @param sigma A positive real number -  the second parameter of the attritional Claim Severity's LogNormal distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the LogNormal distribution.
 #' @param shape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The mean of the claim severity capped at \code{cap} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A negative \code{cap} or a non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @return The mean of the claim severity capped at \code{cap} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-numeric argument, a negative \code{cap} or a non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @family capped mean functions
 #' @export
 #' @examples
 #' SlicedLNormParetoCappedMean(1200,6,1.5,1000,1.2)
@@ -48,6 +51,7 @@ SlicedLNormParetoMean<-function(mu, sigma, SlicePoint, shape){
 #' SlicedLNormParetoCappedMean(4000,7,1.6,3000,1.4)
 SlicedLNormParetoCappedMean<-function(cap,mu, sigma, SlicePoint, shape){
   check_positive(cap = cap, allow_zero = TRUE)
+  check_numeric(mu = mu)
   check_positive(sigma = sigma, SlicePoint = SlicePoint, shape = shape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(cap = cap, mu = mu, sigma = sigma, SlicePoint = SlicePoint, shape = shape)
@@ -68,12 +72,14 @@ SlicedLNormParetoCappedMean<-function(cap,mu, sigma, SlicePoint, shape){
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the LogNormal distribution.
 #' @param shape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
 #' @return The value of the Exposure curve at \code{x} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. The exposure curve divides by the mean, which is infinite when \code{shape <= 1} (and \code{SlicePoint} is finite); the function returns 0 in that case.
+#' @family exposure curve functions
 #' @export
 #' @examples
 #' ExposureCurveSlicedLNormPareto(1200,6,1.5,1000,1.2)
 #' ExposureCurveSlicedLNormPareto(4000,7,1.6,3000,1.4)
 ExposureCurveSlicedLNormPareto<-function(x, mu, sigma, SlicePoint, shape){
   check_positive(x = x, allow_zero = TRUE)
+  check_numeric(mu = mu)
   check_positive(sigma = sigma, SlicePoint = SlicePoint, shape = shape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(x = x, mu = mu, sigma = sigma, SlicePoint = SlicePoint, shape = shape)
@@ -96,14 +102,19 @@ ExposureCurveSlicedLNormPareto<-function(x, mu, sigma, SlicePoint, shape){
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the LogNormal distribution.
 #' @param shape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
 #' @return The value of the Increased Limit Factor curve from \code{xLow} to \code{xHigh} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}.
+#' @family ILF functions
 #' @export
 #' @examples
 #' ILFSlicedLNormPareto(800,1200,6,1.5,1000,1.2)
 #' ILFSlicedLNormPareto(2000,4000,7,1.6,3000,1.4)
 ILFSlicedLNormPareto<-function(xLow,xHigh, mu, sigma, SlicePoint, shape){
   check_positive(xLow = xLow, xHigh = xHigh, allow_zero = TRUE)
+  check_numeric(mu = mu)
   check_positive(sigma = sigma, SlicePoint = SlicePoint, shape = shape)
-  SlicedLNormParetoCappedMean(xHigh, mu, sigma, SlicePoint, shape)/SlicedLNormParetoCappedMean(xLow, mu, sigma, SlicePoint, shape)
+  # recycle every argument to a common length, so that both capped means have it
+  args<-recycle_arguments(xLow = xLow, xHigh = xHigh, mu = mu, sigma = sigma, SlicePoint = SlicePoint, shape = shape)
+  xLow<-args$xLow; xHigh<-args$xHigh; mu<-args$mu; sigma<-args$sigma; SlicePoint<-args$SlicePoint; shape<-args$shape
+  restore_shape(SlicedLNormParetoCappedMean(xHigh, mu, sigma, SlicePoint, shape)/SlicedLNormParetoCappedMean(xLow, mu, sigma, SlicePoint, shape), args)
 }
 
 
@@ -115,12 +126,14 @@ ILFSlicedLNormPareto<-function(xLow,xHigh, mu, sigma, SlicePoint, shape){
 #' @param sigma A positive real number -  the second parameter of the attritional Claim Severity's LogNormal distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the LogNormal distribution.
 #' @param shape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The value of the cumulative density function (cdf) at \code{x} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @return The value of the cumulative density function (cdf) at \code{x} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-numeric argument or a non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' pSlicedLNormPareto(1200,6,1.5,1000,1.2)
 #' pSlicedLNormPareto(4000,7,1.6,3000,1.4)
 pSlicedLNormPareto<-function(x, mu, sigma, SlicePoint, shape){
+  check_numeric(x = x, mu = mu)
   check_positive(sigma = sigma, SlicePoint = SlicePoint, shape = shape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(x = x, mu = mu, sigma = sigma, SlicePoint = SlicePoint, shape = shape)
@@ -140,12 +153,14 @@ pSlicedLNormPareto<-function(x, mu, sigma, SlicePoint, shape){
 #' @param sigma A positive real number -  the second parameter of the attritional Claim Severity's LogNormal distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the LogNormal distribution.
 #' @param shape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The value of the inverse cumulative density function at \code{q} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @return The value of the inverse cumulative density function at \code{q} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-numeric argument or a non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' qSlicedLNormPareto(0.5,6,1.5,1000,1.2)
 #' qSlicedLNormPareto(0.7,7,1.6,3000,1.4)
 qSlicedLNormPareto<-function(q, mu, sigma, SlicePoint, shape){
+  check_numeric(q = q, mu = mu)
   check_positive(sigma = sigma, SlicePoint = SlicePoint, shape = shape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(q = q, mu = mu, sigma = sigma, SlicePoint = SlicePoint, shape = shape)
@@ -169,12 +184,14 @@ qSlicedLNormPareto<-function(q, mu, sigma, SlicePoint, shape){
 #' @param sigma A positive real number -  the second parameter of the attritional Claim Severity's LogNormal distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the Claim Severity's Pareto distribution. An infinite slice point gives the LogNormal distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
-#' @return The value of the probability density function (pdf) at \code{x} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @return The value of the probability density function (pdf) at \code{x} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-numeric argument or a non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' dSlicedLNormPareto(1200,6,1.5,1000,1.2)
 #' dSlicedLNormPareto(4000,7,1.6,3000,1.4)
 dSlicedLNormPareto<-function(x, mu, sigma, SlicePoint, shape){
+  check_numeric(x = x, mu = mu)
   check_positive(sigma = sigma, SlicePoint = SlicePoint, shape = shape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(x = x, mu = mu, sigma = sigma, SlicePoint = SlicePoint, shape = shape)

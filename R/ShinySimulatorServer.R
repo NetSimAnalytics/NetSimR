@@ -4,8 +4,8 @@
 #' @param output Output for the server function.
 #' @param session Session for the server function.
 #' @return Returns server rendering for the shiny application.
+#' @keywords internal
 #' @import shiny
-#' @import future.apply
 #' @importFrom future plan
 #' @importFrom future sequential
 #' @importFrom future multisession

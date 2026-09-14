@@ -107,4 +107,27 @@ test_that("pure IBNR refuses non-date input, periods that end before they start 
   missing <- PureIBNRLNorm(as.Date(c("2020-01-01", NA)), as.Date("2020-12-31"), as.Date("2021-02-15"), 4, 1.5)
   expect_false(anyNA(missing[1, ]))
   expect_true(all(is.na(missing[2, ])))
+  expect_error(PureIBNRLNorm(d$inception, d$expiry, d$valuation, "4", 1.5), "mu must be numeric")
+})
+
+test_that("dates and parameters are recycled to one row each, and other lengths are an error", {
+  d <- example_dates()
+  #one period with two shapes: the ratios of the second row used to repeat the first row's
+  two_shapes <- PureIBNRGamma(d$inception[3], d$expiry[3], d$valuation, c(7, 70), 0.15)
+  expect_equal(nrow(two_shapes), 2)
+  for (i in 1:2) {
+    single <- PureIBNRGamma(d$inception[3], d$expiry[3], d$valuation, c(7, 70)[i], 0.15)
+    expect_equal(unlist(two_shapes[i, ]), unlist(single))
+  }
+  #one period valued at two dates
+  valuations <- as.POSIXct(c("30/06/2006", "30/10/2007"), format = "%d/%m/%Y")
+  two_dates <- PureIBNRLNorm(d$inception[1], d$expiry[1], valuations, 4, 1.5)
+  for (i in 1:2) {
+    expect_equal(unlist(two_dates[i, ]), unlist(PureIBNRLNorm(d$inception[1], d$expiry[1], valuations[i], 4, 1.5)))
+  }
+  #lengths that do not recycle used to be recycled with a warning, or silently
+  expect_error(PureIBNRGamma(d$inception, d$expiry[1:2], d$valuation, 7, 0.15), "cannot be recycled")
+  expect_error(PureIBNRLNorm(d$inception[1:2], d$expiry[1:2], d$valuation, c(4, 5, 6), 1.5), "cannot be recycled")
+  err <- tryCatch(PureIBNRGamma(d$inception, d$expiry[1:2], d$valuation, 7, 0.15), error = identity)
+  expect_identical(conditionCall(err)[[1]], as.name("PureIBNRGamma"))
 })

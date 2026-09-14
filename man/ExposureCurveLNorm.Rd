@@ -23,3 +23,11 @@ Exposure Curve from LogNormal a severity distribution
 ExposureCurveLNorm(2000,6,1.5)
 ExposureCurveLNorm(1000,5,1.6)
 }
+\seealso{
+Other exposure curve functions:
+\code{\link[=ExposureCurveGamma]{ExposureCurveGamma()}},
+\code{\link[=ExposureCurvePareto]{ExposureCurvePareto()}},
+\code{\link[=ExposureCurveSlicedGammaPareto]{ExposureCurveSlicedGammaPareto()}},
+\code{\link[=ExposureCurveSlicedLNormPareto]{ExposureCurveSlicedLNormPareto()}}
+}
+\concept{exposure curve functions}

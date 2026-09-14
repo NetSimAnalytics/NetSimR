@@ -23,3 +23,11 @@ Exposure Curve from a Pareto severity distribution
 ExposureCurvePareto(700,500,1.2)
 ExposureCurvePareto(20000,200,1.1)
 }
+\seealso{
+Other exposure curve functions:
+\code{\link[=ExposureCurveGamma]{ExposureCurveGamma()}},
+\code{\link[=ExposureCurveLNorm]{ExposureCurveLNorm()}},
+\code{\link[=ExposureCurveSlicedGammaPareto]{ExposureCurveSlicedGammaPareto()}},
+\code{\link[=ExposureCurveSlicedLNormPareto]{ExposureCurveSlicedLNormPareto()}}
+}
+\concept{exposure curve functions}

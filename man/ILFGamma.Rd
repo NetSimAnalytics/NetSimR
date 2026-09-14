@@ -25,3 +25,11 @@ Increased Limit Factor Curve from a Gamma severity distribution
 ILFGamma(700,1000,1,0.0005)
 ILFGamma(1000,1200,1.5,0.0006)
 }
+\seealso{
+Other ILF functions:
+\code{\link[=ILFLNorm]{ILFLNorm()}},
+\code{\link[=ILFPareto]{ILFPareto()}},
+\code{\link[=ILFSlicedGammaPareto]{ILFSlicedGammaPareto()}},
+\code{\link[=ILFSlicedLNormPareto]{ILFSlicedLNormPareto()}}
+}
+\concept{ILF functions}

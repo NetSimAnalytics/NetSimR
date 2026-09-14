@@ -946,6 +946,7 @@ sim_pareto_slices_ui <- function() {
 #' UI file for the Shiny NetSimR Simulator Tool
 #'
 #' @return Returns the UI code for the shiny application.
+#' @keywords internal
 shiny_simulator_ui <- bslib::page_navbar(
   title = div(
     class = "sim-brand",

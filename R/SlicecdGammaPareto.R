@@ -8,7 +8,8 @@
 #' @param GRate A positive real number -  the rate parameter of the attritional Claim Severity's Gamma distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.
 #' @param PShape A positive real number - the Shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The mean of the claim severity with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @return The mean of the claim severity with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-numeric or non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' SlicedGammaParetoMean(1,0.0005,1000,1.2)
@@ -40,7 +41,8 @@ SlicedGammaParetoMean<-function(GShape, GRate, SlicePoint, PShape){
 #' @param GRate A positive real number -  the rate parameter of the attritional Claim Severity's Gamma distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.
 #' @param PShape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The mean of the claim severity capped at \code{cap} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A negative \code{cap} or a non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @return The mean of the claim severity capped at \code{cap} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-numeric argument, a negative \code{cap} or a non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @family capped mean functions
 #' @export
 #' @examples
 #' SlicedGammaParetoCappedMean(3000,1,0.0005,1000,1.2)
@@ -68,6 +70,7 @@ SlicedGammaParetoCappedMean<-function(cap, GShape, GRate, SlicePoint, PShape){
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.
 #' @param PShape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
 #' @return The value of the Exposure curve at \code{x} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. The exposure curve divides by the mean, which is infinite when \code{PShape <= 1} (and \code{SlicePoint} is finite); the function returns 0 in that case.
+#' @family exposure curve functions
 #' @export
 #' @examples
 #' ExposureCurveSlicedGammaPareto(3000,1,0.0005,1000,1.2)
@@ -97,6 +100,7 @@ ExposureCurveSlicedGammaPareto<-function(x, GShape, GRate, SlicePoint, PShape){
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.
 #' @param PShape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
 #' @return The value of the Increased Limit Factor curve from \code{xLow} to \code{xHigh} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}.
+#' @family ILF functions
 #' @export
 #' @examples
 #' ILFSlicedGammaPareto(2000,3000,1,0.0005,1000,1.2)
@@ -105,7 +109,10 @@ ExposureCurveSlicedGammaPareto<-function(x, GShape, GRate, SlicePoint, PShape){
 ILFSlicedGammaPareto<-function(xLow, xHigh, GShape, GRate, SlicePoint, PShape){
   check_positive(xLow = xLow, xHigh = xHigh, allow_zero = TRUE)
   check_positive(GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)
-  SlicedGammaParetoCappedMean(xHigh, GShape, GRate, SlicePoint, PShape)/SlicedGammaParetoCappedMean(xLow, GShape, GRate, SlicePoint, PShape)
+  # recycle every argument to a common length, so that both capped means have it
+  args<-recycle_arguments(xLow = xLow, xHigh = xHigh, GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)
+  xLow<-args$xLow; xHigh<-args$xHigh; GShape<-args$GShape; GRate<-args$GRate; SlicePoint<-args$SlicePoint; PShape<-args$PShape
+  restore_shape(SlicedGammaParetoCappedMean(xHigh, GShape, GRate, SlicePoint, PShape)/SlicedGammaParetoCappedMean(xLow, GShape, GRate, SlicePoint, PShape), args)
 }
 
 
@@ -117,13 +124,15 @@ ILFSlicedGammaPareto<-function(xLow, xHigh, GShape, GRate, SlicePoint, PShape){
 #' @param GRate A positive real number -  the rate parameter of the attritional Claim Severity's Gamma distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.
 #' @param PShape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The value of the cumulative density function (cdf) at \code{x} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @return The value of the cumulative density function (cdf) at \code{x} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-numeric argument or a non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' pSlicedGammaPareto(3000,1,0.0005,1000,1.2)
 #' pSlicedGammaPareto(1000,1.1,0.0006,2000,1.6)
 #' pSlicedGammaPareto(2000,1.2,0.0004,3000,1.4)
 pSlicedGammaPareto<-function(x, GShape, GRate, SlicePoint, PShape){
+  check_numeric(x = x)
   check_positive(GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(x = x, GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)
@@ -143,13 +152,15 @@ pSlicedGammaPareto<-function(x, GShape, GRate, SlicePoint, PShape){
 #' @param GRate A positive real number -  the rate parameter of the attritional Claim Severity's Gamma distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.
 #' @param PShape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The value of the inverse cumulative density function at \code{q} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @return The value of the inverse cumulative density function at \code{q} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-numeric argument or a non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' qSlicedGammaPareto(0.5,1,0.0005,1000,1.2)
 #' qSlicedGammaPareto(0.2,1.1,0.0006,2000,1.6)
 #' qSlicedGammaPareto(0.8,1.2,0.0004,3000,1.4)
 qSlicedGammaPareto<-function(q, GShape, GRate, SlicePoint, PShape){
+  check_numeric(q = q)
   check_positive(GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(q = q, GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)
@@ -173,13 +184,15 @@ qSlicedGammaPareto<-function(q, GShape, GRate, SlicePoint, PShape){
 #' @param GRate A positive real number -  the rate parameter of the attritional Claim Severity's Gamma distribution.
 #' @param SlicePoint A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.
 #' @param PShape A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.
-#' @return The value of the probability density function (pdf) at \code{x} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @return The value of the probability density function (pdf) at \code{x} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-numeric argument or a non-positive parameter is an error; \code{NA} values give \code{NA}.
+#' @family sliced distribution functions
 #' @export
 #' @examples
 #' dSlicedGammaPareto(3000,1,0.0005,1000,1.2)
 #' dSlicedGammaPareto(1000,1.1,0.0006,2000,1.6)
 #' dSlicedGammaPareto(2000,1.2,0.0004,3000,1.4)
 dSlicedGammaPareto<-function(x, GShape, GRate, SlicePoint, PShape){
+  check_numeric(x = x)
   check_positive(GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)
   # recycle every argument to a common length, so that ifelse() keeps them all
   args<-recycle_arguments(x = x, GShape = GShape, GRate = GRate, SlicePoint = SlicePoint, PShape = PShape)

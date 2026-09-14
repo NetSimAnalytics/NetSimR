@@ -18,7 +18,7 @@ dSlicedGammaPareto(x, GShape, GRate, SlicePoint, PShape)
 \item{PShape}{A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.}
 }
 \value{
-The value of the probability density function (pdf) at \code{x} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-positive parameter is an error; \code{NA} values give \code{NA}.
+The value of the probability density function (pdf) at \code{x} with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-numeric argument or a non-positive parameter is an error; \code{NA} values give \code{NA}.
 }
 \description{
 The probability density function (pdf) of a Sliced Gamma Pareto severity distribution
@@ -28,3 +28,14 @@ dSlicedGammaPareto(3000,1,0.0005,1000,1.2)
 dSlicedGammaPareto(1000,1.1,0.0006,2000,1.6)
 dSlicedGammaPareto(2000,1.2,0.0004,3000,1.4)
 }
+\seealso{
+Other sliced distribution functions:
+\code{\link[=SlicedGammaParetoMean]{SlicedGammaParetoMean()}},
+\code{\link[=SlicedLNormParetoMean]{SlicedLNormParetoMean()}},
+\code{\link[=dSlicedLNormPareto]{dSlicedLNormPareto()}},
+\code{\link[=pSlicedGammaPareto]{pSlicedGammaPareto()}},
+\code{\link[=pSlicedLNormPareto]{pSlicedLNormPareto()}},
+\code{\link[=qSlicedGammaPareto]{qSlicedGammaPareto()}},
+\code{\link[=qSlicedLNormPareto]{qSlicedLNormPareto()}}
+}
+\concept{sliced distribution functions}

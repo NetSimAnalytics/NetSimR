@@ -8,7 +8,7 @@ simulate_function(
   numOfSimulations,
   freq_params,
   sev_params,
-  seedSetBinary = FALSE,
+  seedSetBinary = !is.null(seedValue),
   seedValue = NULL,
   freqDistr,
   sevDistr,
@@ -41,9 +41,9 @@ simulate_function(
 
 \item{sev_params}{A vector of the severity distribution parameters.}
 
-\item{seedSetBinary}{True if there is a fixed seed, otherwise false.}
+\item{seedSetBinary}{True if there is a fixed seed (\code{seedValue}), otherwise false. Defaults to TRUE when a \code{seedValue} is given and FALSE otherwise, so a \code{seedValue} on its own makes the run reproducible; an explicit FALSE ignores \code{seedValue}.}
 
-\item{seedValue}{The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}.}
+\item{seedValue}{The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}, or NULL (the default) for no fixed seed.}
 
 \item{freqDistr}{The frequency distribution. Options are as per the freq_dist_options.}
 
@@ -131,9 +131,10 @@ Totals are returned at full precision; round them only for display.
 
 Random numbers: each chunk of simulations uses its own L'Ecuyer-CMRG random stream,
 derived from one seed, so a run gives the same results whether or not it runs in
-parallel. With \code{seedSetBinary = TRUE} the run is reproducible from \code{seedValue}
-and the caller's random number stream is left unchanged; otherwise the seed is drawn
-from the caller's stream, so \code{set.seed()} before the call also makes it reproducible.
+parallel. With \code{seedSetBinary = TRUE} (the default when a \code{seedValue} is given)
+the run is reproducible from \code{seedValue} and the caller's random number stream is
+left unchanged; otherwise the seed is drawn from the caller's stream, so
+\code{set.seed()} before the call also makes it reproducible.
 The streams always use Inversion for normal draws and Rejection sampling, so a seed
 gives the same results whatever the caller's \code{RNGkind()}, which is restored afterwards.
 Results depend on the chunk size, which by default adapts to the expected number of
@@ -156,4 +157,8 @@ layer <- simulate_function(
   reinsurance_structure_eel_limit_amount = 1500
 )
 mean(layer$total_claims)
+}
+\seealso{
+\code{\link{simulate_claims}}, a simpler interface with short argument names,
+  and \code{\link{run_shiny_simulator}} for the same model in an app.
 }

@@ -18,7 +18,7 @@ qSlicedLNormPareto(q, mu, sigma, SlicePoint, shape)
 \item{shape}{A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.}
 }
 \value{
-The value of the inverse cumulative density function at \code{q} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
+The value of the inverse cumulative density function at \code{q} with an attritional claim LogNormal distribution with parameters \code{mu} and \code{sigma} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{shape}. A non-numeric argument or a non-positive \code{sigma}, \code{SlicePoint} or \code{shape} is an error; \code{NA} values give \code{NA}.
 }
 \description{
 The inverse cumulative density function of a Sliced LogNormal Pareto severity distribution
@@ -27,3 +27,14 @@ The inverse cumulative density function of a Sliced LogNormal Pareto severity di
 qSlicedLNormPareto(0.5,6,1.5,1000,1.2)
 qSlicedLNormPareto(0.7,7,1.6,3000,1.4)
 }
+\seealso{
+Other sliced distribution functions:
+\code{\link[=SlicedGammaParetoMean]{SlicedGammaParetoMean()}},
+\code{\link[=SlicedLNormParetoMean]{SlicedLNormParetoMean()}},
+\code{\link[=dSlicedGammaPareto]{dSlicedGammaPareto()}},
+\code{\link[=dSlicedLNormPareto]{dSlicedLNormPareto()}},
+\code{\link[=pSlicedGammaPareto]{pSlicedGammaPareto()}},
+\code{\link[=pSlicedLNormPareto]{pSlicedLNormPareto()}},
+\code{\link[=qSlicedGammaPareto]{qSlicedGammaPareto()}}
+}
+\concept{sliced distribution functions}

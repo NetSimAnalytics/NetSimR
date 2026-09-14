@@ -28,3 +28,11 @@ ExposureCurveSlicedGammaPareto(3000,1,0.0005,1000,1.2)
 ExposureCurveSlicedGammaPareto(1000,1.1,0.0006,2000,1.6)
 ExposureCurveSlicedGammaPareto(2000,1.2,0.0004,3000,1.4)
 }
+\seealso{
+Other exposure curve functions:
+\code{\link[=ExposureCurveGamma]{ExposureCurveGamma()}},
+\code{\link[=ExposureCurveLNorm]{ExposureCurveLNorm()}},
+\code{\link[=ExposureCurvePareto]{ExposureCurvePareto()}},
+\code{\link[=ExposureCurveSlicedLNormPareto]{ExposureCurveSlicedLNormPareto()}}
+}
+\concept{exposure curve functions}

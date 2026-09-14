@@ -18,7 +18,7 @@ PureIBNRLNorm(IncDate, ExpDate, ValDate, mu, sigma)
 \item{sigma}{A positive real number - the second parameter of the reporting delay's LogNormal distribution.}
 }
 \value{
-A data frame with the unearned and pure IBNR exposure of each period in days (\code{UnearnedDuration}, and \code{PureIBNRDuration} rounded to 2 decimals) and as proportions between 0 and 1 of the period's duration (\code{UnearnedDurationRatio} and \code{PureIBNRDurationRatio}, rounded to 5 decimals), where the reporting delay has a LogNormal distribution with parameters \code{mu} and \code{sigma}.
+A data frame with the unearned and pure IBNR exposure of each period in days (\code{UnearnedDuration}, and \code{PureIBNRDuration} rounded to 2 decimals) and as proportions between 0 and 1 of the period's duration (\code{UnearnedDurationRatio} and \code{PureIBNRDurationRatio}, rounded to 5 decimals), where the reporting delay has a LogNormal distribution with parameters \code{mu} and \code{sigma}. The dates and parameters are recycled to a common length, one row each; lengths that do not recycle are an error.
 }
 \description{
 Durations are counted in days on each date's own calendar and clock: a \code{POSIXct} time of day counts as a fraction of a day, and daylight saving changes do not add fractions of a day, so \code{Date} and \code{POSIXct} dates (or a mix of them) give the same results.
@@ -37,3 +37,8 @@ ValuationDate<-as.POSIXct("30/10/2007", format="\%d/\%m/\%Y")
 
 PureIBNRLNorm(Dates$inceptionDate,Dates$expiryDate,ValuationDate,4,1.5)
 }
+\seealso{
+Other pure IBNR functions:
+\code{\link[=PureIBNRGamma]{PureIBNRGamma()}}
+}
+\concept{pure IBNR functions}

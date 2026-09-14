@@ -25,3 +25,11 @@ Increased Limit Factor Curve from a Pareto severity distribution
 ILFPareto(700,1200,500,1.2)
 ILFPareto(1200,20000,200,1.1)
 }
+\seealso{
+Other ILF functions:
+\code{\link[=ILFGamma]{ILFGamma()}},
+\code{\link[=ILFLNorm]{ILFLNorm()}},
+\code{\link[=ILFSlicedGammaPareto]{ILFSlicedGammaPareto()}},
+\code{\link[=ILFSlicedLNormPareto]{ILFSlicedLNormPareto()}}
+}
+\concept{ILF functions}

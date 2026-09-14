@@ -95,6 +95,51 @@ glm_many_values <- function(x) {
   values > 100 || (values > 10 && values > length(present) / 2)
 }
 
+# Breaks of the bands of a numeric variable in the actual vs predicted chart:
+# `bands` bands of equal width, or of about the same number of rows each
+# (quantiles, fewer bands where they coincide). The equal widths are explicit:
+# cut(breaks = n) computes the same breaks but moves the outer two 0.1% out,
+# which gives labels below zero for a variable that starts at zero.
+glm_band_breaks <- function(x, bands, method = "quantile") {
+  if (identical(method, "width")) {
+    seq.int(min(x, na.rm = TRUE), max(x, na.rm = TRUE), length.out = bands + 1)
+  } else {
+    unique(stats::quantile(x, seq(0, 1, length.out = bands + 1), na.rm = TRUE, names = FALSE))
+  }
+}
+
+# Labels of the bands that cut(x, breaks, include.lowest = TRUE) makes, easier
+# to read than "(18.0006,23.9723]": for a whole-number variable the integers
+# each band holds ("19-24", the first band including its lower edge),
+# otherwise the edges with the fewest significant digits (at least 2) that keep
+# them apart ("18-24"). The dash is an en dash, or " to " when a break is
+# negative, where it would read as a minus sign. NULL when two labels would be
+# the same, which leaves cut() its own labels.
+glm_band_labels <- function(breaks, whole = FALSE) {
+  n <- length(breaks) - 1
+  separator <- if (any(breaks < 0)) " to " else intToUtf8(8211)
+  if (whole) {
+    low <- c(ceiling(breaks[1]), floor(breaks[-c(1, n + 1)]) + 1)
+    high <- floor(breaks[-1])
+    text <- function(x) formatC(x, format = "f", digits = 0, big.mark = ",")
+    labels <- ifelse(low >= high, text(high), paste0(text(low), separator, text(high)))
+  } else {
+    digits <- 2
+    while (digits < 15 && anyDuplicated(signif(breaks, digits))) digits <- digits + 1
+    edges <- dft_fmt(breaks, digits)
+    labels <- paste0(edges[-(n + 1)], separator, edges[-1])
+  }
+  if (anyDuplicated(labels)) NULL else labels
+}
+
+# Labels of the values of a numeric variable with few values, one bar each,
+# with thousands separators ("25,000" rather than "25000"); the values as they
+# are when two would look the same.
+glm_value_labels <- function(values) {
+  labels <- dft_fmt(values, 15)
+  if (anyDuplicated(labels)) as.character(values) else labels
+}
+
 # Database driver packages used by the GLM fitting tool. They are in Suggests,
 # so a user who only imports CSV files does not need to install them.
 glm_tool_db_packages <- c(
