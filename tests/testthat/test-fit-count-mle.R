@@ -30,8 +30,8 @@ test_that("the Poisson fit matches fitdistrplus", {
   d <- count_data()
   fit <- fit_poisson_mle(d$d1)
   expect_named(fit$estimate, "lambda")
-  #the MLE is the mean exactly
-  expect_identical(fit$estimate[["lambda"]], mean(d$d1))
+  #the MLE is the mean (mean() may accumulate with extra precision, so not bit for bit)
+  expect_equal(fit$estimate[["lambda"]], mean(d$d1), tolerance = 1e-12)
   expect_fit(fit, 3.03000000726144, 0.100498745500419, -573.028945852258, 1148.05789170452, 1151.76167417917)
   expect_fit(fit_poisson_mle(d$d2), 3.59400002580602, 0.084782067610116, -1444.22888067683)
   expect_fit(fit_poisson_mle(d$d3), 63.2415000000817, 0.17782224052285, -111818.907009002)
@@ -51,7 +51,8 @@ test_that("the Negative Binomial fit matches fitdistrplus", {
   expect_fit(fit, c(1.52157959847609, 3.59400014376992), c(0.14662251440355, 0.155454777929321),
              -1193.53323053985, 2391.06646107971, 2399.49567727655)
   #the MLE of mu is the mean, and the size and mu estimates are uncorrelated at the maximum
-  expect_identical(fit$estimate[["mu"]], mean(d$d2))
+  #(on macOS arm64 mean() and the weighted mean differ in the last bit)
+  expect_equal(fit$estimate[["mu"]], mean(d$d2), tolerance = 1e-12)
   expect_equal(fit$cor[1, 2], 0, tolerance = 1e-8)
   #large, very overdispersed counts
   expect_fit(fit_nbinom_mle(d$d3), c(0.408741757447421, 63.2415000000007), c(0.0118120611911759, 2.2190187139519),
