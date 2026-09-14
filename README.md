@@ -7,7 +7,12 @@ for simulating claims and fitting distributions and GLMs.
 ## Installation
 
 ```r
+# the released version from CRAN
 install.packages("NetSimR")
+
+# the development version from GitHub
+# install.packages("remotes")
+remotes::install_github("NetSimAnalytics/NetSimR")
 ```
 
 ## What it does
