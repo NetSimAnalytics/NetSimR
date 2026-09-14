@@ -20,6 +20,24 @@ sorted_quantile <- function(sorted, probs) {
   qs
 }
 
+#' Decimal places for showing amounts of a given scale
+#'
+#' Whole numbers from 1,000 up and two decimals from 0.1; smaller amounts (e.g. results
+#' in millions) get more decimals, so they keep about three significant digits instead
+#' of showing as zero.
+#'
+#' @param x Amounts; the largest finite absolute value sets the scale.
+#' @return A whole number of decimal places, from 0 to 10.
+#' @noRd
+display_digits <- function(x) {
+  x <- abs(suppressWarnings(as.numeric(x)))
+  x <- x[is.finite(x)]
+  largest <- if (length(x) > 0) max(x) else 0
+  if (largest >= 1000) return(0)
+  if (largest >= 0.1 || largest == 0) return(2)
+  min(10, 2 - floor(log10(largest)))
+}
+
 #' TVaR of an already sorted vector
 #'
 #' The average of the worst (1 - p) share of simulations, which stays correct when
@@ -175,19 +193,16 @@ summarise_simulation <- function(settings, results) {
   if (role == "ceded") {
     eel_limit <- s$reinsurance_structure_eel_limit_amount
     al_limit <- s$reinsurance_structure_al_limit_amount
-    al_deductible <- if (is_number(s$reinsurance_structure_al_dedctible_amount)) s$reinsurance_structure_al_dedctible_amount else 0
     reinstatements_limited <- identical(eel, "Limited Layer") && isTRUE(s$reinsuranceStructureLimitedReinstatements) &&
       is_number(s$reinsuranceStructureReinstatementLimit)
 
-    #the most the layers can pay in one period
+    #the most the layers can pay in one period: the reinstatement capacity and the aggregate
+    #limit; the aggregate deductible comes off the recoveries before either caps them
     capacity <- Inf
     if (reinstatements_limited && is_number(eel_limit)) {
       capacity <- (s$reinsuranceStructureReinstatementLimit + 1) * eel_limit
     }
-    if (structure_kind(al) == "layer") {
-      capacity <- max(capacity - al_deductible, 0)
-      if (identical(al, "Limited Layer") && is_number(al_limit)) capacity <- min(capacity, al_limit)
-    }
+    if (identical(al, "Limited Layer") && is_number(al_limit)) capacity <- min(capacity, al_limit)
 
     #loss on line uses the aggregate limit when there is one, otherwise the each-and-every-loss limit
     line_limit <- NA_real_
@@ -202,9 +217,9 @@ summarise_simulation <- function(settings, results) {
 
     hit <- totals > 0
     exhaust_prob <- NA_real_
+    #totals are unrounded; the relative tolerance only absorbs floating-point error in the sums
     if (is.finite(capacity)) {
-      tolerance <- max(capacity * 1e-9, 0.005)
-      exhaust_prob <- mean(totals >= capacity - tolerance)
+      exhaust_prob <- mean(totals >= capacity * (1 - 1e-9))
     }
 
     #reinstatement figures need the limit and the column that simulate_function adds for it
@@ -214,7 +229,8 @@ summarise_simulation <- function(settings, results) {
     if (reinstatements_limited && !is.null(reinstatements_used)) {
       reinstatement_limit <- s$reinsuranceStructureReinstatementLimit
       reinstatements_avg <- mean(reinstatements_used)
-      reinstatements_all_used_prob <- mean(reinstatements_used >= reinstatement_limit - 1e-9)
+      #every reinstatement is used once the recoveries reach reinstatements * limit
+      reinstatements_all_used_prob <- mean(reinstatements_used >= reinstatement_limit * (1 - 1e-9))
     }
 
     layer <- list(

@@ -666,10 +666,11 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     if (p > 0 && p < 0.01) fmt_pct(p, 2) else fmt_pct(p)
   }
   #headline amounts use one decimal style for the whole report, set by the scale of the results
-  amount_digits <- if (max(abs(c(claims, gross))) >= 1000) 0 else 2
+  #(the results are unrounded; small amounts get enough decimals not to show as zero)
+  amount_digits <- display_digits(c(claims, gross))
   fmt_amount <- function(x) if (is_blank(x)) dash else fmt_num(x, amount_digits)
   #settings amounts are formatted on their own scale
-  fmt_setting <- function(x) if (is_blank(x)) dash else fmt_num(x, if (abs(as.numeric(x)) >= 1000) 0 else 2)
+  fmt_setting <- function(x) if (is_blank(x)) dash else fmt_num(x, display_digits(x))
   fmt_return_period <- function(p) paste("1 in", formatC(round(1 / (1 - p)), format = "d", big.mark = ","))
 
   known <- function(options, id) !is_blank(id) && is.character(id) && id %in% names(options)
@@ -1199,6 +1200,9 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       tags$li("VaR is the loss exceeded only with the stated probability. TVaR is the average loss in those worst cases, so it is always at least as large as VaR."),
       tags$li("The return period shows the same probability as a frequency: 99.5% corresponds to a 1 in 200 year event."),
       if (has_gross) tags$li("Gross is before reinsurance. Ceded is what the layers pay, and net is what remains."),
+      if (!no_structure(eel) && !no_structure(al)) {
+        tags$li("The aggregate layer works on each period's total after the each-and-every-loss structure: the aggregate deductible comes off first, then the aggregate limit and the reinstatement capacity cap what is left.")
+      },
       tags$li("The accuracy ranges reflect simulation noise only, not uncertainty in the chosen distributions or parameters."),
       tags$li("Figures reflect the tail adjustments and reinsurance structures listed under Model settings.")
     ))

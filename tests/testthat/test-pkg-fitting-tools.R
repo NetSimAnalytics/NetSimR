@@ -88,7 +88,7 @@ test_that("distribution fitting tool explains unusable columns instead of failin
     expect_error(counts_data(), "at least two")
     session$setInputs(severity_var = "same", execute_sev_analysis = 1)
     expect_error(severity_data(), "are the same")
-    #claims below 1: the gamma fit falls back to rescaled claims and still fits
+    #claims below 1: the gamma fit still fits
     session$setInputs(severity_var = "small", execute_sev_analysis = 2)
     expect_true(all(is.finite(sev_gamma_fit()$estimate)))
     expect_match(output$sev_param_summary$html, "Gamma")

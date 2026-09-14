@@ -16,10 +16,11 @@ set_run_inputs <- function(session, ...) {
   do.call(session$setInputs, utils::modifyList(inputs, list(...)))
 }
 
-#an infinite Poisson mean passes the settings checks but makes the run itself fail
+#a huge (finite) Poisson mean passes the settings checks but makes the run itself fail;
+#an infinite one is now stopped by the checks
 run_failing <- function(session, run) {
   expect_message(
-    suppressWarnings(session$setInputs(lamda = Inf, RunSimulations = run)),
+    suppressWarnings(session$setInputs(lamda = 1e300, RunSimulations = run)),
     "Simulation failed"
   )
 }

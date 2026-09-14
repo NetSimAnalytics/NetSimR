@@ -7,9 +7,9 @@
 ILFLNorm(xLow, xHigh, mu, sigma)
 }
 \arguments{
-\item{xLow}{A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}
+\item{xLow}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}
 
-\item{xHigh}{A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.}
+\item{xHigh}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.}
 
 \item{mu}{A real number - the first parameter of the Claim Severity's LogNormal distribution.}
 

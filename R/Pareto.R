@@ -4,7 +4,7 @@
 
 #' Pareto capped mean intermediary calculation
 #'
-#' @param cap A positive real number -  the claim severity cap.
+#' @param cap A non-negative real number -  the claim severity cap.
 #' @param scale A positive real number - the scale parameter of the Claim Severity's Pareto distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
 #' @return An interim calculation for the mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}. It is the closed form for \code{cap >= scale} and \code{shape != 1}; use \code{\link{ParetoCappedMean}} for the capped mean itself.
@@ -13,6 +13,8 @@
 #' ParetoCappedMeanCalc(800,100,1.1)
 #' ParetoCappedMeanCalc(1000,500,0.9)
 ParetoCappedMeanCalc<-function(cap,scale,shape){
+  check_positive(cap = cap, allow_zero = TRUE)
+  check_positive(scale = scale, shape = shape)
   # cap * (scale / cap)^shape = scale^shape * cap^(1 - shape), which is 0 for an
   # infinite cap when shape > 1 (finite mean) and Inf when shape < 1 (infinite mean)
   capTerm <- cap * (scale/cap)^shape
@@ -28,10 +30,10 @@ ParetoCappedMeanCalc<-function(cap,scale,shape){
 
 #' Pareto capped mean
 #'
-#' @param cap A positive real number -  the claim severity cap.
+#' @param cap A non-negative real number -  the claim severity cap.
 #' @param scale A positive real number - the scale parameter of the Claim Severity's Pareto distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
-#' @return The mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}. A cap at or below \code{scale} is returned unchanged, as no claim is smaller than \code{scale}. The arguments are recycled to a common length.
+#' @return The mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}. A cap at or below \code{scale} is returned unchanged, as no claim is smaller than \code{scale}. The arguments are recycled to a common length. A negative \code{cap} or a non-positive \code{scale} or \code{shape} is an error; \code{NA} values give \code{NA}.
 #' @export
 #' @examples
 #' ParetoCappedMean(600,200,1.2)
@@ -39,9 +41,11 @@ ParetoCappedMeanCalc<-function(cap,scale,shape){
 #' ParetoCappedMean(1000,500,0.8)
 #' ParetoCappedMean(50,100,2)
 ParetoCappedMean<-function(cap,scale,shape){
+  check_positive(cap = cap, allow_zero = TRUE)
+  check_positive(scale = scale, shape = shape)
   # recycle every argument to a common length
-  df<-data.frame(cap,scale,shape)
-  cap<-df$cap; scale<-df$scale; shape<-df$shape
+  args<-recycle_arguments(cap = cap, scale = scale, shape = shape)
+  cap<-args$cap; scale<-args$scale; shape<-args$shape
   # E[min(X, cap)] = scale + integral of (scale / x)^shape from scale to cap
   #                = scale * (1 + (exp((1 - shape) * L) - 1) / (1 - shape)), L = log(cap / scale).
   # expm1() keeps this accurate as shape -> 1, where the limit is scale * (1 + L).
@@ -52,17 +56,17 @@ ParetoCappedMean<-function(cap,scale,shape){
                    ,logRatio
                    ,expm1(oneMinusShape*logRatio)/oneMinusShape
   )
-  ifelse(cap<=scale
-         ,cap
-         ,scale*(1+tailTerm)
-  )
+  restore_shape(ifelse(cap<=scale
+                       ,cap
+                       ,scale*(1+tailTerm)
+  ), args)
 }
 
 
 
 #' Exposure Curve from a Pareto severity distribution
 #'
-#' @param x A positive real number -  the claim amount where the exposure curve will be evaluated.
+#' @param x A non-negative real number -  the claim amount where the exposure curve will be evaluated.
 #' @param scale A positive real number - the scale parameter of the Claim Severity's Pareto distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
 #' @return The value of the Exposure curve at \code{x} with Claim Severity from a Pareto distribution with parameters \code{scale} and \code{shape}. The exposure curve divides by the mean, which is infinite when \code{shape <= 1}; the function returns 0 in that case.
@@ -71,19 +75,23 @@ ParetoCappedMean<-function(cap,scale,shape){
 #' ExposureCurvePareto(700,500,1.2)
 #' ExposureCurvePareto(20000,200,1.1)
 ExposureCurvePareto<-function(x,scale,shape){
-  df<-data.frame(x,scale,shape)
-  ifelse(df$shape>1
-         ,ParetoCappedMean(x,scale,shape)*(shape-1)/shape/scale
-         ,0
-  )
+  check_positive(x = x, allow_zero = TRUE)
+  check_positive(scale = scale, shape = shape)
+  # recycle every argument to a common length, so that ifelse() keeps them all
+  args<-recycle_arguments(x = x, scale = scale, shape = shape)
+  x<-args$x; scale<-args$scale; shape<-args$shape
+  restore_shape(ifelse(shape>1
+                       ,ParetoCappedMean(x,scale,shape)*(shape-1)/shape/scale
+                       ,0
+  ), args)
 }
 
 
 
 #' Increased Limit Factor Curve from a Pareto severity distribution
 #'
-#' @param xLow A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.
-#' @param xHigh A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.
+#' @param xLow A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.
+#' @param xHigh A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.
 #' @param scale A positive real number - the scale parameter of the Claim Severity's Pareto distribution.
 #' @param shape A positive real number - the shape parameter of the Claim Severity's Pareto distribution.
 #' @return The value of the Increased Limit Factor curve from \code{xLow} to \code{xHigh} with Claim Severity from a Pareto distribution with parameters \code{scale} and \code{shape}.
@@ -92,5 +100,7 @@ ExposureCurvePareto<-function(x,scale,shape){
 #' ILFPareto(700,1200,500,1.2)
 #' ILFPareto(1200,20000,200,1.1)
 ILFPareto<-function(xLow,xHigh,scale,shape){
+  check_positive(xLow = xLow, xHigh = xHigh, allow_zero = TRUE)
+  check_positive(scale = scale, shape = shape)
   ParetoCappedMean(xHigh,scale,shape)/ParetoCappedMean(xLow,scale,shape)
 }

@@ -30,6 +30,20 @@ test_that("an unknown structure is an error", {
   expect_error(apply_deductible_limit(c(1, 2), "Something Else", 1, 1), "Unknown reinsurance structure")
 })
 
+test_that("a negative deductible or limit is an error", {
+  #a limit of -20 used to give -20 for every claim
+  expect_error(apply_deductible_limit(c(100, 50, 20), "Limited Layer", 40, -20), "limit must not be negative")
+  expect_error(apply_deductible_limit(c(100, 50, 20), "Exclude Layer", 40, -20), "limit must not be negative")
+  expect_error(apply_deductible_limit(c(100, 50, 20), "Unlimited Layer", -1, 20), "deductible must not be negative")
+  expect_error(apply_deductible_limit(c(100, 50, 20), "Limited Layer", -1, 20), "deductible must not be negative")
+  #amounts a structure does not use are not checked
+  expect_equal(apply_deductible_limit(100, "Unlimited Layer", 40, -5), 60)
+  expect_identical(apply_deductible_limit(c(1, 2), "No Reinsurance Structure", -1, -1), c(1, 2))
+  #zero and infinite amounts are valid
+  expect_equal(apply_deductible_limit(c(100, 50), "Limited Layer", 0, Inf), c(100, 50))
+  expect_equal(apply_deductible_limit(c(100, 50), "Limited Layer", Inf, 10), c(0, 0))
+})
+
 test_that("the functions are vectorised and keep zero-length input", {
   expect_equal(apply_deductible_limit(numeric(0), "Limited Layer", 1, 1), numeric(0))
   expect_equal(apply_deductible_limit(1000, "Unlimited Layer", 0, NA), 1000)

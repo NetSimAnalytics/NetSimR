@@ -11,12 +11,12 @@ SlicedGammaParetoMean(GShape, GRate, SlicePoint, PShape)
 
 \item{GRate}{A positive real number -  the rate parameter of the attritional Claim Severity's Gamma distribution.}
 
-\item{SlicePoint}{A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution.}
+\item{SlicePoint}{A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.}
 
 \item{PShape}{A positive real number - the Shape parameter of the tail Claim Severity's Pareto distribution.}
 }
 \value{
-The mean of the claim severity with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}.
+The mean of the claim severity with an attritional claim Gamma distribution with parameters \code{GShape} and \code{GRate} and a large claim Pareto distribution with parameters \code{SlicePoint} and \code{PShape}. A non-positive parameter is an error; \code{NA} values give \code{NA}.
 }
 \description{
 Sliced Gamma Pareto mean

@@ -7,14 +7,14 @@
 ParetoCappedMean(cap, scale, shape)
 }
 \arguments{
-\item{cap}{A positive real number -  the claim severity cap.}
+\item{cap}{A non-negative real number -  the claim severity cap.}
 
 \item{scale}{A positive real number - the scale parameter of the Claim Severity's Pareto distribution.}
 
 \item{shape}{A positive real number - the shape parameter of the Claim Severity's Pareto distribution.}
 }
 \value{
-The mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}. A cap at or below \code{scale} is returned unchanged, as no claim is smaller than \code{scale}. The arguments are recycled to a common length.
+The mean of the claim severity capped at \code{cap} with a Pareto distribution with parameters \code{scale} and \code{shape}. A cap at or below \code{scale} is returned unchanged, as no claim is smaller than \code{scale}. The arguments are recycled to a common length. A negative \code{cap} or a non-positive \code{scale} or \code{shape} is an error; \code{NA} values give \code{NA}.
 }
 \description{
 Pareto capped mean

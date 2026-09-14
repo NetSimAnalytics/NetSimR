@@ -9,10 +9,10 @@ IGamma(a, x)
 \arguments{
 \item{a}{A positive real number - the shape parameter.}
 
-\item{x}{A positive real number.}
+\item{x}{A non-negative real number.}
 }
 \value{
-The value of the upper incomplete gamma function at \code{x} with shape parameter \code{a}, i.e. \code{gamma(a) * pgamma(x, a, lower.tail = FALSE)}.
+The value of the upper incomplete gamma function at \code{x} with shape parameter \code{a}, i.e. \code{gamma(a) * pgamma(x, a, lower.tail = FALSE)}. A non-positive \code{a} or a negative \code{x} is an error.
 }
 \description{
 Upper incomplete gamma function

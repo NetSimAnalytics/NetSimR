@@ -182,8 +182,9 @@ test_that("the layer block reports capacity, loss on line and reinstatements", {
     reinsurance_structure_al_dedctible_amount = 100000,
     reinsurance_structure_al_limit_amount = 1000000
   )
+  #ceded totals under the aggregate order: min(max(S - 100,000, 0), 1,000,000, 600,000)
   results <- data.frame(
-    total_claims = c(0, 0, 100000, 300000, 500000),
+    total_claims = c(0, 0, 100000, 300000, 600000),
     gross_claims = c(50000, 80000, 400000, 900000, 2000000),
     number_of_reinstatements_used = c(0, 0, 0.5, 1.5, 2)
   )
@@ -192,14 +193,15 @@ test_that("the layer block reports capacity, loss on line and reinstatements", {
   expect_named(layer, c("hit_prob", "avg_loss_when_hit", "expected_loss", "loss_on_line", "line_limit",
                         "line_limit_name", "capacity", "exhaust_prob", "reinstatements_avg",
                         "reinstatements_all_used_prob", "reinstatement_limit"))
-  #(2 + 1) * 200,000 less the aggregate deductible of 100,000, within the aggregate limit
-  expect_equal(layer$capacity, 500000)
+  #(2 + 1) * 200,000 within the aggregate limit; the aggregate deductible comes off the
+  #recoveries before the capacity caps them, so it does not reduce the capacity
+  expect_equal(layer$capacity, 600000)
   expect_equal(layer$line_limit, 1000000)
   expect_type(layer$line_limit_name, "character")
-  expect_equal(layer$expected_loss, 180000)
-  expect_equal(layer$loss_on_line, 180000 / 1000000)
+  expect_equal(layer$expected_loss, 200000)
+  expect_equal(layer$loss_on_line, 200000 / 1000000)
   expect_equal(layer$hit_prob, 0.6)
-  expect_equal(layer$avg_loss_when_hit, 300000)
+  expect_equal(layer$avg_loss_when_hit, 1000000 / 3)
   expect_equal(layer$exhaust_prob, 0.2)
   expect_equal(layer$reinstatement_limit, 2)
   expect_equal(layer$reinstatements_avg, 0.8)
@@ -218,7 +220,7 @@ test_that("the layer block reports capacity, loss on line and reinstatements", {
   )$layer
   expect_true(is.infinite(open$capacity))
   expect_equal(open$line_limit, 5000)
-  expect_equal(open$loss_on_line, 180000 / 5000)
+  expect_equal(open$loss_on_line, 200000 / 5000)
   expect_true(is.na(open$exhaust_prob))
   expect_true(is.na(open$reinstatements_avg))
   expect_true(is.na(open$reinstatement_limit))

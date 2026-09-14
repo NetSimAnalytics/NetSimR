@@ -7,15 +7,15 @@
 ILFSlicedGammaPareto(xLow, xHigh, GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
-\item{xLow}{A positive real number -  the claim amount where the Limit Factor Curve will be evaluated from.}
+\item{xLow}{A non-negative real number -  the claim amount where the Limit Factor Curve will be evaluated from.}
 
-\item{xHigh}{A positive real number -  the claim amount where the Limit Factor Curve will be evaluated to.}
+\item{xHigh}{A non-negative real number -  the claim amount where the Limit Factor Curve will be evaluated to.}
 
 \item{GShape}{A positive real number -  the shape parameter of the attritional Claim Severity's Gamma distribution.}
 
 \item{GRate}{A positive real number -  the rate parameter of the attritional Claim Severity's Gamma distribution.}
 
-\item{SlicePoint}{A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution.}
+\item{SlicePoint}{A positive real number - the slice point and the scale parameter of the tail Claim Severity's Pareto distribution. An infinite slice point gives the Gamma distribution.}
 
 \item{PShape}{A positive real number - the shape parameter of the tail Claim Severity's Pareto distribution.}
 }

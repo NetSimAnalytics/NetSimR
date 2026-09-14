@@ -7,7 +7,7 @@
 ExposureCurvePareto(x, scale, shape)
 }
 \arguments{
-\item{x}{A positive real number -  the claim amount where the exposure curve will be evaluated.}
+\item{x}{A non-negative real number -  the claim amount where the exposure curve will be evaluated.}
 
 \item{scale}{A positive real number - the scale parameter of the Claim Severity's Pareto distribution.}
 

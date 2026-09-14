@@ -82,6 +82,19 @@ glm_settings_values <- function(settings) {
   if (length(values) == 0) NULL else values
 }
 
+# Whether a column is text with so many different values that "." in a formula
+# leaves it out: more than 100 values, or more than 10 and more than half the
+# rows with a value (IDs, dates or free text). Each value is a coefficient and
+# a column of the model matrix, so a text ID of 2,000 rows makes a 2,000 x 2,000
+# matrix that takes minutes to fit, and estimates from one or two rows each mean
+# little. A column named in the formula is still used.
+glm_many_values <- function(x) {
+  if (!is.character(x) && !is.factor(x)) return(FALSE)
+  present <- x[!is.na(x)]
+  values <- length(unique(present))
+  values > 100 || (values > 10 && values > length(present) / 2)
+}
+
 # Database driver packages used by the GLM fitting tool. They are in Suggests,
 # so a user who only imports CSV files does not need to install them.
 glm_tool_db_packages <- c(

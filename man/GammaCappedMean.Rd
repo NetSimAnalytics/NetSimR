@@ -7,14 +7,14 @@
 GammaCappedMean(cap, shape, rate)
 }
 \arguments{
-\item{cap}{A positive real number -  the claim severity cap.}
+\item{cap}{A non-negative real number -  the claim severity cap.}
 
 \item{shape}{A positive real number - the shape parameter of the Claim Severity's Gamma distribution.}
 
 \item{rate}{A positive real number - the rate parameter of the Claim Severity's Gamma distribution.}
 }
 \value{
-The mean of the claim severity capped at \code{cap} with a Gamma distribution with parameters \code{shape} and \code{rate}.
+The mean of the claim severity capped at \code{cap} with a Gamma distribution with parameters \code{shape} and \code{rate}. A negative \code{cap} or a non-positive \code{shape} or \code{rate} is an error; \code{NA} values give \code{NA}.
 }
 \description{
 Gamma capped mean

@@ -74,7 +74,8 @@ test_that("reinstatements used lie between zero and the reinstatement limit", {
   used <- res$number_of_reinstatements_used
   expect_true(all(used >= 0 & used <= 2))
   expect_true(all(res$total_claims <= 3 * 5000 + 1e-6))
-  expect_equal(used, pmin(res$total_claims / 5000, 2), tolerance = 0.01)
+  #the column is unrounded: the ceded total over the limit, capped at the reinstatements
+  expect_identical(used, pmin(res$total_claims / 5000, 2))
 })
 
 test_that("unlimited reinstatements do not add the reinstatements column", {

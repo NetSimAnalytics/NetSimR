@@ -7,9 +7,9 @@
 ILFGamma(xLow, xHigh, shape, rate)
 }
 \arguments{
-\item{xLow}{A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}
+\item{xLow}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}
 
-\item{xHigh}{A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.}
+\item{xHigh}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.}
 
 \item{shape}{A positive real number - the shape parameter of the Claim Severity's Gamma distribution.}
 

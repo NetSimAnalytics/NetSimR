@@ -7,9 +7,9 @@
 ILFPareto(xLow, xHigh, scale, shape)
 }
 \arguments{
-\item{xLow}{A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}
+\item{xLow}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}
 
-\item{xHigh}{A positive real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.}
+\item{xHigh}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated to.}
 
 \item{scale}{A positive real number - the scale parameter of the Claim Severity's Pareto distribution.}
 

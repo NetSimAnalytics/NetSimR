@@ -197,3 +197,64 @@ Changes in Version 0.2.0
   o Claims simulator: the number of simulations input accepts 1 to
     10,000,000, the same range as the validation.
   o bslib 0.9.0 or later is required.
+
+Changes in Version 0.2.1
+
+  o simulate_function() and simulate_claims() return totals, gross claims
+    and reinstatements used at full precision; they were rounded to two
+    decimals, which distorted results for small amounts (e.g. in millions).
+    The app and the report round only for display, and small amounts keep
+    about three significant digits.
+  o Results change when an each-and-every-loss layer with limited
+    reinstatements is combined with an aggregate deductible. The aggregate
+    deductible now comes off the year's layer recoveries before the aggregate
+    limit and the reinstatement capacity cap them (the market convention):
+    three claims of 100 through 100 xs 0 with no reinstatements and an
+    aggregate deductible of 50 now cede 100, not 50. Reinstatements used are
+    counted after the deductible.
+  o The chance that all reinstatements are used, and the chance the layers are
+    exhausted, are exact rather than counting amounts just below the limit.
+  o Infinite distribution parameters, numbers of simulations, seeds, chunk
+    sizes, slice alphas and numbers of reinstatements are rejected with a
+    clear message. Inf is still allowed for the cap, deductibles, limits and
+    slice thresholds.
+  o apply_deductible_limit() stops on a negative deductible or limit, and its
+    documentation describes what it returns for each structure.
+  o PureIBNRGamma() and PureIBNRLNorm() count days on each date's own calendar
+    and clock, so Date, POSIXct and mixed inputs agree and results no longer
+    depend on the time zone or daylight saving (a mix of Date and POSIXct used
+    to report the whole period as unearned). Results can change in the second
+    decimal where the time zone had shifted them. Non-date input and expiry
+    dates before inception dates are errors.
+  o The capped mean, exposure curve, ILF and sliced distribution functions
+    stop with a clear error on non-positive parameters or negative caps,
+    instead of returning plausible-looking numbers. NA parameters still give
+    NA.
+  o ParetoCappedMean(), ExposureCurvePareto() and the sliced functions accept
+    zero-length input (returning numeric(0)) and keep matrix dimensions and
+    names.
+  o LNormCappedMean() no longer overflows to NaN or Inf for large sigmas, and
+    dSlicedGammaPareto() and dSlicedLNormPareto() no longer overflow for large
+    slice points or shapes. erf() is accurate near zero. The sliced functions
+    give the attritional distribution for an infinite slice point, instead of
+    NaN.
+  o The PureIBNR vignette computes its theoretical pure IBNR count rather than
+    hard-coding it.
+  o Distribution fitting tool: the Gamma fit gives the exact maximum
+    likelihood estimate at any scale; claims of 1e9 or more got a wrong shape.
+  o Fitting tools data upload: with a decimal comma, points are read as
+    thousands separators ("15.000,5" is 15000.5), and files with a separator
+    at the end of each row are read correctly (the columns were shifted by
+    one, or the file failed to load).
+  o GLM fitting tool: "." in a formula (also ". - x", ".^2") leaves out the
+    offset and weights columns, empty or single-valued columns, and text
+    columns with very many values such as IDs, and says which were left out.
+  o GLM fitting tool: explains formulas it cannot read, text responses for
+    non-binomial families, single-valued predictors and columns with no
+    values, instead of showing R errors; reads numbers with thousands
+    separators ("1,200") as numbers; chart labels mention exposure only when
+    the offset is used as one.
+  o Distribution fitting tool: the first piecewise Pareto layer includes the
+    smallest claim; all-zero claim counts give a clear message instead of
+    failed fits; very large and very small numbers are shown in scientific
+    notation, and large weighted totals in full.

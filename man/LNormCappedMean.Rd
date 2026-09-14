@@ -7,14 +7,14 @@
 LNormCappedMean(cap, mu, sigma)
 }
 \arguments{
-\item{cap}{A positive real number -  the claim severity cap.}
+\item{cap}{A non-negative real number -  the claim severity cap.}
 
 \item{mu}{A real number - the first parameter of the Claim Severity's LogNormal distribution.}
 
 \item{sigma}{A positive real number - the second parameter of the Claim Severity's LogNormal distribution.}
 }
 \value{
-The mean of the claim severity capped at \code{cap} with a LogNormal distribution with parameters \code{mu} and \code{sigma}.
+The mean of the claim severity capped at \code{cap} with a LogNormal distribution with parameters \code{mu} and \code{sigma}. A negative \code{cap} or a non-positive \code{sigma} is an error; \code{NA} values give \code{NA}.
 }
 \description{
 Lognormal capped mean

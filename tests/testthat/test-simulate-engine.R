@@ -65,6 +65,17 @@ test_that("the default chunk size handles high claim frequencies", {
   expect_lt(abs(mean(res$claim_counts) - 1000), 5)
 })
 
+test_that("the default chunk size keeps at least 100 simulations per chunk", {
+  #20,000 claims per simulation would give chunks of 50 for a million claims; the floor of
+  #100 simulations (documented under chunk_size) gives 3 chunks for 250 simulations
+  calls <- 0
+  res <- run_simulation(numOfSimulations = 250, freqDistr = "Fixed_number_of_Counts", freq_params = 20000,
+                        sevDistr = "Fixed_Severity", sev_params = 1,
+                        progress = function(value, detail) calls <<- calls + 1)
+  expect_equal(calls, 3)
+  expect_equal(res$total_claims, rep(20000, 250))
+})
+
 test_that("out-of-range distribution parameters are named in the error", {
   expect_range_error <- function(regexp, ...) expect_error(run_simulation(...), regexp)
   expect_range_error("lambda.*at least 0", freq_params = -1)

@@ -186,6 +186,8 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     weights <- weights[keep]
     validate(
       need(length(counts) >= 2, "The column needs at least two valid claim counts."),
+      # the Poisson mean would be 0 and there is no Negative Binomial to fit
+      need(any(counts > 0), "All the claim counts are zero, so no distribution can be fitted."),
       need(all(counts == round(counts)),
            "Claim counts must be whole numbers. For claim amounts, use the Severity tab."),
       need(!weighted || all(weights == round(weights)),
@@ -227,7 +229,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     overdispersed <- isTRUE(m$variance > m$mean)
     div(
       class = "dft-stats",
-      dft_stat_tile(if (x$weighted) "Weighted observations" else "Observations", format(m$n, big.mark = ","),
+      dft_stat_tile(if (x$weighted) "Weighted observations" else "Observations", dft_fmt_count(m$n),
                     note = rows_left_out_note(x$dropped), icon_name = "hashtag"),
       dft_stat_tile("Mean", dft_fmt(m$mean), icon_name = "bullseye"),
       dft_stat_tile("Variance", dft_fmt(m$variance), icon_name = "arrows-left-right",
@@ -262,7 +264,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     need_run("execute_freq_analysis", "claim counts")
     x <- freq_input()
     print(summary(x$counts))
-    if (x$weighted) cat("\nTotal weight:", format(sum(x$weights), big.mark = ","), "\n")
+    if (x$weighted) cat("\nTotal weight:", dft_fmt_count(sum(x$weights)), "\n")
   })
 
   output$selected_distribution_summary <- renderPrint({
@@ -661,7 +663,8 @@ distribution_fitting_tool_Server <- function(input, output, session) {
            format(sum(x >= mu[i] & x < upper[i]), big.mark = ","), dft_fmt(alpha[i]))
     })
     dft_html_table(c("Layer", "From", "To", "Claims", "Alpha"), rows,
-                   note = "Each alpha is the maximum likelihood estimate for the claims in its layer.")
+                   note = paste("Each layer holds the claims from its threshold up to the next one; layer 1 starts at,",
+                                "and includes, the smallest claim. Each alpha is the maximum likelihood estimate for the claims in its layer."))
   })
 
   output$piecewise_pareto_ks_test <- renderUI({

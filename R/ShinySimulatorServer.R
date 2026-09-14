@@ -337,6 +337,7 @@ shiny_simulator_server <- function(input, output, session) {
         type = "message",
         duration = 2
       )
+      #the data are unrounded and write.csv keeps 15 significant digits; only the screen rounds
       write.csv(simulated_data$data, file, row.names = FALSE)
     }
   )

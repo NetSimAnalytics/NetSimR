@@ -46,7 +46,7 @@ sim_tab_open_simulator_button <- function() {
 sim_tab_fmt_amount <- function(x, digits = NULL) {
   if (is.null(x) || length(x) == 0 || is.na(x[1]) || !is.numeric(x)) return(intToUtf8(8212))
   x <- as.numeric(x[1])
-  if (is.null(digits)) digits <- if (abs(x) >= 1000) 0 else 2
+  if (is.null(digits)) digits <- display_digits(x)
   formatC(x, format = "f", digits = digits, big.mark = ",")
 }
 
@@ -77,7 +77,7 @@ sim_tab_describe_settings <- function(s) {
   is_number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
   fmt <- function(x) {
     if (!is_number(x)) return("?")
-    formatC(x, format = "f", digits = if (x == round(x)) 0 else 2, big.mark = ",")
+    formatC(x, format = "f", digits = if (x == round(x)) 0 else max(2, display_digits(x)), big.mark = ",")
   }
   fmt_param <- function(x) sub("\\.?0+$", "", formatC(x, format = "f", digits = 4))
 
@@ -177,7 +177,7 @@ sim_tab_compare_entry <- function(run) {
     description = sim_tab_describe_settings(run$settings),
     modelled_label = if (is.character(summary$modelled_label)) summary$modelled_label[1] else "Total claims",
     #headline amounts of a run share one decimal style, set by the scale of its results
-    digits = if (length(totals) > 0 && max(abs(totals)) >= 1000) 0 else 2,
+    digits = display_digits(totals),
     metrics = list(
       n = n,
       mean = pick(stats, "mean"),

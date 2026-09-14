@@ -115,14 +115,25 @@ dft_nice_bound <- function(x, up = FALSE) {
 }
 
 # Formats numbers for the result tables and tiles: `digits` significant digits
-# with thousands separators, and a dash for missing or infinite values.
+# with thousands separators, and a dash for missing or infinite values. Values
+# from 1e15 up, or below 1e-6 (but not zero), are written as 1.234e+20: in full
+# they would be long runs of digits, some of them spurious.
 dft_dash <- intToUtf8(8212)
 
 dft_fmt <- function(x, digits = 4) {
   out <- rep(dft_dash, length(x))
   ok <- is.finite(x)
-  out[ok] <- formatC(signif(x[ok], digits), digits = digits, format = "fg", big.mark = ",")
+  scientific <- ok & x != 0 & (abs(x) >= 1e15 | abs(x) < 1e-6)
+  plain <- ok & !scientific
+  out[plain] <- formatC(signif(x[plain], digits), digits = digits, format = "fg", big.mark = ",")
+  out[scientific] <- formatC(x[scientific], digits = digits, format = "g")
   trimws(out)
+}
+
+# Formats a count or total weight in full with thousands separators (format()
+# switches to 1.61e+09 for large doubles); very large values as dft_fmt().
+dft_fmt_count <- function(x) {
+  if (is.finite(x) && abs(x) < 1e15) formatC(x, format = "f", digits = 0, big.mark = ",") else dft_fmt(x)
 }
 
 # Builds an HTML table for the tool's results. `rows` is a list of lists of
@@ -167,29 +178,22 @@ dft_stat_tile <- function(label, value, note = NULL, icon_name = NULL, accent = 
   )
 }
 
-# Maximum likelihood Gamma fit used by the severity analysis. This is the same
-# optimisation MASS::fitdistr(x, "gamma", method = "L-BFGS-B", lower = c(0, 0),
-# start = list(scale = 1, shape = 1)) runs, written out so that MASS is not a
-# dependency; it returns the estimates in the same order (scale, shape).
+# Maximum likelihood Gamma fit used by the severity analysis, with the
+# estimates in the order MASS::fitdistr(x, "gamma") gives them (scale, shape).
+# It solves the likelihood equations (fit_gamma_profile()) rather than running
+# an optimiser from scale = 1, shape = 1 as fitdistr() does: that optimiser
+# stops short of the maximum, and for claims of 1e9 or more it reports success
+# far from it (a shape of 141 instead of 2 at 1e12).
 fit_gamma_mle <- function(x) {
-  fit <- function(y) {
-    negative_loglik <- function(p) -sum(dgamma(y, shape = p[2], scale = p[1], log = TRUE))
-    result <- optim(par = c(scale = 1, shape = 1), fn = negative_loglik, method = "L-BFGS-B", lower = c(0, 0))
-    if (result$convergence > 0L) stop("optimization failed")
-    result$par
-  }
-  estimate <- tryCatch(fit(x), error = function(e) NULL)
-  # the optimiser can step onto its zero bounds (claims far from 1, or small
-  # whole numbers) and stop; the profile likelihood still gives the estimate
-  if (is.null(estimate)) return(fit_gamma_profile(x))
-  list(estimate = estimate)
+  fit_gamma_profile(x)
 }
 
 # Maximum likelihood Gamma fit from the profile likelihood: the shape k solves
 # log(k) - digamma(k) = log(mean(x)) - mean(log(x)), whose left side falls from
-# +Inf to 0, and the scale is mean(x) / k. Same return value as fit_gamma_mle().
+# +Inf to 0, and the scale is mean(x) / k. The right side is computed on
+# x / mean(x), so that it does not depend on the scale of the claims.
 fit_gamma_profile <- function(x) {
-  target <- log(mean(x)) - mean(log(x))
+  target <- -mean(log(x / mean(x)))
   if (!is.finite(target) || target <= 0) stop("the claims must be positive and not all equal")
   shape <- stats::uniroot(function(k) log(k) - digamma(k) - target,
                           lower = 1e-8, upper = max(10, 10 / target), tol = 1e-12)$root
@@ -217,13 +221,15 @@ ks_distance <- function(claims, cdf_fun) {
   max(seq_len(n) / n - fitted, fitted - (seq_len(n) - 1) / n)
 }
 
-# Converts a data column to numbers. Text is trimmed; with a decimal comma the
-# comma becomes a point, and with a decimal point thousands separators such as
-# "1,234.5" are removed. Anything else that is not a number becomes NA.
+# Converts a data column to numbers. Text is trimmed; thousands separators are
+# removed ("1,234.5", or "1.234,5" with a decimal comma) and a decimal comma
+# becomes a point. Anything else that is not a number becomes NA.
 dft_as_numeric <- function(x, dec = ".") {
   if (is.numeric(x) || is.logical(x)) return(as.numeric(x))
   x <- trimws(as.character(x))
   if (identical(dec, ",")) {
+    grouped <- grepl("^[-+]?[0-9]{1,3}([.][0-9]{3})+(,[0-9]*)?$", x)
+    x[grouped] <- gsub(".", "", x[grouped], fixed = TRUE)
     x <- sub(",", ".", x, fixed = TRUE)
   } else {
     grouped <- grepl("^[-+]?[0-9]{1,3}(,[0-9]{3})+([.][0-9]*)?$", x)
@@ -245,15 +251,43 @@ dft_numeric_columns <- function(df, dec = ".") {
 
 # Reads an uploaded delimited text file. A UTF-8 byte order mark is skipped, so
 # it does not end up in the first column name; column names are kept as they
-# are (spaces allowed), with blanks and duplicates made unique.
+# are (spaces allowed), with blanks and duplicates made unique. The header line
+# is read on its own: given one, read.csv() takes the first column as row names
+# when the data rows have one more field than the header (a separator at the
+# end of each row), which shifts every column onto the next one's values.
 dft_read_data <- function(path, header = TRUE, sep = ",", quote = "\"", dec = ".") {
   has_bom <- identical(readBin(path, "raw", 3L), as.raw(c(0xef, 0xbb, 0xbf)))
-  df <- utils::read.csv(
-    path, header = header, sep = sep, quote = quote, dec = dec,
-    check.names = FALSE, stringsAsFactors = FALSE, strip.white = TRUE,
-    fileEncoding = if (has_bom) "UTF-8-BOM" else ""
-  )
-  column_names <- names(df)
+  read <- function(...) {
+    utils::read.csv(
+      path, header = FALSE, sep = sep, quote = quote, dec = dec,
+      check.names = FALSE, stringsAsFactors = FALSE, strip.white = TRUE,
+      fileEncoding = if (has_bom) "UTF-8-BOM" else "", ...
+    )
+  }
+  if (header) {
+    # blank lines before the header are skipped, as read.csv() skips them
+    first_lines <- readLines(path, n = 100L, warn = FALSE)
+    # (bytes, not characters: the file need not be UTF-8)
+    not_blank <- grepl("[^[:space:]]", first_lines, useBytes = TRUE)
+    blank_lines <- match(TRUE, not_blank, nomatch = 1L) - 1L
+    column_names <- unlist(read(nrows = 1, skip = blank_lines, colClasses = "character", na.strings = character(0)),
+                           use.names = FALSE)
+    df <- tryCatch(read(skip = blank_lines + 1), error = function(e) {
+      # a file with only the header has no data rows, which the tools report
+      if (any(nzchar(trimws(first_lines[-seq_len(blank_lines + 1)])))) stop(e)
+      as.data.frame(matrix(logical(0), 0, length(column_names)))
+    })
+    # a header shorter or longer than the data rows: extra data columns get a
+    # V name below, extra names an empty column
+    missing_columns <- length(column_names) - ncol(df)
+    if (missing_columns > 0) {
+      df[paste0("V", ncol(df) + seq_len(missing_columns))] <- rep(list(rep(NA, nrow(df))), missing_columns)
+    }
+    length(column_names) <- ncol(df)
+  } else {
+    df <- read()
+    column_names <- names(df)
+  }
   blank <- is.na(column_names) | column_names == ""
   column_names[blank] <- paste0("V", which(blank))
   names(df) <- make.unique(column_names, sep = "_")
@@ -298,7 +332,8 @@ mean_excess_at <- function(points, claims) {
 # Piecewise Pareto helpers. They cover the case the tool uses (no truncation,
 # no reporting thresholds, no censoring, unit weights) with the same arithmetic
 # as Pareto::PiecewisePareto_ML_Estimator_Alpha() and Pareto::pPiecewisePareto(),
-# so the Pareto package is not needed.
+# so the Pareto package is not needed, except that a loss equal to the first
+# threshold counts in the first layer.
 
 # Maximum likelihood estimate of the Pareto alphas of a piecewise Pareto
 # distribution with strictly increasing thresholds t, fitted to losses.
@@ -320,9 +355,11 @@ piecewise_pareto_alpha <- function(losses, t) {
     warning("Number of losses > max(t) must be positive.")
     return(rep(NaN, k))
   }
-  losses <- losses[losses > t[1]]
+  # the first layer includes a claim at t[1], so that with t[1] the smallest
+  # claim it is the Severity tab's Pareto (the Pareto package leaves it out)
+  losses <- losses[losses >= t[1]]
   if (length(losses) == 0) {
-    warning("No losses larger than t[1].")
+    warning("No losses at or above t[1].")
     return(rep(NaN, k))
   }
   upper <- c(t[-1], Inf)

@@ -7,7 +7,7 @@
 ParetoCappedMeanCalc(cap, scale, shape)
 }
 \arguments{
-\item{cap}{A positive real number -  the claim severity cap.}
+\item{cap}{A non-negative real number -  the claim severity cap.}
 
 \item{scale}{A positive real number - the scale parameter of the Claim Severity's Pareto distribution.}
 
