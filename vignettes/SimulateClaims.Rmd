@@ -79,7 +79,7 @@ tail <- simulate_claims(
 round(rbind(lognormal = tail_stats(claims$total_claims), pareto_tail = tail_stats(tail$total_claims)))
 ```
 
-The severity is then the sliced Log-Normal-Pareto distribution of the "SlicedDistribution" vignette, so its mean gives the expected total. With alpha 1.5 the variance is infinite, so the simulated mean converges slowly.
+The severity is then the sliced Log-Normal-Pareto distribution of the "Sliced LogNormal-Pareto and Gamma-Pareto distributions" vignette, so its mean gives the expected total. With alpha 1.5 the variance is infinite, so the simulated mean converges slowly.
 
 ```{r pareto mean}
 c(expected = 3 * SlicedLNormParetoMean(8, 1.5, 100000, 1.5), simulated = mean(tail$total_claims))

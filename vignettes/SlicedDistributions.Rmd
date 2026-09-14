@@ -82,7 +82,7 @@ The inverse cumulative probability distribution can be used to run simulations o
 
 
 ### 4.1 Mean of a sliced distribution
-Here we calculate the expected severity from a sliced lognormal pareto distributions, sliced at 10,000 currency units, with a Pareto shape parameter $shape = 1.2$ and lognormal parameters $mu = 6$ and $sigma = 1.6$.
+Here we calculate the expected severity from a sliced LogNormal-Pareto distribution, sliced at 10,000 currency units, with a Pareto shape parameter $shape = 1.2$ and lognormal parameters $mu = 6$ and $sigma = 1.6$.
 ```{r sliced mean}
 library("NetSimR")
 round(SlicedLNormParetoMean(6,1.6,10000,1.2),0)

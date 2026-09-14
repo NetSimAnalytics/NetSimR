@@ -103,7 +103,7 @@ Stops with an error that names any required setting that is missing or invalid.
 \description{
 A function to simulate frequency - severity of insurance claims using chunked vectorisation.
 The function applies severity cap, reinsurance structure for each and every loss claim,
-reinsurance structure for aggregate claims, and allows for piecewise pareto slices
+reinsurance structure for aggregate claims, and allows for piecewise Pareto slices
 }
 \details{
 Order of the calculations, for each simulation (a period, e.g. a year): claims are drawn

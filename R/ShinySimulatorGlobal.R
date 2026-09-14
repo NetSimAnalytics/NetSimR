@@ -1,6 +1,6 @@
 #help functions
 
-#' Parameter to set the maximum number of pareto slices
+#' Parameter to set the maximum number of Pareto slices
 #'
 #' @return The maximum number of Pareto Slices.
 #' @keywords internal
@@ -700,7 +700,7 @@ find_missing_simulation_settings <- function(settings) {
 #'
 #' A function to simulate frequency - severity of insurance claims using chunked vectorisation.
 #' The function applies severity cap, reinsurance structure for each and every loss claim,
-#' reinsurance structure for aggregate claims, and allows for piecewise pareto slices
+#' reinsurance structure for aggregate claims, and allows for piecewise Pareto slices
 #'
 #' Order of the calculations, for each simulation (a period, e.g. a year): claims are drawn
 #' from the severity distribution (with its Pareto slices) and capped at the severity cap;
