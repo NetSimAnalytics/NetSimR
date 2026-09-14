@@ -117,8 +117,11 @@ captured_runs <- list(
 )
 
 expect_captured_run <- function(res, case, label) {
-  expect_identical(res$total_claims[case$rows], case$total_claims, label = label)
-  expect_identical(sum(res$total_claims), case$sum_total, label = label)
+  #the random streams are the same on every platform, but exp(), log() and the quantile
+  #functions can differ in the last bits (e.g. on macOS arm64), so the amounts are compared
+  #to a tight relative tolerance; the claim counts must match exactly
+  expect_equal(res$total_claims[case$rows], case$total_claims, tolerance = 1e-10, label = label)
+  expect_equal(sum(res$total_claims), case$sum_total, tolerance = 1e-10, label = label)
   expect_identical(sum(res$claim_counts), case$sum_counts, label = label)
 }
 

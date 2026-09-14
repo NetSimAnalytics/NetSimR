@@ -23,6 +23,8 @@ See NEWS for details.
 * local Windows 11 x64, R 4.6.0 (ucrt), R CMD check --as-cran
 * the test suite also run with TZ set to UTC, America/New_York,
   Australia/Sydney and Asia/Nicosia
+* GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release
+  and oldrel-1)
 
 ## R CMD check results
 

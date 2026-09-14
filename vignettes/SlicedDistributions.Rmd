@@ -1,10 +1,10 @@
 ---
-title: "SlicedDistribution"
+title: "Sliced LogNormal-Pareto and Gamma-Pareto distributions"
 author: "Yiannis Parizas"
 date: '`r format(Sys.Date(), "%d-%m-%Y")`'
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{SlicedDistribution}
+  %\VignetteIndexEntry{Sliced LogNormal-Pareto and Gamma-Pareto distributions}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---

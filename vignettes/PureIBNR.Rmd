@@ -1,10 +1,10 @@
 ---
-title: "PureIBNR"
+title: "Pure IBNR exposure from a reporting delay distribution"
 author: "Yiannis Parizas"
 date: '`r format(Sys.Date(), "%d-%m-%Y")`'
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{PureIBNR}
+  %\VignetteIndexEntry{Pure IBNR exposure from a reporting delay distribution}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---

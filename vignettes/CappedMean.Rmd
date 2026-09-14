@@ -1,10 +1,10 @@
 ---
-title: "Capped mean, Exposure and Increased Limit Factor curves"
+title: "Capped means, exposure curves and increased limit factors"
 author: "Yiannis Parizas"
 date: '`r format(Sys.Date(), "%d-%m-%Y")`'
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{CappedMean}
+  %\VignetteIndexEntry{Capped means, exposure curves and increased limit factors}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
