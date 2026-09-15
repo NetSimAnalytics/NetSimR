@@ -71,8 +71,9 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   }
 
   # a chart, drawn as a PNG image on a transparent background; each chart reads dark(),
-  # so it is redrawn in the colours of the other theme when the theme changes
-  chart <- function(draw, alt) renderPlot(draw(), bg = "transparent", res = 96, alt = alt)
+  # so it is redrawn in the colours of the other theme when the theme changes, and it is
+  # redrawn when resized, so that its legend is laid out for the new width
+  chart <- function(draw, alt) netsimr_render_plot(draw(), bg = "transparent", res = 96, alt = alt)
 
   # the fitted cdfs of claim size models that have one, named, with the colour of each model
   model_cdfs <- function(models) {
@@ -108,8 +109,14 @@ distribution_fitting_tool_Server <- function(input, output, session) {
 
   numeric_columns <- reactive(dft_numeric_columns(data(), or_default(input$dec, ".")))
 
-  # offer the columns of the file in every analysis tab, keeping a choice the new file also has;
-  # otherwise guess from the column names, then from the values
+  # the columns of the last read (names and which are numeric), the guess made for each
+  # select and the column each select was given
+  column_choices <- reactiveVal(list(layout = NULL, guesses = list(), selected = list()))
+
+  # offer the columns of the file in every analysis tab, guessing from the column names, then
+  # from the values. A column the user chose is kept while the file still has it; a guess is
+  # made again when the columns or their types change (a file first read with the wrong
+  # separator or decimal mark gives other columns, or other numeric columns, once corrected)
   observeEvent(data(), {
     df <- data()
     columns <- names(df)
@@ -124,15 +131,26 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     severity_default <- or_default(by_name("amount|sever|size|loss|cost|paid|incurred|value"),
                                    if (length(numbers) > 0) numbers[which.max(means)] else first)
     weights_default <- or_default(by_name("weight|exposure"), setdiff(c(numbers, first), counts_default)[1])
-    choose <- function(id, default) {
+    defaults <- list(counts_var = counts_default, counts_weights_var = weights_default, severity_var = severity_default,
+                     sliced_sev_var = severity_default, piecewise_pareto_var = severity_default)
+    previous <- column_choices()
+    layout <- list(columns = columns, numbers = numbers)
+    changed <- !identical(layout, previous$layout)
+    guesses <- previous$guesses
+    selected <- list()
+    for (id in names(defaults)) {
       current <- input[[id]]
-      if (!is.null(current) && current %in% columns) current else default
+      # still the guess (the user has not chosen another column), made from other columns
+      stale_guess <- changed && identical(current, guesses[[id]])
+      if (is.null(current) || !(current %in% columns) || stale_guess) {
+        selected[[id]] <- defaults[[id]]
+        guesses[[id]] <- defaults[[id]]
+      } else {
+        selected[[id]] <- current
+      }
+      updateSelectizeInput(session, id, choices = columns, selected = selected[[id]])
     }
-    updateSelectizeInput(session, "counts_var", choices = columns, selected = choose("counts_var", counts_default))
-    updateSelectizeInput(session, "counts_weights_var", choices = columns, selected = choose("counts_weights_var", weights_default))
-    for (id in c("severity_var", "sliced_sev_var", "piecewise_pareto_var")) {
-      updateSelectizeInput(session, id, choices = columns, selected = choose(id, severity_default))
-    }
+    column_choices(list(layout = layout, guesses = guesses, selected = selected))
   })
 
   # the preview shows the first rows; the analyses use every row
@@ -580,8 +598,10 @@ distribution_fitting_tool_Server <- function(input, output, session) {
       # the 50th, 75th, 87.5th, ... percentiles: thresholds get closer together towards the tail
       default <- quantile(sorted_claims, 1 - 0.5^i, names = FALSE)
       value <- if (!is.null(current) && current >= min_val && current <= max_val) current else min(max(signif(default, 4), min_val), max_val)
+      # without tick labels: at the width of the settings card, the labels of a range from a
+      # small claim to a large one overlap
       sliderInput(id, label = paste("Threshold", i), min = min_val, max = max_val, value = value,
-                  step = if (step > 0) step else NULL)
+                  step = if (step > 0) step else NULL, ticks = FALSE)
     }))
   })
 

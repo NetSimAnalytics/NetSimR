@@ -663,41 +663,93 @@ fit_poisson_mle <- function(x, weights = NULL) {
 # Binomial is the Poisson for every practical purpose.
 dft_nbinom_max_size <- 1e8
 
+# t - log(1 + t) for t >= 0, without the cancellation of the direct formula
+# for small t (its series t^2/2 - t^3/3 + ... converges fast below 0.1).
+dft_log1p_excess <- function(t) {
+  if (t >= 0.1) return(t - log1p(t))
+  m <- 2:30
+  sum((-1)^m * t^m / m)
+}
+
+# Sums over the rows of w * sum(f(j) for j = 0, ..., x - 1), for the integer
+# counts x, as sums over j of f(j) times the weight of the counts above j.
+# Counts above `limit` use the closed forms of the two sums the fit needs,
+# from j = limit up: sum(j / (size + j)) = (x - limit) - size * (digamma(size
+# + x) - digamma(size + limit)) and sum(1 / (size + j)^2) = trigamma(size +
+# limit) - trigamma(size + x).
+dft_nbinom_count_sums <- function(x, w, limit = 1e6) {
+  top <- min(max(x), limit)
+  # weight of the counts above j, for j = 0, ..., top - 1
+  by_value <- numeric(top + 1)
+  summed <- rowsum(w, pmin(x, top))
+  by_value[as.numeric(rownames(summed)) + 1] <- summed
+  above <- rev(cumsum(rev(by_value)))[-1]
+  j <- seq_len(top) - 1
+  big <- x > limit
+  list(
+    # sum over the rows of w * sum(j / (size + j), j < x)
+    ratio = function(size) {
+      s <- sum(above * j / (size + j))
+      if (any(big)) s <- s + sum(w[big] * ((x[big] - limit) - size * (digamma(size + x[big]) - digamma(size + limit))))
+      s
+    },
+    # sum over the rows of w * sum(1 / (size + j)^2, j < x)
+    square = function(size) {
+      s <- sum(above / (size + j)^2)
+      if (any(big)) s <- s + sum(w[big] * (trigamma(size + limit) - trigamma(size + x[big])))
+      s
+    }
+  )
+}
+
 # Negative Binomial in fitdist()'s parameters, size and mu. The MLE of mu is
 # the (weighted) mean whatever the size, so the size solves the likelihood
-# equation for it with mu at the mean; it exists when the variance of the
-# counts (divided by the total weight) is above the mean. The standard errors
-# come from the observed information, whose off-diagonal term is zero at the
-# maximum. fitdist() optimises both parameters with Nelder-Mead, which stops
-# about 1e-4 (relative) from the maximum.
+# equation for it with mu at the mean. That equation has a root, and only one,
+# exactly when the variance of the counts (divided by the total weight) is
+# above the mean (Levin and Reeds 1977); otherwise the likelihood rises
+# towards the Poisson as the size grows. The standard errors come from the
+# observed information, whose off-diagonal term is zero at the maximum.
+# fitdist() optimises both parameters with Nelder-Mead, which stops about 1e-4
+# (relative) from the maximum.
 fit_nbinom_mle <- function(x, weights = NULL) {
   w <- if (is.null(weights)) rep(1, length(x)) else weights
   total <- sum(w)
   mu <- sum(w * x) / total
   if (!(mu > 0)) stop("the claim counts are all zero")
   spread <- sum(w * (x - mu)^2) / total
+  sums <- dft_nbinom_count_sums(x, w)
   # the derivative of the log-likelihood in the size, times the size, with mu at the mean:
-  # positive below the MLE and negative above it
+  # positive below the MLE and negative above it. As digamma(x + size) - digamma(size)
+  # - log(1 + mu / size) it is a difference of nearly equal numbers when the size is
+  # large (its sign at 1e8 was rounding error); since sum(w * x) = total * mu it is
+  # also the difference of these two positive sums, which keep their precision
   score <- function(log_size) {
     size <- exp(log_size)
-    sum(w * (digamma(x + size) - digamma(size))) - total * log1p(mu / size)
+    total * size * dft_log1p_excess(mu / size) - sums$ratio(size)
   }
-  top <- log(dft_nbinom_max_size)
-  capped <- !(spread > mu) || score(top) > 0
+  capped <- !(spread > mu)
+  if (!capped) {
+    # a bracket around the root, from the moment estimate mu^2 / (variance - mu): the
+    # score is positive as the size tends to 0 and negative for large sizes
+    start <- min(2 * log(mu) - log(spread - mu), 600)
+    lower <- start
+    while (isTRUE(score(lower) <= 0) && lower > start - 60) lower <- lower - 1
+    upper <- lower + 1
+    while (isTRUE(score(upper) >= 0) && upper < start + 60) upper <- upper + 1
+    # the variance above the mean only by rounding: no sign change within e^60 of the start
+    capped <- !isTRUE(score(lower) > 0 && score(upper) < 0)
+  }
   size <- if (capped) {
     dft_nbinom_max_size
   } else {
-    # a bracket around the root, from the moment estimate mu^2 / (variance - mu)
-    lower <- min(log(mu^2 / (spread - mu)), top)
-    while (score(lower) < 0) lower <- lower - 1
-    upper <- min(lower + 1, top)
-    while (score(upper) > 0 && upper < top) upper <- min(upper + 1, top)
-    if (upper > lower) exp(stats::uniroot(score, c(lower, upper), tol = 1e-12)$root) else exp(lower)
+    exp(stats::uniroot(score, c(lower, upper), tol = 1e-12)$root)
   }
   loglik <- sum(w * stats::dnbinom(x, size = size, mu = mu, log = TRUE))
-  # observed information, minus the second derivatives of the log-likelihood
+  # observed information, minus the second derivatives of the log-likelihood; in the
+  # size, with mu at the mean, it is sum(w * sum(1 / (size + j)^2, j < x)) - total * mu /
+  # (size * (size + mu)) (trigamma(x + size) - trigamma(size) = -sum(1 / (size + j)^2, j < x))
   info <- matrix(c(
-    -sum(w * (trigamma(x + size) - trigamma(size) + 1 / size - 2 / (size + mu) + (x + size) / (size + mu)^2)),
+    sums$square(size) - total * mu / (size * (size + mu)),
     -sum(w * (x - mu) / (size + mu)^2),
     -sum(w * (x - mu) / (size + mu)^2),
     sum(w * (x / mu^2 - (x + size) / (size + mu)^2))

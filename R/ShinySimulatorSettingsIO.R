@@ -176,18 +176,25 @@ sim_settings_apply_update <- function(session, id, kind, value) {
 #' @param inputs The named list of saved input values.
 #' @return A list of entries with \code{id}, \code{kind}, \code{value} and, for the
 #' fields applied later, a \code{gate} function of the input object that returns TRUE
-#' once the field can be set. Saved values that the chosen options do not use are left out.
+#' once the field can be set. Saved values that the chosen options do not use are left out,
+#' except two that stay in the page and would otherwise keep the values of earlier settings:
+#' the truncation switch is set to the file's value (FALSE when the file has none, e.g. for
+#' another severity), and the slice fields beyond the loaded number of slices are cleared.
 #' @noRd
 sim_settings_plan <- function(inputs) {
   layers_with_deductible <- c("Unlimited Layer", "Limited Layer", "Exclude Layer")
   layers_with_limit <- c("Limited Layer", "Exclude Layer")
   same <- sim_settings_values_match
   entries <- list()
-  add <- function(id, kind, gate = NULL) {
-    value <- inputs[[id]]
+  add <- function(id, kind, gate = NULL, value = inputs[[id]]) {
     if (is.null(value) || length(value) == 0) return(invisible(NULL))
     if (length(value) == 1 && is.na(value)) return(invisible(NULL))
     entries[[length(entries) + 1]] <<- list(id = id, kind = kind, value = value, gate = gate)
+    invisible(NULL)
+  }
+  #empties a numeric field that is always in the page
+  clear <- function(id) {
+    entries[[length(entries) + 1]] <<- list(id = id, kind = "numeric", value = NA_real_, gate = NULL)
     invisible(NULL)
   }
 
@@ -196,10 +203,13 @@ sim_settings_plan <- function(inputs) {
   add("sevDistr", "radio")
   add("reinsuranceStructureEEL", "radio")
   add("reinsuranceStructureAL", "radio")
-  #the truncation switch waits for the Normal severity, in stage two
   for (id in c("seedSetBinary", "multiprocessingBinary", "sevCapBinary")) {
     add(id, "switch")
   }
+  #the truncation switch is always in the page (shown for the Normal only), so it is set at
+  #once; a file without it, or saved with another severity, switches it off, so that an
+  #earlier Normal's truncation does not reappear when the Normal is picked later
+  add("sevTruncateAtZero", "switch", value = isTRUE(as.logical(inputs$sevTruncateAtZero)))
   add("numberOfSimulations", "numeric")
 
   #stage two: the fields rendered for the chosen options
@@ -214,10 +224,6 @@ sim_settings_plan <- function(inputs) {
     for (id in sev_dist_options[[sev]]@paramIDs) {
       add(id, "numeric", gate = function(input) same(input$sevDistr, sev))
     }
-    #the truncation switch is only shown for the Normal severity
-    if (sev == "Normal") {
-      add("sevTruncateAtZero", "switch", gate = function(input) same(input$sevDistr, sev))
-    }
   }
   if (isTRUE(inputs$seedSetBinary)) {
     add("seedValue", "numeric", gate = function(input) isTRUE(input$seedSetBinary))
@@ -228,6 +234,8 @@ sim_settings_plan <- function(inputs) {
     slices <- min(max(round(slices), 0), max_number_of_pareto_slices)
     add("pareto_slice_times", "numeric")
     for (i in seq_len(2 * slices)) add(paste0("slice_pareto_param_", i), "numeric")
+    #the later slice fields are emptied, so 'Add slice' does not bring back earlier values
+    for (i in setdiff(seq_len(2 * max_number_of_pareto_slices), seq_len(2 * slices))) clear(paste0("slice_pareto_param_", i))
   }
   if (isTRUE(inputs$sevCapBinary)) {
     add("sev_cap_amount", "numeric", gate = function(input) isTRUE(input$sevCapBinary))
@@ -279,7 +287,8 @@ sim_settings_examples <- list(
     ,reinsuranceStructureReinstatementLimit = 2
     ,reinsuranceStructureAL = "No Reinsurance Structure"
   )
-  ,"Property: Pareto tail and aggregate cover" = list(
+  #names are kept short enough to show in full in the select at every width
+  ,"Property: aggregate cover" = list(
     freqDistr = "Negative_Binomial", r = 4, beta = 2.5
     ,sevDistr = "Gamma", shape = 1.5, scale = 20000
     ,numberOfSimulations = 50000
@@ -294,7 +303,7 @@ sim_settings_examples <- list(
     ,reinsurance_structure_al_dedctible_amount = 1000000
     ,reinsurance_structure_al_limit_amount = 2000000
   )
-  ,"Simple: Normal claims truncated at zero" = list(
+  ,"Simple: truncated Normal" = list(
     freqDistr = "Poisson", lamda = 3
     ,sevDistr = "Normal", normal_mean = 1000, normal_sd = 600
     ,sevTruncateAtZero = TRUE
@@ -353,11 +362,12 @@ sim_settings_io_css <- "
   font-size: 0;
 }
 
+/* the select has the full width of the card, so example names are not cut off, and the
+   button sits under it */
 .sim-settings-example {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
-  align-items: end;
 }
 
 .sim-settings-example .shiny-input-container {
@@ -367,10 +377,12 @@ sim_settings_io_css <- "
 .sim-settings-example .form-select {
   font-size: 0.86rem;
   padding: 0.42rem 2rem 0.42rem 0.75rem;
+  text-overflow: ellipsis;
 }
 
 .sim-settings-example .btn {
   white-space: nowrap;
+  width: 100%;
 }
 "
 

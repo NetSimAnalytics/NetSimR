@@ -95,6 +95,95 @@ glm_many_values <- function(x) {
   values > 100 || (values > 10 && values > length(present) / 2)
 }
 
+# The family object of a model, such as poisson(link = "log"), built in the base
+# environment. The functions of a family keep the environment of the call that
+# built it (poisson() and the other families leave their link argument
+# unevaluated), so a family built by glm() inside the server kept the server, and
+# the Shiny session with its inputs, such as a database password, in every model
+# saved to a file.
+glm_family_object <- function(family, link) {
+  do.call(getExportedValue("stats", family), list(link = link), envir = baseenv())
+}
+
+# Whether a column looks like an identifier, of no use as a response or as the
+# variable of the chart: text with a different value in more than half the rows,
+# or whole numbers that are all different and run through about as many values
+# as there are rows (a row number or a policy number).
+glm_id_like <- function(x) {
+  present <- x[!is.na(x)]
+  n <- length(present)
+  if (n < 2) return(FALSE)
+  if (is.character(x) || is.factor(x)) return(length(unique(present)) > n / 2)
+  if (!is.numeric(x) || any(present != round(present)) || anyDuplicated(present) > 0) return(FALSE)
+  isTRUE(diff(range(present)) < 2 * n)
+}
+
+# Words of a column name that suggest the response of a model; counts come first
+# for the families of counts and proportions, amounts for the Gamma and inverse
+# Gaussian families.
+glm_response_words <- list(
+  count = c("count", "counts", "claims"),
+  amount = c("amount", "amounts", "loss", "losses"),
+  other = c("claim", "response", "target", "y")
+)
+
+# The response selected after an import: a column whose name suggests a response
+# ("claim_count", "ClaimAmount", "y"), else the last numeric column that is not an
+# identifier. Only columns the family can model are chosen: numbers or TRUE/FALSE,
+# or text with two values for the binomial family.
+glm_default_response <- function(df, family = "gaussian") {
+  columns <- names(df)
+  if (length(columns) == 0) return(NULL)
+  usable <- columns[vapply(df, function(x) {
+    ok <- is.numeric(x) || is.logical(x) ||
+      (identical(family, "binomial") && (is.character(x) || is.factor(x)) && length(unique(x[!is.na(x)])) == 2)
+    ok && any(!is.na(x)) && !glm_id_like(x)
+  }, logical(1))]
+  # the words of each name: "claim_count", "ClaimCount" and "claim.count" are claim and count
+  words <- lapply(usable, function(column) {
+    tolower(strsplit(gsub("([a-z])([A-Z])", "\\1 \\2", column), "[^A-Za-z]+")[[1]])
+  })
+  tiers <- if (family %in% c("Gamma", "inverse.gaussian")) {
+    glm_response_words[c("amount", "count", "other")]
+  } else {
+    glm_response_words[c("count", "amount", "other")]
+  }
+  for (tier in tiers) {
+    named <- usable[vapply(words, function(w) any(w %in% tier), logical(1))]
+    if (length(named) > 0) return(named[1])
+  }
+  numbers <- columns[vapply(df, is.numeric, logical(1))]
+  if (length(usable) > 0) usable[length(usable)] else if (length(numbers) > 0) numbers[length(numbers)] else columns[1]
+}
+
+# The variable of the chart selected after an import: the first column other than
+# the response, offset and weights that is not an identifier and can be drawn (text
+# with at most 100 values), else the first other column.
+glm_default_variable <- function(df, exclude = character(0)) {
+  candidates <- setdiff(names(df), exclude)
+  drawable <- candidates[vapply(df[candidates], function(x) {
+    present <- x[!is.na(x)]
+    length(present) > 0 && !glm_id_like(x) && (is.numeric(x) || length(unique(present)) <= 100)
+  }, logical(1))]
+  if (length(drawable) > 0) drawable[1] else if (length(candidates) > 0) candidates[1] else "None"
+}
+
+# The column choices after an import: each choice already made (or loaded from a
+# settings file) that the data has, and otherwise the defaults above. wanted is a
+# named list of the current choices, by input id.
+glm_column_choices <- function(df, family = "gaussian", wanted = list()) {
+  columns <- names(df)
+  keep <- function(id, default) {
+    value <- wanted[[id]]
+    if (is.character(value) && length(value) == 1 && value %in% columns) value else default
+  }
+  response <- keep("response_variable", glm_default_response(df, family))
+  offset <- keep("offset", "None")
+  weights <- keep("weights", "None")
+  variable <- keep("visualize_variable", glm_default_variable(df, setdiff(c(response, offset, weights), "None")))
+  list(response_variable = response, offset = offset, weights = weights, visualize_variable = variable)
+}
+
 # Breaks of the bands of a numeric variable in the actual vs predicted chart:
 # `bands` bands of equal width, or of about the same number of rows each
 # (quantiles, fewer bands where they coincide). The equal widths are explicit:

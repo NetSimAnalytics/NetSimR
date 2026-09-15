@@ -65,6 +65,8 @@ sim_tab_fmt_int <- function(x) {
 sim_tab_fmt_pct <- function(p, digits = 1) {
   if (is.null(p) || length(p) == 0 || is.na(p[1])) return(intToUtf8(8212))
   p <- as.numeric(p[1])
+  #e.g. a loss on line of a huge expected loss on a small limit
+  if (is.finite(p) && abs(100 * p) >= 1e15) return(paste0(formatC(100 * p, format = "e", digits = 3), "%"))
   #small probabilities get an extra decimal so they do not round to zero
   if (p > 0 && p < 0.01 && digits < 2) digits <- 2
   paste0(formatC(100 * p, format = "f", digits = digits), "%")
@@ -78,11 +80,19 @@ sim_tab_fmt_pct <- function(p, digits = 1) {
 #' @noRd
 sim_tab_describe_settings <- function(s) {
   is_number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
+  #values too large for a readable fixed format (e.g. 1e308) use the report's scientific
+  #format, "1.000e+308", instead of printing hundreds of digits
+  huge <- function(x) is.finite(x) & abs(x) >= 1e15
   fmt <- function(x) {
     if (!is_number(x)) return("?")
+    if (huge(x)) return(formatC(x, format = "e", digits = 3))
     formatC(x, format = "f", digits = if (x == round(x)) 0 else max(2, display_digits(x)), big.mark = ",")
   }
-  fmt_param <- function(x) sub("\\.?0+$", "", formatC(x, format = "f", digits = 4))
+  fmt_param <- function(x) {
+    out <- sub("\\.?0+$", "", formatC(x, format = "f", digits = 4))
+    out[huge(x)] <- formatC(x[huge(x)], format = "e", digits = 3)
+    out
+  }
 
   distr_text <- function(options, id, values) {
     known <- is.character(id) && length(id) == 1 && id %in% names(options)
@@ -183,6 +193,8 @@ sim_tab_compare_entry <- function(run) {
     digits = display_digits(totals),
     metrics = list(
       n = n,
+      #simulations whose total is undefined (NaN), left out of the other metrics
+      undefined = if (is.null(summary$undefined)) 0 else as.numeric(summary$undefined[1]),
       mean = pick(stats, "mean"),
       sd = pick(stats, "sd"),
       median = pick(stats, "median"),
@@ -224,6 +236,12 @@ sim_tab_metrics_table <- function(entries, names) {
     tags$tbody(
       tags$tr(tags$td("Modelled result"), lapply(entries, function(e) tags$td(e$modelled_label))),
       tags$tr(tags$td("Simulations"), lapply(entries, function(e) tags$td(sim_tab_fmt_int(e$metrics$n)))),
+      #the metrics rest on the simulations with a defined total; undefined ones are counted apart
+      if (any(vapply(entries, function(e) isTRUE(e$metrics$undefined > 0), logical(1)))) tags$tr(
+        tags$td(title = "Simulations whose total is undefined (NaN), left out of the other metrics",
+                "Undefined (NaN) totals"),
+        lapply(entries, function(e) tags$td(sim_tab_fmt_int(e$metrics$undefined)))
+      ),
       amount_row("Mean", "mean"),
       amount_row("Standard deviation", "sd"),
       amount_row("Median", "median"),
@@ -264,7 +282,9 @@ sim_tab_y_ticks <- function(values) {
 #' alone, so a transparent device lets the card show through. The legend sits above the
 #' plot and wraps onto as many rows as the width of the device needs.
 #' @param dark TRUE to use the dark theme colours.
-#' @return NULL, invisibly; called for its drawing.
+#' @return Called for its drawing; invisibly, a list with \code{plot}, the left and right
+#'   edges of the plot region, and \code{marker}, those of the "1 in 200" label (NULL when
+#'   the chart stops before 1 in 200), both in inches from the left of the device.
 #' @noRd
 sim_tab_return_period_plot <- function(entries, names, dark = FALSE) {
   #the chart stops where the smallest run stops
@@ -354,9 +374,18 @@ sim_tab_return_period_plot <- function(entries, names, dark = FALSE) {
   graphics::mtext("Return period", side = 1, line = 2.1, col = colours$muted, cex = legend_cex)
   graphics::mtext("Total claims", side = 2, line = label_lines + 1, col = colours$muted, cex = legend_cex, las = 0)
 
+  marker_extent <- NULL
   if (200 <= max_rp) {
     graphics::abline(v = 200, col = colours$marker, lty = 2, lwd = 1.5)
-    graphics::text(200, graphics::par("usr")[4], "1 in 200", adj = c(-0.12, 1.5), col = colours$marker, cex = 0.8)
+    #the label sits right of the line, or left of it where it would run past the plot's right
+    #edge (a narrow chart, or a run just over 2,000 simulations)
+    marker_label <- "1 in 200"
+    line_x <- graphics::grconvertX(200, "user", "inches")
+    label_width <- graphics::strwidth(marker_label, units = "inches", cex = 0.8)
+    fits_right <- line_x + 1.12 * label_width <= graphics::grconvertX(1, "npc", "inches")
+    graphics::text(200, graphics::par("usr")[4], marker_label, adj = c(if (fits_right) -0.12 else 1.12, 1.5),
+                   col = colours$marker, cex = 0.8)
+    marker_extent <- if (fits_right) line_x + c(0.12, 1.12) * label_width else line_x - c(1.12, 0.12) * label_width
   }
   for (i in seq_along(curves)) {
     #a curve stops where the losses become infinite
@@ -377,7 +406,10 @@ sim_tab_return_period_plot <- function(entries, names, dark = FALSE) {
     graphics::text(to_x(key_x0 + key_width + key_gap), to_y(row_y), names, adj = c(0, 0.5),
                    col = colours$font, cex = legend_cex, xpd = NA)
   }
-  invisible(NULL)
+  invisible(list(
+    plot = graphics::grconvertX(c(0, 1), "npc", "inches"),
+    marker = marker_extent
+  ))
 }
 
 # ---------------------------------------------------------------- styles and scripts
@@ -587,6 +619,8 @@ sim_tab_css <- "
 .sim-compare-table td:first-child {
   color: var(--sim-label);
   font-weight: 600;
+  /* labels such as 'Chance the layers are hit' stay on one line; the table scrolls instead */
+  white-space: nowrap;
 }
 
 .sim-compare-table tbody tr:last-child td {
@@ -1207,8 +1241,10 @@ sim_compare_tab_server <- function(id, last_run, max_runs = 6, default_included 
     })
 
     #drawn in base graphics on a transparent background, in the colours of the app theme;
-    #the theme input (see sim_compare_theme_js) makes it redraw when the theme changes
-    output$return_period_chart <- renderPlot({
+    #the theme input (see sim_compare_theme_js) makes it redraw when the theme changes, and
+    #netsimr_render_plot (R/plot_device.R) redraws it on resize with a device that draws the
+    #semi-transparent text and gridlines of the dark theme properly on Windows
+    output$return_period_chart <- netsimr_render_plot({
       inputs <- chart_inputs()
       validate(need(length(inputs$entries) > 0, "Include at least one run to draw the chart."))
       max_rp <- min(vapply(inputs$entries, function(e) e$metrics$n, numeric(1))) / 10

@@ -106,14 +106,22 @@ body {
   padding-bottom: 0.5rem;
 }
 
+/* the brand keeps its full width and a gap after it, so the nav links never cover or touch
+   its subtitle; the gap is a margin on .sim-brand because .navbar-brand is an inline span
+   around it, whose own margin did not widen the header that holds it */
+.navbar .navbar-header {
+  flex-shrink: 0;
+}
+
 .navbar-brand {
-  margin-right: 2rem !important;
+  margin-right: 0 !important;
 }
 
 .sim-brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-right: 2rem;
 }
 
 .sim-brand-mark {
@@ -133,6 +141,7 @@ body {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .sim-brand-title {

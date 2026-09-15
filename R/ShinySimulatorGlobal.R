@@ -286,8 +286,22 @@ sev_dist_options <- c(
     }
     ,survival_func = function(x, p) stats::pnorm(x, mean = p[1], sd = p[2], lower.tail = FALSE)
     ,tail_quantile_func = function(s, p) stats::qnorm(s, mean = p[1], sd = p[2], lower.tail = FALSE)
-    #the sum of n Normal claims is Normal with mean n * mean and variance n * sd^2
-    ,sum_func = function(counts, p) stats::rnorm(length(counts), mean = counts * p[1], sd = sqrt(counts) * p[2])
+    #the sum of n Normal claims is Normal with mean n * mean and variance n * sd^2; where
+    #n * mean or sqrt(n) * sd overflows, rnorm() would give NaN, so those simulations sum
+    #their claims one by one instead, which gives the infinite totals the claims add up to
+    ,sum_func = function(counts, p) {
+      totals_mean <- counts * p[1]
+      totals_sd <- sqrt(counts) * p[2]
+      in_range <- is.finite(totals_mean) & is.finite(totals_sd)
+      totals <- numeric(length(counts))
+      totals[in_range] <- stats::rnorm(sum(in_range), mean = totals_mean[in_range], sd = totals_sd[in_range])
+      overflow <- which(!in_range & counts > 0)
+      if (length(overflow) > 0) {
+        claims <- stats::rnorm(sum(counts[overflow]), mean = p[1], sd = p[2])
+        totals[overflow] <- rowsum(claims, rep.int(seq_along(overflow), counts[overflow]), reorder = FALSE)[, 1]
+      }
+      totals
+    }
   )
   ,LogNormal=distributionClass(
     distrID='LogNormal'
@@ -767,10 +781,14 @@ find_missing_simulation_settings <- function(settings) {
 #' the claim count; \code{total_claims}, the total claims after the reinsurance structures;
 #' \code{gross_claims}, the gross total claims before them (after Pareto slices and the
 #' severity cap; unless \code{gross = FALSE}); and, when reinstatements are limited,
-#' \code{number_of_reinstatements_used}: the EEL layer's recoveries in the period (after the
-#' aggregate deductible and limit, when there is an aggregate layer) divided by the EEL
-#' limit, capped at the number of reinstatements, so reinstatements are counted pro rata to
-#' the amount recovered.
+#' \code{number_of_reinstatements_used}: the EEL layer's recoveries in the period divided by
+#' the EEL limit, capped at the number of reinstatements, so reinstatements are counted pro
+#' rata to the amount recovered. The recoveries are taken after the aggregate deductible and
+#' limit of an aggregate 'Unlimited Layer' or 'Limited Layer', but before an aggregate
+#' 'Exclude Layer' is taken out: with an exclusion they are the EEL recoveries after the
+#' reinstatement capacity. For example, three claims of 100 through a layer of 60 excess of
+#' 30 with two reinstatements and an aggregate exclusion of 150 excess of 50 give a total of
+#' 50 but 2 reinstatements used (180 / 60, capped at 2).
 #' Stops with an error that names any required setting that is missing or invalid.
 #' @seealso \code{\link{simulate_claims}}, a simpler interface with short argument names,
 #'   and \code{\link{run_shiny_simulator}} for the same model in an app.
@@ -1048,7 +1066,8 @@ simulate_function <- function(
     data$total_claims <- pmin(apply_al(data$total_claims), capacity)
     layer_recoveries <- data$total_claims
   } else {
-    #no aggregate layer, or an aggregate exclusion taken out of the capped recoveries
+    #no aggregate layer, or an aggregate exclusion taken out of the capped recoveries; the
+    #reinstatements used are counted on the recoveries before the exclusion
     data$total_claims <- pmin(data$total_claims, capacity)
     layer_recoveries <- data$total_claims
     data$total_claims <- apply_al(data$total_claims)

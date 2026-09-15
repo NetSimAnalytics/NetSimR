@@ -852,8 +852,10 @@ distribution_fitting_tool_UI <- bslib::page_navbar(
         dft_help("Missing, negative, zero and non-numeric values are left out."),
         tags$hr(class = "sim-divider"),
         div(class = "sim-section-label", "Slicing points"),
-        sliderInput("slicing_point_left", "First slicing point", min = 0, max = 10, value = 5),
-        sliderInput("slicing_point_right", "Second slicing point", min = 0, max = 20, value = 10),
+        # without tick labels: once the sliders cover the claims, from a small claim to a large
+        # one, the labels near the smallest overlap
+        sliderInput("slicing_point_left", "First slicing point", min = 0, max = 10, value = 5, ticks = FALSE),
+        sliderInput("slicing_point_right", "Second slicing point", min = 0, max = 20, value = 10, ticks = FALSE),
         dft_help("The sliders cover the range of the data once the analysis has run. ",
                  "The second point must be above the first."),
         tags$hr(class = "sim-divider"),

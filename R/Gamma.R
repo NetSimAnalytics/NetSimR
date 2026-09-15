@@ -198,8 +198,11 @@ pure_ibnr_exposure <- function(IncDate, ExpDate, ValDate, params, delayCappedMea
   EarnedDuration<-MaxRepDelay-MinRepDelay
   UnearnedDuration<-Duration-EarnedDuration
   UnearnedDurationRatio<-ifelse(Duration==0,0,round(UnearnedDuration/Duration,5))
-  PureIBNRDuration<-round(delayCappedMean(MaxRepDelay, params)-delayCappedMean(MinRepDelay, params),2)
-  PureIBNRDurationRatio<-ifelse(Duration==0,0,round(PureIBNRDuration/Duration,5))
+  PureIBNRExact<-delayCappedMean(MaxRepDelay, params)-delayCappedMean(MinRepDelay, params)
+  PureIBNRDuration<-round(PureIBNRExact,2)
+  # the ratio comes from the unrounded duration: dividing the duration rounded to 0.01 days
+  # would cost short periods their precision (a one-hour period gave 0.96 instead of 1)
+  PureIBNRDurationRatio<-ifelse(Duration==0,0,round(PureIBNRExact/Duration,5))
   data.frame(UnearnedDuration,PureIBNRDuration,UnearnedDurationRatio,PureIBNRDurationRatio)
 }
 
@@ -214,7 +217,7 @@ pure_ibnr_exposure <- function(IncDate, ExpDate, ValDate, params, delayCappedMea
 #' @param ValDate A \code{Date} or \code{POSIXct} date -  the valuation date.
 #' @param shape A positive real number - the shape parameter of the reporting delay's Gamma distribution, with the delay measured in days.
 #' @param rate A positive real number - the rate parameter (per day) of the reporting delay's Gamma distribution.
-#' @return A data frame with the unearned and pure IBNR exposure of each period in days (\code{UnearnedDuration}, and \code{PureIBNRDuration} rounded to 2 decimals) and as proportions between 0 and 1 of the period's duration (\code{UnearnedDurationRatio} and \code{PureIBNRDurationRatio}, rounded to 5 decimals), where the reporting delay has a Gamma distribution with parameters \code{shape} and \code{rate}. The dates and parameters are recycled to a common length, one row each; lengths that do not recycle are an error.
+#' @return A data frame with the unearned and pure IBNR exposure of each period in days (\code{UnearnedDuration}, and \code{PureIBNRDuration} rounded to 2 decimals) and as proportions between 0 and 1 of the period's duration (\code{UnearnedDurationRatio} and \code{PureIBNRDurationRatio}, rounded to 5 decimals), where the reporting delay has a Gamma distribution with parameters \code{shape} and \code{rate}. The ratios are computed before the durations are rounded. A period of zero length (\code{ExpDate} equal to \code{IncDate}) gives ratios of 0. The dates and parameters are recycled to a common length, one row each; lengths that do not recycle are an error.
 #' @family pure IBNR functions
 #' @export
 #' @examples

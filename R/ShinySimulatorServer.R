@@ -39,11 +39,35 @@ shiny_simulator_server <- function(input, output, session) {
     if (isTRUE(input$multiprocessingBinary)) start_parallel_workers()
   })
 
+  #the last value of each input that the server rebuilds (distribution parameters, the seed,
+  #the cap and the layer fields): a rebuilt field starts from it, so switching an option away
+  #and back (Poisson -> Binomial -> Poisson), or between options that share a field (a limited
+  #and an unlimited layer both have a deductible), keeps what was typed (values saved with the
+  #Save settings button are unaffected). The Normal keeps its own parameter ids, so its values
+  #do not carry over to the Log-Normal
+  typed <- reactiveValues()
+  remembered_ids <- unique(c(
+    unlist(lapply(freq_dist_options, function(x) x@paramIDs), use.names = FALSE)
+    ,unlist(lapply(sev_dist_options, function(x) x@paramIDs), use.names = FALSE)
+    ,"seedValue", "sev_cap_amount"
+    ,"reinsurance_structure_eel_dedctible_amount", "reinsurance_structure_eel_limit_amount"
+    ,"reinsuranceStructureLimitedReinstatements", "reinsuranceStructureReinstatementLimit"
+    ,"reinsurance_structure_al_dedctible_amount", "reinsurance_structure_al_limit_amount"
+  ))
+  lapply(remembered_ids, function(id) {
+    #a cleared field (NA) is remembered too; a field that is not on the page (NULL) is not
+    observeEvent(input[[id]], typed[[id]] <- input[[id]])
+  })
+  last_typed <- function(id, default = NULL) {
+    value <- isolate(typed[[id]])
+    if (is.null(value)) default else value
+  }
+
   #seed input
   output$seed_value <- renderUI({
     if (input$seedSetBinary) {
       #set.seed() takes any whole number in the integer range
-      numericInput('seedValue', 'Seed value', value = 1, min = -.Machine$integer.max,
+      numericInput('seedValue', 'Seed value', value = last_typed("seedValue", 1), min = -.Machine$integer.max,
                    max = .Machine$integer.max, step = 1)
     }
   })
@@ -65,6 +89,8 @@ shiny_simulator_server <- function(input, output, session) {
   })
   format_moment <- function(x) {
     if (is.infinite(x)) return("infinite")
+    #very large values (e.g. a mean of 1e308) in the report's format rather than 300 digits
+    if (abs(x) >= 1e15) return(formatC(x, format = "e", digits = 3))
     format(signif(x, 4), big.mark = ",", scientific = FALSE, trim = TRUE)
   }
   render_implied_moments <- function(moments) {
@@ -100,7 +126,7 @@ shiny_simulator_server <- function(input, output, session) {
       ,min = object@param_min_values[param_id]
       ,max = object@param_max_values[param_id]
       ,step = if (isTRUE(object@param_whole_numbers[param_id])) 1 else NA
-      ,value = NULL
+      ,value = last_typed(object@paramIDs[param_id])
     )
     })}
 
@@ -128,14 +154,39 @@ shiny_simulator_server <- function(input, output, session) {
   #slice j has its alpha in slice_pareto_param_(2j - 1) and its threshold in slice_pareto_param_(2j)
   slice_input_id <- function(slice, part) paste0("slice_pareto_param_", 2 * slice - (part == "alpha"))
 
+  #the number of slices last sent to the browser, until the browser reports it back: a click
+  #that arrives before then (two quick clicks) builds on it instead of on the old input value;
+  #after a couple of seconds the input is trusted again, e.g. once a settings file set it
+  slice_count_sent <- NULL
+  slice_count_sent_at <- NULL
+  current_slice_count <- function() {
+    recent <- !is.null(slice_count_sent) &&
+      as.numeric(difftime(Sys.time(), slice_count_sent_at, units = "secs")) < 2
+    if (recent) slice_count_sent else pareto_slice_count()
+  }
+  set_slice_count <- function(n) {
+    slice_count_sent <<- n
+    slice_count_sent_at <<- Sys.time()
+    updateNumericInput(session, "pareto_slice_times", value = n)
+  }
+  observeEvent(input$pareto_slice_times, {
+    if (!is.null(slice_count_sent) && pareto_slice_count() == slice_count_sent) slice_count_sent <<- NULL
+  })
+
+  #clicks are counted by how far the button's value moved, so clicks that reach the server
+  #together (the value jumps by two) add a slice each
+  add_clicks_seen <- 0
   observeEvent(input$add_pareto_slice, {
-    n <- pareto_slice_count()
-    if (n < max_number_of_pareto_slices) updateNumericInput(session, "pareto_slice_times", value = n + 1)
+    clicks <- as.numeric(input$add_pareto_slice)
+    added <- clicks - add_clicks_seen
+    add_clicks_seen <<- clicks
+    n <- current_slice_count()
+    if (added > 0 && n < max_number_of_pareto_slices) set_slice_count(min(n + added, max_number_of_pareto_slices))
   })
 
   lapply(seq_len(max_number_of_pareto_slices), function(i) {
     observeEvent(input[[paste0("remove_pareto_slice_", i)]], {
-      n <- pareto_slice_count()
+      n <- current_slice_count()
       if (i > n) return()
       #move the later slices up one place and clear the last one, so no values are lost
       for (j in seq_len(n - i) + i - 1) {
@@ -145,33 +196,36 @@ shiny_simulator_server <- function(input, output, session) {
         }
       }
       for (part in c("alpha", "threshold")) updateNumericInput(session, slice_input_id(n, part), value = NA)
-      updateNumericInput(session, "pareto_slice_times", value = n - 1)
+      set_slice_count(n - 1)
     }, ignoreInit = TRUE)
   })
 
   #render severity cap amount
   output$sev_cap_amount_ui <- renderUI({
     if (input$sevCapBinary) {
-      numericInput('sev_cap_amount', 'Severity Cap Amount', value = NULL, min = 0)
+      numericInput('sev_cap_amount', 'Severity Cap Amount', value = last_typed('sev_cap_amount'), min = 0)
     }
   })
 
   #reinsurance structure EEL inputs
   output$reinsuranceStructureDeductibleEEL <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      numericInput('reinsurance_structure_eel_dedctible_amount', 'EEL Deductible Amount', value = NULL, min = 0)
+      numericInput('reinsurance_structure_eel_dedctible_amount', 'EEL Deductible Amount',
+                   value = last_typed('reinsurance_structure_eel_dedctible_amount'), min = 0)
     }
   })
 
   output$reinsuranceStructureLimitEEL <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Limited Layer', 'Exclude Layer')) {
-      numericInput('reinsurance_structure_eel_limit_amount', 'EEL Limit Amount', value = NULL, min = 0)
+      numericInput('reinsurance_structure_eel_limit_amount', 'EEL Limit Amount',
+                   value = last_typed('reinsurance_structure_eel_limit_amount'), min = 0)
     }
   })
 
   output$reinsuranceStructureLimitedReinstatements_ui <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Limited Layer')) {
-      checkboxInput('reinsuranceStructureLimitedReinstatements', 'Limited reinstatements', value = FALSE)
+      checkboxInput('reinsuranceStructureLimitedReinstatements', 'Limited reinstatements',
+                    value = isTRUE(last_typed('reinsuranceStructureLimitedReinstatements', FALSE)))
     }
   })
 
@@ -179,7 +233,8 @@ shiny_simulator_server <- function(input, output, session) {
     req(input$reinsuranceStructureLimitedReinstatements)
     if (input$reinsuranceStructureEEL %in% c('Limited Layer')) {
       if(input$reinsuranceStructureLimitedReinstatements) {
-        numericInput('reinsuranceStructureReinstatementLimit', 'Number of Reinstatements', value = NULL, min = 0)
+        numericInput('reinsuranceStructureReinstatementLimit', 'Number of Reinstatements',
+                     value = last_typed('reinsuranceStructureReinstatementLimit'), min = 0)
       }
     }
   })
@@ -187,13 +242,15 @@ shiny_simulator_server <- function(input, output, session) {
   #reinsurance structure AL inputs
   output$reinsuranceStructureDeductibleAL <- renderUI({
     if (input$reinsuranceStructureAL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      numericInput('reinsurance_structure_al_dedctible_amount', 'AL Deductible Amount', value = NULL, min = 0)
+      numericInput('reinsurance_structure_al_dedctible_amount', 'AL Deductible Amount',
+                   value = last_typed('reinsurance_structure_al_dedctible_amount'), min = 0)
     }
   })
 
   output$reinsuranceStructureLimitAL <- renderUI({
     if (input$reinsuranceStructureAL %in% c('Limited Layer', 'Exclude Layer')) {
-      numericInput('reinsurance_structure_al_limit_amount', 'AL Limit Amount', value = NULL, min = 0)
+      numericInput('reinsurance_structure_al_limit_amount', 'AL Limit Amount',
+                   value = last_typed('reinsurance_structure_al_limit_amount'), min = 0)
     }
   })
 

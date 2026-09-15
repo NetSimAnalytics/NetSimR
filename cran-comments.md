@@ -1,20 +1,20 @@
 ## Release summary
 
-NetSimR 0.3.0 follows 0.2.0 (published 2026-09-13). It:
+NetSimR 0.3.1 is a bug-fix release that follows 0.3.0 quickly because
+testing of the Shiny tools in a browser, and of the functions against each
+other, found problems that we would rather not leave on CRAN:
 
-* fixes functions that returned wrong results without an error: the pure
-  IBNR functions with mixed Date and POSIXct dates (their results also no
-  longer depend on the time zone), simulate_function(), which rounded its
-  results to two decimals, and the Gamma fit of the distribution fitting tool
-  for very large claims;
-* adds input checks to the analytic functions, which returned
-  plausible-looking numbers (e.g. negative probabilities) for invalid
-  parameters;
-* applies the market convention for an aggregate deductible combined with an
-  each-and-every-loss layer;
-* reduces the dependencies: plotly, reactable, fitdistrplus, future.apply and
-  htmltools are no longer imported (35 packages installed instead of 82);
-* adds a vignette for simulate_claims().
+* Security: the GLM fitting tool's downloaded model (an RDS file) contained
+  the Shiny session, including any database password typed in the tool. The
+  model is now fitted in a clean environment and the file holds only the
+  model.
+* Wrong results: the Negative Binomial fit of the distribution fitting tool
+  often fell back to the Poisson on overdispersed data; PureIBNRGamma() and
+  PureIBNRLNorm() computed their ratios from a rounded duration, which lost
+  precision for short periods.
+* The charts of the three Shiny tools were drawn badly in the dark theme on
+  Windows and overlapped after a resize; several smaller fixes to the claims
+  simulator.
 
 See NEWS for details.
 
@@ -30,9 +30,8 @@ See NEWS for details.
 
 0 errors | 0 warnings | 1 note
 
-* The note is local only: "Files 'README.md' or 'NEWS.md' cannot be checked
-  without 'pandoc' being installed." pandoc is not on the PATH of the test
-  machine.
+* "Days since last update": this release follows 0.3.0 closely because of
+  the security fix and the wrong results described above.
 
 The references in the Description field point to articles on
 www.theactuary.com. The site answers automated requests with HTTP 403 (a

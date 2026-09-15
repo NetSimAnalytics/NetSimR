@@ -108,7 +108,7 @@ ILFLNorm<-function(xLow,xHigh,mu,sigma){
 #' @param ValDate A \code{Date} or \code{POSIXct} date -  the valuation date.
 #' @param mu A real number - the first parameter of the reporting delay's LogNormal distribution, with the delay measured in days.
 #' @param sigma A positive real number - the second parameter of the reporting delay's LogNormal distribution.
-#' @return A data frame with the unearned and pure IBNR exposure of each period in days (\code{UnearnedDuration}, and \code{PureIBNRDuration} rounded to 2 decimals) and as proportions between 0 and 1 of the period's duration (\code{UnearnedDurationRatio} and \code{PureIBNRDurationRatio}, rounded to 5 decimals), where the reporting delay has a LogNormal distribution with parameters \code{mu} and \code{sigma}. The dates and parameters are recycled to a common length, one row each; lengths that do not recycle are an error.
+#' @return A data frame with the unearned and pure IBNR exposure of each period in days (\code{UnearnedDuration}, and \code{PureIBNRDuration} rounded to 2 decimals) and as proportions between 0 and 1 of the period's duration (\code{UnearnedDurationRatio} and \code{PureIBNRDurationRatio}, rounded to 5 decimals), where the reporting delay has a LogNormal distribution with parameters \code{mu} and \code{sigma}. The ratios are computed before the durations are rounded. A period of zero length (\code{ExpDate} equal to \code{IncDate}) gives ratios of 0. The dates and parameters are recycled to a common length, one row each; lengths that do not recycle are an error.
 #' @family pure IBNR functions
 #' @export
 #' @examples

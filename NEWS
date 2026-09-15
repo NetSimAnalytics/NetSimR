@@ -252,6 +252,60 @@ Changes in Version 0.3.0
   o New vignette "Simulating claims with simulate_claims()". Help pages link
     related functions, and internal objects are hidden from the index.
     Vignette typos are corrected.
+
+Changes in Version 0.3.1
+
+  o PureIBNRGamma() and PureIBNRLNorm() compute the ratios from the unrounded
+    pure IBNR duration. They divided the duration rounded to 0.01 days, so
+    short periods lost precision (a one-hour period gave 0.96 instead of
+    1.00000, a week was wrong in the fourth decimal); ratios of long periods
+    can change in the fifth decimal.
+  o Shiny tools: charts are redrawn when the window is resized (legends used
+    to overlap), and on Windows they are drawn with the cairo device when no
+    other device is installed, so the dark theme no longer shows smeared text
+    and bright grid lines.
+  o GLM fitting tool: the downloaded model (RDS) no longer contains the Shiny
+    session. It used to hold every input, including a database password typed
+    on the Data tab, and was many times larger than the model itself.
+  o GLM fitting tool: an import that fails keeps the data imported before, so
+    the data and the fitted model stay together, and the Data tab says that
+    the last import failed.
+  o GLM fitting tool: the AIC of two stored models is marked "lower" only when
+    they use the same weights; otherwise the models are shown as not
+    comparable.
+  o GLM fitting tool: after an import, the response defaults to a column whose
+    name suggests one (such as claim_count or loss), and the chart variable to
+    a column that is not an ID. Columns already chosen are kept.
+  o Distribution fitting tool: the Negative Binomial fit no longer falls back
+    to the Poisson (size 1e8) on overdispersed claim counts; it finds the
+    maximum likelihood size whenever the variance is above the mean, with or
+    without weights, and matches MASS::fitdistr().
+  o Distribution fitting tool: the columns are guessed again after the
+    separator or decimal mark is changed, while a column you chose is kept;
+    the slicing point and piecewise Pareto threshold sliders no longer show
+    overlapping tick labels.
+  o Claims simulator: simulations whose total is undefined (NaN) are no longer
+    dropped silently; the report, the summary and the Compare tab count them,
+    and the statistics state how many simulations they use. Normal severities
+    whose summed mean or standard deviation overflows add up the claims, as
+    simulating every claim does, instead of giving NaN.
+  o Claims simulator: very large values are shown as e.g. 1.000e+308 on the
+    Compare tab and in the implied moments instead of hundreds of digits.
+  o Claims simulator: switching a distribution or layer away and back, or
+    switching the custom seed off and on, keeps the values typed.
+  o Claims simulator: loading settings resets 'Truncate at zero' and clears
+    unused Pareto slices; quick 'Add slice' clicks each add a slice.
+  o Claims simulator: layout fixes for the navbar brand, the example list
+    (two examples have shorter names), the Compare table labels and the
+    return-period chart's "1 in 200" label, which stays inside the chart.
+  o Claims simulator: report charts of one simulation or of equal totals are
+    drawn sensibly; the 95% range for the mean is not below zero for totals
+    that cannot be negative and is labelled a normal approximation; the tail
+    count is now "Simulations at or beyond VaR 99.5%" and TVaR is documented
+    as the mean of the worst ceiling(n x (1 - p)) simulations.
+  o simulate_claims() and simulate_function(): the documentation of
+    number_of_reinstatements_used says that with an aggregate "exclude" layer
+    the reinstatements are counted before the exclusion.
   o Claims simulator: the Compare tab's return-period chart is drawn with base
     R graphics. It follows the app's light, dark or system theme and wraps its
     legend at narrow widths; it no longer shows values on hover.

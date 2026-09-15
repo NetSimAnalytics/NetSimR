@@ -618,6 +618,36 @@ report_theme_switch <- function() {
   )
 }
 
+#' Ticks for a chart axis of numbers of simulations
+#'
+#' Whole numbers only, so a chart of a few simulations is not labelled 0, 0, 0, 0, 0, 1.
+#' @param top The top of the axis.
+#' @return Increasing whole-number tick values from zero.
+#' @noRd
+sim_report_count_ticks <- function(top) {
+  at <- pretty(c(0, top))
+  #pretty() steps such as 0.2 are not exact, so 5 * 0.2 is compared with a tolerance
+  at <- round(at[abs(at - round(at)) < 1e-8])
+  if (length(at) < 2) at <- c(0, max(1, ceiling(top)))
+  at
+}
+
+#' Range of amounts a report chart spans
+#'
+#' A single value (every total equal, e.g. one simulation or a fixed claim amount) is
+#' widened to 12 per cent either side of it (0.5 either side of zero), so it is drawn as a
+#' narrow bar or step in the middle of the chart rather than across the whole axis.
+#' @param x Finite amounts.
+#' @return The range to draw, two numbers.
+#' @noRd
+sim_report_amount_range <- function(x) {
+  x_range <- range(x)
+  if (x_range[1] != x_range[2]) return(x_range)
+  half <- if (x_range[1] != 0) abs(x_range[1]) * 0.01 else 0.5
+  widened <- x_range[1] + c(-12, 12) * half
+  if (all(is.finite(widened))) widened else x_range
+}
+
 #' Write the simulation report as a self-contained HTML file
 #'
 #' Builds the page with shiny's HTML tag functions and embeds the charts as PNG images, so the
@@ -636,12 +666,15 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   summary <- summarise_simulation(settings, results)
   claims <- summary$totals
   n <- summary$n
+  #simulations whose total is undefined (NaN) are left out of every figure, and said so
+  n_undefined <- summary$undefined
   if (is.numeric(results)) results <- data.frame(total_claims = results)
   results <- as.data.frame(results)
-  results <- results[!is.na(results$total_claims), , drop = FALSE]
   column_or_null <- function(name) if (name %in% names(results)) as.numeric(results[[name]]) else NULL
-  gross <- column_or_null("gross_claims")
+  #the claim counts of every simulation are defined, so the frequency chart uses them all
   counts <- column_or_null("claim_counts")
+  results <- results[!is.na(results$total_claims), , drop = FALSE]
+  gross <- column_or_null("gross_claims")
 
   div <- shiny::div
   tags <- shiny::tags
@@ -665,7 +698,13 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     out
   }
   fmt_int <- function(x) if (is_blank(x)) dash else formatC(round(as.numeric(x)), format = "d", big.mark = ",")
-  fmt_pct <- function(x, digits = 1) paste0(formatC(100 * x, format = "f", digits = digits), "%")
+  fmt_pct <- function(x, digits = 1) {
+    out <- formatC(100 * x, format = "f", digits = digits)
+    #e.g. a loss on line of a huge expected loss on a small limit
+    huge <- is.finite(x) & abs(100 * x) >= 1e15
+    out[huge] <- formatC(100 * x[huge], format = "e", digits = 3)
+    paste0(out, "%")
+  }
   #small probabilities get an extra decimal so they do not round to zero
   fmt_prob <- function(p) {
     if (is_blank(p)) return(dash)
@@ -732,6 +771,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   }
   axis_labels <- axis_amount_labels
   x_axis <- function(at) graphics::axis(1, at = at, labels = axis_labels(at), col = pal$grid, col.ticks = pal$grid)
+  count_ticks <- sim_report_count_ticks
+  amount_range <- sim_report_amount_range
 
   #infinite totals (draws that overflow, e.g. from a Pareto severity with a tiny alpha)
   #cannot be drawn: the histogram leaves them out and the curves stop where they start
@@ -740,6 +781,13 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   infinite_note <- if (n_infinite > 0) {
     paste0(fmt_int(n_infinite), " simulations (", fmt_prob(n_infinite / n),
            ") had infinite totals and are left out of the charts.")
+  }
+  undefined_text <- if (n_undefined > 0) {
+    paste0(
+      fmt_int(n_undefined), " of ", fmt_int(n + n_undefined), " simulations had undefined (NaN) totals, ",
+      "e.g. infinite minus infinite when an infinite claim meets an excluded layer with an infinite limit. ",
+      "They are left out of every figure and chart in this report, which describe the other ", fmt_int(n), " simulations."
+    )
   }
 
   #layers that are rarely hit produce many zero totals; a single bar at zero would flatten
@@ -779,14 +827,18 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   draw_histogram <- function() {
     if (length(plot_claims) == 0) return(draw_no_data("Every total is infinite, so there is nothing to draw."))
     chart_par()
-    h <- graphics::hist(plot_claims, breaks = 80, plot = FALSE)
+    x_lim <- amount_range(plot_claims)
+    #every total equal: one bar a twelfth of the axis wide
+    breaks <- if (diff(range(plot_claims)) == 0 && diff(x_lim) > 0) mean(x_lim) + c(-1, 1) * diff(x_lim) / 24 else 80
+    h <- graphics::hist(plot_claims, breaks = breaks, plot = FALSE)
+    if (length(breaks) == 1) x_lim <- range(h$breaks)
     y_top <- max(h$counts) * 1.1
     graphics::plot(h, col = NA, border = NA, main = "", xlab = modelled_label, ylab = "Simulations",
-                   axes = FALSE, ylim = c(0, y_top))
-    y_at <- pretty(c(0, y_top))
+                   axes = FALSE, xlim = x_lim, ylim = c(0, y_top))
+    y_at <- count_ticks(y_top)
     graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
     graphics::plot(h, col = pal$blue, border = pal$bg, add = TRUE)
-    x_axis(pretty(h$breaks))
+    x_axis(pretty(x_lim))
     graphics::axis(2, at = y_at, labels = formatC(y_at, format = "d", big.mark = ","), lwd = 0)
     #an infinite mean or VaR has no place on the axis; the legend still gives it
     if (is.finite(claims_mean)) graphics::abline(v = claims_mean, col = pal$navy, lty = 2, lwd = 1.8)
@@ -846,13 +898,17 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     if (!any(finite)) return(draw_no_data("Every total is infinite, so there is nothing to draw."))
     cdf_x <- cdf_x[finite]
     cdf_probs <- cdf_probs[finite]
+    x_lim <- amount_range(cdf_x)
     chart_par()
     graphics::plot(cdf_x, cdf_probs, type = "n", axes = FALSE, main = "",
-                   xlab = modelled_label, ylab = "Cumulative probability", ylim = c(0, 1))
+                   xlab = modelled_label, ylab = "Cumulative probability", xlim = x_lim, ylim = c(0, 1))
     graphics::abline(h = seq(0, 1, 0.25), col = pal$grid, lwd = 0.8)
     if (is.finite(var995)) graphics::abline(v = var995, col = pal$red, lty = 2, lwd = 1.5)
-    graphics::lines(cdf_x, cdf_probs, type = "s", col = pal$blue, lwd = 2.4)
-    x_axis(pretty(range(cdf_x)))
+    #the step runs from the left edge of the chart to the right one, so a single total
+    #reads as a step at that total
+    graphics::lines(c(x_lim[1], cdf_x, x_lim[2]), c(0, cdf_probs, cdf_probs[length(cdf_probs)]),
+                    type = "s", col = pal$blue, lwd = 2.4)
+    x_axis(pretty(x_lim))
     graphics::axis(2, at = seq(0, 1, 0.25), labels = paste0(seq(0, 100, 25), "%"), lwd = 0)
   }
 
@@ -867,7 +923,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       bar_labels <- as.character(0:top)
       if (any(whole_counts > top)) bar_labels[length(bar_labels)] <- paste0(top, "+")
       y_top <- max(heights) * 1.1
-      y_at <- pretty(c(0, y_top))
+      y_at <- count_ticks(y_top)
       graphics::barplot(heights, col = NA, border = NA, axes = FALSE, ylim = c(0, y_top),
                         xlab = "Claims per period", ylab = "Simulations")
       graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
@@ -883,7 +939,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     } else {
       h <- graphics::hist(whole_counts, breaks = 40, plot = FALSE)
       y_top <- max(h$counts) * 1.1
-      y_at <- pretty(c(0, y_top))
+      y_at <- count_ticks(y_top)
       graphics::plot(h, col = NA, border = NA, main = "", axes = FALSE, ylim = c(0, y_top),
                      xlab = "Claims per period", ylab = "Simulations")
       graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
@@ -944,17 +1000,20 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   key_results <- report_section(
     "key-results", "Key results",
     tags$p(class = "section-intro", key_intro),
+    if (n_undefined > 0) div(class = "callout callout-warning", undefined_text),
     if (n_infinite > 0) div(class = "callout callout-warning", paste0(
-      fmt_int(n_infinite), " of ", fmt_int(n), " simulations had infinite totals, so the figures that ",
+      fmt_int(n_infinite), " of ", if (n_undefined > 0) "the ", fmt_int(n), " simulations ",
+      if (n_undefined > 0) "with a defined total ", "had infinite totals, so the figures that ",
       "include them are infinite. This happens when claim draws overflow, e.g. with a very small Pareto alpha."
     )),
     div(
       class = "kpi-grid",
-      tile("Mean", fmt_amount(claims_mean), paste(fmt_int(n), "simulations")),
+      tile("Mean", fmt_amount(claims_mean),
+           if (n_undefined > 0) paste(fmt_int(n), "of", fmt_int(n + n_undefined), "simulations") else paste(fmt_int(n), "simulations")),
       tile("Median", fmt_amount(st$median)),
       tile("Standard deviation", fmt_amount(claims_sd), if (cv_text != dash) paste("CV", cv_text)),
       tile("VaR 99.5%", fmt_amount(var995), fmt_return_period(0.995), class = "kpi kpi-tail"),
-      tile("TVaR 99.5%", fmt_amount(tvar995), "Average beyond VaR 99.5%", class = "kpi kpi-tail"),
+      tile("TVaR 99.5%", fmt_amount(tvar995), "Average of the worst 0.5%", class = "kpi kpi-tail"),
       tile("Maximum", fmt_amount(st$max), "Largest simulated total")
     )
   )
@@ -1134,6 +1193,13 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
               cv_text, fmt_num(st$min), fmt_num(st$max)),
     stringsAsFactors = FALSE
   )
+  #the statistics rest on the simulations with a defined total; the others are counted apart
+  if (n_undefined > 0) {
+    summary_stats$Metric[1] <- "Simulations with a defined total"
+    summary_stats <- rbind(summary_stats[1, ], data.frame(
+      Metric = "Undefined (NaN) totals, left out", Value = fmt_int(n_undefined), stringsAsFactors = FALSE
+    ), summary_stats[-1, ])
+  }
 
   #a percentile is only listed when at least 10 simulations lie beyond it
   percentiles <- summary$percentiles
@@ -1152,23 +1218,25 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     ))
   }
 
-  #accuracy: standard error of the mean, and a distribution-free 95% range for VaR 99.5%
-  #from the order statistics around the 99.5th percentile
+  #accuracy: standard error of the mean with a normal-approximation range, and a
+  #distribution-free 95% range for VaR 99.5% from the order statistics around it
   standard_error <- st$se
-  beyond_var <- st$beyond_var995
+  tail_count <- st$tail_count995
   accuracy <- data.frame(
-    Metric = c("Standard error of the mean", "95% range for the mean", "95% range for VaR 99.5%", "Simulations beyond VaR 99.5%"),
+    Metric = c("Standard error of the mean", "95% range for the mean", "95% range for VaR 99.5%",
+               "Simulations at or beyond VaR 99.5%"),
     Value = c(
       fmt_amount(standard_error),
       if (is.na(standard_error)) dash else paste(fmt_amount(st$mean_ci[1]), "to", fmt_amount(st$mean_ci[2])),
       paste(fmt_amount(st$var995_ci[1]), "to", fmt_amount(st$var995_ci[2])),
-      fmt_int(beyond_var)
+      fmt_int(st$beyond_var995)
     ),
     stringsAsFactors = FALSE
   )
-  accuracy_warning <- if (beyond_var < 50) {
+  accuracy_warning <- if (tail_count < 50) {
     div(class = "callout callout-warning", paste0(
-      "Only ", fmt_int(beyond_var), " simulations lie beyond VaR 99.5%, so the tail figures are uncertain. ",
+      "TVaR 99.5% is the average of only ", fmt_int(tail_count), if (tail_count == 1) " simulation" else " simulations",
+      " (the worst 0.5%), so the tail figures are uncertain. ",
       "At least 10,000 simulations are recommended for 99.5% figures."
     ))
   }
@@ -1185,7 +1253,12 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       tags$h3("Simulation accuracy"),
       report_table(accuracy, 2),
       tags$p(class = "table-note",
-             "The ranges show how much the figures could move from simulation noise alone. Narrow ranges mean the run was large enough.")
+             "The ranges show how much the figures could move from simulation noise alone. Narrow ranges mean the run was large enough."),
+      tags$p(class = "table-note", paste0(
+        "The range for the mean is a normal approximation (the mean plus or minus 1.96 standard errors), ",
+        "which is rough for heavy-tailed totals; when no total is negative it is kept at zero or above. ",
+        "The count at or beyond VaR 99.5% includes totals equal to VaR, so ties (e.g. many zero totals) can make it large."
+      ))
     ),
     accuracy_warning
   )
@@ -1233,6 +1306,9 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
 
   charts <- report_section(
     "charts", "Charts",
+    if (n_undefined > 0) div(class = "callout callout-warning", paste0(
+      fmt_int(n_undefined), " simulations had undefined (NaN) totals and are left out of the charts."
+    )),
     if (!is.null(infinite_note)) div(class = "callout callout-warning", infinite_note),
     div(class = "chart-card",
         tags$h3("Distribution of total claims"),
@@ -1250,7 +1326,11 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     "how-to-read", "How to read this report",
     div(class = "callout", tags$ul(
       tags$li("A large gap between the median and the tail percentiles points to a heavy-tailed outcome."),
-      tags$li("VaR is the loss exceeded only with the stated probability. TVaR is the average loss in those worst cases, so it is always at least as large as VaR."),
+      tags$li(paste0(
+        "VaR is the loss exceeded only with the stated probability. TVaR is the average loss in those worst cases, ",
+        "so it is always at least as large as VaR: TVaR 99.5% is the mean of the worst 0.5% of the simulations, ",
+        "rounded up to a whole number (here ", fmt_int(st$tail_count995), ")."
+      )),
       tags$li("The return period shows the same probability as a frequency: 99.5% corresponds to a 1 in 200 year event."),
       if (has_gross) tags$li("Gross is before reinsurance. Ceded is what the layers pay, and net is what remains."),
       if (!no_structure(eel) && !no_structure(al)) {

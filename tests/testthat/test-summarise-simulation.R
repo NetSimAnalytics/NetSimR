@@ -13,15 +13,16 @@ test_that("the summary has the documented fields with the right types", {
   sm <- summarise_simulation(settings, res)
 
   expect_type(sm, "list")
-  expect_named(sm, c("n", "role", "modelled_label", "totals", "stats", "percentiles",
+  expect_named(sm, c("n", "undefined", "role", "modelled_label", "totals", "stats", "percentiles",
                      "percentiles_dropped", "gross", "layer", "frequency"))
   expect_equal(sm$n, 1000)
+  expect_equal(sm$undefined, 0)
   expect_equal(sm$role, "gross")
   expect_equal(sm$modelled_label, "Total claims")
   expect_equal(sm$totals, res$total_claims)
 
   expect_named(sm$stats, c("mean", "median", "sd", "cv", "min", "max", "var99", "var995", "tvar995",
-                           "se", "mean_ci", "var995_ci", "beyond_var995", "zero_share"))
+                           "se", "mean_ci", "var995_ci", "beyond_var995", "tail_count995", "zero_share"))
   expect_true(all(vapply(sm$stats, is.numeric, logical(1))))
   expect_length(sm$stats$mean_ci, 2)
   expect_length(sm$stats$var995_ci, 2)
@@ -281,6 +282,7 @@ test_that("a numeric vector of totals is accepted and NA totals are dropped", {
 
   with_na <- summarise_simulation(base_settings(), c(1, NA, 3, NA, 5))
   expect_equal(with_na$n, 3)
+  expect_equal(with_na$undefined, 2)
   expect_equal(with_na$stats$mean, 3)
 
   expect_error(summarise_simulation(base_settings(), numeric(0)))

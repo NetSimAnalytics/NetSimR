@@ -43,6 +43,38 @@ test_that("distribution fitting tool reads points as thousands separators with a
   })
 })
 
+test_that("distribution fitting tool guesses the columns again once the separator and decimal mark are fixed", {
+  path <- fit_lines(c("policy_id;exposure;claim_count;claim_amount", "P1;0,837;1;2.452,94", "P2;0,964;0;",
+                      "P3;0,931;2;4.203,29", "P4;0,512;1;812,5"))
+  shiny::testServer(distribution_fitting_tool_Server, {
+    #the browser sets each select to the column the server gives it
+    mirror <- function() do.call(session$setInputs, column_choices()$selected)
+    #read with the default comma separator, the file has other columns
+    fit_upload(session, path)
+    expect_false("claim_amount" %in% names(data()))
+    mirror()
+    #with the separator fixed, the amounts are not numbers yet ("0,837" reads as 837), so the guess is the exposure
+    session$setInputs(sep = ";")
+    expect_equal(column_choices()$selected$severity_var, "exposure")
+    mirror()
+    #with the decimal comma the amounts are numbers: the guess of the claim size column is made again
+    #(it stayed on the exposure)
+    session$setInputs(dec = ",")
+    expect_equal(column_choices()$selected$severity_var, "claim_amount")
+    expect_equal(column_choices()$selected$counts_var, "claim_count")
+    mirror()
+    #a column the user chose is kept when the columns change, while the file has it
+    session$setInputs(severity_var = "exposure", dec = ".")
+    expect_equal(column_choices()$selected$severity_var, "exposure")
+    session$setInputs(dec = ",")
+    expect_equal(column_choices()$selected$severity_var, "exposure")
+    #and the same file uploaded again keeps every column
+    session$setInputs(sliced_sev_var = "claim_count")
+    fit_upload(session, path, sep = ";", dec = ",")
+    expect_equal(column_choices()$selected$sliced_sev_var, "claim_count")
+  })
+})
+
 test_that("both tools read a file with a separator at the end of each row", {
   #read.csv() took the first column as row names, so sev showed the counts; repeated values failed
   path <- fit_lines(c("sev,n", "100,1,", "250,2,", "250,3,", "80,4,"))

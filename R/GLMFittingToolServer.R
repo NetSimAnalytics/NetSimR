@@ -25,10 +25,17 @@ GLMFittingToolServer <- function(input, output, session) {
   #import data
   ######################
 
+  # the data last imported, and where it came from; an import that fails keeps it, so that the
+  # data and a model fitted to it stay together
+  imported <- reactiveVal(NULL)
+  import_failed <- reactiveVal(FALSE)
+
   import_error <- function(message) {
+    kept <- !is.null(isolate(imported()))
     showModal(modalDialog(
       title = "The data could not be imported",
       message,
+      if (kept) tags$p(class = "mt-2", "The data imported before is still used."),
       easyClose = TRUE,
       footer = modalButton("Close")
     ))
@@ -43,7 +50,8 @@ GLMFittingToolServer <- function(input, output, session) {
     value
   }
 
-  selected_data <- eventReactive(input$submit, {
+  # the data of the file or query chosen on the Data tab, or NULL (with a message) when it cannot be read
+  read_import <- function() {
     tryCatch({
       if (identical(input$data_source, "Database")) {
         # The database driver packages are optional (Suggests): check the one
@@ -112,7 +120,18 @@ GLMFittingToolServer <- function(input, output, session) {
         "Check the settings and try again. The error was: ", conditionMessage(e)
       ))
     })
+  }
+
+  observeEvent(input$submit, {
+    df_input <- read_import()
+    import_failed(is.null(df_input) && !is.null(imported()))
+    if (!is.null(df_input)) {
+      source <- if (identical(input$data_source, "Database")) input$db_type else input$csv_file$name
+      imported(list(data = df_input, source = or_default(source, "")))
+    }
   })
+
+  selected_data <- reactive(imported()$data)
 
   data_columns <- reactive(names(selected_data()))
   numeric_columns <- reactive(names(selected_data())[vapply(selected_data(), is.numeric, logical(1))])
@@ -122,10 +141,10 @@ GLMFittingToolServer <- function(input, output, session) {
 
   output$data_overview <- renderUI({
     df <- req(selected_data())
-    source <- if (identical(isolate(input$data_source), "Database")) isolate(input$db_type) else isolate(input$csv_file$name)
     div(
       class = "dft-stats",
-      dft_stat_tile("Source", div(class = "dft-file-name", or_default(source, "")), icon_name = "database"),
+      dft_stat_tile("Source", div(class = "dft-file-name", imported()$source), icon_name = "database",
+                    note = if (import_failed()) "The last import failed: this is the data imported before"),
       dft_stat_tile("Rows", format(nrow(df), big.mark = ","), icon_name = "bars",
                     note = if (nrow(df) > preview_rows) paste("The preview shows the first", format(preview_rows, big.mark = ","))),
       dft_stat_tile("Columns", format(ncol(df), big.mark = ","), icon_name = "table-columns",
@@ -148,21 +167,18 @@ GLMFittingToolServer <- function(input, output, session) {
   # column choices loaded from a settings file before the data they refer to was imported
   pending_columns <- reactiveVal(list())
 
+  # the choices already made are kept when the data has their columns; otherwise a response whose
+  # name suggests one and a chart variable that is not an ID (see glm_column_choices())
   observeEvent(selected_data(), {
     columns <- data_columns()
-    numbers <- numeric_columns()
     pending <- pending_columns()
-    choose <- function(id, options, default) {
-      wanted <- or_default(pending[[id]], input[[id]])
-      if (!is.null(wanted) && wanted %in% options) wanted else default
-    }
-    response <- choose("response_variable", columns, if (length(numbers) > 0) numbers[1] else columns[1])
-    updateSelectInput(session, "response_variable", choices = columns, selected = response)
-    updateSelectInput(session, "offset", choices = c("None", columns), selected = choose("offset", columns, "None"))
-    updateSelectInput(session, "weights", choices = c("None", columns), selected = choose("weights", columns, "None"))
-    others <- setdiff(columns, response)
-    updateSelectInput(session, "visualize_variable", choices = c("None", columns),
-                      selected = choose("visualize_variable", columns, if (length(others) > 0) others[1] else "None"))
+    ids <- c("response_variable", "offset", "weights", "visualize_variable")
+    wanted <- stats::setNames(lapply(ids, function(id) or_default(pending[[id]], input[[id]])), ids)
+    choices <- glm_column_choices(selected_data(), or_default(input$glm_distribution, "gaussian"), wanted)
+    updateSelectInput(session, "response_variable", choices = columns, selected = choices$response_variable)
+    updateSelectInput(session, "offset", choices = c("None", columns), selected = choices$offset)
+    updateSelectInput(session, "weights", choices = c("None", columns), selected = choices$weights)
+    updateSelectInput(session, "visualize_variable", choices = c("None", columns), selected = choices$visualize_variable)
     pending_columns(list())
   })
 
@@ -319,21 +335,28 @@ GLMFittingToolServer <- function(input, output, session) {
     family_call <- call(spec$family, link = link)
     weights_arg <- if (spec$weights != "None") as.name(spec$weights) else NULL
     fit_call <- if (is.null(weights_arg)) {
-      bquote(stats::glm(.(model_formula), family = .(family_call), data = model_data, na.action = stats::na.exclude))
+      bquote(stats::glm(.(model_formula), family = family_object, data = model_data, na.action = stats::na.exclude))
     } else {
-      bquote(stats::glm(.(model_formula), family = .(family_call), data = model_data, weights = .(weights_arg),
+      bquote(stats::glm(.(model_formula), family = family_object, data = model_data, weights = .(weights_arg),
                         na.action = stats::na.exclude))
     }
     if (spec$offset != "None" && spec$offset_log && link != "log") {
       warnings <- c(warnings, "an exposure offset only multiplies the mean with the log link")
     }
+    # nothing of the server may be reachable from the model, which is saved to a file with
+    # everything it refers to: the call is evaluated where only the data and the family (built
+    # apart, see glm_family_object()) are, and the formula's environment is the global one
+    fit_env <- new.env(parent = globalenv())
+    fit_env$model_data <- model_data
+    fit_env$family_object <- glm_family_object(spec$family, link)
     model <- withCallingHandlers(
-      eval(fit_call),
+      eval(fit_call, fit_env),
       warning = function(w) {
         warnings <<- c(warnings, conditionMessage(w))
         invokeRestart("muffleWarning")
       }
     )
+    model$call$family <- family_call
     spec$link <- link
     list(model = model, spec = spec, data = model_data, warnings = unique(warnings), left_out = left_out, error = NULL)
   }
@@ -503,8 +526,10 @@ GLMFittingToolServer <- function(input, output, session) {
     if (is.null(stored)) return(div(class = "glm-slot-empty", "Empty. Fit a model and store it here."))
     other <- stored_models[[3 - i]]()
     spec <- stored$spec
-    # AIC only compares models fitted to the same observations of the same response
-    comparable <- !is.null(other) && identical(other$spec$response, spec$response) && other$n == stored$n
+    # AIC only compares models fitted to the same observations of the same response, with the same
+    # weights: the weights scale each row's log-likelihood, so a weighted and an unweighted AIC differ
+    comparable <- !is.null(other) && identical(other$spec$response, spec$response) && other$n == stored$n &&
+      identical(other$spec$weights, spec$weights)
     lhs <- paste(c(paste(term(spec$response), "~"), offset_term(spec$offset, spec$offset_log)), collapse = " ")
     tagList(
       div(class = "glm-slot-formula", paste(lhs, if (!is.null(offset_term(spec$offset, spec$offset_log))) "+", if (spec$formula == "") "1" else spec$formula)),
@@ -513,7 +538,7 @@ GLMFittingToolServer <- function(input, output, session) {
                                       format(stored$n, big.mark = ","), " observations")),
       div(class = "glm-slot-aic", paste("AIC", dft_fmt(stored$aic, 7)),
           if (comparable && stored$aic < other$aic) tags$span(class = "glm-better", " lower")),
-      if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different response or observations.")
+      if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different response, observations or weights.")
     )
   }
 
@@ -651,8 +676,9 @@ GLMFittingToolServer <- function(input, output, session) {
   })
 
   # actual and predicted on the left axis, and the exposure (or weight, or rows) of each band
-  # as bars on a secondary axis on the right; redrawn in the other theme's colours when it changes
-  output$fitness_plot <- renderPlot({
+  # as bars on a secondary axis on the right; redrawn in the other theme's colours when it changes,
+  # and when the chart is resized, so that the legend is laid out for the new width
+  output$fitness_plot <- netsimr_render_plot({
     validate(need(input$execute_visualization, "Choose a variable and click Draw chart."))
     plot_data <- fitness_data()
     labels <- fitness_labels()
