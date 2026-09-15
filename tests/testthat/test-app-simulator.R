@@ -115,8 +115,12 @@ test_that("simulator settings saved to a text file load back, and an .rds file i
 
   app_goto(app, "simulator")
   expect_match(app$get_js("document.getElementById('settingsIO_load').getAttribute('accept')"), ".txt", fixed = TRUE)
+  #wait for every value this test changes next: the example's seed field is drawn by the server,
+  #so its value arrives in the loader's second stage and, on a slow machine, could otherwise land
+  #after (and overwrite) the value set below
   sim_load_example(app, "Motor: excess of loss layer",
-                   list(lamda = 5, reinsuranceStructureEEL = "Limited Layer", reinsuranceStructureReinstatementLimit = 2))
+                   list(lamda = 5, numberOfSimulations = 50000, seedValue = 1,
+                        reinsuranceStructureEEL = "Limited Layer", reinsuranceStructureReinstatementLimit = 2))
   app_set(app, numberOfSimulations = 12345, lamda = 6.5, seedValue = 2024)
 
   #the settings are saved as text
