@@ -585,7 +585,9 @@ GLMFittingToolServer <- function(input, output, session) {
     content = function(file) {
       req(fitted_model())
       result <- fit_result()
-      utils::write.csv(cbind(result$data, prediction = model_predictions(result)), file, row.names = FALSE)
+      #text from the uploaded data that a spreadsheet would read as a formula is written as text
+      utils::write.csv(csv_safe(cbind(result$data, prediction = model_predictions(result))), file,
+                       row.names = FALSE)
     }
   )
 

@@ -285,6 +285,11 @@ Changes in Version 0.3.1
     query are saved with the settings only when "Include database connection
     details" is ticked (off by default), so a shared file does not disclose
     internal infrastructure. The password is never saved.
+  o GLM fitting tool: in the "Data with predictions" CSV download, text cells
+    and column names that a spreadsheet would read as a formula (starting with
+    =, +, -, @, a tab or a carriage return) are written with a leading ', so
+    opening the file cannot run a formula from the uploaded data. Numbers are
+    unchanged.
   o Distribution fitting tool: the Negative Binomial fit no longer falls back
     to the Poisson (size 1e8) on overdispersed claim counts; it finds the
     maximum likelihood size whenever the variance is above the mean, with or
