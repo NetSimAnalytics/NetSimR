@@ -695,15 +695,20 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     #amounts too large for a readable fixed format (a Pareto severity with a tiny alpha)
     huge <- is.finite(x) & abs(x) >= 1e15
     out[huge] <- formatC(x[huge], format = "e", digits = 3)
+    #infinite amounts show as Inf or -Inf; undefined ones (NaN) as a dash
+    out[is.na(x)] <- dash
     out
   }
   fmt_int <- function(x) if (is_blank(x)) dash else formatC(round(as.numeric(x)), format = "d", big.mark = ",")
   fmt_pct <- function(x, digits = 1) {
-    out <- formatC(100 * x, format = "f", digits = digits)
+    out <- paste0(formatC(100 * x, format = "f", digits = digits), "%")
     #e.g. a loss on line of a huge expected loss on a small limit
     huge <- is.finite(x) & abs(100 * x) >= 1e15
-    out[huge] <- formatC(100 * x[huge], format = "e", digits = 3)
-    paste0(out, "%")
+    out[huge] <- paste0(formatC(100 * x[huge], format = "e", digits = 3), "%")
+    #infinite shares show as signed infinity, like the amounts, and undefined ones as a dash
+    out[is.infinite(x)] <- ifelse(x[is.infinite(x)] > 0, "Inf", "-Inf")
+    out[is.na(x)] <- dash
+    out
   }
   #small probabilities get an extra decimal so they do not round to zero
   fmt_prob <- function(p) {
@@ -717,6 +722,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   #settings amounts are formatted on their own scale
   fmt_setting <- function(x) if (is_blank(x)) dash else fmt_num(x, display_digits(x))
   fmt_return_period <- function(p) paste("1 in", formatC(round(1 / (1 - p)), format = "d", big.mark = ","))
+  #a count with its noun, e.g. "1 simulation" and "2 simulations"
+  count_of <- function(k, noun) paste(fmt_int(k), if (isTRUE(k == 1)) noun else paste0(noun, "s"))
 
   known <- function(options, id) !is_blank(id) && is.character(id) && id %in% names(options)
   distr_label <- function(options, id) {
@@ -778,15 +785,35 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   #cannot be drawn: the histogram leaves them out and the curves stop where they start
   finite_claims <- claims[is.finite(claims)]
   n_infinite <- n - length(finite_claims)
+  #totals of +Inf and of -Inf together make the figures that include both (the mean) undefined
+  both_infinities <- any(claims == Inf) && any(claims == -Inf)
   infinite_note <- if (n_infinite > 0) {
-    paste0(fmt_int(n_infinite), " simulations (", fmt_prob(n_infinite / n),
-           ") had infinite totals and are left out of the charts.")
+    paste0(count_of(n_infinite, "simulation"), " (", fmt_prob(n_infinite / n), ") had ",
+           if (n_infinite == 1) "an infinite total and is" else "infinite totals and are", " left out of the charts.")
   }
+  #the reason for undefined totals depends on where they arose (see summarise_simulation):
+  #claims of +Inf and -Inf in one simulation leave the gross total undefined too, while a
+  #structure turns an infinite gross amount into infinity minus infinity
   undefined_text <- if (n_undefined > 0) {
+    cause <- summary$undefined_cause
+    claims_reason <- "claims overflowed to both +Inf and -Inf, whose sum is undefined"
+    structure_reason <- paste("an infinite amount met a layer with an infinite deductible or an excluded layer",
+                              "with an infinite limit, which leaves infinity minus infinity")
+    reason <- if (is.null(cause) || cause[["unknown"]] > 0) {
+      paste0(", for example because ", claims_reason, ", or because ", structure_reason, ".")
+    } else if (cause[["structures"]] == 0) {
+      paste0(": the ", claims_reason, ".")
+    } else if (cause[["claims"]] == 0) {
+      paste0(": ", structure_reason, ".")
+    } else {
+      paste0(". In ", fmt_int(cause[["claims"]]), " of them the ", claims_reason, "; in ",
+             fmt_int(cause[["structures"]]), " ", structure_reason, ".")
+    }
     paste0(
-      fmt_int(n_undefined), " of ", fmt_int(n + n_undefined), " simulations had undefined (NaN) totals, ",
-      "e.g. infinite minus infinite when an infinite claim meets an excluded layer with an infinite limit. ",
-      "They are left out of every figure and chart in this report, which describe the other ", fmt_int(n), " simulations."
+      fmt_int(n_undefined), " of ", count_of(n + n_undefined, "simulation"), " had ",
+      if (n_undefined == 1) "an undefined (NaN) total" else "undefined (NaN) totals", reason, " ",
+      if (n_undefined == 1) "It is" else "They are", " left out of every figure and chart in this report, ",
+      "which describe the other ", count_of(n, "simulation"), "."
     )
   }
 
@@ -905,8 +932,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     graphics::abline(h = seq(0, 1, 0.25), col = pal$grid, lwd = 0.8)
     if (is.finite(var995)) graphics::abline(v = var995, col = pal$red, lty = 2, lwd = 1.5)
     #the step runs from the left edge of the chart to the right one, so a single total
-    #reads as a step at that total
-    graphics::lines(c(x_lim[1], cdf_x, x_lim[2]), c(0, cdf_probs, cdf_probs[length(cdf_probs)]),
+    #reads as a step at that total; totals of -Inf lie left of every amount drawn
+    graphics::lines(c(x_lim[1], cdf_x, x_lim[2]), c(mean(claims == -Inf), cdf_probs, cdf_probs[length(cdf_probs)]),
                     type = "s", col = pal$blue, lwd = 2.4)
     x_axis(pretty(x_lim))
     graphics::axis(2, at = seq(0, 1, 0.25), labels = paste0(seq(0, 100, 25), "%"), lwd = 0)
@@ -1002,14 +1029,18 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     tags$p(class = "section-intro", key_intro),
     if (n_undefined > 0) div(class = "callout callout-warning", undefined_text),
     if (n_infinite > 0) div(class = "callout callout-warning", paste0(
-      fmt_int(n_infinite), " of ", if (n_undefined > 0) "the ", fmt_int(n), " simulations ",
-      if (n_undefined > 0) "with a defined total ", "had infinite totals, so the figures that ",
-      "include them are infinite. This happens when claim draws overflow, e.g. with a very small Pareto alpha."
+      fmt_int(n_infinite), " of ", if (n_undefined > 0) "the ", count_of(n, "simulation"),
+      if (n_undefined > 0) " with a defined total", " had ", if (n_infinite == 1) "an infinite total" else "infinite totals",
+      if (both_infinities) paste0(" (", fmt_int(sum(claims == Inf)), " of +Inf and ", fmt_int(sum(claims == -Inf)), " of -Inf)"),
+      ", so the figures that include ", if (n_infinite == 1) "it" else "them", " are infinite",
+      if (both_infinities) ", or undefined (shown as a dash) where they add +Inf to -Inf, as the mean does",
+      ". This happens when claim draws overflow, e.g. with ",
+      if (any(claims == -Inf)) "a Normal severity with a huge standard deviation." else "a very small Pareto alpha."
     )),
     div(
       class = "kpi-grid",
       tile("Mean", fmt_amount(claims_mean),
-           if (n_undefined > 0) paste(fmt_int(n), "of", fmt_int(n + n_undefined), "simulations") else paste(fmt_int(n), "simulations")),
+           if (n_undefined > 0) paste(fmt_int(n), "of", count_of(n + n_undefined, "simulation")) else count_of(n, "simulation")),
       tile("Median", fmt_amount(st$median)),
       tile("Standard deviation", fmt_amount(claims_sd), if (cv_text != dash) paste("CV", cv_text)),
       tile("VaR 99.5%", fmt_amount(var995), fmt_return_period(0.995), class = "kpi kpi-tail"),
@@ -1109,12 +1140,25 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     unknown_note <- NULL
     known <- !vapply(columns, anyNA, logical(1))
     if (isTRUE(summary$gross$unknown > 0)) {
-      unknown_name <- names(columns)[!known][1]
+      #the column of gross minus the modelled totals: ceded for exclusions, otherwise the third
+      unknown_name <- if (role == "net") names(columns)[2] else names(columns)[3]
+      unknown <- summary$gross$unknown
       unknown_note <- paste0(
-        fmt_int(summary$gross$unknown), " simulations had infinite gross and ", tolower(names(columns)[2]),
-        " totals, so their ", tolower(unknown_name), " amount (infinite minus infinite) is unknown and the ",
-        unknown_name, " column is left blank."
+        count_of(unknown, "simulation"), " had infinite gross and ", tolower(modelled_label),
+        " totals, so ", if (unknown == 1) "its" else "their", " ", tolower(unknown_name),
+        " amount (infinite minus infinite) is unknown and the ", unknown_name, " column is left blank."
       )
+    }
+    #claims of +Inf and -Inf in one simulation leave its gross total undefined (NaN)
+    if (isTRUE(summary$gross$undefined > 0)) {
+      blank <- names(columns)[!known]
+      undefined_gross <- summary$gross$undefined
+      unknown_note <- paste(unknown_note, paste0(
+        count_of(undefined_gross, "simulation"), " had ",
+        if (undefined_gross == 1) "an undefined (NaN) gross total" else "undefined (NaN) gross totals",
+        ", as the claims overflowed to both +Inf and -Inf, so the ", paste(blank, collapse = " and "),
+        if (length(blank) == 1) " column is" else " columns are", " left blank."
+      ))
     }
     comparison_chart <- if (max_return_period >= 5) {
       styles <- list(
@@ -1307,7 +1351,9 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   charts <- report_section(
     "charts", "Charts",
     if (n_undefined > 0) div(class = "callout callout-warning", paste0(
-      fmt_int(n_undefined), " simulations had undefined (NaN) totals and are left out of the charts."
+      count_of(n_undefined, "simulation"), " had ",
+      if (n_undefined == 1) "an undefined (NaN) total and is" else "undefined (NaN) totals and are",
+      " left out of the charts."
     )),
     if (!is.null(infinite_note)) div(class = "callout callout-warning", infinite_note),
     div(class = "chart-card",

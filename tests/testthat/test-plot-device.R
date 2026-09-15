@@ -6,14 +6,15 @@ test_that("the cairo type is asked for only when shiny would use the Windows png
   uses_other_device <- nzchar(system.file(package = "ragg")) || nzchar(system.file(package = "Cairo")) ||
     isTRUE(capabilities("aqua"))
   if (.Platform$OS.type == "windows" && !uses_other_device && isTRUE(capabilities("cairo"))) {
-    expect_identical(args, list(type = "cairo"))
+    expect_identical(args, list(type = "cairo", antialias = "gray"))
   } else {
     expect_identical(args, list())
   }
   #switching shiny's preferred packages off cannot make the arguments invalid for png()
   old <- options(shiny.useragg = FALSE, shiny.usecairo = FALSE)
   on.exit(options(old), add = TRUE)
-  expect_true(length(plot_device_args()) %in% c(0, 1))
+  expect_true(identical(plot_device_args(), list()) ||
+                identical(plot_device_args(), list(type = "cairo", antialias = "gray")))
 })
 
 test_that("netsimr_render_plot draws the chart lazily, redraws on resize and passes its arguments on", {

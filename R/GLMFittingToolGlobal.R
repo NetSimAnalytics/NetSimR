@@ -42,7 +42,15 @@ glm_settings_inputs <- data.frame(
   stringsAsFactors = FALSE
 )
 
-glm_settings_tool <- "NetSimR GLM fitting tool"
+# Inputs that say where the data is: the server, port, database (the file path for
+# SQLite), user and query. They disclose internal infrastructure when a settings file is
+# shared, so they are saved only when asked for. The database type, Windows
+# authentication and the data source are kept: they name no server or table.
+glm_settings_connection_ids <- c("db_host", "db_port", "db_name", "db_user", "sql_query")
+
+# The tool and version written in the settings file (see write_settings_file()).
+glm_settings_tool <- "GLM fitting tool"
+glm_settings_version <- 1L
 
 # Allowed values of the inputs with a fixed set of choices.
 glm_settings_choices <- list(
@@ -56,13 +64,10 @@ glm_settings_choices <- list(
   band_method = c("quantile", "width")
 )
 
-# The usable values of a settings file: a named list of the known inputs whose
-# values have the right type (and an allowed value), or NULL when the file is not
-# a settings file. Files saved by earlier versions (every input of the app) are
-# read too; anything unknown, such as a password, is ignored.
-glm_settings_values <- function(settings) {
-  if (!is.list(settings)) return(NULL)
-  inputs <- if (identical(settings$tool, glm_settings_tool)) settings$inputs else settings
+# The usable values of a settings file (the values of read_settings_file()): a named
+# list of the known inputs whose values have the right type (and an allowed value),
+# or NULL when there are none. Anything unknown, such as a password, is ignored.
+glm_settings_values <- function(inputs) {
   if (!is.list(inputs) || is.null(names(inputs))) return(NULL)
   kinds <- stats::setNames(glm_settings_inputs$kind, glm_settings_inputs$id)
   values <- list()

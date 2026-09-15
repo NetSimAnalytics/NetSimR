@@ -1,19 +1,23 @@
 #save and load of the simulator settings, with built-in examples
 
-#' Format tag written into every saved simulator settings file
+#' Tool name written into every saved simulator settings file
 #'
+#' Settings files are plain text, written and read by write_settings_file() and
+#' read_settings_file() (R/settings_file.R). A file of another tool, or an .rds settings
+#' file of NetSimR 0.3.0 and before, is refused with a message.
 #' @noRd
-sim_settings_format <- "NetSimR simulator settings"
+sim_settings_tool <- "claims simulator"
 
 #' Version of the saved settings format
 #'
+#' Versions 1 and 2 were .rds files, which are no longer read; version 3 is the text file.
 #' @noRd
-sim_settings_version <- 2
+sim_settings_version <- 3
 
 #' Name of the file offered by the save button
 #'
 #' @noRd
-sim_settings_file_name <- "netsimr_simulator_settings.rds"
+sim_settings_file_name <- "claims_simulator_settings.txt"
 
 #' Ids of every simulator input that a settings file can hold
 #'
@@ -37,38 +41,56 @@ sim_settings_input_ids <- function() {
   ))
 }
 
-#' Build the list that a settings file contains
+#' Collect the input values that a settings file holds
 #'
 #' @param input_values A named list (or the shiny input object) with the current
-#' values of the simulator inputs. Ids that are not simulator inputs are ignored and
-#' NULL values are skipped.
-#' @return A list with the fields \code{format}, \code{version}, \code{saved} and
-#' \code{inputs}, the last one a named list of the input values.
+#' values of the simulator inputs. Ids that are not simulator inputs are ignored, and so
+#' are NULL and empty values.
+#' @return A named list with one vector of numbers, strings or logicals per input id, as
+#' write_settings_file() writes them (one "id: value" line each).
 #' @noRd
 sim_settings_collect <- function(input_values) {
   values <- list()
   for (id in sim_settings_input_ids()) {
     value <- input_values[[id]]
-    if (!is.null(value)) values[[id]] <- value
+    if (is.null(value) || length(value) == 0 || !is.atomic(value)) next
+    values[[id]] <- value
   }
-  list(
-    format = sim_settings_format
-    ,version = sim_settings_version
-    ,saved = Sys.time()
-    ,inputs = values
-  )
+  values
 }
 
-#' Check that an object is a readable simulator settings list
+#' Write the settings file that the save button offers
 #'
-#' @param x The object read from a settings file.
+#' @param input_values The current input values, as for sim_settings_collect().
+#' @param file Path of the text file to write.
+#' @noRd
+sim_settings_write <- function(input_values, file) {
+  write_settings_file(sim_settings_collect(input_values), file, tool = sim_settings_tool, version = sim_settings_version)
+}
+
+#' Read a saved settings file
+#'
+#' Reading never evaluates code (see read_settings_file()).
+#' @param file Path of the file.
+#' @return A list with \code{version} and \code{inputs}, the named list of saved input
+#' values; or a character error message for a file that is not a settings file of the
+#' simulator (an .rds file, say, or one saved by another tool) or holds a value that
+#' cannot be read.
+#' @noRd
+sim_settings_read <- function(file) {
+  tryCatch({
+    settings <- read_settings_file(file, tool = sim_settings_tool)
+    list(version = settings$version, inputs = settings$values)
+  }, error = function(cond) conditionMessage(cond))
+}
+
+#' Check that saved inputs can be loaded
+#'
+#' @param inputs The named list of saved input values.
+#' @param version The settings version of the file.
 #' @return TRUE when the settings can be loaded, otherwise a character error message.
 #' @noRd
-sim_settings_validate <- function(x) {
-  not_settings <- "This is not a NetSimR simulator settings file."
-  if (!is.list(x) || is.data.frame(x) || is.null(names(x))) return(not_settings)
-  if (!identical(x$format, sim_settings_format)) return(not_settings)
-  version <- x$version
+sim_settings_validate <- function(inputs, version = sim_settings_version) {
   if (!is.numeric(version) || length(version) != 1 || is.na(version)) {
     return("The settings file has no valid version number.")
   }
@@ -78,10 +100,15 @@ sim_settings_validate <- function(x) {
       ,version, ") and cannot be loaded by this version."
     ))
   }
-  inputs <- x$inputs
+  if (version < sim_settings_version) {
+    return(paste0("The settings file has settings version ", version, ", which this version of NetSimR no longer loads."))
+  }
   if (!is.list(inputs) || is.data.frame(inputs)) return("The settings file holds no inputs.")
   if (length(inputs) > 0 && (is.null(names(inputs)) || any(is.na(names(inputs)) | names(inputs) == ""))) {
     return("The settings file holds inputs without names.")
+  }
+  if (!all(vapply(inputs, function(x) is.null(x) || is.atomic(x), logical(1)))) {
+    return("The settings file holds inputs that are not numbers, text or TRUE/FALSE values.")
   }
   #the choice inputs must hold values the app offers
   check_choice <- function(id, choices, label) {
@@ -103,29 +130,13 @@ sim_settings_validate <- function(x) {
   TRUE
 }
 
-#' Bring the inputs of an older settings file up to date
+#' Show a message about saving or loading settings
 #'
-#' Settings version 1 stored the Normal severity's mean and standard deviation under the
-#' Log-Normal's ids (mu, sigma); from version 2 the Normal has its own ids.
-#'
-#' @param inputs The named list of saved input values.
-#' @param version The settings version of the file.
-#' @return The inputs, with old ids renamed.
+#' @param message The text to show.
+#' @param type "message" or "error"; errors stay on screen for longer.
 #' @noRd
-sim_settings_migrate <- function(inputs, version) {
-  #older files have a switch that turned the Pareto slices on; now the number of slices does
-  if ("paretoSlice" %in% names(inputs)) {
-    if (!isTRUE(inputs$paretoSlice)) inputs$pareto_slice_times <- 0
-    inputs$paretoSlice <- NULL
-  }
-  if (is.numeric(version) && length(version) == 1 && !is.na(version) && version < 2 &&
-      identical(inputs$sevDistr, "Normal")) {
-    if (is.null(inputs$normal_mean)) inputs$normal_mean <- inputs$mu
-    if (is.null(inputs$normal_sd)) inputs$normal_sd <- inputs$sigma
-    inputs$mu <- NULL
-    inputs$sigma <- NULL
-  }
-  inputs
+sim_settings_notify <- function(message, type = "message") {
+  showNotification(message, type = type, duration = if (identical(type, "error")) 8 else 5)
 }
 
 #' Compare an input value with the value a settings file asks for
@@ -266,8 +277,8 @@ sim_settings_plan <- function(inputs) {
 
 #' Built-in example settings for the simulator
 #'
-#' Each example is a named list of input values, in the same form as the
-#' \code{inputs} field of a saved settings file.
+#' Each example is a named list of input values, in the same form as the inputs read
+#' from a saved settings file.
 #'
 #' @noRd
 sim_settings_examples <- list(
@@ -403,7 +414,7 @@ sim_settings_io_ui <- function() {
     ),
     fileInput(
       "settingsIO_load", "Load settings"
-      ,accept = ".rds", width = "100%"
+      ,accept = c(".txt", "text/plain"), width = "100%"
       ,buttonLabel = tagList(icon("folder-open"), "Browse")
       ,placeholder = "No file selected"
     ),
@@ -418,7 +429,7 @@ sim_settings_io_ui <- function() {
         ,icon = icon("wand-magic-sparkles"), class = "btn-outline-primary btn-sm"
       )
     ),
-    helpText("Settings are saved as an .rds file that can be loaded back later.")
+    helpText("Settings are saved as a plain text (.txt) file that can be loaded back later.")
   )
 }
 
@@ -454,7 +465,7 @@ sim_settings_io_server <- function(input, output, session) {
     content = function(file) {
       ids <- sim_settings_input_ids()
       values <- isolate(stats::setNames(lapply(ids, function(id) input[[id]]), ids))
-      saveRDS(sim_settings_collect(values), file)
+      sim_settings_write(values, file)
     }
   )
 
@@ -462,13 +473,13 @@ sim_settings_io_server <- function(input, output, session) {
   pending <- reactiveVal(list())
   deadline <- NULL
 
-  load_settings <- function(settings, loaded_message, error_prefix) {
-    problem <- sim_settings_validate(settings)
+  load_settings <- function(inputs, version, loaded_message, error_prefix) {
+    problem <- sim_settings_validate(inputs, version)
     if (!isTRUE(problem)) {
-      showNotification(paste(error_prefix, problem), type = "error", duration = 8)
+      sim_settings_notify(paste(error_prefix, problem), type = "error")
       return(invisible(FALSE))
     }
-    entries <- sim_settings_plan(sim_settings_migrate(settings$inputs, settings$version))
+    entries <- sim_settings_plan(inputs)
     is_pending <- vapply(entries, function(entry) !is.null(entry$gate), logical(1))
 
     #stage one: the controls that decide which fields exist
@@ -486,7 +497,7 @@ sim_settings_io_server <- function(input, output, session) {
     deadline <<- Sys.time() + timeout_seconds
     pending(later)
 
-    showNotification(loaded_message, type = "message", duration = 5)
+    sim_settings_notify(loaded_message)
     invisible(TRUE)
   }
 
@@ -544,21 +555,18 @@ sim_settings_io_server <- function(input, output, session) {
     file_info <- input$settingsIO_load
     req(file_info$datapath)
     file_label <- paste0("'", file_info$name, "'")
-    read_failed <- FALSE
-    settings <- tryCatch(
-      readRDS(file_info$datapath)
-      ,error = function(cond) { read_failed <<- TRUE; NULL }
-      ,warning = function(cond) { read_failed <<- TRUE; NULL }
-    )
-    if (read_failed) {
-      showNotification(
-        paste0(file_label, " could not be read. Please choose an .rds file saved with 'Save settings'.")
-        ,type = "error", duration = 8
+    #an .rds file or one of another tool gets the reader's message, e.g. "This is not a
+    #NetSimR settings file."
+    settings <- sim_settings_read(file_info$datapath)
+    if (is.character(settings)) {
+      sim_settings_notify(
+        paste0(file_label, ": ", settings, " Please choose a .txt file saved with 'Save settings' in this app.")
+        ,type = "error"
       )
       return(invisible(NULL))
     }
     load_settings(
-      settings
+      settings$inputs, settings$version
       ,loaded_message = paste0("Settings loaded from ", file_label, ".")
       ,error_prefix = paste0(file_label, ":")
     )
@@ -569,11 +577,11 @@ sim_settings_io_server <- function(input, output, session) {
     label <- input$settingsIO_example
     example <- if (is.character(label) && length(label) == 1) sim_settings_examples[[label]] else NULL
     if (is.null(example)) {
-      showNotification("Please choose an example to load.", type = "error", duration = 8)
+      sim_settings_notify("Please choose an example to load.", type = "error")
       return(invisible(NULL))
     }
     load_settings(
-      sim_settings_collect(example)
+      sim_settings_collect(example), sim_settings_version
       ,loaded_message = paste0("Loaded example '", label, "'.")
       ,error_prefix = paste0("Example '", label, "':")
     )

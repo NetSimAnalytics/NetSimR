@@ -123,6 +123,122 @@ test_that("undefined (NaN) totals are counted and reported, not dropped silently
   expect_error(summarise_simulation(settings, c(NaN, NaN)), "undefined")
 })
 
+test_that("totals of both +Inf and -Inf with a structure give a report and a compare entry", {
+  #the gross mean of +Inf and -Inf is NaN, which made the share of the gross mean fail
+  exclude <- base_settings(reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_dedctible_amount = 1e300,
+                           reinsurance_structure_al_limit_amount = 1e308)
+  totals <- c(1:200, rep(NaN, 100), rep(Inf, 100), rep(-Inf, 100))
+  results <- data.frame(claim_counts = 1L, total_claims = totals, gross_claims = totals)
+  sm <- summarise_simulation(exclude, results)
+  expect_true(is.na(sm$gross$table$Gross[2]))
+  expect_true(is.nan(sm$stats$mean))
+  expect_match(sim_report_words(exclude, results), "Gross, ceded and net", fixed = TRUE)
+  expect_true(is.nan(compare_entry_of(1, exclude, results)$metrics$mean))
+  #every other mix of finite, infinite and undefined totals, with and without the structure
+  for (settings in list(base_settings(), exclude)) {
+    for (mix in list(c(1:200, rep(-Inf, 100)), c(1:200, rep(Inf, 100), rep(-Inf, 100)),
+                     c(rep(Inf, 100), rep(-Inf, 100)), c(1:200, rep(NaN, 100), rep(Inf, 100)))) {
+      data <- data.frame(claim_counts = 1L, total_claims = mix, gross_claims = mix)
+      expect_no_error(sim_report_words(settings, data))
+      expect_no_error(compare_entry_of(1, settings, data))
+    }
+  }
+
+  #the app's run: Binomial(10, 0.5) claims of Normal(1e308, 1e308) through an aggregate exclusion
+  app <- base_settings(numOfSimulations = 600, seedValue = 1, freqDistr = "Binomial", freq_params = c(10, 0.5),
+                       sevDistr = "Normal", sev_params = c(1e308, 1e308), reinsuranceStructureAL = "Exclude Layer",
+                       reinsurance_structure_al_dedctible_amount = 1e300, reinsurance_structure_al_limit_amount = 1e308)
+  data <- do.call(simulate_function, app)
+  expect_true(any(data$total_claims == Inf, na.rm = TRUE) && any(data$total_claims == -Inf, na.rm = TRUE))
+  expect_true(anyNA(data$total_claims))
+  words <- sim_report_words(app, data)
+  expect_match(words, "the claims overflowed to both +Inf and -Inf, whose sum is undefined", fixed = TRUE)
+  expect_match(words, "or undefined (shown as a dash) where they add +Inf to -Inf, as the mean does", fixed = TRUE)
+  expect_no_error(compare_entry_of(2, app, data))
+})
+
+test_that("the report explains undefined totals by their cause", {
+  plain <- base_settings()
+  totals <- c(1:200, NaN, NaN, NaN)
+  #claims of +Inf and -Inf in one simulation: its gross total is undefined too
+  claims_words <- sim_report_words(plain, data.frame(claim_counts = 1L, total_claims = totals, gross_claims = totals))
+  expect_match(claims_words, paste("3 of 203 simulations had undefined (NaN) totals: the claims overflowed to both",
+                                   "+Inf and -Inf, whose sum is undefined. They are left out"), fixed = TRUE)
+  expect_false(grepl("infinite limit", claims_words, fixed = TRUE))
+  #a run without layers gives only the totals, which are its gross totals
+  expect_match(sim_report_words(plain, totals), "NaN) totals: the claims overflowed to both +Inf and -Inf", fixed = TRUE)
+
+  #a structure turned infinite gross totals into infinity minus infinity
+  exclude <- base_settings(reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_dedctible_amount = 1000,
+                           reinsurance_structure_eel_limit_amount = Inf)
+  structure_words <- sim_report_words(exclude, data.frame(claim_counts = 1L, total_claims = totals,
+                                                          gross_claims = c(1:200, Inf, Inf, Inf)))
+  expect_match(structure_words, paste("3 of 203 simulations had undefined (NaN) totals: an infinite amount met a layer",
+                                      "with an infinite deductible or an excluded layer with an infinite limit"), fixed = TRUE)
+  expect_false(grepl("overflowed", structure_words, fixed = TRUE))
+  #both causes, counted apart
+  both <- sim_report_words(exclude, data.frame(claim_counts = 1L, total_claims = totals, gross_claims = c(1:200, NaN, Inf, Inf)))
+  expect_match(both, paste("In 1 of them the claims overflowed to both +Inf and -Inf, whose sum is undefined; in 2",
+                           "an infinite amount met a layer"), fixed = TRUE)
+  #without the gross totals the cause for a run with layers is not known, so both are given
+  expect_match(sim_report_words(exclude, totals), "for example because claims overflowed to both +Inf and -Inf", fixed = TRUE)
+
+  #one undefined total is counted in the singular
+  one <- sim_report_words(plain, c(1:200, NaN))
+  expect_match(one, "1 of 201 simulations had an undefined (NaN) total: the claims overflowed", fixed = TRUE)
+  expect_match(one, "It is left out of every figure and chart in this report, which describe the other 200 simulations.",
+               fixed = TRUE)
+  expect_match(one, "1 simulation had an undefined (NaN) total and is left out of the charts.", fixed = TRUE)
+})
+
+test_that("the report counts one simulation in the singular", {
+  one <- sim_report_words(base_settings(numOfSimulations = 1), 250)
+  expect_false(grepl("\\b1 simulations\\b", one))
+  expect_match(one, "<div class=\"kpi-note\">1 simulation</div>", fixed = TRUE)
+  expect_match(sim_report_words(base_settings(), c(1:200, NaN)), "<div class=\"kpi-note\">200 of 201 simulations</div>",
+               fixed = TRUE)
+  #one infinite total
+  infinite <- sim_report_words(base_settings(), c(1:99, Inf))
+  expect_match(infinite, "1 of 100 simulations had an infinite total, so the figures that include it are infinite.",
+               fixed = TRUE)
+  expect_match(infinite, "1 simulation (1.0%) had an infinite total and is left out of the charts.", fixed = TRUE)
+  expect_false(grepl("\\b1 simulations\\b", infinite))
+})
+
+test_that("the compare tab shows infinite values as Inf or -Inf and undefined ones as a dash", {
+  dash <- intToUtf8(8212)
+  expect_identical(sim_tab_fmt_amount(Inf), "Inf")
+  expect_identical(sim_tab_fmt_amount(-Inf, 2), "-Inf")
+  expect_identical(sim_tab_fmt_amount(NaN), dash)
+  expect_identical(sim_tab_fmt_amount(NA_real_), dash)
+  expect_identical(sim_tab_fmt_int(Inf), "Inf")
+  expect_identical(sim_tab_fmt_int(NaN), dash)
+  expect_identical(sim_tab_fmt_pct(Inf), "Inf")
+  expect_identical(sim_tab_fmt_pct(-Inf, 2), "-Inf")
+  expect_identical(sim_tab_fmt_pct(NaN), dash)
+
+  #+Inf and -Inf totals: the mean is undefined, the tail infinite
+  mixed <- compare_entry_of(1, base_settings(), data.frame(claim_counts = 1L, total_claims = c(1:200, rep(Inf, 30), rep(-Inf, 10))))
+  #-Inf totals only: the mean and the median are -Inf
+  negative <- compare_entry_of(2, base_settings(), data.frame(claim_counts = 1L, total_claims = c(rep(-Inf, 150), 1:100)))
+  html <- as.character(sim_tab_metrics_table(list(mixed, negative), c("Mixed", "Negative")))
+  #the cells of one row of the table, one per run
+  row <- function(label) {
+    part <- regmatches(html, regexpr(paste0("<td>", label, "</td>(\\s*<td>[^<]*</td>){2}"), html))
+    gsub("^<td>|</td>$", "", regmatches(part, gregexpr("<td>[^<]*</td>", part))[[1]][-1])
+  }
+  expect_true(is.finite(mixed$metrics$median) && is.finite(negative$metrics$var995))
+  expect_identical(row("Mean"), c(dash, "-Inf"))
+  expect_identical(row("Median"), c(sim_tab_fmt_amount(mixed$metrics$median, mixed$digits), "-Inf"))
+  expect_identical(row("VaR 99.5%"), c("Inf", sim_tab_fmt_amount(negative$metrics$var995, negative$digits)))
+  expect_identical(row("TVaR 99.5%"), c("Inf", sim_tab_fmt_amount(negative$metrics$tvar995, negative$digits)))
+  expect_false(grepl("NaN", html, fixed = TRUE))
+  #a note says what Inf and the dash mean; runs without infinite totals do not get it
+  expect_match(html, "Inf and -Inf are infinite values. A dash is a value that is undefined", fixed = TRUE)
+  clean <- compare_entry_of(3, base_settings(numOfSimulations = 200))
+  expect_false(grepl("infinite values", as.character(sim_tab_metrics_table(list(clean), "Clean")), fixed = TRUE))
+})
+
 # ---------------------------------------------------------------- number formats
 
 test_that("very large settings are described in scientific format on the compare tab", {
@@ -234,9 +350,16 @@ test_that("quick Add slice clicks each add a slice", {
 # ---------------------------------------------------------------- layout
 
 test_that("the layout keeps the brand, the example names and the compare labels readable", {
-  expect_match(sim_ui_css, "\\.navbar \\.navbar-header \\{[^}]*flex-shrink: 0;")
+  #the brand keeps a gap before the nav links, and where room is short it shrinks with an
+  #ellipsis rather than pushing the menu button off a narrow screen
   expect_match(sim_ui_css, "\\.sim-brand \\{[^}]*margin-right: 2rem;")
-  expect_match(sim_ui_css, "\\.sim-brand-text \\{[^}]*white-space: nowrap;")
+  expect_match(sim_ui_css, "\\.sim-brand-text \\{[^}]*white-space: nowrap;[^}]*min-width: 0;")
+  expect_match(sim_ui_css, "\\.sim-brand-subtitle \\{[^}]*text-overflow: ellipsis;")
+  expect_match(sim_ui_css, "\\.navbar \\.navbar-toggle \\{[^}]*flex-shrink: 0;")
+  #the expanded header is one row: the nav never wraps, and below 1400 px the theme switch
+  #shows its icons only
+  expect_match(sim_ui_css, "@media \\(min-width: 992px\\) \\{\\s*\\.navbar \\.navbar-nav \\{\\s*flex-wrap: nowrap;")
+  expect_match(sim_ui_css, "@media \\(min-width: 992px\\) and \\(max-width: 1399.98px\\) \\{\\s*\\.theme-btn-label \\{\\s*display: none;")
   #the example select has the full width of the card, with the button under it
   expect_match(sim_settings_io_css, "\\.sim-settings-example \\{[^}]*grid-template-columns: minmax\\(0, 1fr\\);")
   expect_match(sim_tab_css, "\\.sim-compare-table td:first-child \\{[^}]*white-space: nowrap;")

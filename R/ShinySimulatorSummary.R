@@ -103,13 +103,17 @@ sorted_tvar <- function(sorted, p) {
 #' @param results The data frame returned by \code{simulate_function}, or a numeric
 #'   vector of total claims.
 #' @return A list with the elements \code{n} (simulations with a defined total),
-#'   \code{undefined} (simulations whose total is NaN or NA), \code{role} ("gross",
+#'   \code{undefined} (simulations whose total is NaN or NA), \code{undefined_cause} (the
+#'   undefined totals split into \code{claims}, whose gross total is undefined too, as
+#'   claims overflowed to both +Inf and -Inf; \code{structures}, whose gross total is
+#'   defined; and \code{unknown}, without gross totals to tell), \code{role} ("gross",
 #'   "ceded", "net" or "mixed"), \code{modelled_label}, \code{totals}, \code{stats},
 #'   \code{percentiles}, \code{percentiles_dropped}, \code{gross}, \code{layer}
 #'   and \code{frequency}. \code{gross}, \code{layer} and \code{frequency} are
-#'   \code{NULL} when they do not apply. \code{gross} holds \code{table}, \code{series}
-#'   and \code{unknown}, the number of simulations whose gross and modelled totals are
-#'   both infinite, so that their difference is unknown (NA) and its column blank.
+#'   \code{NULL} when they do not apply. \code{gross} holds \code{table}, \code{series},
+#'   \code{unknown}, the number of simulations whose gross and modelled totals are
+#'   both infinite, so that their difference is unknown (NA) and its column blank, and
+#'   \code{undefined}, the number of defined totals whose gross total is NaN.
 #' @noRd
 summarise_simulation <- function(settings, results) {
   s <- settings
@@ -120,6 +124,8 @@ summarise_simulation <- function(settings, results) {
   counts <- if ("claim_counts" %in% names(results)) as.numeric(results$claim_counts) else NULL
   defined <- !is.na(results$total_claims)
   undefined <- sum(!defined)
+  #an undefined total whose gross total is undefined too comes from the claims themselves
+  gross_undefined <- if ("gross_claims" %in% names(results)) is.na(results$gross_claims[!defined]) else NULL
   results <- results[defined, , drop = FALSE]
   totals <- as.numeric(results$total_claims)
   n <- length(totals)
@@ -163,6 +169,19 @@ summarise_simulation <- function(settings, results) {
     "mixed"
   }
   modelled_label <- switch(role, gross = "Total claims", ceded = "Ceded", net = "Net", mixed = "After structures")
+
+  #why totals are undefined: claims that overflowed to both +Inf and -Inf in one simulation
+  #(so the gross total is NaN too), or an infinite amount less an infinite deductible or
+  #limit in the structures; without the gross totals only a gross run's cause is known
+  undefined_cause <- c(claims = 0, structures = 0, unknown = 0)
+  if (!is.null(gross_undefined)) {
+    undefined_cause[["claims"]] <- sum(gross_undefined)
+    undefined_cause[["structures"]] <- undefined - sum(gross_undefined)
+  } else if (role == "gross") {
+    undefined_cause[["claims"]] <- undefined
+  } else {
+    undefined_cause[["unknown"]] <- undefined
+  }
 
   # ---------- statistics of the modelled totals ----------
   sorted <- sort(totals)
@@ -236,7 +255,8 @@ summarise_simulation <- function(settings, results) {
       if (anyNA(x)) return(rep(NA_real_, 7))
       x_sorted <- sort(x)
       x_mean <- mean(x)
-      share <- if (gross_mean > 0) x_mean / gross_mean else NA_real_
+      #the gross mean is NaN when the gross totals hold both +Inf and -Inf
+      share <- if (isTRUE(gross_mean > 0)) x_mean / gross_mean else NA_real_
       c(
         x_mean,
         #Inf / Inf, when both means are infinite
@@ -252,7 +272,8 @@ summarise_simulation <- function(settings, results) {
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
-    gross_summary <- list(table = table, series = series, unknown = sum(unknown))
+    #gross totals of +Inf and -Inf claims are NaN, which leaves the columns that need them blank
+    gross_summary <- list(table = table, series = series, unknown = sum(unknown), undefined = sum(is.na(gross)))
   }
 
   # ---------- layer metrics ----------
@@ -331,6 +352,7 @@ summarise_simulation <- function(settings, results) {
   list(
     n = n,
     undefined = undefined,
+    undefined_cause = undefined_cause,
     role = role,
     modelled_label = modelled_label,
     totals = totals,

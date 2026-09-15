@@ -329,20 +329,6 @@ test_that("a cap at or below the deductible cedes nothing with layer-only draws"
   expect_gt(mean(res$claim_counts), 2.5)
 })
 
-test_that("old settings files with the Normal under mu and sigma still load", {
-  old <- list(sevDistr = "Normal", mu = 1000, sigma = 600, freqDistr = "Poisson", lamda = 3)
-  migrated <- sim_settings_migrate(old, version = 1)
-  expect_equal(migrated$normal_mean, 1000)
-  expect_equal(migrated$normal_sd, 600)
-  expect_null(migrated$mu)
-  ids <- vapply(sim_settings_plan(migrated), `[[`, character(1), "id")
-  expect_true(all(c("normal_mean", "normal_sd") %in% ids))
-  #Log-Normal files and current files are left as they are
-  lognormal <- list(sevDistr = "LogNormal", mu = 9, sigma = 1.3)
-  expect_identical(sim_settings_migrate(lognormal, version = 1), lognormal)
-  expect_identical(sim_settings_migrate(old, version = 2), old)
-})
-
 #put back the plan in place before this file (on CRAN the parallel tests are skipped and
 #never start the shared workers)
 if (!is.null(shared_workers$previous_plan)) future::plan(shared_workers$previous_plan)

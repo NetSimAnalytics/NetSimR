@@ -47,16 +47,25 @@ sim_tab_fmt_amount <- function(x, digits = NULL) {
   if (is.null(x) || length(x) == 0 || is.na(x[1]) || !is.numeric(x)) return(intToUtf8(8212))
   #adding zero turns -0 (e.g. no claims under a Normal severity with a negative mean) into 0
   x <- as.numeric(x[1]) + 0
+  if (is.infinite(x)) return(sim_tab_fmt_infinite(x))
   #amounts too large for a readable fixed format (a Pareto severity with a tiny alpha)
   if (is.finite(x) && abs(x) >= 1e15) return(formatC(x, format = "e", digits = 3))
   if (is.null(digits)) digits <- display_digits(x)
   formatC(x, format = "f", digits = digits, big.mark = ",")
 }
 
+#' Show an infinite number as signed infinity
+#'
+#' Every figure of the compare tab shows an infinite value as "Inf" or "-Inf", as the
+#' report does, and keeps the dash for values that are undefined (NaN) or missing.
+#' @noRd
+sim_tab_fmt_infinite <- function(x) if (x > 0) "Inf" else "-Inf"
+
 #' Format a whole number with thousands separators
 #' @noRd
 sim_tab_fmt_int <- function(x) {
   if (is.null(x) || length(x) == 0 || is.na(x[1])) return(intToUtf8(8212))
+  if (is.infinite(x[1])) return(sim_tab_fmt_infinite(x[1]))
   formatC(round(as.numeric(x[1])), format = "d", big.mark = ",")
 }
 
@@ -65,6 +74,8 @@ sim_tab_fmt_int <- function(x) {
 sim_tab_fmt_pct <- function(p, digits = 1) {
   if (is.null(p) || length(p) == 0 || is.na(p[1])) return(intToUtf8(8212))
   p <- as.numeric(p[1])
+  #e.g. a loss on line of an infinite expected loss
+  if (is.infinite(p)) return(sim_tab_fmt_infinite(p))
   #e.g. a loss on line of a huge expected loss on a small limit
   if (is.finite(p) && abs(100 * p) >= 1e15) return(paste0(formatC(100 * p, format = "e", digits = 3), "%"))
   #small probabilities get an extra decimal so they do not round to zero
@@ -213,7 +224,8 @@ sim_tab_compare_entry <- function(run) {
 #'
 #' @param entries List of compare entries (see sim_tab_compare_entry) to show as columns.
 #' @param names Display names, one per entry.
-#' @return An HTML table built with shiny tags.
+#' @return An HTML table built with shiny tags, followed by a note on what Inf and the dash
+#'   mean when a run has infinite totals.
 #' @noRd
 sim_tab_metrics_table <- function(entries, names) {
   amount_row <- function(label, key) {
@@ -223,8 +235,20 @@ sim_tab_metrics_table <- function(entries, names) {
     )
   }
   has_value <- function(key) any(vapply(entries, function(e) !is.na(e$metrics[[key]]), logical(1)))
+  #infinite totals give infinite figures, and undefined ones where +Inf meets -Inf (the mean)
+  #or where the spread of infinite totals is taken (the standard deviation)
+  amount_keys <- c("mean", "sd", "median", "var99", "var995", "tvar995")
+  any_infinite <- any(vapply(entries, function(e) {
+    any(is.infinite(unlist(e$metrics[amount_keys], use.names = FALSE)))
+  }, logical(1)))
+  infinite_note <- if (any_infinite) {
+    p(class = "sim-muted small mt-2 mb-0", paste0(
+      "Inf and -Inf are infinite values. A dash is a value that is undefined or does not apply, such as ",
+      "the standard deviation of infinite totals, or the mean of totals that include both +Inf and -Inf."
+    ))
+  }
 
-  tags$table(
+  table <- tags$table(
     class = "sim-compare-table",
     tags$thead(tags$tr(
       tags$th("Metric"),
@@ -258,6 +282,7 @@ sim_tab_metrics_table <- function(entries, names) {
       )
     )
   )
+  tagList(table, infinite_note)
 }
 
 #' Tick marks of the y axis of the compare chart

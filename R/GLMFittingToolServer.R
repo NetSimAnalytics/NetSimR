@@ -699,24 +699,31 @@ GLMFittingToolServer <- function(input, output, session) {
   #save and load settings
   ######################
 
-  #save configurations: the import options and model choices, never the password or files
+  #save configurations as a text file: the import options and model choices, never the password
+  #or files; the database connection details only when the box is ticked
   output$DownloadDataHandlerConf <- downloadHandler(
-    filename = function() "glm_tool_settings.rds",
+    filename = function() "glm_fitting_tool_settings.txt",
+    contentType = "text/plain",
     content = function(file) {
       ids <- glm_settings_inputs$id
+      if (!isTRUE(isolate(input$settings_include_db))) ids <- setdiff(ids, glm_settings_connection_ids)
       values <- isolate(stats::setNames(lapply(ids, function(id) input[[id]]), ids))
-      saveRDS(list(tool = glm_settings_tool, version = 1L, inputs = Filter(Negate(is.null), values)), file)
+      write_settings_file(Filter(Negate(is.null), values), file, glm_settings_tool, glm_settings_version)
     }
   )
 
-  #load configurations
+  #load configurations: the fields the file has are applied (it never has a password)
   observeEvent(input$load_config, {
     file_info <- input$load_config
     req(file_info$datapath)
-    settings <- tryCatch(readRDS(file_info$datapath), error = function(e) NULL, warning = function(w) NULL)
-    values <- glm_settings_values(settings)
+    settings <- tryCatch(read_settings_file(file_info$datapath, glm_settings_tool), error = function(e) e)
+    if (inherits(settings, "error")) {
+      showNotification(paste0("'", file_info$name, "' was not loaded. ", conditionMessage(settings)), type = "error", duration = 8)
+      return(invisible(NULL))
+    }
+    values <- glm_settings_values(settings$values)
     if (is.null(values)) {
-      showNotification(paste0("'", file_info$name, "' is not a settings file of the GLM fitting tool."), type = "error", duration = 8)
+      showNotification(paste0("'", file_info$name, "' has no settings of the GLM fitting tool."), type = "error", duration = 8)
       return(invisible(NULL))
     }
     kinds <- stats::setNames(glm_settings_inputs$kind, glm_settings_inputs$id)

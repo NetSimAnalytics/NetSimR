@@ -609,9 +609,13 @@ GLMFittingToolUI <- function(request) {
           sim_card_header("floppy-disk", "Settings file", "Import options, model choices and the formula."),
           bslib::card_body(
             downloadButton("DownloadDataHandlerConf", "Save settings", class = "btn-run"),
+            checkboxInput("settings_include_db",
+                          "Include database connection details (server, user, database and query; never the password)",
+                          value = FALSE),
+            dft_help("Leave this unticked to share the file: it then names no server, database or table."),
             tags$hr(class = "sim-divider"),
-            fileInput("load_config", "Load settings", accept = ".rds", placeholder = "No file selected"),
-            dft_help("Database passwords and uploaded files are not saved.")
+            fileInput("load_config", "Load settings", accept = ".txt", placeholder = "No file selected"),
+            dft_help("The settings are a text file. Database passwords and uploaded files are not saved.")
           )
         ),
         bslib::card(

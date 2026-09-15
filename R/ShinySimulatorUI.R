@@ -106,14 +106,21 @@ body {
   padding-bottom: 0.5rem;
 }
 
-/* the brand keeps its full width and a gap after it, so the nav links never cover or touch
-   its subtitle; the gap is a margin on .sim-brand because .navbar-brand is an inline span
-   around it, whose own margin did not widen the header that holds it */
+/* the brand keeps a gap after it, so the nav links never touch its subtitle; the gap is a
+   margin on .sim-brand, inside .navbar-brand. Where room is short the brand shrinks, its
+   title and subtitle ending in an ellipsis: beside the menu button on a narrow screen, and
+   beside the nav links on a wide one, which stay on one row (see Responsive) */
 .navbar .navbar-header {
+  min-width: 0;
+}
+
+.navbar .navbar-toggle {
   flex-shrink: 0;
 }
 
 .navbar-brand {
+  display: block;
+  min-width: 0;
   margin-right: 0 !important;
 }
 
@@ -122,6 +129,7 @@ body {
   align-items: center;
   gap: 12px;
   margin-right: 2rem;
+  min-width: 0;
 }
 
 .sim-brand-mark {
@@ -135,6 +143,7 @@ body {
   color: #ffffff;
   font-size: 18px;
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+  flex-shrink: 0;
 }
 
 .sim-brand-text {
@@ -142,6 +151,13 @@ body {
   flex-direction: column;
   line-height: 1.1;
   white-space: nowrap;
+  min-width: 0;
+}
+
+.sim-brand-title,
+.sim-brand-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sim-brand-title {
@@ -759,9 +775,53 @@ body {
   }
 }
 
+/* the expanded header is one row: the nav links and the theme switch never wrap, and the
+   brand gives way to them instead */
+@media (min-width: 992px) {
+  .navbar .navbar-nav {
+    flex-wrap: nowrap;
+  }
+
+  /* the brand is a block (so it can shrink), whose padding would add to the header's
+     height, as it did not when it was an inline span */
+  .navbar-brand {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .navbar .nav-link {
+    white-space: nowrap;
+  }
+}
+
+/* below 1400 px there is no room for every part at full size (the fitting tools have five
+   or six tabs): the theme switch shows its icons only and the nav links sit closer */
+@media (min-width: 992px) and (max-width: 1399.98px) {
+  .theme-btn-label {
+    display: none;
+  }
+
+  .navbar .nav-link {
+    padding: 0.55rem 0.5rem !important;
+  }
+}
+
+/* and below 1200 px the brand subtitle and the nav link icons are left out too */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .sim-brand-subtitle,
+  .navbar .nav-link > i {
+    display: none;
+  }
+}
+
 @media (max-width: 991.98px) {
   .theme-switch {
     margin: 0.5rem 0;
+  }
+
+  /* the gap before the menu button */
+  .sim-brand {
+    margin-right: 0.75rem;
   }
 }
 

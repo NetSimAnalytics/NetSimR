@@ -262,8 +262,9 @@ Changes in Version 0.3.1
     can change in the fifth decimal.
   o Shiny tools: charts are redrawn when the window is resized (legends used
     to overlap), and on Windows they are drawn with the cairo device when no
-    other device is installed, so the dark theme no longer shows smeared text
-    and bright grid lines.
+    other device is installed, with greyscale anti-aliasing, so the dark theme
+    no longer shows smeared text, bright grid lines or coloured fringes on
+    text.
   o GLM fitting tool: the downloaded model (RDS) no longer contains the Shiny
     session. It used to hold every input, including a database password typed
     on the Data tab, and was many times larger than the model itself.
@@ -276,6 +277,14 @@ Changes in Version 0.3.1
   o GLM fitting tool: after an import, the response defaults to a column whose
     name suggests one (such as claim_count or loss), and the chart variable to
     a column that is not an ID. Columns already chosen are kept.
+  o GLM fitting tool: settings are saved as a plain text file
+    ("glm_fitting_tool_settings.txt"), one "field: value" line per setting,
+    and loading one never runs code. Settings files saved as .rds by earlier
+    versions no longer load; save the settings again to get a text file.
+  o GLM fitting tool: the database server, port, database name, user and SQL
+    query are saved with the settings only when "Include database connection
+    details" is ticked (off by default), so a shared file does not disclose
+    internal infrastructure. The password is never saved.
   o Distribution fitting tool: the Negative Binomial fit no longer falls back
     to the Poisson (size 1e8) on overdispersed claim counts; it finds the
     maximum likelihood size whenever the variance is above the mean, with or
@@ -306,6 +315,22 @@ Changes in Version 0.3.1
   o simulate_claims() and simulate_function(): the documentation of
     number_of_reinstatements_used says that with an aggregate "exclude" layer
     the reinstatements are counted before the exclusion.
+  o Claims simulator: the report and the Compare tab no longer fail for a run
+    whose totals include both +Inf and -Inf when a reinsurance structure is
+    set.
+  o Claims simulator: the report explains undefined (NaN) totals by their
+    cause (claims that overflowed to both +Inf and -Inf, or an infinite amount
+    meeting a layer with an infinite deductible or limit) instead of always
+    blaming an excluded layer with an infinite limit.
+  o Claims simulator: the Compare tab shows infinite values as Inf or -Inf in
+    every row, keeps the dash for undefined values, and says what both mean;
+    the report uses the singular wherever a count is one ("1 simulation").
+  o Shiny tools: the header stays on one row from 992 px wide, and on narrow
+    screens the app name gives way to the menu button instead of pushing it
+    off the page.
+  o Claims simulator: settings files are plain text (.txt) files that can be
+    read and compared, and loading one never runs code. Old .rds settings
+    files no longer load; save the settings again from this version.
   o Claims simulator: the Compare tab's return-period chart is drawn with base
     R graphics. It follows the app's light, dark or system theme and wraps its
     legend at narrow widths; it no longer shows values on hover.

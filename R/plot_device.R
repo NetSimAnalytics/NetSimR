@@ -7,14 +7,15 @@
 # grDevices::png(), whose default device on Windows cannot draw semi-transparent pixels:
 # on a transparent background it loses text anti-aliasing and faint colours, so charts in
 # the dark theme look smeared. The cairo type of png() draws them properly, so it is asked
-# for only in that case (the other devices do not take a type argument).
+# for only in that case (the other devices do not take a type argument), with greyscale
+# anti-aliasing: its default, subpixel, gives text coloured fringes.
 plot_device_args <- function() {
   installed <- function(pkg) nzchar(system.file(package = pkg))
   uses_ragg <- isTRUE(getOption("shiny.useragg", TRUE)) && installed("ragg")
   uses_cairo_package <- isTRUE(getOption("shiny.usecairo", TRUE)) && installed("Cairo")
   uses_png <- !uses_ragg && !isTRUE(capabilities("aqua")) && !uses_cairo_package
   if (uses_png && .Platform$OS.type == "windows" && isTRUE(capabilities("cairo"))) {
-    list(type = "cairo")
+    list(type = "cairo", antialias = "gray")
   } else {
     list()
   }
