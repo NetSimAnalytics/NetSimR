@@ -15,7 +15,10 @@ test_that("settings round-trip through the text file with their types", {
   expect_identical(back$tool, "test tool")
   expect_identical(back$version, 3)
   expect_identical(names(back$values), names(values))
-  for (id in names(values)) expect_identical(back$values[[id]], values[[id]], info = id)
+  for (id in setdiff(names(values), "tiny")) expect_identical(back$values[[id]], values[[id]], info = id)
+  #the file holds the text 1e-300 exactly, but R's conversion of text to a double loses some
+  #precision at extreme exponents on platforms without long double (macOS arm64: 9.999999985e-301)
+  expect_equal(back$values$tiny, values$tiny, tolerance = 1e-8)
   #the file is plain text a person can read
   expect_true(any(grepl("^thresholds: c\\(1000, 5000, 25000\\)$", readLines(file))))
 })
