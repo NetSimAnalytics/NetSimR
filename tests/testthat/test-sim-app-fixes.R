@@ -317,6 +317,60 @@ test_that("switching the custom seed off and on keeps its value", {
   })
 })
 
+test_that("values typed just after loading an example are kept, not set back to the example's", {
+  #the loader used to count a value as loaded only once it had held for half a second, and
+  #took any change before then for a field reset by the browser: it sent the example's value
+  #again over what the user had typed (seen in the browser tests on slow CI machines)
+  sent <- list()
+  local_mocked_bindings(
+    sim_settings_apply_update = function(session, id, kind, value) sent[[length(sent) + 1]] <<- list(id = id, value = value),
+    sim_settings_notify = function(message, type = "message") NULL
+  )
+  shiny::testServer(shiny_simulator_server, {
+    set_page_inputs(session)
+    session$setInputs(settingsIO_example = "Motor: excess of loss layer", settingsIO_load_example = 1)
+    #the browser applies the example's choices, the server builds the fields and the browser
+    #reports the example's values
+    set_page_inputs(session, seedSetBinary = TRUE, reinsuranceStructureEEL = "Limited Layer", numberOfSimulations = 50000)
+    session$elapse(300)
+    session$setInputs(lamda = 5, mu = 9, sigma = 1.3, seedValue = 1, reinsurance_structure_eel_dedctible_amount = 50000,
+                      reinsurance_structure_eel_limit_amount = 200000, reinsuranceStructureLimitedReinstatements = TRUE)
+    session$setInputs(reinsuranceStructureReinstatementLimit = 2)
+    #the user types new values at once
+    before_typing <- length(sent)
+    session$setInputs(numberOfSimulations = 12345, lamda = 6.5, seedValue = 2024)
+    Sys.sleep(0.6)
+    for (i in 1:8) session$elapse(300)
+    expect_identical(sent[-seq_len(before_typing)], list())
+    expect_equal(input$lamda, 6.5)
+    expect_equal(input$seedValue, 2024)
+  })
+})
+
+test_that("fields built after loading settings start from the loaded values, even after the load gave up", {
+  #a slow browser: the example's choices reach the server only after the loader has stopped
+  #waiting for the fields (here at once); the fields are built from the loaded values anyway
+  old <- options(netsimr.settings_io_timeout = -1)
+  on.exit(options(old), add = TRUE)
+  local_mocked_bindings(sim_settings_notify = function(message, type = "message") NULL)
+  shiny::testServer(shiny_simulator_server, {
+    set_page_inputs(session)
+    session$setInputs(lamda = 3)
+    session$setInputs(freqDistr = "Binomial")
+    session$setInputs(settingsIO_example = "Motor: excess of loss layer", settingsIO_load_example = 1)
+    session$elapse(300)
+    set_page_inputs(session, seedSetBinary = TRUE, reinsuranceStructureEEL = "Limited Layer")
+    expect_match(ui_html(output$freq_param_1), 'id="lamda"[^>]*value="5"')
+    expect_match(ui_html(output$sev_param_1), 'id="mu"[^>]*value="9"')
+    expect_match(ui_html(output$seed_value), 'value="1"', fixed = TRUE)
+    expect_match(ui_html(output$reinsuranceStructureDeductibleEEL), 'value="50000"', fixed = TRUE)
+    expect_match(ui_html(output$reinsuranceStructureLimitEEL), 'value="2e\\+05"|value="200000"')
+    expect_match(ui_html(output$reinsuranceStructureLimitedReinstatements_ui), "checked", fixed = TRUE)
+    session$setInputs(reinsuranceStructureLimitedReinstatements = TRUE)
+    expect_match(ui_html(output$reinsuranceStructureReinstatementLimit_ui), 'value="2"', fixed = TRUE)
+  })
+})
+
 # ---------------------------------------------------------------- Pareto slices
 
 test_that("quick Add slice clicks each add a slice", {

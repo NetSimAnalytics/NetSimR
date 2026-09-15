@@ -441,22 +441,27 @@ sim_settings_io_ui <- function() {
 #' Loading happens in two stages. The controls that are always on the page are updated
 #' at once. The fields that the server renders only for some choices are kept pending
 #' and set once the choices they depend on have reached the browser and the fields
-#' exist. A value is treated as done once the input has held it for a moment, so a
-#' field that the browser re-renders after the update is set again. Pending values for
-#' fields that never appear are dropped quietly after the timeout in
+#' exist. Their values are also handed to \code{remember} at once, so a field that the
+#' server builds (or rebuilds) after the load starts from the loaded value, however slow
+#' the browser is. A pending value is done as soon as the input holds it; from then on
+#' the field is the user's, and a value typed after the load is never set back. An update
+#' that the browser lost (the field still has the value it had when the update was sent)
+#' is sent again; any other value is taken as typed by the user and kept. Pending values
+#' for fields that never appear are dropped quietly after the timeout in
 #' \code{getOption("netsimr.settings_io_timeout", 6)} seconds.
 #'
 #' @param input Input of the simulator server function.
 #' @param output Output of the simulator server function.
 #' @param session Session of the simulator server function.
+#' @param remember NULL, or a function of an input id and a value that stores the value
+#' the server builds that field from (the simulator's remembered typed values).
 #' @return Called for its side effects.
 #' @noRd
-sim_settings_io_server <- function(input, output, session) {
-  #how long to wait for dynamic fields, and how to retry a value the browser reset
+sim_settings_io_server <- function(input, output, session, remember = NULL) {
+  #how long to wait for dynamic fields, and how to retry an update the browser lost
   timeout_seconds <- getOption("netsimr.settings_io_timeout", 6)
   retry_seconds <- 0.5
   max_attempts <- 3
-  settle_seconds <- 0.5
   poll_millis <- 250
 
   #save the current settings
@@ -491,9 +496,22 @@ sim_settings_io_server <- function(input, output, session) {
     later <- lapply(entries[is_pending], function(entry) {
       entry$attempts <- 0L
       entry$sent_at <- NULL
-      entry$matched_at <- NULL
+      entry$before <- NULL
       entry
     })
+    #a field built after this point (its choice reaches the server later, or the browser
+    #is slow and the pending value times out) starts from the loaded value
+    if (is.function(remember)) {
+      for (entry in later) {
+        value <- switch(
+          entry$kind
+          ,numeric = suppressWarnings(as.numeric(entry$value))
+          ,checkbox = isTRUE(as.logical(entry$value))
+          ,entry$value
+        )
+        remember(entry$id, value)
+      }
+    }
     deadline <<- Sys.time() + timeout_seconds
     pending(later)
 
@@ -526,23 +544,24 @@ sim_settings_io_server <- function(input, output, session) {
         next
       }
       if (sim_settings_values_match(current, entry$value)) {
-        #done once the value has held for a moment, in case the browser re-renders the field
-        if (is.null(entry$matched_at)) {
-          entry$matched_at <- now
-          changed <- TRUE
-        } else if (as.numeric(now - entry$matched_at, units = "secs") >= settle_seconds) {
-          changed <- TRUE
-          next
-        }
-        keep[[length(keep) + 1]] <- entry
+        #done: a field rebuilt later starts from the remembered value, and a value the
+        #user types from now on must not be set back (it was, on slow machines, when a
+        #value that had just arrived had to hold for a moment before it counted)
+        changed <- TRUE
         next
       }
-      entry$matched_at <- NULL
+      if (!is.null(entry$sent_at) && !sim_settings_values_match(current, entry$before)) {
+        #the field changed since the update was sent, to another value: the user typed it
+        changed <- TRUE
+        next
+      }
       waited <- if (is.null(entry$sent_at)) Inf else as.numeric(now - entry$sent_at, units = "secs")
       if (entry$attempts < max_attempts && waited >= retry_seconds) {
+        #the first update, or again when the browser lost it (the field kept its old value)
         sim_settings_apply_update(session, entry$id, entry$kind, entry$value)
         entry$attempts <- entry$attempts + 1L
         entry$sent_at <- now
+        entry$before <- current
         changed <- TRUE
       }
       keep[[length(keep) + 1]] <- entry

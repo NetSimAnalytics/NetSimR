@@ -1108,6 +1108,11 @@ run_chunks_in_futures <- function(run_chunk, chunk_seeds) {
       })
     }, seed = seeds[[1]])
   })
+  #wait for every group before collecting the values: value() stops at the first error, and a
+  #group still running would leave its result unread on its worker; future then finds that
+  #worker broken and relaunches it, and the relaunched worker's connection is not closed when
+  #the plan is shut down (the garbage collector closes it later, with a warning)
+  future::resolve(futures)
   unlist(future::value(futures), recursive = FALSE, use.names = FALSE)
 }
 

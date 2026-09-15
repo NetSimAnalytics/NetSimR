@@ -142,6 +142,32 @@ test_that("customised settings saved by the app load back into every field", {
   expect_identical(notes, "message Settings loaded from 'claims_simulator_settings.txt'.")
 })
 
+test_that("an update the browser lost is sent again, but a value typed instead of it is kept", {
+  sent <- list()
+  local_mocked_bindings(
+    sim_settings_apply_update = function(session, id, kind, value) sent[[length(sent) + 1]] <<- list(id = id, value = value),
+    sim_settings_notify = function(message, type = "message") NULL
+  )
+  seed_sends <- function() sum(vapply(sent, function(s) identical(s$id, "seedValue"), logical(1)))
+  shiny::testServer(sim_settings_io_server, {
+    #the seed field is on the page with another seed
+    session$setInputs(freqDistr = "Poisson", sevDistr = "LogNormal", seedSetBinary = TRUE, seedValue = 77,
+                      reinsuranceStructureEEL = "Limited Layer", reinsuranceStructureAL = "No Reinsurance Structure")
+    session$setInputs(settingsIO_example = "Motor: excess of loss layer", settingsIO_load_example = 1)
+    expect_equal(seed_sends(), 1)
+    #the field still has its old value: the browser lost the update, which is sent again
+    Sys.sleep(0.6)
+    session$elapse(300)
+    expect_equal(seed_sends(), 2)
+    #the user types a seed before the update arrives: it is kept, and not set again
+    session$setInputs(seedValue = 2024)
+    expect_false("seedValue" %in% vapply(pending(), `[[`, character(1), "id"))
+    Sys.sleep(0.6)
+    session$elapse(300)
+    expect_equal(seed_sends(), 2)
+  })
+})
+
 test_that("corrupted files, .rds files and other tools' files are refused with a message", {
   applied <- list()
   notes <- character()

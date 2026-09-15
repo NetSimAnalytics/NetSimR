@@ -24,7 +24,9 @@ jobs:
           - {os: macos-latest,   r: 'release'}
           - {os: windows-latest, r: 'release'}
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
-          - {os: ubuntu-latest,  r: 'release'}
+          # the browser tests (tests/testthat/test-app-*.R) run on this job only: they add a few
+          # minutes and depend on timing, and the apps' behaviour does not differ by platform
+          - {os: ubuntu-latest,  r: 'release', browser-tests: 'true'}
           - {os: ubuntu-latest,  r: 'oldrel-1'}
 
     env:
@@ -32,6 +34,7 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
       # the database drivers in Suggests are optional; the check should not fail if one cannot be installed
       _R_CHECK_FORCE_SUGGESTS_: false
+      NETSIMR_BROWSER_TESTS: ${{ matrix.config.browser-tests || 'false' }}
 
     steps:
       - uses: actions/checkout@v5

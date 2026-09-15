@@ -116,8 +116,8 @@ test_that("simulator settings saved to a text file load back, and an .rds file i
   app_goto(app, "simulator")
   expect_match(app$get_js("document.getElementById('settingsIO_load').getAttribute('accept')"), ".txt", fixed = TRUE)
   #wait for every value this test changes next: the example's seed field is drawn by the server,
-  #so its value arrives in the loader's second stage and, on a slow machine, could otherwise land
-  #after (and overwrite) the value set below
+  #so its value arrives in the loader's second stage. The values are typed straight after they
+  #arrive: the loader once sent the example's values back over them (on slow CI machines)
   sim_load_example(app, "Motor: excess of loss layer",
                    list(lamda = 5, numberOfSimulations = 50000, seedValue = 1,
                         reinsuranceStructureEEL = "Limited Layer", reinsuranceStructureReinstatementLimit = 2))
@@ -136,6 +136,7 @@ test_that("simulator settings saved to a text file load back, and an .rds file i
                     "reinsuranceStructureEEL", "reinsurance_structure_eel_limit_amount") %in% names(before)))
   expect_equal(before$numberOfSimulations, 12345)
   expect_equal(before$lamda, 6.5)
+  expect_equal(before$seedValue, 2024)
 
   #other settings, then the saved file restores every input
   sim_load_example(app, "Property: aggregate cover",

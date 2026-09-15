@@ -12,6 +12,11 @@
 #skips a browser test where it cannot or should not run
 skip_if_no_app_browser <- function() {
   testthat::skip_on_cran()
+  #on continuous integration (GitHub Actions sets CI) the browser tests run on one job only,
+  #the one whose workflow sets NETSIMR_BROWSER_TESTS=true; locally they run wherever Chrome is found
+  if (identical(tolower(Sys.getenv("CI")), "true") && !identical(tolower(Sys.getenv("NETSIMR_BROWSER_TESTS")), "true")) {
+    testthat::skip("the browser tests run on one CI job only (NETSIMR_BROWSER_TESTS)")
+  }
   testthat::skip_if_not_installed("shinytest2")
   testthat::skip_if_not_installed("chromote")
   chrome <- tryCatch(suppressMessages(chromote::find_chrome()), error = function(e) NULL)

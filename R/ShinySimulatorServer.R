@@ -43,8 +43,9 @@ shiny_simulator_server <- function(input, output, session) {
   #the cap and the layer fields): a rebuilt field starts from it, so switching an option away
   #and back (Poisson -> Binomial -> Poisson), or between options that share a field (a limited
   #and an unlimited layer both have a deductible), keeps what was typed (values saved with the
-  #Save settings button are unaffected). The Normal keeps its own parameter ids, so its values
-  #do not carry over to the Log-Normal
+  #Save settings button are unaffected). Loaded settings and examples put their values here
+  #too, so a field built after a load starts from the loaded value. The Normal keeps its own
+  #parameter ids, so its values do not carry over to the Log-Normal
   typed <- reactiveValues()
   remembered_ids <- unique(c(
     unlist(lapply(freq_dist_options, function(x) x@paramIDs), use.names = FALSE)
@@ -254,8 +255,11 @@ shiny_simulator_server <- function(input, output, session) {
     }
   })
 
-  #save and load of the simulator settings, with built-in examples
-  sim_settings_io_server(input, output, session)
+  #save and load of the simulator settings, with built-in examples; loaded values of the
+  #rebuilt fields are remembered at once, so a field built after the load starts from them
+  sim_settings_io_server(input, output, session, remember = function(id, value) {
+    if (id %in% remembered_ids) typed[[id]] <- value
+  })
 
   #create simulation data dataFrame reactive to enable download buttons & simulation settings list
   simulated_data <- reactiveValues(data=NULL)
