@@ -114,7 +114,14 @@ test_that("GLM fitting tool still fits every legitimate formula, with column nam
 test_that("GLM fitting tool refuses a formula that calls anything but the formula functions", {
   d <- glm_formula_data()
   path <- glm_formula_csv(d)
-  marker <- tempfile(fileext = ".txt")
+  #the marker is named in the formula, so its name must not depend on the machine: a temporary
+  #path can hold a ~ (the short name of a Windows user directory, RUNNER~1 on the test runners),
+  #and the tool refuses a formula containing ~ before it looks at what the formula calls
+  marker_dir <- tempfile("glm-formula-marker-")
+  dir.create(marker_dir)
+  old_dir <- setwd(marker_dir)
+  on.exit(setwd(old_dir), add = TRUE)
+  marker <- "marker.txt"
   secret <- "glm-formula-secret-4711"
   Sys.setenv(NETSIMR_FORMULA_TEST_SECRET = secret)
   on.exit(Sys.unsetenv("NETSIMR_FORMULA_TEST_SECRET"), add = TRUE)
