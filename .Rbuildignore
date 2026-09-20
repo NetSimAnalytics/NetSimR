@@ -3,6 +3,9 @@
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
 ^tests/testthat/_problems$
+^tests/CappedMean$
+^tests/PureIBNR$
+^tests/SlicedDistributions$
 ^\.claude$
 ^\.github$
 ^.*\.tar\.gz$

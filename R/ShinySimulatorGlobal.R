@@ -2,6 +2,10 @@
 
 #' Parameter to set the maximum number of Pareto slices
 #'
+#' The largest number of Pareto slices that the simulator app and
+#' \code{\link{simulate_claims}} accept, so that the app can build one row of slice inputs
+#' for each.
+#'
 #' @return The maximum number of Pareto Slices.
 #' @keywords internal
 max_number_of_pareto_slices <- 6
@@ -55,11 +59,18 @@ apply_severity_cap <- function(claims, severity_cap_boolean, severity_cap_amount
 
 #' A vector with the reinsurance structure options
 #'
+#' The names of the reinsurance structures that \code{\link{apply_deductible_limit}} and
+#' \code{\link{simulate_function}} accept, used by the simulator app as the choices of its
+#' structure inputs and to validate saved settings.
+#'
 #' @return The reinsurance structure options
 #' @keywords internal
 reinsurance_structures_options <- c('No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer')
 
 #' Apply a deductible and limit to claims
+#'
+#' Works out what a reinsurance structure cedes (or, for an excluded layer, leaves) of each
+#' claim, for pricing a layer or checking the simulator's figures by hand.
 #'
 #' @param gross_claims_data A vector of Claims.
 #' @param reinsurance_structure The chosen reinsurance structure, a single string. Options are: 'No Reinsurance Structure', 'Unlimited Layer', 'Limited Layer', 'Exclude Layer'; anything else is an error.
@@ -176,6 +187,12 @@ distributionClass <- setClass(
 
 #' A vector with the frequency distribution objects
 #'
+#' A named list of \code{distributionClass} objects, one for each claim count distribution
+#' of the simulator: \code{Poisson}, \code{Negative_Binomial}, \code{Binomial} and
+#' \code{Fixed_number_of_Counts}. The names are the values accepted by the \code{freqDistr} argument of
+#' \code{simulate_function()}, and the objects hold the parameter ids, labels and ranges
+#' of the app's inputs and the functions that draw the claim counts.
+#'
 #' @return The frequency distribution objects.
 #' @keywords internal
 freq_dist_options <- c(
@@ -252,6 +269,10 @@ freq_dist_options <- c(
 )
 
 #' A data frame with the frequency distribution parameter placeholders
+#'
+#' One row per parameter of the frequency distribution with the most parameters, giving
+#' the number and output id of the placeholder in which the simulator app renders that
+#' parameter's input for the chosen distribution.
 #'
 #' @return The frequency distribution parameter placeholders.
 #' @keywords internal
@@ -391,6 +412,10 @@ sev_dist_options <- c(
 )
 
 #' A data frame with the severity distribution parameter placeholders
+#'
+#' One row per parameter of the severity distribution with the most parameters, giving
+#' the number and output id of the placeholder in which the simulator app renders that
+#' parameter's input for the chosen distribution.
 #'
 #' @return The severity distribution parameter placeholders.
 #' @keywords internal
@@ -755,8 +780,8 @@ find_missing_simulation_settings <- function(settings) {
 #' @param sev_params A vector of the severity distribution parameters.
 #' @param seedSetBinary True if there is a fixed seed (\code{seedValue}), otherwise false. Defaults to TRUE when a \code{seedValue} is given and FALSE otherwise, so a \code{seedValue} on its own makes the run reproducible; an explicit FALSE ignores \code{seedValue}.
 #' @param seedValue The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}, or NULL (the default) for no fixed seed.
-#' @param freqDistr The frequency distribution. Options are as per the freq_dist_options.
-#' @param sevDistr The severity distribution. Options are as per the sev_dist_options.
+#' @param freqDistr The frequency distribution: \code{"Poisson"}, \code{"Negative_Binomial"}, \code{"Binomial"} or \code{"Fixed_number_of_Counts"}. The parameters of each are listed in \code{\link{simulate_claims}}.
+#' @param sevDistr The severity distribution: \code{"Normal"}, \code{"LogNormal"}, \code{"Gamma"}, \code{"Exponential"}, \code{"Pareto"} or \code{"Fixed_Severity"}. The parameters of each are listed in \code{\link{simulate_claims}}.
 #' @param paretoSlice True if there is Pareto slicing.
 #' @param pareto_slice_times The number of Pareto slices.
 #' @param slice_pareto_alphas A vector of Pareto slices' alpha parameters.
@@ -1117,6 +1142,10 @@ run_chunks_in_futures <- function(run_chunk, chunk_seeds) {
 }
 
 #' A function to run the shiny simulator application
+#'
+#' Opens the claims simulator, a Shiny app for running the frequency-severity model of
+#' \code{\link{simulate_function}} from a form, with charts, a report and saved settings,
+#' without writing any code.
 #'
 #' @return A shiny app object (class \code{shiny.appobj}). Printing it, as happens when
 #'   \code{run_shiny_simulator()} is called at the console, opens the app; pass it to

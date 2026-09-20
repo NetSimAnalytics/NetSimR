@@ -23,6 +23,49 @@ test_that("settings round-trip through the text file with their types", {
   expect_true(any(grepl("^thresholds: c\\(1000, 5000, 25000\\)$", readLines(file))))
 })
 
+test_that("doubles round-trip exactly, and typed values keep their short form", {
+  #15 significant digits (deparse's default) wrote a third as 0.333333333333333, which read
+  #back 3.3e-16 off, so a seeded run loaded from its own file did not reproduce
+  values <- list(third = 1/3, big = 1234567890.1234567, sum = 0.1 + 0.2, typed = 0.3, count = 5000,
+                 pair = c(0.1, 1/3), whole = 3L)
+  file <- tempfile(fileext = ".txt")
+  on.exit(unlink(file), add = TRUE)
+  write_settings_file(values, file, tool = "test tool", version = 3)
+  back <- read_settings_file(file, tool = "test tool")$values
+  for (id in names(values)) expect_identical(back[[id]], values[[id]], info = id)
+  lines <- readLines(file)
+  #only the values that need them are written with 17 digits
+  expect_true("typed: 0.3" %in% lines)
+  expect_true("count: 5000" %in% lines)
+  expect_true("whole: 3L" %in% lines)
+  expect_true("third: 0.33333333333333331" %in% lines)
+  expect_true("sum: 0.30000000000000004" %in% lines)
+
+  #a seeded run gives the same totals from the loaded parameter as from the typed one
+  run <- function(sigma) {
+    simulate_function(numOfSimulations = 2000, freq_params = 3, sev_params = c(6, sigma), seedValue = 1,
+                      freqDistr = "Poisson", sevDistr = "LogNormal")$total_claims
+  }
+  expect_identical(run(back$third), run(1/3))
+})
+
+test_that("hand-edited files with a repeated setting, a blank line or no version are refused with a message", {
+  file <- tempfile(fileext = ".txt")
+  on.exit(unlink(file), add = TRUE)
+  #a repeated setting read as a list of both values, which passed as a length-two number
+  writeLines(c("NetSimRSettings: test tool", "SettingsVersion: 3", "lamda: 5", "lamda: 6"), file)
+  expect_error(read_settings_file(file, tool = "test tool"), "'lamda' is given more than once", fixed = TRUE)
+  #a blank line makes read.dcf() see two records; the file used to be "not a NetSimR settings file"
+  writeLines(c("NetSimRSettings: test tool", "SettingsVersion: 3", "lamda: 5", "", "mu: 2"), file)
+  expect_error(read_settings_file(file, tool = "test tool"), "more than one block of settings; remove any blank lines", fixed = TRUE)
+  #a missing version line gave "subscript out of bounds"
+  writeLines(c("NetSimRSettings: test tool", "lamda: 5"), file)
+  expect_error(read_settings_file(file, tool = "test tool"), "no valid version", fixed = TRUE)
+  #an unchanged file still reads
+  writeLines(c("NetSimRSettings: test tool", "SettingsVersion: 3", "lamda: 5", "mu: 2"), file)
+  expect_identical(read_settings_file(file, tool = "test tool")$values, list(lamda = 5, mu = 2))
+})
+
 test_that("reading a settings file never evaluates code", {
   file <- tempfile(fileext = ".dcf")
   on.exit(unlink(file), add = TRUE)

@@ -401,6 +401,33 @@ test_that("quick Add slice clicks each add a slice", {
   })
 })
 
+test_that("loaded settings replace the number of slices a click sent just before", {
+  #the count sent by a click was kept until the browser echoed exactly it, so a click after
+  #loading settings built on it (Add, Add, load an example without slices, Add gave 3)
+  local_mocked_bindings(sim_settings_notify = function(message, type = "message") NULL)
+  shiny::testServer(shiny_simulator_server, {
+    sent <- function() get("slice_count_sent", envir = environment(set_slice_count))
+    set_page_inputs(session)
+    session$setInputs(add_pareto_slice = 1)
+    session$setInputs(pareto_slice_times = 1)
+    expect_null(sent())
+    #a second click that the browser has not reported back when the example loads
+    session$setInputs(add_pareto_slice = 2)
+    expect_equal(sent(), 2)
+    session$setInputs(settingsIO_example = "Motor: excess of loss layer", settingsIO_load_example = 1)
+    expect_equal(sent(), 0)
+    session$setInputs(pareto_slice_times = 0)
+    expect_null(sent())
+    session$setInputs(add_pareto_slice = 3)
+    expect_equal(sent(), 1)
+    #an example with slices sends its number the same way, so a click at once builds on it
+    session$setInputs(settingsIO_example = "Property: aggregate cover", settingsIO_load_example = 2)
+    expect_equal(sent(), 1)
+    session$setInputs(add_pareto_slice = 4)
+    expect_equal(sent(), 2)
+  })
+})
+
 # ---------------------------------------------------------------- layout
 
 test_that("the layout keeps the brand, the example names and the compare labels readable", {

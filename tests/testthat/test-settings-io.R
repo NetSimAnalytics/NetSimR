@@ -219,13 +219,57 @@ test_that("corrupted files, .rds files and other tools' files are refused with a
   expect_match(load_file(path("unknown.txt"), "unknown.txt"), "unknown severity distribution: 'Weibull'", fixed = TRUE)
   write_settings_file(utils::modifyList(motor, list(reinsuranceStructureAL = c("Limited Layer", "Exclude Layer"))),
                       path("two.txt"), tool = sim_settings_tool, version = sim_settings_version)
-  expect_match(load_file(path("two.txt"), "two.txt"), "unknown AL reinsurance structure", fixed = TRUE)
+  expect_match(load_file(path("two.txt"), "two.txt"),
+               "inputs with more than one value: 'reinsuranceStructureAL'", fixed = TRUE)
   write_settings_file(motor, path("newer.txt"), tool = sim_settings_tool, version = sim_settings_version + 1)
   expect_match(load_file(path("newer.txt"), "newer.txt"), "saved by a newer version of NetSimR", fixed = TRUE)
   write_settings_file(motor, path("older.txt"), tool = sim_settings_tool, version = 2)
   expect_match(load_file(path("older.txt"), "older.txt"), "no longer loads", fixed = TRUE)
 
   expect_true(all(startsWith(notes, "error ")))
+  expect_length(applied, 0)
+})
+
+test_that("a repeated line or a vector in a hand-edited file is refused instead of reaching a field", {
+  applied <- list()
+  notes <- character()
+  local_mocked_bindings(
+    sim_settings_apply_update = function(session, id, kind, value) applied[[id]] <<- value,
+    sim_settings_notify = function(message, type = "message") notes <<- c(notes, paste(type, message))
+  )
+  file <- tempfile(fileext = ".txt")
+  on.exit(unlink(file), add = TRUE)
+  sim_settings_write(sim_settings_examples[["Motor: excess of loss layer"]], file)
+  lines <- readLines(file)
+  load_file <- function() {
+    shiny::testServer(sim_settings_io_server, {
+      session$setInputs(settingsIO_load = list(datapath = file, name = "edited.txt"))
+      expect_length(pending(), 0)
+    })
+    notes[length(notes)]
+  }
+
+  #a duplicated line used to load c(5, 6) into the lambda field
+  writeLines(c(lines, "lamda: 6"), file)
+  expect_identical(sim_settings_read(file), "'lamda' is given more than once in the settings file.")
+  expect_match(load_file(), "^error 'edited.txt': 'lamda' is given more than once in the settings file\\. Please choose")
+  #a vector in a field that holds one value is refused rather than reaching the field
+  writeLines(sub("^lamda: .*$", "lamda: c(5, 6)", lines), file)
+  settings <- sim_settings_read(file)
+  expect_length(settings$inputs$lamda, 2)
+  expect_identical(sim_settings_validate(settings$inputs, settings$version),
+                   "The settings file holds inputs with more than one value: 'lamda'.")
+  expect_match(load_file(), "^error 'edited.txt': The settings file holds inputs with more than one value: 'lamda'\\.$")
+  #a value built to be huge (each range is capped, and so is what they are joined into) is refused
+  #when the file is read, before the values are built
+  writeLines(sub("^lamda: .*$", "lamda: c(1:1000000, 1:1000000)", lines), file)
+  expect_identical(sim_settings_read(file), "The setting 'lamda' has a value that cannot be read.")
+  expect_match(load_file(), "has a value that cannot be read", fixed = TRUE)
+  #a blank line between settings, and a missing version line
+  writeLines(append(lines, "", after = 3), file)
+  expect_match(load_file(), "more than one block of settings; remove any blank lines", fixed = TRUE)
+  writeLines(lines[-2], file)
+  expect_match(load_file(), "The settings file has no valid version.", fixed = TRUE)
   expect_length(applied, 0)
 })
 

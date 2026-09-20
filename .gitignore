@@ -3,7 +3,7 @@
 .Rapp.history
 
 # Backup files
-.bak
+*.bak
 
 # Session Data files
 .RData

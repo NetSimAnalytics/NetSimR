@@ -1,9 +1,14 @@
 #' Server function for the Shiny Simulator application
 #'
+#' Builds the dynamic inputs of the claims simulator, runs the simulations when asked and
+#' serves the results tabs, the downloads and the saving and loading of settings; it is
+#' the server that \code{\link{run_shiny_simulator}} pairs with \code{shiny_simulator_ui}.
+#'
 #' @param input Input for the server function.
 #' @param output Output for the server function.
 #' @param session Session for the server function.
-#' @return Returns server rendering for the shiny application.
+#' @return Called by shiny for its side effects, the outputs and observers of a
+#'   session; the value is not used.
 #' @keywords internal
 #' @import shiny
 #' @importFrom future plan
@@ -157,7 +162,8 @@ shiny_simulator_server <- function(input, output, session) {
 
   #the number of slices last sent to the browser, until the browser reports it back: a click
   #that arrives before then (two quick clicks) builds on it instead of on the old input value;
-  #after a couple of seconds the input is trusted again, e.g. once a settings file set it
+  #after a couple of seconds the input is trusted again. Loaded settings send their number of
+  #slices the same way, so a click before the browser reports it builds on the loaded number
   slice_count_sent <- NULL
   slice_count_sent_at <- NULL
   current_slice_count <- function() {
@@ -256,10 +262,17 @@ shiny_simulator_server <- function(input, output, session) {
   })
 
   #save and load of the simulator settings, with built-in examples; loaded values of the
-  #rebuilt fields are remembered at once, so a field built after the load starts from them
-  sim_settings_io_server(input, output, session, remember = function(id, value) {
-    if (id %in% remembered_ids) typed[[id]] <- value
-  })
+  #rebuilt fields are remembered at once, so a field built after the load starts from them,
+  #and the loaded number of slices replaces any number sent by a click just before the load
+  sim_settings_io_server(
+    input, output, session
+    ,remember = function(id, value) {
+      if (id %in% remembered_ids) typed[[id]] <- value
+    }
+    ,apply = function(id, kind, value) {
+      if (identical(id, "pareto_slice_times")) set_slice_count(value) else sim_settings_apply_update(session, id, kind, value)
+    }
+  )
 
   #create simulation data dataFrame reactive to enable download buttons & simulation settings list
   simulated_data <- reactiveValues(data=NULL)

@@ -1,5 +1,9 @@
 #' Server function for the GLM Fitting tool application
 #'
+#' @description Runs a session of the GLM fitting tool: imports the data, fits
+#'   the models, compares the stored ones, draws the actual against predicted
+#'   chart and saves and loads the settings.
+#'
 #' @param input Input for the server function.
 #' @param output Output for the server function.
 #' @param session Session for the server function.
@@ -26,9 +30,11 @@ GLMFittingToolServer <- function(input, output, session) {
   ######################
 
   # the data last imported, and where it came from; an import that fails keeps it, so that the
-  # data and a model fitted to it stay together
+  # data and a model fitted to it stay together. The imports are numbered, so that a model can
+  # tell whether it was fitted to the data now imported
   imported <- reactiveVal(NULL)
   import_failed <- reactiveVal(FALSE)
+  imports <- 0L
 
   import_error <- function(message) {
     kept <- !is.null(isolate(imported()))
@@ -127,7 +133,8 @@ GLMFittingToolServer <- function(input, output, session) {
     import_failed(is.null(df_input) && !is.null(imported()))
     if (!is.null(df_input)) {
       source <- if (identical(input$data_source, "Database")) input$db_type else input$csv_file$name
-      imported(list(data = df_input, source = or_default(source, "")))
+      imports <<- imports + 1L
+      imported(list(data = df_input, source = or_default(source, ""), id = imports))
     }
   })
 
@@ -185,14 +192,21 @@ GLMFittingToolServer <- function(input, output, session) {
   # a link to select once the family it belongs to is selected (a stored model or a settings file)
   pending_link <- reactiveVal(NULL)
 
+  # the link the model is fitted with. The family observer chooses it and the browser echoes the
+  # choice later, so a fit clicked in between would otherwise use the old family's link (the
+  # identity link is valid for the Poisson family, say) while the interface shows the new one
+  chosen_link <- reactiveVal(NULL)
+  observeEvent(input$link_function, chosen_link(input$link_function))
+
   # only the links that make sense for the family are offered, with the family's default selected
   observeEvent(input$glm_distribution, {
     links <- glm_family_links[[input$glm_distribution]]
     req(links)
     wanted <- pending_link()
     pending_link(NULL)
-    updateSelectInput(session, "link_function", choices = links,
-                      selected = if (!is.null(wanted) && wanted %in% links) wanted else links[1])
+    link <- if (!is.null(wanted) && wanted %in% links) wanted else links[1]
+    chosen_link(link)
+    updateSelectInput(session, "link_function", choices = links, selected = link)
   }, ignoreInit = TRUE)
 
   # the columns, as buttons that add them to the formula
@@ -224,7 +238,7 @@ GLMFittingToolServer <- function(input, output, session) {
     list(
       response = input$response_variable,
       family = or_default(input$glm_distribution, "gaussian"),
-      link = input$link_function,
+      link = or_default(chosen_link(), input$link_function),
       offset = or_default(input$offset, "None"),
       offset_log = isTRUE(input$offset_log),
       weights = or_default(input$weights, "None"),
@@ -262,6 +276,10 @@ GLMFittingToolServer <- function(input, output, session) {
              call. = FALSE)
       }
     )
+    # model.frame() and glm() run whatever the formula calls: only the data's columns and the
+    # formula functions are allowed (see glm_formula_problem()), I() included
+    problem <- glm_formula_problem(model_formula, columns)
+    if (!is.null(problem)) stop(problem, call. = FALSE)
     warnings <- character(0)
     left_out <- character(0)
     if ("." %in% all.vars(model_formula)) {
@@ -324,8 +342,8 @@ GLMFittingToolServer <- function(input, output, session) {
       model_data[[spec$response]] <- factor(model_data[[spec$response]])
       outcomes <- levels(model_data[[spec$response]])
       if (length(outcomes) > 2) {
-        warnings <- paste0("the response has ", length(outcomes), " values: '", outcomes[1],
-                           "' is failure and every other value is success")
+        warnings <- c(warnings, paste0("the response has ", length(outcomes), " values: '", outcomes[1],
+                                       "' is failure and every other value is success"))
       }
     }
     # the call is written out, so that the summary shows the real formula, family and weights; it
@@ -363,13 +381,16 @@ GLMFittingToolServer <- function(input, output, session) {
 
   fit_result <- eventReactive(input$fit_model, {
     spec <- current_spec()
+    import <- imported()
     result <- tryCatch(
-      fit_glm(spec, selected_data()),
+      fit_glm(spec, import$data),
       error = function(e) {
         showNotification(paste("Model fitting failed:", conditionMessage(e)), type = "error", duration = 10)
         list(model = NULL, spec = spec, error = conditionMessage(e))
       }
     )
+    # the import the model was fitted to, so that the Model tab can say when the data has changed since
+    result$import <- import[c("id", "source")]
     if (length(result$left_out) > 0) {
       showNotification(paste0("Left out of '.': ", paste0(names(result$left_out), " (", result$left_out, ")", collapse = ", "),
                               ". Name a column in the formula to use it anyway."), type = "message", duration = 12)
@@ -396,6 +417,20 @@ GLMFittingToolServer <- function(input, output, session) {
     if (!isTruthy(input$fit_model)) return(NULL)
     fit_result()$model
   })
+
+  # whether the data was imported again since the shown model was fitted: its figures, chart and
+  # downloads are then of the data imported before, which is said wherever they are shown
+  model_outdated <- reactive({
+    result <- fit_result()
+    !is.null(result$import) && !identical(result$import$id, imported()$id)
+  })
+
+  outdated_note <- function(then) {
+    result <- fit_result()
+    dft_help(paste0("This model was fitted to '", result$import$source, "' (", format(nrow(result$data), big.mark = ","),
+                    " rows), imported before the data now on the Data tab ('", imported()$source, "', ",
+                    format(nrow(selected_data()), big.mark = ","), " rows). ", then))
+  }
 
   #print the model summary
   output$model_summary <- renderPrint({
@@ -426,19 +461,22 @@ GLMFittingToolServer <- function(input, output, session) {
     # the dispersion is fixed at 1 for these families; the Pearson statistic shows whether the data agrees
     fixed <- model$family$family %in% c("poisson", "binomial")
     pearson <- if (fixed && model$df.residual > 0) sum(stats::residuals(model, type = "pearson")^2, na.rm = TRUE) / model$df.residual else NA_real_
-    div(
-      class = "dft-stats",
-      dft_stat_tile("Observations", format(facts$n, big.mark = ","), icon_name = "hashtag",
-                    note = if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ","), "rows with missing values left out")),
-      dft_stat_tile("Parameters", facts$parameters, icon_name = "list-ol"),
-      dft_stat_tile("AIC", dft_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE),
-      dft_stat_tile("Deviance explained", if (is.finite(facts$deviance_explained)) paste0(dft_fmt(100 * facts$deviance_explained, 3), "%") else dft_dash,
-                    icon_name = "chart-pie"),
-      dft_stat_tile(if (fixed) "Pearson dispersion" else "Dispersion", dft_fmt(if (fixed) pearson else dispersion, 4),
-                    icon_name = "wave-square",
-                    note = if (fixed) {
-                      if (is.finite(pearson) && pearson > 1.5) "Well above 1: the data is overdispersed" else "Pearson chi-squared / residual df"
-                    })
+    tagList(
+      if (model_outdated()) outdated_note("Click Fit model to fit it to the new data."),
+      div(
+        class = "dft-stats",
+        dft_stat_tile("Observations", format(facts$n, big.mark = ","), icon_name = "hashtag",
+                      note = if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ","), "rows with missing values left out")),
+        dft_stat_tile("Parameters", facts$parameters, icon_name = "list-ol"),
+        dft_stat_tile("AIC", dft_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE),
+        dft_stat_tile("Deviance explained", if (is.finite(facts$deviance_explained)) paste0(dft_fmt(100 * facts$deviance_explained, 3), "%") else dft_dash,
+                      icon_name = "chart-pie"),
+        dft_stat_tile(if (fixed) "Pearson dispersion" else "Dispersion", dft_fmt(if (fixed) pearson else dispersion, 4),
+                      icon_name = "wave-square",
+                      note = if (fixed) {
+                        if (is.finite(pearson) && pearson > 1.5) "Well above 1: the data is overdispersed" else "Pearson chi-squared / residual df"
+                      })
+      )
     )
   })
 
@@ -491,7 +529,9 @@ GLMFittingToolServer <- function(input, output, session) {
       showNotification("Fit a model first, then store it.", type = "warning", duration = 6)
       return(invisible(NULL))
     }
-    stored_models[[i]](c(list(spec = result$spec), model_facts(result$model)))
+    # the import and the rows left out say which observations the model was fitted to
+    stored_models[[i]](c(list(spec = result$spec, import = result$import, left_out_rows = as.integer(result$model$na.action)),
+                         model_facts(result$model)))
   }
 
   load_model <- function(i) {
@@ -507,6 +547,7 @@ GLMFittingToolServer <- function(input, output, session) {
   apply_model_spec <- function(spec) {
     if (!identical(spec$family, input$glm_distribution)) pending_link(spec$link)
     updateSelectInput(session, "glm_distribution", selected = spec$family)
+    chosen_link(spec$link)
     updateSelectInput(session, "link_function", choices = glm_family_links[[spec$family]], selected = spec$link)
     for (id in c("response_variable", "offset", "weights")) {
       value <- spec[[switch(id, response_variable = "response", id)]]
@@ -526,10 +567,12 @@ GLMFittingToolServer <- function(input, output, session) {
     if (is.null(stored)) return(div(class = "glm-slot-empty", "Empty. Fit a model and store it here."))
     other <- stored_models[[3 - i]]()
     spec <- stored$spec
-    # AIC only compares models fitted to the same observations of the same response, with the same
-    # weights: the weights scale each row's log-likelihood, so a weighted and an unweighted AIC differ
-    comparable <- !is.null(other) && identical(other$spec$response, spec$response) && other$n == stored$n &&
-      identical(other$spec$weights, spec$weights)
+    # AIC only compares models fitted to the same observations (the same import, with the same rows
+    # left out) of the same response, with the same weights: the weights scale each row's
+    # log-likelihood, so a weighted and an unweighted AIC differ
+    comparable <- !is.null(other) && identical(other$import$id, stored$import$id) &&
+      identical(other$left_out_rows, stored$left_out_rows) && identical(other$spec$response, spec$response) &&
+      other$n == stored$n && identical(other$spec$weights, spec$weights)
     lhs <- paste(c(paste(term(spec$response), "~"), offset_term(spec$offset, spec$offset_log)), collapse = " ")
     tagList(
       div(class = "glm-slot-formula", paste(lhs, if (!is.null(offset_term(spec$offset, spec$offset_log))) "+", if (spec$formula == "") "1" else spec$formula)),
@@ -538,7 +581,7 @@ GLMFittingToolServer <- function(input, output, session) {
                                       format(stored$n, big.mark = ","), " observations")),
       div(class = "glm-slot-aic", paste("AIC", dft_fmt(stored$aic, 7)),
           if (comparable && stored$aic < other$aic) tags$span(class = "glm-better", " lower")),
-      if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different response, observations or weights.")
+      if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different data, response, observations or weights.")
     )
   }
 
@@ -553,13 +596,16 @@ GLMFittingToolServer <- function(input, output, session) {
     if (is.null(fitted_model())) {
       return(div(class = "sim-downloads-hint", icon("circle-info"), "Fit a model to enable the downloads."))
     }
+    # the downloads would be of the data imported before: they wait for the model to be fitted again
+    if (model_outdated()) return(outdated_note("Fit it again to enable the downloads."))
     div(
       class = "glm-downloads",
       downloadButton("download_model", "Model (RDS)", class = "btn-outline-glm"),
       downloadButton("download_summary", "Model summary (text)", class = "btn-outline-glm"),
       downloadButton("download_data_with_predictions", "Data with predictions (CSV)", class = "btn-outline-glm"),
       dft_help("The model refers to its data as model_data: to update() it in R, assign the data to ",
-               "model_data first, or pass it to update() as data =.")
+               "model_data first, or pass it to update() as data =. The predictions are added to the data ",
+               "as the column prediction (model_prediction when the data has a column of that name).")
     )
   })
 
@@ -585,9 +631,12 @@ GLMFittingToolServer <- function(input, output, session) {
     content = function(file) {
       req(fitted_model())
       result <- fit_result()
+      data <- result$data
+      # a prediction column of the data keeps its name; the model's gets one of its own
+      column <- if ("prediction" %in% names(data)) make.unique(c(names(data), "model_prediction"))[ncol(data) + 1] else "prediction"
+      data[[column]] <- model_predictions(result)
       #text from the uploaded data that a spreadsheet would read as a formula is written as text
-      utils::write.csv(csv_safe(cbind(result$data, prediction = model_predictions(result))), file,
-                       row.names = FALSE)
+      utils::write.csv(csv_safe(data), file, row.names = FALSE)
     }
   )
 
@@ -622,7 +671,8 @@ GLMFittingToolServer <- function(input, output, session) {
     }
     weight <- if (spec$weights == "None") rep(1, nrow(df)) else df[[spec$weights]]
     grouping <- df[[variable]]
-    bands <- or_default(input$number_of_bands_input, 10)
+    # within the slider's range, whatever a client sends
+    bands <- glm_band_count(input$number_of_bands_input)
     values <- sort(unique(grouping[!is.na(grouping)]))
     if (is.numeric(grouping) && length(values) > bands) {
       breaks <- glm_band_breaks(grouping, bands, or_default(input$band_method, "quantile"))
@@ -671,10 +721,13 @@ GLMFittingToolServer <- function(input, output, session) {
     # the chart shows the message when there is no data; the note stays empty
     plot_data <- tryCatch(fitness_data(), error = function(e) NULL)
     dropped <- attr(req(plot_data), "dropped")
-    if (isTRUE(dropped > 0)) {
-      dft_help(format(dropped, big.mark = ","), if (dropped == 1) " row is" else " rows are",
-               " left out: the response, the prediction or the variable is missing.")
-    }
+    tagList(
+      if (model_outdated()) outdated_note("The chart is of that data; click Fit model to fit it to the new data."),
+      if (isTRUE(dropped > 0)) {
+        dft_help(format(dropped, big.mark = ","), if (dropped == 1) " row is" else " rows are",
+                 " left out: the response, the prediction or the variable is missing.")
+      }
+    )
   })
 
   # actual and predicted on the left axis, and the exposure (or weight, or rows) of each band
@@ -728,6 +781,14 @@ GLMFittingToolServer <- function(input, output, session) {
       showNotification(paste0("'", file_info$name, "' has no settings of the GLM fitting tool."), type = "error", duration = 8)
       return(invisible(NULL))
     }
+    # a formula that calls anything but the formula functions would run its author's code at the
+    # next click of Fit model, so the file is refused here
+    problem <- if (!is.null(values$formula)) glm_formula_problem(values$formula)
+    if (!is.null(problem)) {
+      showNotification(paste0("'", file_info$name, "' was not loaded. ", toupper(substr(problem, 1, 1)), substring(problem, 2)),
+                       type = "error", duration = 10)
+      return(invisible(NULL))
+    }
     kinds <- stats::setNames(glm_settings_inputs$kind, glm_settings_inputs$id)
     # before the first import there are no columns yet (data_columns() stops silently)
     columns <- tryCatch(data_columns(), error = function(e) NULL)
@@ -746,8 +807,10 @@ GLMFittingToolServer <- function(input, output, session) {
         textarea = updateTextAreaInput(session, id, value = value),
         slider = updateSliderInput(session, id, value = value),
         select = if (id == "link_function" && !is.null(family) && !is.null(glm_family_links[[family]])) {
+          chosen_link(value)
           updateSelectInput(session, id, choices = glm_family_links[[family]], selected = value)
         } else {
+          if (id == "link_function") chosen_link(value)
           updateSelectInput(session, id, selected = value)
         },
         column = if (!is.null(columns) && value %in% c("None", columns)) {

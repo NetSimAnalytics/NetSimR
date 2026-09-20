@@ -133,12 +133,167 @@ test_that("GLM fitting tool compares the AIC of stored models only with the same
     both <- paste(output$aic_output_1$html, output$aic_output_2$html)
     expect_no_match(both, "lower", fixed = TRUE)
     expect_match(output$aic_output_1$html, "Not comparable", fixed = TRUE)
-    expect_match(output$aic_output_2$html, "different response, observations or weights", fixed = TRUE)
+    expect_match(output$aic_output_2$html, "different data, response, observations or weights", fixed = TRUE)
     #the same weights: comparable, and the lower AIC is marked
     session$setInputs(formula = "age + region", fit_model = 3, save_formula_1 = 2)
     both <- paste(output$aic_output_1$html, output$aic_output_2$html)
     expect_match(both, "lower", fixed = TRUE)
     expect_no_match(both, "Not comparable", fixed = TRUE)
+  })
+})
+
+test_that("GLM fitting tool says when the shown model was fitted to data imported before", {
+  d <- glm_claims_data(300)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "a.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "log",
+                      offset = "None", weights = "None", formula = "age", fit_model = 1)
+    model <- fitted_model()
+    expect_false(model_outdated())
+    expect_no_match(output$model_stats$html, "imported before", fixed = TRUE)
+    expect_match(output$model_downloads$html, "download_data_with_predictions", fixed = TRUE)
+    #a failed import keeps the data, so the model is still of the data shown
+    session$setInputs(data_source = "Database", db_type = "SQLite", db_name = file.path(tempdir(), "no_such_database.sqlite"),
+                      sql_query = "SELECT 1", submit = 2)
+    expect_false(model_outdated())
+    #a new import: the Data tab shows 50 rows while the model is of the 300 imported before, which
+    #the tiles say, and the downloads wait for the model to be fitted again
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d[1:50, ]), name = "b.csv"), submit = 3)
+    expect_equal(nrow(selected_data()), 50)
+    expect_true(model_outdated())
+    expect_identical(fitted_model(), model)
+    expect_match(output$model_stats$html, "This model was fitted to 'a.csv' (300 rows), imported before the data now on the Data tab ('b.csv', 50 rows). Click Fit model", fixed = TRUE)
+    expect_match(output$model_stats$html, "299", fixed = TRUE)
+    expect_match(output$model_downloads$html, "fitted to 'a.csv' (300 rows)", fixed = TRUE)
+    expect_match(output$model_downloads$html, "Fit it again to enable the downloads", fixed = TRUE)
+    expect_no_match(output$model_downloads$html, "download_data_with_predictions", fixed = TRUE)
+    session$setInputs(visualize_variable = "region", number_of_bands_input = 10, execute_visualization = 1)
+    expect_match(output$fitness_note$html, "The chart is of that data", fixed = TRUE)
+    #fitted again, the model is of the new data and the notes go
+    session$setInputs(fit_model = 2)
+    expect_false(model_outdated())
+    expect_equal(stats::nobs(fitted_model()), sum(!is.na(d$age[1:50])))
+    expect_no_match(output$model_stats$html, "imported before", fixed = TRUE)
+    expect_match(output$model_downloads$html, "download_model", fixed = TRUE)
+    expect_equal(nrow(utils::read.csv(output$download_data_with_predictions)), 50)
+    expect_false(grepl("imported before", paste(output$fitness_note$html, collapse = ""), fixed = TRUE))
+  })
+})
+
+test_that("GLM fitting tool compares the AIC of stored models only when they are of the same rows of the same import", {
+  d <- glm_claims_data(300)
+  set.seed(22)
+  other <- data.frame(age = sample(18:80, 300, TRUE), region = sample(c("North", "South"), 300, TRUE),
+                      claim_count = rpois(300, 5), stringsAsFactors = FALSE)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "a.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "log",
+                      offset = "None", weights = "None", formula = "region", fit_model = 1, save_formula_1 = 1)
+    #an unrelated file with the same number of rows, the same response name and no weights
+    session$setInputs(csv_file = list(datapath = glm_write_csv(other), name = "other.csv"), submit = 2)
+    session$setInputs(formula = "region", fit_model = 2, save_formula_2 = 1)
+    expect_equal(stored_models[[1]]()$n, stored_models[[2]]()$n)
+    both <- paste(output$aic_output_1$html, output$aic_output_2$html)
+    expect_no_match(both, "lower", fixed = TRUE)
+    expect_match(both, "Not comparable with the other model: different data", fixed = TRUE)
+    #the same import, but rows left out for a missing value in one model only: not comparable either
+    session$setInputs(csv_file = list(datapath = glm_write_csv(d), name = "a.csv"), submit = 3)
+    session$setInputs(formula = "region", fit_model = 3, save_formula_1 = 2)
+    session$setInputs(formula = "age", fit_model = 4, save_formula_2 = 2)
+    expect_equal(stored_models[[1]]()$n, 300)
+    expect_equal(stored_models[[2]]()$n, 299)
+    both <- paste(output$aic_output_1$html, output$aic_output_2$html)
+    expect_match(both, "Not comparable", fixed = TRUE)
+    #the same rows of the same import: comparable
+    session$setInputs(formula = "age + region", fit_model = 5, save_formula_1 = 3)
+    both <- paste(output$aic_output_1$html, output$aic_output_2$html)
+    expect_match(both, "lower", fixed = TRUE)
+    expect_no_match(both, "Not comparable", fixed = TRUE)
+  })
+})
+
+test_that("GLM fitting tool keeps every warning of a binomial fit with more than two response values", {
+  set.seed(23)
+  n <- 400
+  d <- data.frame(y = sample(c("a", "b", "c"), n, TRUE), id = sprintf("P%03d", rep(1:135, length.out = n)),
+                  x = rnorm(n), stringsAsFactors = FALSE)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "w.csv"), submit = 1)
+    session$setInputs(response_variable = "y", glm_distribution = "binomial", link_function = "logit",
+                      offset = "None", weights = "None", formula = "id", fit_model = 1)
+    warnings <- fit_result()$warnings
+    expect_match(paste(warnings, collapse = " "), "'id' is text with 135 different values", fixed = TRUE)
+    expect_match(paste(warnings, collapse = " "), "the response has 3 values: 'a' is failure", fixed = TRUE)
+  })
+})
+
+test_that("GLM fitting tool's predictions download keeps a prediction column of the data apart from the model's", {
+  d <- glm_claims_data(100)
+  d$prediction <- round(runif(100), 3)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "p.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "log",
+                      offset = "None", weights = "None", formula = "age", fit_model = 1)
+    header <- readLines(output$download_data_with_predictions, n = 1)
+    expect_identical(header, paste0("\"", paste(c(names(d), "model_prediction"), collapse = "\",\""), "\""))
+    downloaded <- utils::read.csv(output$download_data_with_predictions)
+    expect_equal(downloaded$prediction, d$prediction)
+    expect_equal(downloaded$model_prediction, unname(fitted(fitted_model())))
+    #without a clash the column is prediction, as before
+    session$setInputs(csv_file = list(datapath = glm_write_csv(d[setdiff(names(d), "prediction")]), name = "q.csv"), submit = 2)
+    session$setInputs(fit_model = 2)
+    expect_identical(names(utils::read.csv(output$download_data_with_predictions)), c(setdiff(names(d), "prediction"), "prediction"))
+  })
+})
+
+test_that("GLM fitting tool fits with the link of the family chosen, not the link the browser has yet to echo", {
+  d <- glm_claims_data(200)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "gaussian", link_function = "identity",
+                      offset = "None", weights = "None", formula = "age")
+    #the family changes and Fit is clicked before the link select reports the new family's default
+    session$setInputs(glm_distribution = "poisson")
+    session$setInputs(fit_model = 1)
+    expect_identical(fitted_model()$family$link, "log")
+    expect_identical(fit_result()$spec$link, "log")
+    #the echo arrives; a link chosen by hand is used
+    session$setInputs(link_function = "log")
+    session$setInputs(link_function = "sqrt", fit_model = 2)
+    expect_identical(fitted_model()$family$link, "sqrt")
+    #a stored model is loaded and fitted before its family and link are echoed
+    session$setInputs(save_formula_1 = 1)
+    session$setInputs(glm_distribution = "gaussian")
+    session$setInputs(link_function = "identity", fit_model = 3)
+    expect_identical(fitted_model()$family$link, "identity")
+    session$setInputs(load_formula_1 = 1)
+    expect_identical(chosen_link(), "sqrt")
+    #the family select is echoed first, then the link
+    session$setInputs(glm_distribution = "poisson")
+    session$setInputs(fit_model = 4)
+    expect_identical(fitted_model()$family$link, "sqrt")
+  })
+})
+
+test_that("GLM fitting tool keeps the number of bands within the slider's range", {
+  expect_equal(glm_band_count(1e9), 50)
+  expect_equal(glm_band_count(-3), 2)
+  expect_equal(glm_band_count(7.4), 7)
+  expect_equal(glm_band_count(NULL), 10)
+  expect_equal(glm_band_count("ten"), 10)
+  expect_equal(glm_band_count(Inf), 10)
+  expect_identical(glm_settings_values(list(number_of_bands_input = 1e9))$number_of_bands_input, 50)
+  expect_identical(glm_settings_values(list(number_of_bands_input = 7))$number_of_bands_input, 7)
+  expect_identical(glm_settings_values(list(number_of_bands_input = 1))$number_of_bands_input, 2)
+  d <- glm_claims_data(200)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "log",
+                      offset = "None", weights = "None", formula = "age", fit_model = 1)
+    #a client that sends a number the slider cannot: the chart has at most 50 bands
+    session$setInputs(visualize_variable = "exposure", number_of_bands_input = 1e9, band_method = "quantile", execute_visualization = 1)
+    expect_lte(nrow(fitness_data()), 50)
+    expect_gt(nrow(fitness_data()), 40)
   })
 })
 

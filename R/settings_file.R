@@ -25,6 +25,9 @@ settings_literal <- function(expr) {
     if (fun == "c") {
       parts <- lapply(args, settings_literal)
       if (!all(vapply(parts, function(x) is.null(x) || is.atomic(x), logical(1)))) stop("not a literal value")
+      # ranges are held to a million values each; so is what they are joined into, or a file
+      # could ask for tens of millions and hold the session while they are built
+      if (sum(vapply(parts, length, numeric(1))) > 1e6) stop("not a literal value")
       return(do.call(c, parts))
     }
     if (fun %in% c("-", "+") && length(args) == 1) {
@@ -43,6 +46,20 @@ settings_literal <- function(expr) {
   stop("not a literal value")
 }
 
+# The text of one setting. deparse() writes doubles with 15 significant digits, which keeps a
+# typed 0.3 as 0.3 but loses the last bit of a value such as a third; a value whose 15 digits
+# do not read back as exactly the same double is written with 17 instead, so that a seeded
+# run loaded from its own settings file gives the same results.
+settings_text <- function(x) {
+  control <- c("keepNA", "keepInteger", "niceNames")
+  text <- paste(deparse(x, width.cutoff = 500L, control = control), collapse = " ")
+  if (is.double(x)) {
+    back <- tryCatch(settings_literal(parse(text = text, keep.source = FALSE)[[1]]), error = function(e) NULL)
+    if (!identical(back, x)) text <- paste(deparse(x, width.cutoff = 500L, control = c(control, "digits17")), collapse = " ")
+  }
+  text
+}
+
 # Writes a named list of settings (each a vector of numbers, strings or logicals, or NULL) to
 # a text file, after two header fields naming the tool and the settings version.
 write_settings_file <- function(values, file, tool, version) {
@@ -53,8 +70,7 @@ write_settings_file <- function(values, file, tool, version) {
   ok <- vapply(values, function(x) is.null(x) || (is.atomic(x) && !is.factor(x)), logical(1))
   if (!all(ok)) stop("settings must be vectors of numbers, strings or logicals: ", paste(ids[!ok], collapse = ", "))
   text <- vapply(values, function(x) {
-    x <- if (is.null(x)) x else stats::setNames(as.vector(x), names(x))
-    paste(deparse(x, width.cutoff = 500L, control = c("keepNA", "keepInteger", "niceNames")), collapse = " ")
+    settings_text(if (is.null(x)) x else stats::setNames(as.vector(x), names(x)))
   }, character(1))
   record <- c(NetSimRSettings = tool, SettingsVersion = as.character(version), text)
   # keep.white stops write.dcf() folding long values over several lines
@@ -65,20 +81,28 @@ write_settings_file <- function(values, file, tool, version) {
 
 # Reads a settings file written by write_settings_file(). Returns list(tool, version,
 # values), or stops with a message for a file that is not a settings file of this tool
-# (such as an .rds file) or has a value that is not a literal.
+# (such as an .rds file), has been edited into more than one block or a repeated setting,
+# or has a value that is not a literal.
 read_settings_file <- function(file, tool) {
   fields <- tryCatch(
     suppressWarnings(read.dcf(file, all = TRUE)),
     error = function(e) NULL
   )
-  if (!is.data.frame(fields) || nrow(fields) != 1 || !"NetSimRSettings" %in% names(fields)) {
+  if (!is.data.frame(fields) || nrow(fields) == 0 || !"NetSimRSettings" %in% names(fields)) {
     stop("This is not a NetSimR settings file.")
   }
-  record <- vapply(fields, function(x) as.character(x)[1], character(1))
+  # a blank line between settings starts a second record
+  if (nrow(fields) > 1) {
+    stop("The settings file has more than one block of settings; remove any blank lines between the settings.")
+  }
+  # a setting given twice comes back as a list of both values, which no setting may hold
+  repeated <- vapply(fields, function(x) length(x[[1]]) > 1, logical(1))
+  if (any(repeated)) stop("'", names(fields)[repeated][1], "' is given more than once in the settings file.")
+  record <- vapply(fields, function(x) as.character(x[[1]]), character(1))
   if (!identical(unname(record[["NetSimRSettings"]]), tool)) {
     stop("This settings file is for the ", record[["NetSimRSettings"]], ", not the ", tool, ".")
   }
-  version <- suppressWarnings(as.numeric(record[["SettingsVersion"]]))
+  version <- if ("SettingsVersion" %in% names(record)) suppressWarnings(as.numeric(record[["SettingsVersion"]])) else NA_real_
   if (length(version) != 1 || is.na(version)) stop("The settings file has no valid version.")
   ids <- setdiff(names(record), c("NetSimRSettings", "SettingsVersion"))
   values <- lapply(stats::setNames(ids, ids), function(id) {

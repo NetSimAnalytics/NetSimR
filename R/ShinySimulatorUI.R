@@ -16,6 +16,27 @@ sim_card_header <- function(icon_name, title, subtitle = NULL) {
   )
 }
 
+#' Hide an input's label from sight, not from screen readers
+#'
+#' Inputs whose heading is drawn separately (the pill radio groups under a section label,
+#' the run name boxes of the Compare tab) still need a label for their accessible name: a
+#' label of NULL leaves the group announced without one. Bootstrap's visually-hidden class
+#' keeps the label for screen readers and takes it out of the layout.
+#' @param input A shiny input whose label is one of its direct children, e.g. from
+#'   radioButtons() or textInput().
+#' @return The input with the class added to its label.
+#' @noRd
+sim_hidden_label <- function(input) {
+  input$children <- lapply(input$children, function(child) {
+    if (inherits(child, "shiny.tag") && identical(child$name, "label")) {
+      tagAppendAttributes(child, class = "visually-hidden")
+    } else {
+      child
+    }
+  })
+  input
+}
+
 #' Theme switcher (light / dark / system) for the Shiny simulator UI
 #'
 #' @noRd
@@ -1012,9 +1033,13 @@ sim_pareto_slices_ui <- function() {
   )
 }
 
-#' UI file for the Shiny NetSimR Simulator Tool
+#' User interface of the Shiny NetSimR simulator
 #'
-#' @return Returns the UI code for the shiny application.
+#' @description The page the simulator opens in: a welcome panel and the
+#'   simulator itself, where the claim, reinsurance and run settings are
+#'   entered and the results, charts and report are shown.
+#' @return The user interface of the application, a bslib navbar page, which
+#'   \code{\link{run_shiny_simulator}} pairs with \code{shiny_simulator_server}.
 #' @keywords internal
 shiny_simulator_ui <- bslib::page_navbar(
   title = div(
@@ -1219,13 +1244,13 @@ shiny_simulator_ui <- bslib::page_navbar(
             div(class = "sim-section-label", "Distribution"),
             div(
               class = "pill-radio",
-              radioButtons(
+              sim_hidden_label(radioButtons(
                 inputId = 'freqDistr',
-                label = NULL,
+                label = 'Frequency distribution',
                 inline = TRUE,
                 choiceNames = unname(vapply(freq_dist_options, function(x) x@distr_label, character(1))),
                 choiceValues = unname(vapply(freq_dist_options, function(x) x@distrID, character(1)))
-              )
+              ))
             ),
             div(class = "sim-section-label mt-2", "Parameters"),
             div(
@@ -1243,13 +1268,13 @@ shiny_simulator_ui <- bslib::page_navbar(
             div(class = "sim-section-label", "Distribution"),
             div(
               class = "pill-radio",
-              radioButtons(
+              sim_hidden_label(radioButtons(
                 inputId = 'sevDistr',
-                label = NULL,
+                label = 'Severity distribution',
                 inline = TRUE,
                 choiceNames = unname(vapply(sev_dist_options, function(x) x@distr_label, character(1))),
                 choiceValues = unname(vapply(sev_dist_options, function(x) x@distrID, character(1)))
-              )
+              ))
             ),
             div(class = "sim-section-label mt-2", "Parameters"),
             div(
@@ -1291,8 +1316,8 @@ shiny_simulator_ui <- bslib::page_navbar(
             div(class = "sim-section-label", "Structure"),
             div(
               class = "pill-radio pill-radio-grid",
-              radioButtons('reinsuranceStructureEEL', NULL,
-                           choices = reinsurance_structures_options, inline = TRUE)
+              sim_hidden_label(radioButtons('reinsuranceStructureEEL', 'Each and every loss structure',
+                                            choices = reinsurance_structures_options, inline = TRUE))
             ),
             div(
               class = "param-grid mt-3",
@@ -1311,8 +1336,8 @@ shiny_simulator_ui <- bslib::page_navbar(
             div(class = "sim-section-label", "Structure"),
             div(
               class = "pill-radio pill-radio-grid",
-              radioButtons('reinsuranceStructureAL', NULL,
-                           choices = reinsurance_structures_options, inline = TRUE)
+              sim_hidden_label(radioButtons('reinsuranceStructureAL', 'Aggregate layer structure',
+                                            choices = reinsurance_structures_options, inline = TRUE))
             ),
             div(
               class = "param-grid mt-3",

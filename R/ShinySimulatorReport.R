@@ -179,9 +179,11 @@ h3 {
 }
 
 /* ---------- Settings ---------- */
+/* the tracks of the auto-fit grids never exceed the width available, so a narrow phone
+   (or the frame of the Report tab at one) gets a single column instead of a cut-off edge */
 .settings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   gap: 12px;
 }
 
@@ -237,7 +239,7 @@ h3 {
 /* ---------- Tables ---------- */
 .two-col {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 16px;
   align-items: start;
 }
@@ -366,7 +368,10 @@ h3 {
 /* ---------- Responsive and print ---------- */
 @media (max-width: 900px) {
   .report-layout {
-    grid-template-columns: 1fr;
+    /* minmax(0, ...), not 1fr: the floor of 1fr is the widest thing inside, and the tables
+       that scroll on their own (overflow-x: auto) count their whole width towards it, so
+       every section was pushed wider than the window and its right edge cut off */
+    grid-template-columns: minmax(0, 1fr);
     padding: 16px;
     gap: 16px;
   }
@@ -648,6 +653,22 @@ sim_report_amount_range <- function(x) {
   if (all(is.finite(widened))) widened else x_range
 }
 
+#' Totals the report's histogram draws
+#'
+#' Layers that are rarely hit produce many zero totals; a single bar at zero would flatten
+#' the histogram, so from a fifth of zeros up the chart leaves the zeros out and the report
+#' states their share. Only the zeros go: negative totals (a Normal severity with a negative
+#' mean) belong to the distribution the chart describes and stay in it.
+#' @param x Finite totals.
+#' @param zero_share Share of the simulations whose total is zero.
+#' @return A list with \code{values}, the totals to draw, and \code{zeros_dropped}, whether
+#'   the zeros were left out.
+#' @noRd
+sim_report_histogram_totals <- function(x, zero_share = mean(x == 0)) {
+  zeros_dropped <- isTRUE(zero_share >= 0.2) && any(x != 0)
+  list(values = if (zeros_dropped) x[x != 0] else x, zeros_dropped = zeros_dropped)
+}
+
 #' Write the simulation report as a self-contained HTML file
 #'
 #' Builds the page with shiny's HTML tag functions and embeds the charts as PNG images, so the
@@ -715,9 +736,11 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     if (is_blank(p)) return(dash)
     if (p > 0 && p < 0.01) fmt_pct(p, 2) else fmt_pct(p)
   }
-  #headline amounts use one decimal style for the whole report, set by the scale of the results
-  #(the results are unrounded; small amounts get enough decimals not to show as zero)
-  amount_digits <- display_digits(c(claims, gross))
+  #headline amounts use one decimal style for the whole report, set by the scale of the
+  #modelled totals as on the Compare tab, so a small ceded series under a large gross one
+  #keeps its decimals (the results are unrounded; small amounts get enough decimals not to
+  #show as zero); the gross totals are formatted on their own scale in their table
+  amount_digits <- display_digits(claims)
   fmt_amount <- function(x) if (is_blank(x)) dash else fmt_num(x, amount_digits)
   #settings amounts are formatted on their own scale
   fmt_setting <- function(x) if (is_blank(x)) dash else fmt_num(x, display_digits(x))
@@ -734,7 +757,9 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   param_text <- function(values, options, id) {
     values <- unlist(values)
     if (is_blank(values)) return(dash)
-    shown <- sub("\\.?0+$", "", fmt_num(values, 4))
+    #four decimals, or more for a small parameter (an Exponential rate of 1e-5, say, which
+    #four would show as 0), with the trailing zeros stripped
+    shown <- vapply(values, function(v) sub("\\.?0+$", "", fmt_num(v, max(4, display_digits(v)))), character(1))
     labels <- if (known(options, id)) options[[id]]@param_labels else NULL
     if (length(labels) == length(values)) {
       #non-breaking spaces keep each "name = value" pair on one line
@@ -817,26 +842,28 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     )
   }
 
-  #layers that are rarely hit produce many zero totals; a single bar at zero would flatten
-  #the histogram, so it shows the non-zero totals and states the zero share
+  #layers that are rarely hit produce many zero totals, which would flatten the histogram,
+  #so it leaves them out (and only them, see sim_report_histogram_totals) and states their share
   zero_share <- st$zero_share
-  drop_zeros <- zero_share >= 0.2 && any(finite_claims > 0)
-  plot_claims <- if (drop_zeros) finite_claims[finite_claims > 0] else finite_claims
-  zero_note <- if (drop_zeros) {
+  histogram_totals <- sim_report_histogram_totals(finite_claims, zero_share)
+  plot_claims <- histogram_totals$values
+  zero_note <- if (histogram_totals$zeros_dropped) {
     paste0(" ", fmt_pct(zero_share), " of simulations had zero total claims and are left out of this chart.")
   } else {
     ""
   }
 
   #draw each chart once per theme into a temporary PNG at twice screen resolution and embed
-  #both as data URIs; the page shows the one that matches the current theme
+  #both as data URIs; the page shows the one that matches the current theme. The device
+  #arguments (R/plot_device.R) ask Windows for the cairo device, which anti-aliases
   chart_image <- function(draw, height, alt, width = 9) {
     images <- lapply(names(palettes), function(theme) {
       path <- tempfile(fileext = ".png")
       on.exit(unlink(path), add = TRUE)
       pal <<- palettes[[theme]]
       res <- 192
-      grDevices::png(path, width = width * res, height = height * res, res = res, bg = pal$bg)
+      do.call(grDevices::png, c(list(path, width = width * res, height = height * res, res = res, bg = pal$bg),
+                                png_device_args()))
       tryCatch(draw(), finally = grDevices::dev.off())
       tags$img(class = paste0("chart-", theme), src = base64enc::dataURI(file = path, mime = "image/png"), alt = alt)
     })
@@ -877,8 +904,9 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
 
   #return periods are only drawn where at least 10 simulations lie beyond them
   max_return_period <- n / 10
-  #series: a named list of list(values, col, lty, lwd); the names become the legend labels
-  draw_return_periods <- function(series) {
+  #series: a named list of list(values, col, lty, lwd); the names become the legend labels.
+  #ylab names what the losses are, as the other charts' axes do (e.g. "Ceded", not "Total claims")
+  draw_return_periods <- function(series, ylab) {
     rps <- exp(seq(log(2), log(max_return_period), length.out = 300))
     ys <- lapply(series, function(x) quantile_of_vec(x$values, 1 - 1 / rps))
     #infinite losses are left out of the limits; the curves stop where they start
@@ -892,7 +920,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     chart_par(mar = c(4.2, left, 1, 1))
     graphics::plot(range(rps), y_range, type = "n", log = "x", axes = FALSE, main = "",
                    xlab = "Return period", ylab = "", ylim = y_range)
-    graphics::title(ylab = "Total claims", line = left - 1.3)
+    graphics::title(ylab = ylab, line = left - 1.3)
     ticks <- return_period_axis_ticks[return_period_axis_ticks <= max_return_period]
     graphics::abline(v = ticks, col = pal$grid, lwd = 0.8)
     graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
@@ -1070,7 +1098,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       class = "settings-grid",
       setting_card("Simulation", list(
         "Simulations" = fmt_int(s$numOfSimulations),
-        "Seed" = if (isTRUE(s$seedSetBinary)) paste("Fixed at", s$seedValue) else off("Random"),
+        "Seed" = if (isTRUE(s$seedSetBinary)) paste("Fixed at", fmt_int(s$seedValue)) else off("Random"),
         "Processing" = if (isTRUE(s$multiprocessing)) "Parallel" else "Single process"
       )),
       setting_card("Frequency", list(
@@ -1112,16 +1140,21 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   if (has_gross) {
     columns <- summary$gross$series
     gross_table <- summary$gross$table
-    #the share of the gross mean is a percentage; every other row is an amount
-    format_cell <- function(metric, value) {
+    #the share of the gross mean is a percentage; every other row is an amount, formatted on
+    #the scale of its own column (the modelled column's is the headline style), so a rarely
+    #hit layer's ceded figures keep the decimals the gross totals do not need
+    column_digits <- lapply(columns, display_digits)
+    format_cell <- function(metric, value, digits) {
       if (metric == "Share of gross mean") {
         if (is.na(value)) dash else fmt_pct(value)
       } else {
-        fmt_amount(value)
+        fmt_num(value, digits)
       }
     }
     formatted <- lapply(names(columns), function(k) {
-      vapply(seq_len(nrow(gross_table)), function(i) format_cell(gross_table$metric[i], gross_table[[k]][i]), character(1))
+      vapply(seq_len(nrow(gross_table)), function(i) {
+        format_cell(gross_table$metric[i], gross_table[[k]][i], column_digits[[k]])
+      }, character(1))
     })
     comparison <- data.frame(
       Metric = gross_table$metric,
@@ -1173,7 +1206,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       div(class = "chart-card",
           tags$h3(paste(paste(names(comparison_series), collapse = ", "), "by return period")),
           tags$p(class = "chart-note", "How the structures change the loss at each return period, on a log scale."),
-          chart_image(function() draw_return_periods(comparison_series), 4.2, "Gross, ceded and net losses by return period"))
+          chart_image(function() draw_return_periods(comparison_series, "Loss"), 4.2, "Gross, ceded and net losses by return period"))
     }
     gross_section <- report_section(
       "gross-net", "Gross, ceded and net",
@@ -1345,7 +1378,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
           "The loss expected once in each number of periods, on a log scale.",
           " Return periods are shown up to ", fmt_return_period(1 - 1 / max_return_period), "."
         )),
-        chart_image(function() draw_return_periods(modelled_series), 4.2, "Losses by return period"))
+        chart_image(function() draw_return_periods(modelled_series, modelled_label), 4.2, "Losses by return period"))
   }
 
   charts <- report_section(

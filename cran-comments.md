@@ -1,8 +1,11 @@
 ## Release summary
 
-NetSimR 0.3.1 is a bug-fix release that follows 0.3.0 quickly because
-testing of the Shiny tools in a browser, and of the functions against each
-other, found problems that we would rather not leave on CRAN:
+NetSimR 0.3.1 is a bug-fix and hardening release that follows 0.3.0 quickly
+because testing of the Shiny tools in a browser, and of the functions against
+each other, found problems that we would rather not leave on CRAN. It is not
+purely a bug-fix release: simulate_function() and simulate_claims(), and
+PureIBNRGamma() and PureIBNRLNorm(), change results in documented cases, and
+the Shiny tools no longer load settings files saved as .rds (see NEWS).
 
 * Security: the GLM fitting tool's downloaded model (an RDS file) contained
   the Shiny session, including any database password typed in the tool. The
@@ -15,6 +18,14 @@ other, found problems that we would rather not leave on CRAN:
 * The charts of the three Shiny tools were drawn badly in the dark theme on
   Windows and overlapped after a resize; several smaller fixes to the claims
   simulator.
+* Behaviour changes: simulate_function() and simulate_claims() take an
+  aggregate deductible off the layer recoveries before the aggregate limit and
+  the reinstatement capacity (the market convention), and return totals at
+  full precision instead of rounded to two decimals; PureIBNRGamma() and
+  PureIBNRLNorm() count days on each date's own calendar, so results no
+  longer depend on the time zone; the Shiny tools save settings as plain text
+  files, which cannot run code when loaded, and refuse the .rds files of
+  earlier versions.
 
 See NEWS for details.
 

@@ -1,8 +1,22 @@
-#' A function to run the GLM fitting tool application
+#' Run the generalised linear model fitting application
 #'
+#' @description Opens a Shiny application that imports data from a CSV file or
+#'   a database query, fits generalised linear models to it, compares the AIC
+#'   of stored models, charts actual against predicted values and downloads the
+#'   model and its predictions.
+#'
+#' @details The formula typed in the application, or read from one of its
+#'   settings files, is restricted to the columns of the imported data, numbers,
+#'   the formula operators and a small set of formula functions: \code{I()},
+#'   \code{log()}, \code{exp()}, \code{sqrt()}, \code{pmin()}, \code{pmax()},
+#'   \code{poly()}, \code{factor()}, \code{as.factor()}, \code{interaction()}
+#'   and \code{offset()}. Any other call is refused, so a settings file shared
+#'   between colleagues cannot run code.
 #' @return A shiny app object. Printing it, as happens when the function is
 #'   called at the console, opens the application; it can also be passed to
-#'   shiny::runApp().
+#'   \code{shiny::runApp()}.
+#' @seealso \code{\link{run_shiny_distribution_fitting_tool}} and
+#'   \code{\link{run_shiny_simulator}}, the package's other applications.
 #' @export
 #' @examples
 #' if (interactive()) {
@@ -82,9 +96,74 @@ glm_settings_values <- function(inputs) {
     )
     if (!ok) next
     if (!is.null(glm_settings_choices[[id]]) && !value %in% glm_settings_choices[[id]]) next
+    # a hand-edited file may hold any number of bands; the slider only offers its range
+    if (id == "number_of_bands_input") value <- glm_band_count(value)
     values[[id]] <- value
   }
   if (length(values) == 0) NULL else values
+}
+
+# Functions a formula may call, besides the operators + - * : / ^ and brackets. A
+# formula is evaluated by model.frame() and glm(), so without this list the terms
+# typed in the formula box, or read from a shared settings file, could run any R
+# code on the machine the tool runs on (a settings file is plain text, and Shiny
+# apps are deployed on servers). These transform a column or mark a term and
+# reach nothing beyond their arguments.
+glm_formula_functions <- c("I", "log", "exp", "sqrt", "pmin", "pmax", "poly", "factor", "as.factor", "interaction", "offset")
+
+# The functions written for a message: "I(), log(), ... and offset()".
+glm_formula_functions_text <- function() {
+  calls <- paste0(glm_formula_functions, "()")
+  paste(paste(calls[-length(calls)], collapse = ", "), "and", calls[length(calls)])
+}
+
+# What stops a formula from being fitted, or NULL when nothing does: a formula (or
+# the text of its terms) may only use the columns of the data (any name when
+# columns is NULL, before the data is imported), "." for every other column,
+# numbers, the operators and the functions above. The contents of I() are checked
+# like everything else. Text that does not parse runs nothing, so it is left for
+# the fit to report.
+glm_formula_problem <- function(expr, columns = NULL) {
+  if (is.character(expr)) {
+    expr <- tryCatch(str2lang(expr), error = function(e) NULL)
+    if (is.null(expr)) return(NULL)
+  }
+  allowed <- paste("it may only use the data's columns with + - * : / ^ and", glm_formula_functions_text())
+  check <- function(e) {
+    if (is.name(e)) {
+      name <- as.character(e)
+      if (name %in% c("", ".") || is.null(columns) || name %in% columns) return(NULL)
+      return(paste0("'", name, "' is not a column of the data"))
+    }
+    if (is.call(e)) {
+      fun <- e[[1]]
+      name <- if (is.name(fun)) as.character(fun) else paste(deparse(fun), collapse = "")
+      if (!is.name(fun) || !name %in% c("~", "+", "-", "*", ":", "/", "^", "(", glm_formula_functions)) {
+        return(paste0("the formula may not call ", name, "(); ", allowed))
+      }
+      for (i in seq_along(e)[-1]) {
+        # an empty argument, as in poly(x, ), cannot be passed on
+        if (identical(e[[i]], quote(expr = ))) next
+        problem <- check(e[[i]])
+        if (!is.null(problem)) return(problem)
+      }
+      return(NULL)
+    }
+    if ((is.numeric(e) || is.logical(e)) && length(e) == 1) return(NULL)
+    paste0("the formula may not contain ", paste(deparse(e), collapse = ""), "; ", allowed)
+  }
+  check(expr)
+}
+
+# The range of the number-of-bands slider of the actual vs predicted chart.
+glm_band_range <- c(2, 50)
+
+# A number of bands within the slider's range (10 when there is none): a settings
+# file or a client may send any number, and seq(0, 1, length.out = bands + 1) with
+# a huge one would exhaust the memory.
+glm_band_count <- function(bands) {
+  if (!is.numeric(bands) || length(bands) != 1 || !is.finite(bands)) return(10)
+  min(max(round(bands), glm_band_range[1]), glm_band_range[2])
 }
 
 # Whether a column is text with so many different values that "." in a formula

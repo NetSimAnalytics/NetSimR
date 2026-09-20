@@ -99,8 +99,10 @@ sim_tab_describe_settings <- function(s) {
     if (huge(x)) return(formatC(x, format = "e", digits = 3))
     formatC(x, format = "f", digits = if (x == round(x)) 0 else max(2, display_digits(x)), big.mark = ",")
   }
+  #four decimals, or more for a small parameter (an Exponential rate of 1e-5, say, which four
+  #would show as 0), with the trailing zeros stripped
   fmt_param <- function(x) {
-    out <- sub("\\.?0+$", "", formatC(x, format = "f", digits = 4))
+    out <- vapply(x, function(v) sub("\\.?0+$", "", formatC(v, format = "f", digits = max(4, display_digits(v)))), character(1))
     out[huge(x)] <- formatC(x[huge(x)], format = "e", digits = 3)
     out
   }
@@ -137,6 +139,10 @@ sim_tab_describe_settings <- function(s) {
   al <- structure_text(s$reinsuranceStructureAL, s$reinsurance_structure_al_dedctible_amount,
                        s$reinsurance_structure_al_limit_amount)
 
+  #only the Normal distribution can be truncated at zero; older settings lists lack the field
+  severity <- distr_text(sev_dist_options, s$sevDistr, s$sev_params)
+  if (isTRUE(s$sevTruncateAtZero) && identical(s$sevDistr, "Normal")) severity <- paste(severity, "truncated at zero")
+
   slices <- if (isTRUE(s$paretoSlice) && is_number(s$pareto_slice_times)) {
     paste(fmt(s$pareto_slice_times), if (s$pareto_slice_times == 1) "Pareto slice" else "Pareto slices")
   }
@@ -144,8 +150,7 @@ sim_tab_describe_settings <- function(s) {
   seed <- if (isTRUE(s$seedSetBinary) && is_number(s$seedValue)) paste("seed", fmt(s$seedValue))
 
   parts <- c(
-    paste(distr_text(freq_dist_options, s$freqDistr, s$freq_params), "/",
-          distr_text(sev_dist_options, s$sevDistr, s$sev_params)),
+    paste(distr_text(freq_dist_options, s$freqDistr, s$freq_params), "/", severity),
     slices, cap, paste("EEL", eel), paste("AL", al), seed
   )
   paste(parts, collapse = ", ")
@@ -161,14 +166,15 @@ sim_tab_return_period_grid <- exp(seq(log(2), log(1e6), length.out = 700))
 #'
 #' Uses the same quantile approach as the report: the loss at return period r is the
 #' quantile of the totals at probability 1 - 1/r. Return periods stop at n/10, so at
-#' least 10 simulations lie beyond each point.
+#' least 10 simulations lie beyond each point. A run of 20 simulations or fewer has no
+#' curve: its only return period would be 2, a single point that a line cannot show.
 #' @param totals Numeric vector of simulated totals.
-#' @return A data frame with columns rp and value (possibly empty).
+#' @return A data frame with columns rp and value (empty, or with at least two rows).
 #' @noRd
 sim_tab_return_period_curve <- function(totals) {
   totals <- totals[!is.na(totals)]
   max_rp <- length(totals) / 10
-  if (max_rp < 2) return(data.frame(rp = numeric(0), value = numeric(0)))
+  if (max_rp <= 2) return(data.frame(rp = numeric(0), value = numeric(0)))
   rps <- c(sim_tab_return_period_grid[sim_tab_return_period_grid < max_rp], max_rp)
   data.frame(rp = rps, value = stats::quantile(totals, 1 - 1 / rps, names = FALSE))
 }
@@ -299,6 +305,18 @@ sim_tab_y_ticks <- function(values) {
   pretty(y_range, n = 5)
 }
 
+#' Title of the y axis of the compare chart
+#'
+#' What the drawn runs model ("Total claims", "Ceded", "Net" or "After structures", see
+#' summarise_simulation) when they all model the same thing, and "Loss" when they differ.
+#' @param entries List of the compare entries drawn.
+#' @return A single string.
+#' @noRd
+sim_tab_y_label <- function(entries) {
+  labels <- unique(vapply(entries, function(e) e$modelled_label, character(1)))
+  if (length(labels) == 1) labels else "Loss"
+}
+
 #' Overlaid return-period chart for the compare tab
 #'
 #' @param entries List of compare entries to draw.
@@ -323,11 +341,14 @@ sim_tab_return_period_plot <- function(entries, names, dark = FALSE) {
   palette <- c("#3b82f6", "#f97316", "#10b981", "#a855f7", "#ef4444", "#eab308")
   series_colours <- palette[(seq_along(entries) - 1) %% length(palette) + 1]
 
+  #a curve needs two points for lines() to draw anything; a run cut down to one is left
+  #out of the legend rather than listed there with no curve
   curves <- lapply(entries, function(e) e$curve[e$curve$rp <= max_rp * (1 + 1e-9), , drop = FALSE])
-  drawn <- vapply(curves, nrow, integer(1)) > 0
+  drawn <- vapply(curves, nrow, integer(1)) >= 2
   curves <- curves[drawn]
   names <- names[drawn]
   series_colours <- series_colours[drawn]
+  y_label <- sim_tab_y_label(entries[drawn])
 
   axis_cex <- 0.85
   legend_cex <- 0.9
@@ -397,7 +418,7 @@ sim_tab_return_period_plot <- function(entries, names, dark = FALSE) {
                  col.axis = colours$muted, cex.axis = axis_cex)
   graphics::axis(2, at = y_ticks, labels = y_labels, tick = FALSE, col.axis = colours$muted, cex.axis = axis_cex)
   graphics::mtext("Return period", side = 1, line = 2.1, col = colours$muted, cex = legend_cex)
-  graphics::mtext("Total claims", side = 2, line = label_lines + 1, col = colours$muted, cex = legend_cex, las = 0)
+  graphics::mtext(y_label, side = 2, line = label_lines + 1, col = colours$muted, cex = legend_cex, las = 0)
 
   marker_extent <- NULL
   if (200 <= max_rp) {
@@ -1234,8 +1255,9 @@ sim_compare_tab_server <- function(id, last_run, max_runs = 6, default_included 
               tags$span(class = "sim-run-id", paste("Run", entry$id)),
               div(
                 class = "sim-run-name-input",
-                textInput(ns(paste0("name_", entry$id)), label = NULL,
-                          value = isolate(state$name[[key]]), placeholder = entry$name)
+                #the label is read out but not shown; the placeholder shows the default name
+                sim_hidden_label(textInput(ns(paste0("name_", entry$id)), label = paste("Name of run", entry$id),
+                                           value = isolate(state$name[[key]]), placeholder = entry$name))
               ),
               tags$button(
                 type = "button",
@@ -1272,8 +1294,10 @@ sim_compare_tab_server <- function(id, last_run, max_runs = 6, default_included 
     output$return_period_chart <- netsimr_render_plot({
       inputs <- chart_inputs()
       validate(need(length(inputs$entries) > 0, "Include at least one run to draw the chart."))
+      #the chart stops at a tenth of the smallest run; at 20 simulations that is return period
+      #2 alone, a single point with no curve to draw (see sim_tab_return_period_curve)
       max_rp <- min(vapply(inputs$entries, function(e) e$metrics$n, numeric(1))) / 10
-      validate(need(max_rp >= 2, "The chart needs runs of at least 20 simulations."))
+      validate(need(max_rp > 2, "The chart needs runs of more than 20 simulations."))
       sim_tab_return_period_plot(inputs$entries, inputs$names, dark = identical(input$app_theme, "dark"))
     }, bg = "transparent", alt = "Losses by return period for the included runs")
   })

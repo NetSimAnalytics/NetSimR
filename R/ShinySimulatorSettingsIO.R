@@ -110,6 +110,12 @@ sim_settings_validate <- function(inputs, version = sim_settings_version) {
   if (!all(vapply(inputs, function(x) is.null(x) || is.atomic(x), logical(1)))) {
     return("The settings file holds inputs that are not numbers, text or TRUE/FALSE values.")
   }
+  #every input holds one value; a vector (an edited file, or one built to be huge) would be
+  #pushed to the browser as it is
+  several <- names(inputs)[lengths(inputs) > 1]
+  if (length(several) > 0) {
+    return(paste0("The settings file holds inputs with more than one value: '", paste(several, collapse = "', '"), "'."))
+  }
   #the choice inputs must hold values the app offers
   check_choice <- function(id, choices, label) {
     value <- inputs[[id]]
@@ -243,7 +249,7 @@ sim_settings_plan <- function(inputs) {
   slices <- suppressWarnings(as.numeric(inputs$pareto_slice_times))
   if (length(slices) == 1 && !is.na(slices)) {
     slices <- min(max(round(slices), 0), max_number_of_pareto_slices)
-    add("pareto_slice_times", "numeric")
+    add("pareto_slice_times", "numeric", value = slices)
     for (i in seq_len(2 * slices)) add(paste0("slice_pareto_param_", i), "numeric")
     #the later slice fields are emptied, so 'Add slice' does not bring back earlier values
     for (i in setdiff(seq_len(2 * max_number_of_pareto_slices), seq_len(2 * slices))) clear(paste0("slice_pareto_param_", i))
@@ -455,14 +461,20 @@ sim_settings_io_ui <- function() {
 #' @param session Session of the simulator server function.
 #' @param remember NULL, or a function of an input id and a value that stores the value
 #' the server builds that field from (the simulator's remembered typed values).
+#' @param apply NULL, or a function of an input id, kind and value that sends the update
+#' to the browser in place of \code{sim_settings_apply_update}, for the inputs whose sent
+#' values the server keeps track of itself (the number of slices).
 #' @return Called for its side effects.
 #' @noRd
-sim_settings_io_server <- function(input, output, session, remember = NULL) {
+sim_settings_io_server <- function(input, output, session, remember = NULL, apply = NULL) {
   #how long to wait for dynamic fields, and how to retry an update the browser lost
   timeout_seconds <- getOption("netsimr.settings_io_timeout", 6)
   retry_seconds <- 0.5
   max_attempts <- 3
   poll_millis <- 250
+  apply_update <- function(id, kind, value) {
+    if (is.function(apply)) apply(id, kind, value) else sim_settings_apply_update(session, id, kind, value)
+  }
 
   #save the current settings
   output$settingsIO_save <- downloadHandler(
@@ -489,7 +501,7 @@ sim_settings_io_server <- function(input, output, session, remember = NULL) {
 
     #stage one: the controls that decide which fields exist
     for (entry in entries[!is_pending]) {
-      sim_settings_apply_update(session, entry$id, entry$kind, entry$value)
+      apply_update(entry$id, entry$kind, entry$value)
     }
 
     #stage two: the fields that appear once the browser has applied stage one
@@ -558,7 +570,7 @@ sim_settings_io_server <- function(input, output, session, remember = NULL) {
       waited <- if (is.null(entry$sent_at)) Inf else as.numeric(now - entry$sent_at, units = "secs")
       if (entry$attempts < max_attempts && waited >= retry_seconds) {
         #the first update, or again when the browser lost it (the field kept its old value)
-        sim_settings_apply_update(session, entry$id, entry$kind, entry$value)
+        apply_update(entry$id, entry$kind, entry$value)
         entry$attempts <- entry$attempts + 1L
         entry$sent_at <- now
         entry$before <- current

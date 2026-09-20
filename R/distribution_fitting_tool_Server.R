@@ -1,5 +1,9 @@
 #' Server function for the Distribution Fitting tool application
 #'
+#' @description Reads the uploaded file, fits the frequency, severity, sliced
+#'   and piecewise Pareto models the user asks for and renders their tables and
+#'   charts; paired with \code{distribution_fitting_tool_UI} by
+#'   \code{\link{run_shiny_distribution_fitting_tool}}.
 #' @param input Input for the server function.
 #' @param output Output for the server function.
 #' @param session Session for the server function.
@@ -62,11 +66,15 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   fit_slice_pareto <- function (sev_data, slic_pont_lft, slic_pont_rght) {
     z <- subset(sev_data, sev_data > slic_pont_lft)
     w <- subset(z, z <= slic_pont_rght)
+    # with one or two claims the sum of squares is nearly flat: the optimiser stops at
+    # whatever alpha it reaches, an arbitrary number that would be shown as the fit
+    if (length(w) < 3) stop("at least three claims must lie between the slicing points")
     dat <- data.frame(severity = w, empirical = rank(w) / (length(z) + 1))
     SumOfSquares <- function(data, par) {
       sum((1 - (slic_pont_lft / data$severity)^par[1] - data$empirical)^2)
     }
     result <- optim(par = 1, SumOfSquares, data = dat, lower = 0.0001, method = "L-BFGS-B")
+    if (result$convergence != 0) stop("the optimisation did not converge")
     return(result$par)
   }
 
@@ -160,13 +168,21 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     req(input$file1)
     df <- data()
     truncated <- nrow(df) > preview_rows
+    # a file without a header read with one: its first row became the column names
+    numeric_names <- isTRUE(input$data_includes_header) && !anyNA(dft_as_numeric(names(df), or_default(input$dec, ".")))
+    columns_note <- if (numeric_names) {
+      "The column names look like numbers: is the first row a header?"
+    } else if (ncol(df) == 1) {
+      "Only one column: check the separator"
+    } else {
+      paste(length(numeric_columns()), "numeric")
+    }
     div(
       class = "dft-stats",
       dft_stat_tile("File", div(class = "dft-file-name", input$file1$name), icon_name = "file-lines"),
       dft_stat_tile("Rows", format(nrow(df), big.mark = ","), icon_name = "bars",
                     note = if (truncated) paste("The preview shows the first", format(preview_rows, big.mark = ","))),
-      dft_stat_tile("Columns", format(ncol(df), big.mark = ","), icon_name = "table-columns",
-                    note = if (ncol(df) == 1) "Only one column: check the separator" else paste(length(numeric_columns()), "numeric"))
+      dft_stat_tile("Columns", format(ncol(df), big.mark = ","), icon_name = "table-columns", note = columns_note)
     )
   })
 
@@ -433,25 +449,57 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   sliced_input <- eventReactive(input$execute_sliced_sev_analysis, claim_sizes(input$sliced_sev_var))
   sliced_sev_data <- reactive(sliced_input()$claims)
 
-  # the sliders cover the data; they start at the 75th and 95th percentiles
+  # the range of the sliders: from the smallest claim to the 99.5th percentile (dft_slider_top()),
+  # widened to hold a typed point beyond it
+  slicing_range <- reactiveVal(NULL)
+
+  # the sliders cover the claims up to the 99.5th percentile, not the largest claim, which on a
+  # heavy tail left the body of the distribution in less than a pixel of the bar; they start at
+  # the 75th and 95th percentiles
   observeEvent(sliced_input(), {
     x <- sliced_sev_data()
     lowest <- dft_nice_bound(min(x))
-    highest <- dft_nice_bound(max(x), up = TRUE)
+    highest <- dft_slider_top(x)
+    # (nearly every claim the smallest: the percentile is the smallest claim too)
+    if (highest <= lowest) highest <- dft_nice_bound(max(x), up = TRUE)
     left <- signif(quantile(x, 0.75, names = FALSE), 3)
     right <- signif(quantile(x, 0.95, names = FALSE), 3)
-    if (right <= left) right <- signif((left + max(x)) / 2, 3)
-    # a fine step, so that claims below 1 or heavy tails can still be sliced precisely
+    if (right <= left) right <- signif((left + highest) / 2, 3)
+    # a fine step, so that claims below 1 can still be sliced precisely
     step <- signif((highest - lowest) / 1000, 1)
+    slicing_range(c(lowest, highest))
     updateSliderInput(session, "slicing_point_left", min = lowest, max = highest, value = left, step = step)
     updateSliderInput(session, "slicing_point_right", min = lowest, max = highest, value = right, step = step)
   })
 
+  # a slicing point can also be typed, in the box beside its slider: the slider follows the
+  # typed value, and the range of both sliders grows to hold a value beyond it, so that the
+  # point is fitted wherever it lies (a slider clamps a value beyond its range); the box
+  # follows the slider. Neither update comes back: the browser sends a value only when it changes
+  for (id in c("slicing_point_left", "slicing_point_right")) local({
+    slider <- id
+    typed <- paste0(id, "_typed")
+    observeEvent(input[[slider]], updateNumericInput(session, typed, value = input[[slider]]))
+    observeEvent(input[[typed]], {
+      value <- input[[typed]]
+      if (!isTRUE(is.finite(value)) || isTRUE(value == input[[slider]])) return()
+      range <- slicing_range()
+      if (!is.null(range) && (value < range[1] || value > range[2])) {
+        range <- c(min(range[1], dft_nice_bound(value)), max(range[2], dft_nice_bound(value, up = TRUE)))
+        slicing_range(range)
+        for (other in setdiff(c("slicing_point_left", "slicing_point_right"), slider)) {
+          updateSliderInput(session, other, min = range[1], max = range[2])
+        }
+      }
+      updateSliderInput(session, slider, value = value, min = range[1], max = range[2])
+    })
+  })
+
   # moving the first point past the second moves the second above it
   observeEvent(input$slicing_point_left, {
-    x <- sliced_sev_data()
+    range <- req(slicing_range())
     if (isTRUE(input$slicing_point_right <= input$slicing_point_left)) {
-      updateSliderInput(session, "slicing_point_right", value = signif((input$slicing_point_left + max(x)) / 2, 3))
+      updateSliderInput(session, "slicing_point_right", value = signif((input$slicing_point_left + range[2]) / 2, 3))
     }
   }, ignoreInit = TRUE)
 
@@ -463,7 +511,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     validate(
       need(x2 > x1, "The second slicing point must be above the first."),
       need(length(unique(below)) >= 2, "Move the first slicing point up: at least two different claims must lie below it."),
-      need(any(x > x1 & x <= x2), "Move the slicing points apart: some claims must lie between them."),
+      need(sum(x > x1 & x <= x2) >= 3, "Move the slicing points apart: at least three claims must lie between them."),
       need(any(x > x2), "Move the second slicing point down: some claims must lie above it.")
     )
     c(x1, x2)
@@ -495,8 +543,10 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   zGreaterThanXm2 <- reactive(sliced_sev_data()[sliced_sev_data() > slicing_points()[2]])
   paretoX1Alpha <- reactive(length(zGreaterThanXm1()) / sum(log(zGreaterThanXm1() / slicing_points()[1])))
   paretoX2AlphaMod <- reactive({
+    # (the points are checked first: a message about them is not a failed fit)
+    points <- slicing_points()
     tryCatch(
-      fit_slice_pareto(sliced_sev_data(), slicing_points()[1], slicing_points()[2]),
+      fit_slice_pareto(sliced_sev_data(), points[1], points[2]),
       error = function(e) {
         failed_fit("Sliced Pareto fit", e)
         NA_real_
@@ -582,14 +632,15 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   piecewise_input <- eventReactive(input$execute_piecewise_sev_analysis, claim_sizes(input$piecewise_pareto_var))
   piecewise_sev_data <- reactive(sort(piecewise_input()$claims))
 
-  # one slider per threshold, from the second smallest to the second largest distinct claim;
-  # a threshold already set is kept when it is still in range
+  # one slider per threshold, from the second smallest distinct claim to the 99.5th percentile
+  # (dft_slider_top(); at least the third distinct claim, and at most the second largest); a
+  # threshold already set is kept when it is still in range
   dynamic_sliders <- eventReactive(list(input$num_pareto_slices, input$execute_piecewise_sev_analysis), {
     sorted_claims <- piecewise_sev_data()
     distinct <- unique(sorted_claims)
     validate(need(length(distinct) >= 4, "The thresholds need at least four different claim sizes."))
     min_val <- distinct[2]
-    max_val <- distinct[length(distinct) - 1]
+    max_val <- min(distinct[length(distinct) - 1], max(dft_slider_top(sorted_claims), distinct[3]))
     num_sliders <- or_default(input$num_pareto_slices, 1)
     step <- signif((max_val - min_val) / 1000, 1)
     tagList(lapply(seq_len(num_sliders), function(i) {

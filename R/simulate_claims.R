@@ -104,6 +104,9 @@ simulate_claims <- function(
   claims_check_flag(parallel, "parallel")
   claims_check_flag(gross, "gross")
   claims_check_flag(shortcuts, "shortcuts")
+  if (!is.null(progress) && !is.function(progress)) {
+    stop("progress must be a function or NULL.", call. = FALSE)
+  }
 
   frequency_id <- claims_distribution_id(frequency, freq_dist_options, "frequency")
   severity_id <- claims_distribution_id(severity, sev_dist_options, "severity")

@@ -255,6 +255,113 @@ Changes in Version 0.3.0
 
 Changes in Version 0.3.1
 
+  o Results change in four cases, each described below: an each-and-every-loss
+    layer with limited reinstatements combined with an aggregate deductible;
+    totals, gross claims and reinstatements used, which are no longer rounded
+    to two decimals; the ratios of PureIBNRGamma() and PureIBNRLNorm(); and the
+    quantiles, capped means and exposure curves in the three items that follow.
+    The Shiny tools also no longer load settings files saved as .rds.
+  o qSlicedGammaPareto() and qSlicedLNormPareto() give NaN for a probability
+    outside [0, 1], as qgamma() does. Where the reciprocal of the Pareto shape
+    is a whole number (a shape of 1, 0.5 or a third), a probability above 1
+    gave a plausible-looking quantile instead: q = 1.1 gave -7357.59 with a
+    shape of 1, and 54134.1 with a shape of 0.5.
+  o SlicedGammaParetoCappedMean() and SlicedLNormParetoCappedMean() give Inf
+    at an infinite cap when the Pareto shape is 1 or below, agreeing with
+    SlicedGammaParetoMean() and SlicedLNormParetoMean(). They gave NaN when
+    the weight of the tail underflowed to zero.
+  o ExposureCurveLNorm() gives 1 at an infinite cap, where it gave NaN when
+    the mean of the distribution overflowed (a sigma of 40, say).
+  o ExposureCurveGamma() and ExposureCurveLNorm() name themselves when
+    arguments of different lengths cannot be recycled, as the other functions
+    do; they named the capped mean they call.
+  o simulate_claims() rejects a progress argument that is not a function,
+    which it used to ignore.
+  o Settings files keep the exact value of every number. They were written
+    with 15 significant digits, so a value such as a third came back slightly
+    different and a seeded run loaded from its own settings file could give
+    different results. Values that need no more digits are still written
+    plainly (0.3 stays 0.3).
+  o A settings file with a setting given twice, a blank line between the
+    settings, no version line, or a value built to be enormous is refused with
+    a message saying what is wrong. A repeated setting used to load two values
+    into a field that holds one, and a missing version line reported
+    "subscript out of bounds".
+  o Claims simulator: a slice added while settings or an example are loading no
+    longer makes the next "Add slice" jump by the slices that were pending.
+  o Claims simulator: the report's histogram of claim totals keeps simulations
+    whose total is negative. It left them out while its note said that only
+    the simulations totalling zero were left out.
+  o Claims simulator: the report's headline figures, layer metrics and
+    gross/ceded/net table round the modelled series on its own scale, so they
+    agree with the statistics table on the same page and with the Compare tab.
+    A layer with a mean of 1.90 and a median of 0.00 was shown as 2 and 0.
+  o Claims simulator: distribution parameters far below one are shown to three
+    significant figures (an Exponential rate of 1e-5, a mean claim of 100,000,
+    was shown as 0), and a seed of 100000 is shown as 100,000, not 1e+05.
+  o Claims simulator: the report fits a phone-width window; below about 352 px
+    the right edge of every section was cut off. Its charts are drawn with the
+    cairo device on Windows, as the charts in the app already were.
+  o Claims simulator: the Compare tab tells apart two runs that differ only by
+    "Truncate at zero", and leaves out of the chart a run with too few
+    simulations to draw a curve, which appeared in the legend with no curve.
+    Return-period charts label their vertical axis Ceded or Net when that is
+    what they show, as the other charts do.
+  o Claims simulator: the frequency and severity choices and the Compare tab's
+    run name are announced by screen readers.
+  o GLM fitting tool: a formula may use the data's columns, the formula
+    operators and I(), log(), exp(), sqrt(), pmin(), pmax(), poly(), factor(),
+    as.factor(), interaction() and offset(); anything else is refused by name.
+    The formula was run as R code, so a settings file from someone else could
+    carry code that ran on the next click of Fit model.
+  o GLM fitting tool: after data is imported, the model tiles, the chart and
+    the downloads say which file the model on screen was fitted to, and the
+    downloads wait until it is fitted again. The tiles, the coefficients and
+    the downloaded predictions used to come from the previous import with
+    nothing saying so.
+  o GLM fitting tool: two stored models are compared by AIC only when they
+    were fitted to the same import and left out the same rows; models of
+    unrelated data with the same number of rows were marked "lower".
+  o GLM fitting tool: warnings raised before a binomial response with more
+    than two values are kept rather than replaced; the predictions CSV calls
+    its column model_prediction when the data already has one called
+    prediction; a fit uses the link shown on screen even when it is started
+    before the browser has echoed a change of family; and the number of bands
+    read from a settings file is held to the range of the slider.
+  o Distribution fitting tool: a file that is not valid UTF-8 is read as
+    Windows-1252, which is what Excel writes on a German or French Windows. An
+    accented character used to end the session with a grey overlay as soon as
+    the file was uploaded.
+  o Distribution fitting tool: a row with more fields than the rows above it
+    keeps them in their own columns. The surplus value started a new row
+    instead, so claims that were never in the file were fitted (a file of
+    eight claims gave eleven).
+  o Distribution fitting tool: the slicing point and piecewise Pareto
+    threshold sliders span the claims up to the largest once the top half a
+    percent are left out, so the body of a heavy-tailed distribution can be
+    reached; one large claim used to leave the body in less than a pixel of
+    the bar. A point can also be typed in the box beside its slider, and the
+    sliders grow to hold a value beyond their range.
+  o Distribution fitting tool: the header is found after more than 100 blank
+    lines; the frequency histogram shows the probability a model puts below
+    the smallest count, which zero-truncated data left off the chart; the
+    Pareto alpha between two slicing points needs at least three claims
+    between them and reports a fit that did not converge, instead of showing
+    whatever the optimiser stopped at; and the Data tile asks whether the
+    first row is a header when the column names are all numbers.
+  o The help pages say what each function does rather than repeating its
+    title, the sliced distribution pages say which argument is the Pareto
+    shape, and the three applications link to each other.
+  o The vignettes no longer carry LaTeX-only markup (\pagebreak and
+    \usepackage[utf8]{inputenc}) that an HTML vignette ignores, and no longer
+    show the date they were built on CRAN. The Sliced distributions vignette
+    refers to the capped mean vignette by its title.
+  o The exploratory scripts in tests/CappedMean, tests/PureIBNR and
+    tests/SlicedDistributions are left out of the package tarball; they were
+    never run by R CMD check.
+  o DESCRIPTION: the third article is "Taken to excess", the Shiny tools are
+    listed one by one, and testthat (>= 3.0.0) is required for the tests.
+    README: a CRAN badge and a list of the vignettes.
   o PureIBNRGamma() and PureIBNRLNorm() compute the ratios from the unrounded
     pure IBNR duration. They divided the duration rounded to 0.01 days, so
     short periods lost precision (a one-hour period gave 0.96 instead of

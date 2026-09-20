@@ -270,8 +270,11 @@ glm_family_links <- list(
 
 #' User interface of the Shiny GLM fitting tool
 #'
-#' A function of the request, so that it is built when the app starts, after
-#' every helper of the package is defined.
+#' @description Builds the pages of the GLM fitting tool: Welcome, Data, Model,
+#'   Actual vs predicted and Save & load, with the theme switch.
+#'
+#' @details A function of the request, so that it is built when the app starts,
+#'   after every helper of the package is defined.
 #' @param request The request, supplied by shiny.
 #' @return The user interface of the application, a bslib navbar page.
 #' @keywords internal
@@ -527,7 +530,8 @@ GLMFittingToolUI <- function(request) {
             uiOutput("formula_lhs"),
             uiOutput("formula_columns", class = "glm-chips"),
             dft_help("Click a column to add it. Use + between terms, * for interactions, ",
-                     "and 1 for an intercept-only model."),
+                     "and 1 for an intercept-only model. The terms may only use the data's columns, numbers, ",
+                     "+ - * : / ^ and ", glm_formula_functions_text(), "; nothing else is run."),
             actionButton("fit_model", "Fit model", icon = icon("play"), class = "btn-run mt-3")
           ),
           bslib::card(
@@ -578,7 +582,8 @@ GLMFittingToolUI <- function(request) {
         dft_settings_card(
           "sliders", "Settings", "Choose the variable to band by.",
           selectInput("visualize_variable", "Explanatory variable", choices = c("None")),
-          sliderInput("number_of_bands_input", "Number of bands for numeric variables", min = 2, max = 50, value = 10),
+          sliderInput("number_of_bands_input", "Number of bands for numeric variables",
+                      min = glm_band_range[1], max = glm_band_range[2], value = 10),
           div(class = "sim-section-label", "Bands"),
           div(class = "pill-radio",
               radioButtons("band_method", NULL, c("Equal counts" = "quantile", "Equal width" = "width"),

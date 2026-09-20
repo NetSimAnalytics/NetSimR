@@ -45,9 +45,9 @@ simulate_function(
 
 \item{seedValue}{The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}, or NULL (the default) for no fixed seed.}
 
-\item{freqDistr}{The frequency distribution. Options are as per the freq_dist_options.}
+\item{freqDistr}{The frequency distribution: \code{"Poisson"}, \code{"Negative_Binomial"}, \code{"Binomial"} or \code{"Fixed_number_of_Counts"}. The parameters of each are listed in \code{\link{simulate_claims}}.}
 
-\item{sevDistr}{The severity distribution. Options are as per the sev_dist_options.}
+\item{sevDistr}{The severity distribution: \code{"Normal"}, \code{"LogNormal"}, \code{"Gamma"}, \code{"Exponential"}, \code{"Pareto"} or \code{"Fixed_Severity"}. The parameters of each are listed in \code{\link{simulate_claims}}.}
 
 \item{paretoSlice}{True if there is Pareto slicing.}
 
