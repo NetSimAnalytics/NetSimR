@@ -62,7 +62,19 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # CRAN's macOS binaries are now a mix of xz- and zstd-compressed .tgz files, and the pak
+      # that setup-r-dependencies installs with cannot read the zstd ones ("Cannot extract ...,
+      # unknown archive type", r-lib/pkgdepends#485). Base R's own installer reads them, so this
+      # job installs its dependencies with it; put the step back when that issue is closed.
+      - name: Install dependencies with base R (macOS)
+        if: runner.os == 'macOS'
+        shell: Rscript {0}
+        run: |
+          install.packages(c("remotes", "rcmdcheck"))
+          remotes::install_deps(dependencies = TRUE)
+
       - uses: r-lib/actions/setup-r-dependencies@v2
+        if: runner.os != 'macOS'
         with:
           extra-packages: any::rcmdcheck
           needs: check
