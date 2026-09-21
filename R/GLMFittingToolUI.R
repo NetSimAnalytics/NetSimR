@@ -374,7 +374,7 @@ GLMFittingToolUI <- function(request) {
             tags$ol(
               class = "sim-steps",
               tags$li(div(div(class = "sim-step-title", "Import"),
-                          div(class = "sim-step-text", "A CSV file, or a query on MySQL, SQLite, SQL Server or PostgreSQL."))),
+                          div(class = "sim-step-text", "A CSV file, or a query on SQLite, SQL Server or PostgreSQL."))),
               tags$li(div(div(class = "sim-step-title", "Fit"),
                           div(class = "sim-step-text", "Choose the response, family, link, offset, weights and formula."))),
               tags$li(div(div(class = "sim-step-title", "Compare"),
@@ -391,7 +391,7 @@ GLMFittingToolUI <- function(request) {
         div(
           class = "sim-stat",
           div(class = "sim-stat-label", icon("database"), "Data sources"),
-          div(class = "sim-stat-value", paste(c("CSV", "MySQL", "SQLite", "SQL Server", "PostgreSQL"),
+          div(class = "sim-stat-value", paste(c("CSV", "SQLite", "SQL Server", "PostgreSQL"),
                                               collapse = paste0(" ", intToUtf8(183), " ")))
         ),
         div(
@@ -460,14 +460,14 @@ GLMFittingToolUI <- function(request) {
 
           conditionalPanel(
             condition = "input.data_source == 'Database'",
-            selectInput("db_type", "Database type", choices = c("MySQL", "SQLite", "SQL Server", "PostgreSQL")),
+            selectInput("db_type", "Database type", choices = c("SQLite", "SQL Server", "PostgreSQL")),
             conditionalPanel(
               condition = "input.db_type != 'SQLite'",
               textInput("db_host", "Host", "localhost")
             ),
             textInput("db_name", "Database name (the file path for SQLite)", "public"),
             conditionalPanel(
-              condition = "input.db_type == 'MySQL' || input.db_type == 'PostgreSQL'",
+              condition = "input.db_type == 'PostgreSQL'",
               textInput("db_port", "Port (optional)", "", placeholder = "Default port")
             ),
             conditionalPanel(
@@ -476,7 +476,7 @@ GLMFittingToolUI <- function(request) {
             ),
             conditionalPanel(
               condition = "input.db_type != 'SQLite' && (input.db_type != 'SQL Server' || !input.windows_auth)",
-              textInput("db_user", "User", "root"),
+              textInput("db_user", "User", ""),
               passwordInput("db_password", "Password", "")
             ),
             textAreaInput("sql_query", "SQL query", "SELECT * FROM your_table", rows = 5, width = "100%"),

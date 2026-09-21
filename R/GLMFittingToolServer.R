@@ -67,11 +67,6 @@ GLMFittingToolServer <- function(input, output, session) {
         }
         df_input <- switch(
           input$db_type,
-          "MySQL" = glm_tool_query_dbi(
-            RMySQL::MySQL(), input$sql_query,
-            host = input$db_host, user = input$db_user, password = input$db_password,
-            port = db_port(3306), dbname = input$db_name
-          ),
           "SQLite" = {
             # connecting to a file that does not exist would create an empty database
             if (!file.exists(input$db_name)) stop("the SQLite file '", input$db_name, "' does not exist")
@@ -182,6 +177,7 @@ GLMFittingToolServer <- function(input, output, session) {
     ids <- c("response_variable", "offset", "weights", "visualize_variable")
     wanted <- stats::setNames(lapply(ids, function(id) or_default(pending[[id]], input[[id]])), ids)
     choices <- glm_column_choices(selected_data(), or_default(input$glm_distribution, "gaussian"), wanted)
+    for (id in c("response_variable", "offset", "weights")) hold_spec_input(id, choices[[id]])
     updateSelectInput(session, "response_variable", choices = columns, selected = choices$response_variable)
     updateSelectInput(session, "offset", choices = c("None", columns), selected = choices$offset)
     updateSelectInput(session, "weights", choices = c("None", columns), selected = choices$weights)
@@ -195,8 +191,36 @@ GLMFittingToolServer <- function(input, output, session) {
   # the link the model is fitted with. The family observer chooses it and the browser echoes the
   # choice later, so a fit clicked in between would otherwise use the old family's link (the
   # identity link is valid for the Poisson family, say) while the interface shows the new one
+  # (these observers run before anything that reads the fit, priority 10, so a value the browser
+  # sends with the click of Fit model is the value fitted)
   chosen_link <- reactiveVal(NULL)
-  observeEvent(input$link_function, chosen_link(input$link_function))
+  observeEvent(input$link_function, chosen_link(input$link_function), priority = 10)
+
+  # the family the model is fitted with, for the same reason: loading a stored model or a
+  # settings file selects the family on the server, and a fit clicked before the browser echoes
+  # it would otherwise use the family shown before the load
+  chosen_family <- reactiveVal(NULL)
+  observeEvent(input$glm_distribution, chosen_family(input$glm_distribution), priority = 10)
+
+  # The rest of what the model is fitted with, likewise: a load sets the response, offset,
+  # weights and formula on the server too, and a fit clicked before the browser reported them
+  # combined the loaded family with the response and formula shown before (a binomial family
+  # with the previous count response, which fails). A value the server sets is held here until
+  # the browser reports it; a value the server sets to what is already shown is not held, as
+  # the browser reports nothing for it.
+  spec_inputs <- c("response_variable", "offset", "offset_log", "weights", "formula")
+  unreported <- reactiveValues()
+  for (id in spec_inputs) local({
+    input_id <- id
+    observeEvent(input[[input_id]], unreported[[input_id]] <- NULL, priority = 10)
+  })
+  hold_spec_input <- function(id, value) {
+    if (id %in% spec_inputs && !identical(value, input[[id]])) unreported[[id]] <- value
+  }
+  spec_value <- function(id) {
+    held <- unreported[[id]]
+    if (is.null(held)) input[[id]] else held
+  }
 
   # only the links that make sense for the family are offered, with the family's default selected
   observeEvent(input$glm_distribution, {
@@ -207,7 +231,7 @@ GLMFittingToolServer <- function(input, output, session) {
     link <- if (!is.null(wanted) && wanted %in% links) wanted else links[1]
     chosen_link(link)
     updateSelectInput(session, "link_function", choices = links, selected = link)
-  }, ignoreInit = TRUE)
+  }, ignoreInit = TRUE, priority = 10)
 
   # the columns, as buttons that add them to the formula
   output$formula_columns <- renderUI({
@@ -236,13 +260,13 @@ GLMFittingToolServer <- function(input, output, session) {
 
   current_spec <- function() {
     list(
-      response = input$response_variable,
-      family = or_default(input$glm_distribution, "gaussian"),
+      response = spec_value("response_variable"),
+      family = or_default(chosen_family(), or_default(input$glm_distribution, "gaussian")),
       link = or_default(chosen_link(), input$link_function),
-      offset = or_default(input$offset, "None"),
-      offset_log = isTRUE(input$offset_log),
-      weights = or_default(input$weights, "None"),
-      formula = trimws(or_default(input$formula, ""))
+      offset = or_default(spec_value("offset"), "None"),
+      offset_log = isTRUE(spec_value("offset_log")),
+      weights = or_default(spec_value("weights"), "None"),
+      formula = trimws(or_default(spec_value("formula"), ""))
     )
   }
 
@@ -545,15 +569,22 @@ GLMFittingToolServer <- function(input, output, session) {
   }
 
   apply_model_spec <- function(spec) {
-    if (!identical(spec$family, input$glm_distribution)) pending_link(spec$link)
+    # (cleared when the browser already shows the family: it sends no report to consume it)
+    pending_link(if (!identical(spec$family, input$glm_distribution)) spec$link)
     updateSelectInput(session, "glm_distribution", selected = spec$family)
+    chosen_family(spec$family)
     chosen_link(spec$link)
     updateSelectInput(session, "link_function", choices = glm_family_links[[spec$family]], selected = spec$link)
     for (id in c("response_variable", "offset", "weights")) {
       value <- spec[[switch(id, response_variable = "response", id)]]
-      if (value %in% c("None", data_columns())) updateSelectInput(session, id, selected = value)
+      if (value %in% c("None", data_columns())) {
+        hold_spec_input(id, value)
+        updateSelectInput(session, id, selected = value)
+      }
     }
+    hold_spec_input("offset_log", isTRUE(spec$offset_log))
     bslib::update_switch("offset_log", value = isTRUE(spec$offset_log), session = session)
+    hold_spec_input("formula", spec$formula)
     updateTextAreaInput(session, "formula", value = spec$formula)
   }
 
@@ -778,7 +809,7 @@ GLMFittingToolServer <- function(input, output, session) {
     }
     values <- glm_settings_values(settings$values)
     if (is.null(values)) {
-      showNotification(paste0("'", file_info$name, "' has no settings of the GLM fitting tool."), type = "error", duration = 8)
+      showNotification(paste0("'", file_info$name, "' has no settings this version of the GLM fitting tool can use."), type = "error", duration = 8)
       return(invisible(NULL))
     }
     # a formula that calls anything but the formula functions would run its author's code at the
@@ -793,27 +824,50 @@ GLMFittingToolServer <- function(input, output, session) {
     # before the first import there are no columns yet (data_columns() stops silently)
     columns <- tryCatch(data_columns(), error = function(e) NULL)
     pending <- list()
-    family <- values$glm_distribution
-    if (!is.null(family) && !is.null(values$link_function) && !identical(family, input$glm_distribution)) {
-      pending_link(values$link_function)
+    # The family and link are set together, so that the model fitted and the selects agree
+    # however the browser's replies arrive: a file without a link keeps the link shown unless
+    # it changes the family (whose default link is then used, as when the family is changed by
+    # hand), and a link the family does not offer, which would leave the link select blank
+    # while the fit used the default, is replaced by the default and the user told so
+    link_note <- NULL
+    if (!is.null(values$glm_distribution) || !is.null(values$link_function)) {
+      shown_family <- or_default(chosen_family(), or_default(input$glm_distribution, "gaussian"))
+      family <- or_default(values$glm_distribution, shown_family)
+      links <- glm_family_links[[family]]
+      link <- values$link_function
+      if (is.null(link)) link <- if (identical(family, shown_family)) chosen_link() else links[1]
+      if (!is.null(values$link_function) && !values$link_function %in% links) {
+        link_note <- paste0(" The ", family, " family has no '", values$link_function, "' link, so its default, '",
+                            links[1], "', is used.")
+      }
+      if (is.null(link) || !link %in% links) link <- links[1]
+      chosen_family(family)
+      chosen_link(link)
+      # the family observer selects this link when the browser reports the family; a family the
+      # browser already shows sends no report, and a link left pending from an earlier load would
+      # be selected at the next change of family
+      pending_link(if (!identical(family, input$glm_distribution)) link)
+      updateSelectInput(session, "glm_distribution", selected = family)
+      updateSelectInput(session, "link_function", choices = links, selected = link)
     }
-    for (id in names(values)) {
+    for (id in setdiff(names(values), c("glm_distribution", "link_function"))) {
       value <- values[[id]]
       switch(
         kinds[[id]],
         radio = updateRadioButtons(session, id, selected = value),
-        switch = bslib::update_switch(id, value = isTRUE(value), session = session),
-        text = updateTextInput(session, id, value = value),
-        textarea = updateTextAreaInput(session, id, value = value),
-        slider = updateSliderInput(session, id, value = value),
-        select = if (id == "link_function" && !is.null(family) && !is.null(glm_family_links[[family]])) {
-          chosen_link(value)
-          updateSelectInput(session, id, choices = glm_family_links[[family]], selected = value)
-        } else {
-          if (id == "link_function") chosen_link(value)
-          updateSelectInput(session, id, selected = value)
+        switch = {
+          hold_spec_input(id, isTRUE(value))
+          bslib::update_switch(id, value = isTRUE(value), session = session)
         },
+        text = updateTextInput(session, id, value = value),
+        textarea = {
+          hold_spec_input(id, value)
+          updateTextAreaInput(session, id, value = value)
+        },
+        slider = updateSliderInput(session, id, value = value),
+        select = updateSelectInput(session, id, selected = value),
         column = if (!is.null(columns) && value %in% c("None", columns)) {
+          hold_spec_input(id, value)
           updateSelectInput(session, id, selected = value)
         } else {
           pending[[id]] <- value
@@ -822,7 +876,7 @@ GLMFittingToolServer <- function(input, output, session) {
     }
     pending_columns(pending)
     showNotification(
-      paste0("Settings loaded from '", file_info$name, "'.",
+      paste0("Settings loaded from '", file_info$name, "'.", link_note,
              if (length(pending) > 0) " The column choices are applied when the data is imported." else ""),
       type = "message", duration = 6
     )

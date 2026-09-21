@@ -413,7 +413,7 @@ test_that("GLM fitting tool refuses files that are not its settings, with a noti
     list(path = junk, name = "notes.txt", message = "not a NetSimR settings file"),
     list(path = simulator, name = "simulator.txt", message = "for the claims simulator, not the GLM fitting tool"),
     list(path = code, name = "code.txt", message = "'formula' has a value that cannot be read"),
-    list(path = invalid, name = "invalid.txt", message = "has no settings of the GLM fitting tool")
+    list(path = invalid, name = "invalid.txt", message = "has no settings this version of the GLM fitting tool can use")
   )
   shiny::testServer(GLMFittingToolServer, {
     log <- record_session_messages(session)

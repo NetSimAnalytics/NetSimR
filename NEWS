@@ -325,9 +325,20 @@ Changes in Version 0.3.1
   o GLM fitting tool: warnings raised before a binomial response with more
     than two values are kept rather than replaced; the predictions CSV calls
     its column model_prediction when the data already has one called
-    prediction; a fit uses the link shown on screen even when it is started
-    before the browser has echoed a change of family; and the number of bands
-    read from a settings file is held to the range of the slider.
+    prediction; and the number of bands read from a settings file is held to
+    the range of the slider.
+  o GLM fitting tool: a model is fitted as the screen shows it even when Fit
+    model is clicked straight after loading a stored model or a settings file,
+    or after a change of family, before the browser has reported the new
+    values. The fit mixed the loaded family and link with the response, offset,
+    weights and formula shown before the load, so a stored binomial model could
+    be fitted to the previous count response and fail. A settings file whose
+    link does not suit its family uses the family's default link and says so,
+    instead of leaving the link blank on screen.
+  o GLM fitting tool: MySQL is no longer offered as a data source, and RMySQL is
+    no longer suggested; RMySQL is deprecated by its authors. A settings file
+    that chose MySQL loads without it, and the database type is left as it is.
+    The database user no longer defaults to MySQL's "root".
   o Distribution fitting tool: a file that is not valid UTF-8 is read as
     Windows-1252, which is what Excel writes on a German or French Windows. An
     accented character used to end the session with a grey overlay as soon as

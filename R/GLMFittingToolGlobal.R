@@ -72,7 +72,7 @@ glm_settings_choices <- list(
   csv_sep = c(",", ";", "\t"),
   csv_dec = c(".", ","),
   csv_quote = c("\"", "'", ""),
-  db_type = c("MySQL", "SQLite", "SQL Server", "PostgreSQL"),
+  db_type = c("SQLite", "SQL Server", "PostgreSQL"),
   glm_distribution = c("gaussian", "poisson", "binomial", "Gamma", "inverse.gaussian"),
   link_function = c("identity", "log", "inverse", "sqrt", "logit", "probit", "cloglog", "cauchit", "1/mu^2"),
   band_method = c("quantile", "width")
@@ -316,7 +316,6 @@ glm_value_labels <- function(values) {
 # Database driver packages used by the GLM fitting tool. They are in Suggests,
 # so a user who only imports CSV files does not need to install them.
 glm_tool_db_packages <- c(
-  "MySQL" = "RMySQL",
   "SQLite" = "RSQLite",
   "SQL Server" = "RODBC",
   "PostgreSQL" = "RPostgreSQL"

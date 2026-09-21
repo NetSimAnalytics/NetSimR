@@ -44,7 +44,7 @@ test_that("GLM fitting tool downloads a model without the Shiny session or the p
   saveRDS(reference, plain)
   shiny::testServer(GLMFittingToolServer, {
     #a password typed on the Data tab before a CSV file is imported
-    session$setInputs(data_source = "Database", db_type = "MySQL", db_user = "someone", db_password = password)
+    session$setInputs(data_source = "Database", db_type = "PostgreSQL", db_user = "someone", db_password = password)
     session$setInputs(data_source = "CSV File", csv_file = list(datapath = path, name = "claims.csv"), submit = 1)
     session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "log",
                       offset = "exposure", offset_log = TRUE, weights = "weight", formula = "age + region", fit_model = 1)
@@ -272,6 +272,133 @@ test_that("GLM fitting tool fits with the link of the family chosen, not the lin
     session$setInputs(glm_distribution = "poisson")
     session$setInputs(fit_model = 4)
     expect_identical(fitted_model()$family$link, "sqrt")
+  })
+})
+
+test_that("GLM fitting tool fits with the family a load selects, not the one the browser has yet to echo", {
+  d <- glm_claims_data(200)
+  settings <- tempfile(fileext = ".txt")
+  write_settings_file(list(glm_distribution = "poisson"), settings, glm_settings_tool, glm_settings_version)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "sqrt",
+                      offset = "None", weights = "None", formula = "age", fit_model = 1)
+    expect_identical(fitted_model()$family$family, "poisson")
+    session$setInputs(save_formula_1 = 1)
+    session$setInputs(glm_distribution = "gaussian")
+    session$setInputs(link_function = "identity", fit_model = 2)
+    expect_identical(fitted_model()$family$family, "gaussian")
+    #the stored Poisson model is loaded and Fit clicked before the browser echoes anything: the
+    #family was read from the browser, so the fit was a Gaussian model with the stored link
+    session$setInputs(load_formula_1 = 1)
+    session$setInputs(fit_model = 3)
+    expect_identical(fitted_model()$family$family, "poisson")
+    expect_identical(fitted_model()$family$link, "sqrt")
+    expect_identical(fit_result()$spec$family, "poisson")
+    #a settings file with a new family and no link: the family's default link, as the browser will show
+    session$setInputs(glm_distribution = "gaussian")
+    session$setInputs(link_function = "identity", fit_model = 4)
+    expect_identical(fitted_model()$family$family, "gaussian")
+    session$setInputs(load_config = list(datapath = settings, name = "settings.txt"))
+    session$setInputs(fit_model = 5)
+    expect_identical(fitted_model()$family$family, "poisson")
+    expect_identical(fitted_model()$family$link, "log")
+    #a family the user picks is used as before
+    session$setInputs(glm_distribution = "gaussian")
+    session$setInputs(link_function = "identity", fit_model = 6)
+    expect_identical(fitted_model()$family$family, "gaussian")
+  })
+})
+
+test_that("GLM fitting tool fits a loaded model whole, not with the response and formula shown before", {
+  d <- glm_claims_data(300)
+  d$has_claim <- as.integer(d$claim_count > 0)
+  file_path <- tempfile(fileext = ".txt")
+  write_settings_file(list(glm_distribution = "poisson", link_function = "log", offset = "exposure", offset_log = TRUE,
+                           formula = "age + region"), file_path, glm_settings_tool, glm_settings_version)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
+    #a stored binomial model of has_claim, then a Gaussian model of claim_count on the screen
+    session$setInputs(response_variable = "has_claim", glm_distribution = "binomial", link_function = "probit",
+                      offset = "None", offset_log = FALSE, weights = "None", formula = "age + region", fit_model = 1)
+    expect_identical(fitted_model()$family$family, "binomial")
+    session$setInputs(save_formula_1 = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "gaussian")
+    session$setInputs(link_function = "identity", formula = "age", fit_model = 2)
+    expect_identical(fit_result()$spec$response, "claim_count")
+    #loaded and fitted before the browser reports anything: the fit took the binomial family with the
+    #count response on screen before the load, and failed ("y values must be 0 <= y <= 1")
+    session$setInputs(load_formula_1 = 1)
+    session$setInputs(fit_model = 3)
+    expect_s3_class(fitted_model(), "glm")
+    spec <- fit_result()$spec
+    expect_identical(spec[c("response", "family", "link", "formula")],
+                     list(response = "has_claim", family = "binomial", link = "probit", formula = "age + region"))
+    #the browser reports the values; a fit then gives the same model
+    session$setInputs(response_variable = "has_claim", glm_distribution = "binomial")
+    session$setInputs(link_function = "probit", formula = "age + region", fit_model = 4)
+    expect_identical(fit_result()$spec[c("response", "family", "link", "formula")], spec[c("response", "family", "link", "formula")])
+    #a settings file with an offset and a formula, fitted before the browser reports them
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson")
+    session$setInputs(link_function = "sqrt", formula = "age", fit_model = 5)
+    session$setInputs(load_config = list(datapath = file_path, name = "settings.txt"))
+    session$setInputs(fit_model = 6)
+    spec <- fit_result()$spec
+    expect_identical(spec[c("family", "link", "offset", "offset_log", "formula")],
+                     list(family = "poisson", link = "log", offset = "exposure", offset_log = TRUE, formula = "age + region"))
+    expect_identical(names(coef(fitted_model())), c("(Intercept)", "age", "regionNorth", "regionSouth", "regionWest"))
+    #values sent together with the click of Fit model are the values fitted
+    session$setInputs(offset = "None", offset_log = FALSE, formula = "age", fit_model = 7)
+    expect_identical(fit_result()$spec[c("offset", "formula")], list(offset = "None", formula = "age"))
+  })
+})
+
+test_that("GLM fitting tool's settings loads keep the family and link fitted and shown in step", {
+  d <- glm_claims_data(200)
+  settings <- function(...) {
+    path <- tempfile(fileext = ".txt")
+    write_settings_file(list(...), path, glm_settings_tool, glm_settings_version)
+    list(datapath = path, name = "settings.txt")
+  }
+  family_only <- settings(glm_distribution = "poisson")
+  wrong_link <- settings(glm_distribution = "poisson", link_function = "logit")
+  shiny::testServer(GLMFittingToolServer, {
+    notes <- list()
+    session$sendNotification <- function(type, message) notes[[length(notes) + 1]] <<- message
+    #what the link select is told to show
+    link_shown <- NULL
+    session$sendInputMessage <- function(inputId, message) {
+      if (identical(inputId, "link_function") && !is.null(message$value)) link_shown <<- message$value
+    }
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "sqrt",
+                      offset = "None", weights = "None", formula = "age", fit_model = 1)
+    session$setInputs(save_formula_1 = 1)
+    session$setInputs(glm_distribution = "gaussian")
+    session$setInputs(link_function = "identity", fit_model = 2)
+    #a stored Poisson/sqrt model, then a file naming only the Poisson family, before the browser
+    #reports either: the file set the default link to be fitted, while the link left pending by
+    #the stored model was the one the screen selected when the family was reported
+    session$setInputs(load_formula_1 = 1)
+    session$setInputs(load_config = family_only)
+    session$setInputs(fit_model = 3)
+    expect_identical(fitted_model()$family$family, "poisson")
+    expect_identical(fitted_model()$family$link, "sqrt")
+    expect_identical(link_shown, "sqrt")
+    session$setInputs(glm_distribution = "poisson")
+    session$setInputs(fit_model = 4)
+    expect_identical(fitted_model()$family$link, "sqrt")
+    expect_identical(link_shown, "sqrt")
+    #a link the family does not offer left the link select blank while the fit used the default
+    session$setInputs(link_function = "log", fit_model = 5)
+    notes <- list()
+    session$setInputs(load_config = wrong_link)
+    session$setInputs(fit_model = 6)
+    expect_identical(fitted_model()$family$family, "poisson")
+    expect_identical(fitted_model()$family$link, "log")
+    expect_identical(link_shown, "log")
+    expect_match(as.character(notes[[1]]$html), "The poisson family has no 'logit' link, so its default, 'log', is used.",
+                 fixed = TRUE)
   })
 })
 

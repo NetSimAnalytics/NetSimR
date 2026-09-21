@@ -13,7 +13,7 @@ test_that("the GLM tool's model download holds no password or session, and its s
   #database details typed on the Data tab, then a CSV file imported instead
   app_goto(app, "data")
   app_set(app, data_source = "Database")
-  app_set(app, db_type = "MySQL")
+  app_set(app, db_type = "PostgreSQL")
   app_set(app, db_host = host, db_user = user, db_password = password)
   app_set(app, data_source = "CSV File")
   app_upload(app, "csv_file", csv)

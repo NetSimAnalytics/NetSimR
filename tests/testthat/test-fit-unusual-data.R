@@ -291,9 +291,12 @@ test_that("the slicing points can be placed in the body of heavy-tailed claims, 
   set.seed(3)
   x <- c(exp(rnorm(3000, 7, 1)), 5e6)
   shiny::testServer(distribution_fitting_tool_Server, {
-    #the messages sent to the browser's inputs (updateSliderInput() sends the numbers as text)
+    #the messages sent to the browser's inputs (updateSliderInput() sends the numbers as text); a
+    #message also has fields that are not numbers, which become NA here without a warning each
     sent <- list()
-    session$sendInputMessage <- function(inputId, message) sent[[inputId]] <<- lapply(message, as.numeric)
+    session$sendInputMessage <- function(inputId, message) {
+      sent[[inputId]] <<- lapply(message, function(field) suppressWarnings(as.numeric(field)))
+    }
     fit_upload(session, fit_csv(data.frame(sev = x)))
     session$setInputs(sliced_sev_var = "sev", execute_sliced_sev_analysis = 1)
     #the sliders ran to the largest claim with a step of 5,000, and 94% of the claims lay below 5,037: the
