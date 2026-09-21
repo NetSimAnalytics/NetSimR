@@ -640,11 +640,22 @@ GLMFittingToolServer <- function(input, output, session) {
     )
   })
 
+  # the model the downloads are of. The buttons are only shown for an up-to-date model, but a
+  # download can be asked for anyway (a page left open across an import, a kept link): with no
+  # model, or one fitted to the data imported before, the request is refused as the buttons are,
+  # with an error response and no file, and the session carries on
+  downloadable_model <- function() {
+    model <- fitted_model()
+    validate(need(!is.null(model), "Fit a model to enable the downloads."))
+    validate(need(!model_outdated(), "This model was fitted to data imported before. Fit it again to enable the downloads."))
+    model
+  }
+
   #download the model summary
   output$download_summary <- downloadHandler(
     filename = function() "glm_summary.txt",
     content = function(file) {
-      writeLines(utils::capture.output(print(summary(req(fitted_model())))), file)
+      writeLines(utils::capture.output(print(summary(downloadable_model()))), file)
     }
   )
 
@@ -652,7 +663,7 @@ GLMFittingToolServer <- function(input, output, session) {
   output$download_model <- downloadHandler(
     filename = function() "glm_model.rds",
     content = function(file) {
-      saveRDS(req(fitted_model()), file)
+      saveRDS(downloadable_model(), file)
     }
   )
 
@@ -660,7 +671,7 @@ GLMFittingToolServer <- function(input, output, session) {
   output$download_data_with_predictions <- downloadHandler(
     filename = function() "predicted_data.csv",
     content = function(file) {
-      req(fitted_model())
+      downloadable_model()
       result <- fit_result()
       data <- result$data
       # a prediction column of the data keeps its name; the model's gets one of its own

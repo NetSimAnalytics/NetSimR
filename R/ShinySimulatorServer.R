@@ -19,13 +19,35 @@
 #' @import utils
 shiny_simulator_server <- function(input, output, session) {
   #the future plan in effect when the app starts; the app puts it back when the session
-  #ends or a run fails, and only shuts down workers that it started itself
+  #ends or a worker breaks, and only shuts down workers that it started itself
   original_plan <- future::plan()
   app_started_workers <- FALSE
+  #the socket connections open in this R session: their descriptions, keyed by connection
+  #number and description together (a reused number gets a fresh key)
+  open_socket_connections <- function() {
+    connections <- showConnections(all = TRUE)
+    is_socket <- connections[, "class"] == "sockconn"
+    descriptions <- connections[is_socket, "description"]
+    stats::setNames(descriptions, paste(rownames(connections)[is_socket], descriptions))
+  }
+  sockets_before_workers <- character(0)
   restore_original_plan <- function() {
     if (!app_started_workers) return(invisible(FALSE))
     app_started_workers <<- FALSE
+    #the connections open just before the plan is shut down, minus the ones open before the
+    #workers started; if a worker died during a run, future replaced it at once but the plan
+    #knows only its original workers, so the replacement's connection is left open (and its
+    #process alive) for the garbage collector to close later, with a warning
+    worker_sockets <- open_socket_connections()
+    worker_sockets <- worker_sockets[!(names(worker_sockets) %in% names(sockets_before_workers))]
     future::plan(original_plan)
+    #close any of those the plan's shutdown left behind, which ends the stray worker; the
+    #connection number is read back from the key, and only worker connections are touched
+    for (key in names(worker_sockets)) {
+      number <- as.integer(sub(" .*", "", key))
+      still_open <- open_socket_connections()
+      if (key %in% names(still_open)) tryCatch(close(getConnection(number)), error = function(e) NULL)
+    }
     invisible(TRUE)
   }
   session$onSessionEnded(restore_original_plan)
@@ -36,6 +58,7 @@ shiny_simulator_server <- function(input, output, session) {
   start_parallel_workers <- function() {
     if (future::nbrOfWorkers() > 1) return(invisible(FALSE))
     showNotification("Starting parallel workers...", type = "message", duration = 3, id = "parallel_workers_notice")
+    sockets_before_workers <<- open_socket_connections()
     future::plan(future::multisession)
     app_started_workers <<- TRUE
     invisible(TRUE)
@@ -351,7 +374,7 @@ shiny_simulator_server <- function(input, output, session) {
 
     on.exit(gc(), add = TRUE)
 
-    #workers may have been shut down after an earlier error; make sure they are up before a parallel run
+    #workers may have been shut down after a worker broke; make sure they are up before a parallel run
     if (isTRUE(new_settings$multiprocessing)) start_parallel_workers()
 
     #run simmulations
@@ -369,8 +392,11 @@ shiny_simulator_server <- function(input, output, session) {
           })
         }
       }, error = function(cond) {
-        #the workers may be broken after an error; shut down the ones the app started
-        restore_original_plan()
+        #an error raised by the simulation itself (a parameter out of range, an overflow) is
+        #re-signalled by future with its own class and leaves the workers healthy, so they
+        #stay warm for the next run; a FutureError means a worker died or its connection was
+        #lost, so the ones the app started are shut down and the next run starts fresh ones
+        if (inherits(cond, "FutureError")) restore_original_plan()
         showNotification(
           paste("Error:", conditionMessage(cond)),
           type = "error",

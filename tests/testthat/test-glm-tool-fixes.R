@@ -167,16 +167,32 @@ test_that("GLM fitting tool says when the shown model was fitted to data importe
     expect_match(output$model_downloads$html, "fitted to 'a.csv' (300 rows)", fixed = TRUE)
     expect_match(output$model_downloads$html, "Fit it again to enable the downloads", fixed = TRUE)
     expect_no_match(output$model_downloads$html, "download_data_with_predictions", fixed = TRUE)
+    #a download asked for anyway (a page left open, a kept link) is refused with an error and
+    #no file, rather than served from the old model and its data
+    for (id in c("download_model", "download_summary", "download_data_with_predictions")) {
+      expect_error(output[[id]], "fitted to data imported before", class = "shiny.silent.error")
+    }
     session$setInputs(visualize_variable = "region", number_of_bands_input = 10, execute_visualization = 1)
     expect_match(output$fitness_note$html, "The chart is of that data", fixed = TRUE)
-    #fitted again, the model is of the new data and the notes go
+    #fitted again, the model is of the new data, the notes go and the downloads are of the new data
     session$setInputs(fit_model = 2)
     expect_false(model_outdated())
     expect_equal(stats::nobs(fitted_model()), sum(!is.na(d$age[1:50])))
     expect_no_match(output$model_stats$html, "imported before", fixed = TRUE)
     expect_match(output$model_downloads$html, "download_model", fixed = TRUE)
-    expect_equal(nrow(utils::read.csv(output$download_data_with_predictions)), 50)
+    expect_equal(stats::nobs(readRDS(output$download_model)), sum(!is.na(d$age[1:50])))
+    expect_match(paste(readLines(output$download_summary), collapse = "\n"), "Coefficients:", fixed = TRUE)
+    predicted <- utils::read.csv(output$download_data_with_predictions)
+    expect_equal(nrow(predicted), 50)
+    expect_equal(predicted$policy_id, d$policy_id[1:50])
     expect_false(grepl("imported before", paste(output$fitness_note$html, collapse = ""), fixed = TRUE))
+  })
+  #with no model fitted, the downloads are refused too
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "a.csv"), submit = 1)
+    for (id in c("download_model", "download_summary", "download_data_with_predictions")) {
+      expect_error(output[[id]], "Fit a model", class = "shiny.silent.error")
+    }
   })
 })
 
