@@ -2,7 +2,8 @@ Package: NetSimR
 Type: Package
 Title: Actuarial Functions for Non-Life Insurance Modelling
 Version: 0.3.1
-Authors@R: person("Yiannis", "Parizas", email = "yiannis.parizas@gmail.com", role = c("aut", "cre"))
+Authors@R: person("Yiannis", "Parizas", email = "yiannis.parizas@gmail.com", role = c("aut", "cre"),
+                  comment = c(ORCID = "0009-0000-0523-0751"))
 Description: Assists actuaries and other insurance modellers in pricing,
     reserving and capital modelling for non-life insurance and
     reinsurance modelling. Provides functions that help model

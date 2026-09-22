@@ -94,11 +94,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Yiannis Parizas \email{yiannis.parizas@gmail.com}
+\strong{Maintainer}: Yiannis Parizas \email{yiannis.parizas@gmail.com} (\href{https://orcid.org/0009-0000-0523-0751}{ORCID})
 
 Authors:
 \itemize{
-  \item Yiannis Parizas \email{yiannis.parizas@gmail.com}
+  \item Yiannis Parizas \email{yiannis.parizas@gmail.com} (\href{https://orcid.org/0009-0000-0523-0751}{ORCID})
 }
 
 }
