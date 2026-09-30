@@ -1,31 +1,19 @@
 ## Release summary
 
-NetSimR 0.3.1 is a bug-fix and hardening release that follows 0.3.0 quickly
-because testing of the Shiny tools in a browser, and of the functions against
-each other, found problems that we would rather not leave on CRAN. It is not
-purely a bug-fix release: simulate_function() and simulate_claims(), and
-PureIBNRGamma() and PureIBNRLNorm(), change results in documented cases, and
-the Shiny tools no longer load settings files saved as .rds (see NEWS).
+NetSimR 0.3.2 fixes the test failure of the "Additional issues" noLD check
+reported for 0.3.1, ahead of the 2026-10-20 deadline. Nothing else changes:
+no function, no Shiny tool and no file format is touched.
 
-* Security: the GLM fitting tool's downloaded model (an RDS file) contained
-  the Shiny session, including any database password typed in the tool. The
-  model is now fitted in a clean environment and the file holds only the
-  model.
-* Wrong results: the Negative Binomial fit of the distribution fitting tool
-  often fell back to the Poisson on overdispersed data; PureIBNRGamma() and
-  PureIBNRLNorm() computed their ratios from a rounded duration, which lost
-  precision for short periods.
-* The charts of the three Shiny tools were drawn badly in the dark theme on
-  Windows and overlapped after a resize; several smaller fixes to the claims
-  simulator.
-* Behaviour changes: simulate_function() and simulate_claims() take an
-  aggregate deductible off the layer recoveries before the aggregate limit and
-  the reinstatement capacity (the market convention), and return totals at
-  full precision instead of rounded to two decimals; PureIBNRGamma() and
-  PureIBNRLNorm() count days on each date's own calendar, so results no
-  longer depend on the time zone; the Shiny tools save settings as plain text
-  files, which cannot run code when loaded, and refuse the .rds files of
-  earlier versions.
+* tests/testthat/test-settings-file.R asked for a double to come back from
+  the text of a settings file bit for bit. The file names a double with 17
+  significant digits, which is exact, but a platform built without long
+  double reads such text back up to a bit out (the noLD check reported
+  0.333333333333333259 for a third, rather than 0.333333333333333315), and
+  no number of decimal digits can mend that. The test now allows that
+  difference where capabilities("long.double") is FALSE, and still asks for
+  an exact value on every other platform.
+
+The settings files written by this version are identical to those of 0.3.1.
 
 See NEWS for details.
 
@@ -41,8 +29,8 @@ See NEWS for details.
 
 0 errors | 0 warnings | 1 note
 
-* "Days since last update": this release follows 0.3.0 closely because of
-  the security fix and the wrong results described above.
+* "Days since last update": this release only fixes the noLD test failure
+  reported for 0.3.1, within the date CRAN gave.
 
 The references in the Description field point to articles on
 www.theactuary.com. The site answers automated requests with HTTP 403 (a
