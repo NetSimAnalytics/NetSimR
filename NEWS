@@ -1,3 +1,16 @@
+Changes in Version 0.3.3
+
+  o run_shiny_simulator() and run_shiny_distribution_fitting_tool() stopped
+    with "File to import not found or unreadable: ...\bslib\lib\bs5\scss\
+    _functions.scss" when the package was installed from a binary built on
+    another machine, such as a CRAN binary on Windows or macOS. The two tools
+    built their pages when the package was installed, and the pages' bslib
+    theme kept absolute paths to Bootstrap's SCSS files on the machine that
+    built it (D:\RCompile\CRANpkg\lib\... for CRAN's Windows binaries). The
+    pages are now built each time a tool starts, from the bslib installed
+    where it runs, as the GLM fitting tool's page already was. Nothing else
+    about the tools changes.
+
 Changes in Version 0.3.2
 
   o The test of the settings files asked for a double to come back from its

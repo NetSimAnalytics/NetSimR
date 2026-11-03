@@ -611,340 +611,346 @@ dft_slicing_point <- function(id, label, max, value) {
 #'
 #' @description The page of the distribution fitting application: a welcome
 #'   tab, the data upload and one tab for each analysis, with the settings
-#'   beside the results. It is built when the package is installed;
-#'   \code{\link{run_shiny_distribution_fitting_tool}} pairs it with
-#'   \code{distribution_fitting_tool_Server}.
+#'   beside the results; \code{\link{run_shiny_distribution_fitting_tool}} pairs
+#'   it with \code{distribution_fitting_tool_Server}. The page is built each time
+#'   the application starts, not when the package is installed: its theme
+#'   compiles Bootstrap's SCSS files from where bslib is installed on the machine
+#'   running it, and a page built at installation kept the paths of the machine
+#'   that built the package (for a CRAN binary, CRAN's build machine).
+#' @param request The request of the browser, passed by shiny; not used.
 #' @return The user interface of the application, a bslib navbar page.
 #' @keywords internal
-distribution_fitting_tool_UI <- bslib::page_navbar(
-  title = div(
-    class = "sim-brand",
-    div(class = "sim-brand-mark", icon("chart-area")),
-    div(
-      class = "sim-brand-text",
-      tags$span(class = "sim-brand-title", "NetDisFit"),
-      tags$span(class = "sim-brand-subtitle", "Distribution fitting by NetSimR")
-    )
-  ),
-  window_title = "NetSim Distribution Fitting Tool",
-  id = "dft_navbar",
-  selected = "welcome",
-  fillable = FALSE,
-
-  navbar_options = bslib::navbar_options(
-    bg = "#1e1b4b",
-    theme = "dark",
-    underline = FALSE
-  ),
-
-  theme = bslib::bs_theme(
-    version = 5,
-    primary = "#7c3aed",
-    secondary = "#64748b",
-    success = "#16a34a",
-    info = "#0891b2",
-    warning = "#d97706",
-    danger = "#dc2626",
-    base_font = bslib::font_collection(
-      bslib::font_google("Inter", local = FALSE),
-      "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-    ),
-    heading_font = bslib::font_collection(
-      bslib::font_google("Inter", local = FALSE),
-      "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-    )
-  ),
-
-  header = tagList(
-    tags$head(
-      tags$script(HTML(netsimr_theme_js("netsimr-distribution-fitting-theme"))),
-      tags$style(HTML(sim_ui_css)),
-      tags$style(HTML(dft_ui_css))
-    ),
-    #tells the server which theme is showing, so the charts are drawn in matching colours
-    tags$script(HTML(sim_compare_theme_js("app_theme"))),
-    useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
-    busyIndicatorOptions(
-      pulse_background = "linear-gradient(90deg, #a78bfa, #7c3aed, #a78bfa)",
-      pulse_height = "4px"
-    )
-  ),
-
-  # ---------------------------------------------------------------- Welcome
-  bslib::nav_panel(
-    title = "Welcome",
-    value = "welcome",
-    icon = icon("house"),
-
-    bslib::layout_columns(
-      col_widths = bslib::breakpoints(sm = 12, lg = c(8, 4)),
-
+distribution_fitting_tool_UI <- function(request) {
+  bslib::page_navbar(
+    title = div(
+      class = "sim-brand",
+      div(class = "sim-brand-mark", icon("chart-area")),
       div(
-        class = "sim-hero",
-        div(class = "sim-hero-eyebrow", "NetDisFit"),
-        div(class = "sim-hero-title", "Distribution Fitting Tool"),
-        p(
-          class = "sim-hero-text",
-          "Upload claims data, fit frequency and severity distributions, ",
-          "compare them against the data and splice Pareto tails onto the ",
-          "severity fit, ready to use in the NetSimR simulator."
+        class = "sim-brand-text",
+        tags$span(class = "sim-brand-title", "NetDisFit"),
+        tags$span(class = "sim-brand-subtitle", "Distribution fitting by NetSimR")
+      )
+    ),
+    window_title = "NetSim Distribution Fitting Tool",
+    id = "dft_navbar",
+    selected = "welcome",
+    fillable = FALSE,
+
+    navbar_options = bslib::navbar_options(
+      bg = "#1e1b4b",
+      theme = "dark",
+      underline = FALSE
+    ),
+
+    theme = bslib::bs_theme(
+      version = 5,
+      primary = "#7c3aed",
+      secondary = "#64748b",
+      success = "#16a34a",
+      info = "#0891b2",
+      warning = "#d97706",
+      danger = "#dc2626",
+      base_font = bslib::font_collection(
+        bslib::font_google("Inter", local = FALSE),
+        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
+      ),
+      heading_font = bslib::font_collection(
+        bslib::font_google("Inter", local = FALSE),
+        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
+      )
+    ),
+
+    header = tagList(
+      tags$head(
+        tags$script(HTML(netsimr_theme_js("netsimr-distribution-fitting-theme"))),
+        tags$style(HTML(sim_ui_css)),
+        tags$style(HTML(dft_ui_css))
+      ),
+      #tells the server which theme is showing, so the charts are drawn in matching colours
+      tags$script(HTML(sim_compare_theme_js("app_theme"))),
+      useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
+      busyIndicatorOptions(
+        pulse_background = "linear-gradient(90deg, #a78bfa, #7c3aed, #a78bfa)",
+        pulse_height = "4px"
+      )
+    ),
+
+    # ---------------------------------------------------------------- Welcome
+    bslib::nav_panel(
+      title = "Welcome",
+      value = "welcome",
+      icon = icon("house"),
+
+      bslib::layout_columns(
+        col_widths = bslib::breakpoints(sm = 12, lg = c(8, 4)),
+
+        div(
+          class = "sim-hero",
+          div(class = "sim-hero-eyebrow", "NetDisFit"),
+          div(class = "sim-hero-title", "Distribution Fitting Tool"),
+          p(
+            class = "sim-hero-text",
+            "Upload claims data, fit frequency and severity distributions, ",
+            "compare them against the data and splice Pareto tails onto the ",
+            "severity fit, ready to use in the NetSimR simulator."
+          ),
+          tags$button(
+            type = "button",
+            class = "btn btn-light",
+            onclick = "document.querySelector('.navbar a[data-value=\"data\"]').click();",
+            icon("upload"), " Upload data"
+          )
         ),
-        tags$button(
-          type = "button",
-          class = "btn btn-light",
-          onclick = "document.querySelector('.navbar a[data-value=\"data\"]').click();",
-          icon("upload"), " Upload data"
+
+        bslib::card(
+          sim_card_header("route", "How it works"),
+          bslib::card_body(
+            tags$ol(
+              class = "sim-steps",
+              tags$li(div(div(class = "sim-step-title", "Upload"),
+                          div(class = "sim-step-text", "A CSV or text file with one row per claim or period."))),
+              tags$li(div(div(class = "sim-step-title", "Choose a column"),
+                          div(class = "sim-step-text", "Pick the claim counts or claim sizes to fit."))),
+              tags$li(div(div(class = "sim-step-title", "Run the analysis"),
+                          div(class = "sim-step-text", "Fitted parameters and goodness of fit appear at once."))),
+              tags$li(div(div(class = "sim-step-title", "Compare"),
+                          div(class = "sim-step-text", "Check each fit against the empirical distribution.")))
+            )
+          )
+        )
+      ),
+
+      bslib::layout_columns(
+        col_widths = bslib::breakpoints(sm = 12, md = c(4, 4, 4)),
+        div(
+          class = "sim-stat",
+          div(class = "sim-stat-label", icon("chart-column"), "Frequency models"),
+          div(class = "sim-stat-value", paste("Poisson", "Negative Binomial", sep = paste0(" ", intToUtf8(183), " ")))
+        ),
+        div(
+          class = "sim-stat",
+          div(class = "sim-stat-label", icon("chart-line"), "Severity models"),
+          div(class = "sim-stat-value",
+              paste(c("Normal", "LogNormal", "Exponential", "Gamma", "Pareto"), collapse = paste0(" ", intToUtf8(183), " ")))
+        ),
+        div(
+          class = "sim-stat",
+          div(class = "sim-stat-label", icon("scissors"), "Tail models"),
+          div(class = "sim-stat-value",
+              paste(c("Sliced LogNormal-Pareto", "Piecewise Pareto"), collapse = paste0(" ", intToUtf8(183), " ")))
         )
       ),
 
       bslib::card(
-        sim_card_header("route", "How it works"),
+        sim_card_header("user", "About", "Feedback and bug reports are very welcome."),
         bslib::card_body(
-          tags$ol(
-            class = "sim-steps",
-            tags$li(div(div(class = "sim-step-title", "Upload"),
-                        div(class = "sim-step-text", "A CSV or text file with one row per claim or period."))),
-            tags$li(div(div(class = "sim-step-title", "Choose a column"),
-                        div(class = "sim-step-text", "Pick the claim counts or claim sizes to fit."))),
-            tags$li(div(div(class = "sim-step-title", "Run the analysis"),
-                        div(class = "sim-step-text", "Fitted parameters and goodness of fit appear at once."))),
-            tags$li(div(div(class = "sim-step-title", "Compare"),
-                        div(class = "sim-step-text", "Check each fit against the empirical distribution.")))
+          p(
+            "Created by Yiannis Parizas. For more information, visit my ",
+            a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/",
+              target = "_blank", rel = "noopener noreferrer"),
+            ". You can also reach me by email at ",
+            a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
+            "."
+          ),
+          p(class = "sim-muted mb-0",
+            "Please reach out if you have any feedback or encounter any bugs.")
+        )
+      )
+    ),
+
+    # ------------------------------------------------------------------- Data
+    bslib::nav_panel(
+      title = "Data",
+      value = "data",
+      icon = icon("table"),
+
+      dft_page_intro("Data", "Upload a CSV or text file. Every analysis tab reads its columns from this file."),
+
+      dft_layout(
+        dft_settings_card(
+          "file-arrow-up", "Data file", "Comma, semicolon or tab separated.",
+          fileInput("file1", "File", accept = c(
+            "text/csv",
+            "text/comma-separated-values,text/plain",
+            ".csv", ".txt", ".tsv"
+          ), placeholder = "No file selected"),
+          bslib::input_switch("data_includes_header", "First row holds column names", value = TRUE),
+          div(class = "sim-section-label mt-2", "Separator"),
+          div(class = "pill-radio",
+              radioButtons("sep", NULL, c(Comma = ",", Semicolon = ";", Tab = "\t"), ",", inline = TRUE)),
+          div(class = "sim-section-label mt-2", "Decimal mark"),
+          div(class = "pill-radio",
+              radioButtons("dec", NULL, c("Point (1.5)" = ".", "Comma (1,5)" = ","), ".", inline = TRUE)),
+          div(class = "sim-section-label mt-2", "Quote"),
+          div(class = "pill-radio",
+              radioButtons("quote", NULL, c("Double" = '"', "Single" = "'", "None" = ""), '"', inline = TRUE))
+        ),
+        uiOutput("data_overview"),
+        bslib::card(
+          sim_card_header("table-list", "Preview", "The first rows of the uploaded data, as the analysis tabs read them."),
+          bslib::card_body(
+            uiOutput("data_table")
           )
         )
       )
     ),
 
-    bslib::layout_columns(
-      col_widths = bslib::breakpoints(sm = 12, md = c(4, 4, 4)),
-      div(
-        class = "sim-stat",
-        div(class = "sim-stat-label", icon("chart-column"), "Frequency models"),
-        div(class = "sim-stat-value", paste("Poisson", "Negative Binomial", sep = paste0(" ", intToUtf8(183), " ")))
-      ),
-      div(
-        class = "sim-stat",
-        div(class = "sim-stat-label", icon("chart-line"), "Severity models"),
-        div(class = "sim-stat-value",
-            paste(c("Normal", "LogNormal", "Exponential", "Gamma", "Pareto"), collapse = paste0(" ", intToUtf8(183), " ")))
-      ),
-      div(
-        class = "sim-stat",
-        div(class = "sim-stat-label", icon("scissors"), "Tail models"),
-        div(class = "sim-stat-value",
-            paste(c("Sliced LogNormal-Pareto", "Piecewise Pareto"), collapse = paste0(" ", intToUtf8(183), " ")))
+    # -------------------------------------------------------------- Frequency
+    bslib::nav_panel(
+      title = "Frequency",
+      value = "frequency",
+      icon = icon("chart-column"),
+
+      dft_page_intro("Frequency analysis", "Fit Poisson and Negative Binomial distributions to claim counts."),
+
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Settings", "Choose the claim counts and run the fit.",
+          dft_column_select("counts_var", "Claim counts column"),
+          bslib::input_switch("counts_weighted_var", "Weighted fit", value = FALSE),
+          conditionalPanel(
+            condition = "input.counts_weighted_var",
+            dft_column_select("counts_weights_var", "Weights column")
+          ),
+          dft_run_button("execute_freq_analysis"),
+          dft_help("Rows with a missing, negative or non-numeric count (or weight) are left out."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Chart options"),
+          sliderInput("count_hist_bins", "Histogram bins", min = 1, max = 100, value = 20)
+        ),
+        uiOutput("freq_stats"),
+        bslib::card(
+          sim_card_header("table-cells", "Fitted distributions",
+                          "Maximum likelihood fits; the lower the AIC, the better the fit."),
+          bslib::card_body(uiOutput("selected_freq_params"))
+        ),
+        dft_tabs(
+          id = "freq_results_tabs",
+          bslib::nav_panel("CDF fit", dft_plot_output("freq_fit_plot")),
+          bslib::nav_panel("Histogram", dft_plot_output("count_hist")),
+          bslib::nav_panel(
+            "Fit details",
+            div(class = "pill-radio mb-3",
+                radioButtons("FreqDistri", NULL,
+                             c("Poisson" = "Poisson", "Negative Binomial" = "NegativeBinomial"),
+                             inline = TRUE)),
+            verbatimTextOutput("selected_distribution_summary")
+          ),
+          bslib::nav_panel("Data summary", verbatimTextOutput("freq_summary"))
+        )
       )
     ),
 
-    bslib::card(
-      sim_card_header("user", "About", "Feedback and bug reports are very welcome."),
-      bslib::card_body(
-        p(
-          "Created by Yiannis Parizas. For more information, visit my ",
-          a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/",
-            target = "_blank", rel = "noopener noreferrer"),
-          ". You can also reach me by email at ",
-          a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
-          "."
+    # --------------------------------------------------------------- Severity
+    bslib::nav_panel(
+      title = "Severity",
+      value = "severity",
+      icon = icon("chart-line"),
+
+      dft_page_intro("Severity analysis", "Fit Normal, LogNormal, Exponential, Gamma and Pareto distributions to claim sizes."),
+
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Settings", "Choose the claim sizes and run the fit.",
+          dft_column_select("severity_var", "Claim size column"),
+          dft_run_button("execute_sev_analysis"),
+          dft_help("Missing, negative, zero and non-numeric values are left out."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Chart options"),
+          dft_log_switch("sev_fit_log_scale"),
+          sliderInput("severity_hist_bins", "Histogram bins", min = 1, max = 200, value = 20)
         ),
-        p(class = "sim-muted mb-0",
-          "Please reach out if you have any feedback or encounter any bugs.")
-      )
-    )
-  ),
-
-  # ------------------------------------------------------------------- Data
-  bslib::nav_panel(
-    title = "Data",
-    value = "data",
-    icon = icon("table"),
-
-    dft_page_intro("Data", "Upload a CSV or text file. Every analysis tab reads its columns from this file."),
-
-    dft_layout(
-      dft_settings_card(
-        "file-arrow-up", "Data file", "Comma, semicolon or tab separated.",
-        fileInput("file1", "File", accept = c(
-          "text/csv",
-          "text/comma-separated-values,text/plain",
-          ".csv", ".txt", ".tsv"
-        ), placeholder = "No file selected"),
-        bslib::input_switch("data_includes_header", "First row holds column names", value = TRUE),
-        div(class = "sim-section-label mt-2", "Separator"),
-        div(class = "pill-radio",
-            radioButtons("sep", NULL, c(Comma = ",", Semicolon = ";", Tab = "\t"), ",", inline = TRUE)),
-        div(class = "sim-section-label mt-2", "Decimal mark"),
-        div(class = "pill-radio",
-            radioButtons("dec", NULL, c("Point (1.5)" = ".", "Comma (1,5)" = ","), ".", inline = TRUE)),
-        div(class = "sim-section-label mt-2", "Quote"),
-        div(class = "pill-radio",
-            radioButtons("quote", NULL, c("Double" = '"', "Single" = "'", "None" = ""), '"', inline = TRUE))
-      ),
-      uiOutput("data_overview"),
-      bslib::card(
-        sim_card_header("table-list", "Preview", "The first rows of the uploaded data, as the analysis tabs read them."),
-        bslib::card_body(
-          uiOutput("data_table")
+        uiOutput("sev_stats"),
+        bslib::card(
+          sim_card_header("table-cells", "Fitted distributions",
+                          "The lower the Kolmogorov-Smirnov distance, the closer the fit."),
+          bslib::card_body(uiOutput("sev_param_summary"))
+        ),
+        dft_tabs(
+          id = "sev_results_tabs",
+          bslib::nav_panel("CDF fit", dft_plot_output("sev_fit_plot")),
+          bslib::nav_panel("Histogram", dft_plot_output("sev_hist")),
+          bslib::nav_panel("Data summary", verbatimTextOutput("sev_summary"))
         )
       )
-    )
-  ),
+    ),
 
-  # -------------------------------------------------------------- Frequency
-  bslib::nav_panel(
-    title = "Frequency",
-    value = "frequency",
-    icon = icon("chart-column"),
+    # -------------------------------------------------------- Sliced severity
+    bslib::nav_panel(
+      title = "Sliced severity",
+      value = "sliced",
+      icon = icon("scissors"),
 
-    dft_page_intro("Frequency analysis", "Fit Poisson and Negative Binomial distributions to claim counts."),
+      dft_page_intro("Sliced severity analysis",
+                     "Splice one or two Pareto tails onto a LogNormal body at chosen slicing points."),
 
-    dft_layout(
-      dft_settings_card(
-        "sliders", "Settings", "Choose the claim counts and run the fit.",
-        dft_column_select("counts_var", "Claim counts column"),
-        bslib::input_switch("counts_weighted_var", "Weighted fit", value = FALSE),
-        conditionalPanel(
-          condition = "input.counts_weighted_var",
-          dft_column_select("counts_weights_var", "Weights column")
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Settings", "Choose the claim sizes and the slicing points.",
+          dft_column_select("sliced_sev_var", "Claim size column"),
+          dft_run_button("execute_sliced_sev_analysis"),
+          dft_help("Missing, negative, zero and non-numeric values are left out."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Slicing points"),
+          dft_slicing_point("slicing_point_left", "First slicing point", max = 10, value = 5),
+          dft_slicing_point("slicing_point_right", "Second slicing point", max = 20, value = 10),
+          dft_help("Once the analysis has run, the sliders cover the claims up to the 99.5th percentile; ",
+                   "a point beyond that, or an exact value, can be typed in the box beside the slider. ",
+                   "The second point must be above the first."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Chart options"),
+          dft_log_switch("sev_cens_fit_log_scale")
         ),
-        dft_run_button("execute_freq_analysis"),
-        dft_help("Rows with a missing, negative or non-numeric count (or weight) are left out."),
-        tags$hr(class = "sim-divider"),
-        div(class = "sim-section-label", "Chart options"),
-        sliderInput("count_hist_bins", "Histogram bins", min = 1, max = 100, value = 20)
-      ),
-      uiOutput("freq_stats"),
-      bslib::card(
-        sim_card_header("table-cells", "Fitted distributions",
-                        "Maximum likelihood fits; the lower the AIC, the better the fit."),
-        bslib::card_body(uiOutput("selected_freq_params"))
-      ),
-      dft_tabs(
-        id = "freq_results_tabs",
-        bslib::nav_panel("CDF fit", dft_plot_output("freq_fit_plot")),
-        bslib::nav_panel("Histogram", dft_plot_output("count_hist")),
-        bslib::nav_panel(
-          "Fit details",
-          div(class = "pill-radio mb-3",
-              radioButtons("FreqDistri", NULL,
-                           c("Poisson" = "Poisson", "Negative Binomial" = "NegativeBinomial"),
-                           inline = TRUE)),
-          verbatimTextOutput("selected_distribution_summary")
+        bslib::card(
+          sim_card_header("table-cells", "Fitted distributions",
+                          "Body and tail parameters, with the Kolmogorov-Smirnov distance of each model."),
+          bslib::card_body(uiOutput("slc_sev_fitted_param_summary"))
         ),
-        bslib::nav_panel("Data summary", verbatimTextOutput("freq_summary"))
+        dft_tabs(
+          id = "sliced_results_tabs",
+          bslib::nav_panel("CDF fit", dft_plot_output("sliced_sev_cdf_plot")),
+          bslib::nav_panel("Mean excess", dft_plot_output("mean_excess_func_plot"))
+        )
       )
-    )
-  ),
+    ),
 
-  # --------------------------------------------------------------- Severity
-  bslib::nav_panel(
-    title = "Severity",
-    value = "severity",
-    icon = icon("chart-line"),
+    # ------------------------------------------------------- Piecewise Pareto
+    bslib::nav_panel(
+      title = "Piecewise Pareto",
+      value = "piecewise",
+      icon = icon("layer-group"),
 
-    dft_page_intro("Severity analysis", "Fit Normal, LogNormal, Exponential, Gamma and Pareto distributions to claim sizes."),
+      dft_page_intro("Piecewise Pareto fit",
+                     "Fit a Pareto alpha between each pair of thresholds, from the smallest claim upwards."),
 
-    dft_layout(
-      dft_settings_card(
-        "sliders", "Settings", "Choose the claim sizes and run the fit.",
-        dft_column_select("severity_var", "Claim size column"),
-        dft_run_button("execute_sev_analysis"),
-        dft_help("Missing, negative, zero and non-numeric values are left out."),
-        tags$hr(class = "sim-divider"),
-        div(class = "sim-section-label", "Chart options"),
-        dft_log_switch("sev_fit_log_scale"),
-        sliderInput("severity_hist_bins", "Histogram bins", min = 1, max = 200, value = 20)
-      ),
-      uiOutput("sev_stats"),
-      bslib::card(
-        sim_card_header("table-cells", "Fitted distributions",
-                        "The lower the Kolmogorov-Smirnov distance, the closer the fit."),
-        bslib::card_body(uiOutput("sev_param_summary"))
-      ),
-      dft_tabs(
-        id = "sev_results_tabs",
-        bslib::nav_panel("CDF fit", dft_plot_output("sev_fit_plot")),
-        bslib::nav_panel("Histogram", dft_plot_output("sev_hist")),
-        bslib::nav_panel("Data summary", verbatimTextOutput("sev_summary"))
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Settings", "Choose the claim sizes and the thresholds.",
+          dft_column_select("piecewise_pareto_var", "Claim size column"),
+          dft_run_button("execute_piecewise_sev_analysis"),
+          dft_help("Missing, negative, zero and non-numeric values are left out."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Thresholds"),
+          sliderInput("num_pareto_slices", "Number of thresholds", min = 1, max = 6, value = 3, step = 1),
+          div(class = "dft-sliders", uiOutput("pareto_slider_inputs")),
+          dft_help("The first threshold is always the smallest claim. Thresholds must increase."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Chart options"),
+          dft_log_switch("piecewise_pareto_fit_log_scale")
+        ),
+        uiOutput("piecewise_pareto_ks_test"),
+        bslib::card(
+          sim_card_header("table-cells", "Fitted alphas", "One Pareto alpha for each layer between thresholds."),
+          bslib::card_body(uiOutput("fitted_sliced_pareto"))
+        ),
+        bslib::card(
+          sim_card_header("chart-line", "CDF fit", "Empirical against fitted cumulative distribution."),
+          bslib::card_body(dft_plot_output("piecewise_pareto_cdf_plot"))
+        )
       )
-    )
-  ),
+    ),
 
-  # -------------------------------------------------------- Sliced severity
-  bslib::nav_panel(
-    title = "Sliced severity",
-    value = "sliced",
-    icon = icon("scissors"),
-
-    dft_page_intro("Sliced severity analysis",
-                   "Splice one or two Pareto tails onto a LogNormal body at chosen slicing points."),
-
-    dft_layout(
-      dft_settings_card(
-        "sliders", "Settings", "Choose the claim sizes and the slicing points.",
-        dft_column_select("sliced_sev_var", "Claim size column"),
-        dft_run_button("execute_sliced_sev_analysis"),
-        dft_help("Missing, negative, zero and non-numeric values are left out."),
-        tags$hr(class = "sim-divider"),
-        div(class = "sim-section-label", "Slicing points"),
-        dft_slicing_point("slicing_point_left", "First slicing point", max = 10, value = 5),
-        dft_slicing_point("slicing_point_right", "Second slicing point", max = 20, value = 10),
-        dft_help("Once the analysis has run, the sliders cover the claims up to the 99.5th percentile; ",
-                 "a point beyond that, or an exact value, can be typed in the box beside the slider. ",
-                 "The second point must be above the first."),
-        tags$hr(class = "sim-divider"),
-        div(class = "sim-section-label", "Chart options"),
-        dft_log_switch("sev_cens_fit_log_scale")
-      ),
-      bslib::card(
-        sim_card_header("table-cells", "Fitted distributions",
-                        "Body and tail parameters, with the Kolmogorov-Smirnov distance of each model."),
-        bslib::card_body(uiOutput("slc_sev_fitted_param_summary"))
-      ),
-      dft_tabs(
-        id = "sliced_results_tabs",
-        bslib::nav_panel("CDF fit", dft_plot_output("sliced_sev_cdf_plot")),
-        bslib::nav_panel("Mean excess", dft_plot_output("mean_excess_func_plot"))
-      )
-    )
-  ),
-
-  # ------------------------------------------------------- Piecewise Pareto
-  bslib::nav_panel(
-    title = "Piecewise Pareto",
-    value = "piecewise",
-    icon = icon("layer-group"),
-
-    dft_page_intro("Piecewise Pareto fit",
-                   "Fit a Pareto alpha between each pair of thresholds, from the smallest claim upwards."),
-
-    dft_layout(
-      dft_settings_card(
-        "sliders", "Settings", "Choose the claim sizes and the thresholds.",
-        dft_column_select("piecewise_pareto_var", "Claim size column"),
-        dft_run_button("execute_piecewise_sev_analysis"),
-        dft_help("Missing, negative, zero and non-numeric values are left out."),
-        tags$hr(class = "sim-divider"),
-        div(class = "sim-section-label", "Thresholds"),
-        sliderInput("num_pareto_slices", "Number of thresholds", min = 1, max = 6, value = 3, step = 1),
-        div(class = "dft-sliders", uiOutput("pareto_slider_inputs")),
-        dft_help("The first threshold is always the smallest claim. Thresholds must increase."),
-        tags$hr(class = "sim-divider"),
-        div(class = "sim-section-label", "Chart options"),
-        dft_log_switch("piecewise_pareto_fit_log_scale")
-      ),
-      uiOutput("piecewise_pareto_ks_test"),
-      bslib::card(
-        sim_card_header("table-cells", "Fitted alphas", "One Pareto alpha for each layer between thresholds."),
-        bslib::card_body(uiOutput("fitted_sliced_pareto"))
-      ),
-      bslib::card(
-        sim_card_header("chart-line", "CDF fit", "Empirical against fitted cumulative distribution."),
-        bslib::card_body(dft_plot_output("piecewise_pareto_cdf_plot"))
-      )
-    )
-  ),
-
-  bslib::nav_spacer(),
-  bslib::nav_item(sim_theme_switch())
-)
+    bslib::nav_spacer(),
+    bslib::nav_item(sim_theme_switch())
+  )
+}

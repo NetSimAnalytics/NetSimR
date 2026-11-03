@@ -1038,323 +1038,331 @@ sim_pareto_slices_ui <- function() {
 #' @description The page the simulator opens in: a welcome panel and the
 #'   simulator itself, where the claim, reinsurance and run settings are
 #'   entered and the results, charts and report are shown.
+#'   The page is built each time the application starts, not when the package
+#'   is installed: its theme compiles Bootstrap's SCSS files from where bslib is
+#'   installed on the machine running it, and a page built at installation kept
+#'   the paths of the machine that built the package (for a CRAN binary, CRAN's
+#'   build machine), where nobody else's bslib is.
+#' @param request The request of the browser, passed by shiny; not used.
 #' @return The user interface of the application, a bslib navbar page, which
 #'   \code{\link{run_shiny_simulator}} pairs with \code{shiny_simulator_server}.
 #' @keywords internal
-shiny_simulator_ui <- bslib::page_navbar(
-  title = div(
-    class = "sim-brand",
-    div(class = "sim-brand-mark", icon("dice")),
-    div(
-      class = "sim-brand-text",
-      tags$span(class = "sim-brand-title", "NetSimR Simulator"),
-      tags$span(class = "sim-brand-subtitle", "Claims & reinsurance simulation")
-    )
-  ),
-  window_title = "NetSimR Claims Simulator",
-  id = "sim_navbar",
-  selected = "welcome",
-  fillable = FALSE,
-
-  navbar_options = bslib::navbar_options(
-    bg = "#0b1f3d",
-    theme = "dark",
-    underline = FALSE
-  ),
-
-  theme = bslib::bs_theme(
-    version = 5,
-    primary = "#2563eb",
-    secondary = "#64748b",
-    success = "#16a34a",
-    info = "#0891b2",
-    warning = "#d97706",
-    danger = "#dc2626",
-    base_font = bslib::font_collection(
-      bslib::font_google("Inter", local = FALSE),
-      "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-    ),
-    heading_font = bslib::font_collection(
-      bslib::font_google("Inter", local = FALSE),
-      "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-    )
-  ),
-
-  header = tagList(
-    tags$head(
-      tags$script(HTML(netsimr_theme_js("netsimr-simulator-theme"))),
-      tags$style(HTML(sim_ui_css))
-    ),
-    #Shiny's built-in busy indicators follow the app theme, so they work in dark mode too
-    useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
-    busyIndicatorOptions(
-      pulse_background = "linear-gradient(90deg, #60a5fa, #2563eb, #60a5fa)",
-      pulse_height = "4px"
-    ),
-    tags$script(HTML(sim_run_state_js))
-  ),
-
-  # ---------------------------------------------------------------- Welcome
-  bslib::nav_panel(
-    title = "Welcome",
-    value = "welcome",
-    icon = icon("house"),
-
-    bslib::layout_columns(
-      col_widths = bslib::breakpoints(sm = 12, lg = c(8, 4)),
-
+shiny_simulator_ui <- function(request) {
+  bslib::page_navbar(
+    title = div(
+      class = "sim-brand",
+      div(class = "sim-brand-mark", icon("dice")),
       div(
-        class = "sim-hero",
-        div(class = "sim-hero-eyebrow", "NetSimR"),
-        div(class = "sim-hero-title", "Claims & Reinsurance Simulator"),
-        p(
-          class = "sim-hero-text",
-          "Simulate insurance claims from frequency and severity distributions, ",
-          "reshape the tail, apply each-and-every-loss and aggregate reinsurance ",
-          "structures, then export the results and a full report."
-        ),
-        tags$button(
-          type = "button",
-          class = "btn btn-light",
-          onclick = "document.querySelector('.navbar a[data-value=\"simulator\"]').click();",
-          icon("play"), " Open the simulator"
-        )
-      ),
+        class = "sim-brand-text",
+        tags$span(class = "sim-brand-title", "NetSimR Simulator"),
+        tags$span(class = "sim-brand-subtitle", "Claims & reinsurance simulation")
+      )
+    ),
+    window_title = "NetSimR Claims Simulator",
+    id = "sim_navbar",
+    selected = "welcome",
+    fillable = FALSE,
 
-      bslib::card(
-        sim_card_header("route", "How it works"),
-        bslib::card_body(
-          tags$ol(
-            class = "sim-steps",
-            tags$li(div(div(class = "sim-step-title", "Frequency"),
-                        div(class = "sim-step-text", "How many claims occur per period."))),
-            tags$li(div(div(class = "sim-step-title", "Severity"),
-                        div(class = "sim-step-text", "How large each claim is."))),
-            tags$li(div(div(class = "sim-step-title", "Tail adjustments"),
-                        div(class = "sim-step-text", "Optional Pareto slices and claim caps."))),
-            tags$li(div(div(class = "sim-step-title", "Reinsurance"),
-                        div(class = "sim-step-text", "EEL and aggregate layers, with reinstatements."))),
-            tags$li(div(div(class = "sim-step-title", "Export"),
-                        div(class = "sim-step-text", "Download the simulated data or an HTML report.")))
-          )
-        )
+    navbar_options = bslib::navbar_options(
+      bg = "#0b1f3d",
+      theme = "dark",
+      underline = FALSE
+    ),
+
+    theme = bslib::bs_theme(
+      version = 5,
+      primary = "#2563eb",
+      secondary = "#64748b",
+      success = "#16a34a",
+      info = "#0891b2",
+      warning = "#d97706",
+      danger = "#dc2626",
+      base_font = bslib::font_collection(
+        bslib::font_google("Inter", local = FALSE),
+        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
+      ),
+      heading_font = bslib::font_collection(
+        bslib::font_google("Inter", local = FALSE),
+        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       )
     ),
 
-    bslib::layout_columns(
-      col_widths = bslib::breakpoints(sm = 12, md = c(4, 4, 4)),
-      div(
-        class = "sim-stat",
-        div(class = "sim-stat-label", icon("chart-bar"), "Frequency models"),
-        div(class = "sim-stat-value",
-            paste(unname(vapply(freq_dist_options, function(x) x@distr_label, character(1))), collapse = paste0(" ", intToUtf8(183), " ")))
+    header = tagList(
+      tags$head(
+        tags$script(HTML(netsimr_theme_js("netsimr-simulator-theme"))),
+        tags$style(HTML(sim_ui_css))
       ),
-      div(
-        class = "sim-stat",
-        div(class = "sim-stat-label", icon("chart-line"), "Severity models"),
-        div(class = "sim-stat-value",
-            paste(unname(vapply(sev_dist_options, function(x) x@distr_label, character(1))), collapse = paste0(" ", intToUtf8(183), " ")))
+      #Shiny's built-in busy indicators follow the app theme, so they work in dark mode too
+      useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
+      busyIndicatorOptions(
+        pulse_background = "linear-gradient(90deg, #60a5fa, #2563eb, #60a5fa)",
+        pulse_height = "4px"
       ),
-      div(
-        class = "sim-stat",
-        div(class = "sim-stat-label", icon("shield-halved"), "Reinsurance"),
-        div(class = "sim-stat-value",
-            paste(setdiff(reinsurance_structures_options, "No Reinsurance Structure"), collapse = paste0(" ", intToUtf8(183), " ")))
-      )
+      tags$script(HTML(sim_run_state_js))
     ),
 
-    bslib::card(
-      sim_card_header("user", "About", "Feedback and bug reports are very welcome."),
-      bslib::card_body(
-        p(
-          "Created by Yiannis Parizas. For more information, visit my ",
-          a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/",
-            target = "_blank", rel = "noopener noreferrer"),
-          ". You can also reach me by email at ",
-          a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
-          "."
-        ),
-        p(class = "sim-muted mb-0",
-          "Please reach out if you have any feedback or encounter any bugs.")
-      )
-    )
-  ),
+    # ---------------------------------------------------------------- Welcome
+    bslib::nav_panel(
+      title = "Welcome",
+      value = "welcome",
+      icon = icon("house"),
 
-  # ------------------------------------------------------- Claims simulator
-  bslib::nav_panel(
-    title = "Claims Simulator",
-    value = "simulator",
-    icon = icon("dice"),
-
-    div(
-      class = "sim-page-intro",
-      div(
-        h2(class = "sim-page-title", "Claims simulator"),
-        p(class = "sim-page-subtitle",
-          "Configure the model on the right, then run it from the panel on the left.")
-      )
-    ),
-
-    bslib::layout_columns(
-      class = "sim-layout",
-      col_widths = bslib::breakpoints(sm = 12, lg = c(4, 8), xxl = c(3, 9)),
-
-      # ---- Run panel
-      bslib::card(
-        sim_card_header("gear", "Simulation", "Run settings and outputs"),
-        bslib::card_body(
-          #the same limits as the validation in find_missing_simulation_settings()
-          numericInput('numberOfSimulations', 'Number of simulations',
-                       value = 50000L, min = 1L, max = max_number_of_simulations, step = 1L),
-          bslib::input_switch('seedSetBinary', 'Custom seed', value = FALSE),
-          uiOutput("seed_value"),
-          bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),
-          helpText("Runs chunks in parallel. Faster for large runs, but without live progress."),
-
-          uiOutput("expected_gross_claims"),
-
-          tags$hr(class = "sim-divider"),
-
-          actionButton("RunSimulations", "Run Simulations", icon = icon("play"), class = "btn-run"),
-
-          tags$hr(class = "sim-divider"),
-
-          div(class = "sim-section-label", "Results"),
-          div(
-            class = "sim-downloads",
-            uiOutput("downloadDataButton"),
-            uiOutput("downloadReportButton"),
-            div(class = "sim-downloads-hint", icon("circle-info"),
-                "Run a simulation to enable the downloads.")
-          ),
-
-          #save and load settings, and built-in examples (R/ShinySimulatorSettingsIO.R)
-          tags$hr(class = "sim-divider"),
-          sim_settings_io_ui()
-        )
-      ),
-
-      # ---- Model configuration
       bslib::layout_columns(
-        col_widths = bslib::breakpoints(sm = 12, md = c(6, 6, 12, 6, 6)),
+        col_widths = bslib::breakpoints(sm = 12, lg = c(8, 4)),
 
-        bslib::card(
-          sim_card_header("chart-bar", "Frequency", "How many claims occur per simulated period."),
-          bslib::card_body(
-            div(class = "sim-section-label", "Distribution"),
-            div(
-              class = "pill-radio",
-              sim_hidden_label(radioButtons(
-                inputId = 'freqDistr',
-                label = 'Frequency distribution',
-                inline = TRUE,
-                choiceNames = unname(vapply(freq_dist_options, function(x) x@distr_label, character(1))),
-                choiceValues = unname(vapply(freq_dist_options, function(x) x@distrID, character(1)))
-              ))
-            ),
-            div(class = "sim-section-label mt-2", "Parameters"),
-            div(
-              class = "param-grid",
-              lapply(seq_len(max(vapply(freq_dist_options, function(x) length(x@paramIDs), integer(1)))),
-                     function(i){ uiOutput(paste0('freq_param_', i)) })
-            ),
-            uiOutput("freq_implied_moments")
+        div(
+          class = "sim-hero",
+          div(class = "sim-hero-eyebrow", "NetSimR"),
+          div(class = "sim-hero-title", "Claims & Reinsurance Simulator"),
+          p(
+            class = "sim-hero-text",
+            "Simulate insurance claims from frequency and severity distributions, ",
+            "reshape the tail, apply each-and-every-loss and aggregate reinsurance ",
+            "structures, then export the results and a full report."
+          ),
+          tags$button(
+            type = "button",
+            class = "btn btn-light",
+            onclick = "document.querySelector('.navbar a[data-value=\"simulator\"]').click();",
+            icon("play"), " Open the simulator"
           )
         ),
 
         bslib::card(
-          sim_card_header("chart-line", "Severity", "The size of each individual claim."),
+          sim_card_header("route", "How it works"),
           bslib::card_body(
-            div(class = "sim-section-label", "Distribution"),
-            div(
-              class = "pill-radio",
-              sim_hidden_label(radioButtons(
-                inputId = 'sevDistr',
-                label = 'Severity distribution',
-                inline = TRUE,
-                choiceNames = unname(vapply(sev_dist_options, function(x) x@distr_label, character(1))),
-                choiceValues = unname(vapply(sev_dist_options, function(x) x@distrID, character(1)))
-              ))
-            ),
-            div(class = "sim-section-label mt-2", "Parameters"),
-            div(
-              class = "param-grid",
-              lapply(seq_len(max(vapply(sev_dist_options, function(x) length(x@paramIDs), integer(1)))),
-                     function(i){ uiOutput(paste0('sev_param_', i)) })
-            ),
-            uiOutput("sev_implied_moments"),
-            conditionalPanel(
-              condition = "input.sevDistr == 'Normal'",
-              class = "sim-truncate",
-              bslib::input_switch('sevTruncateAtZero', 'Truncate at zero', value = FALSE),
-              helpText("Draws claims from the Normal distribution conditional on being positive, so no claim is negative.")
+            tags$ol(
+              class = "sim-steps",
+              tags$li(div(div(class = "sim-step-title", "Frequency"),
+                          div(class = "sim-step-text", "How many claims occur per period."))),
+              tags$li(div(div(class = "sim-step-title", "Severity"),
+                          div(class = "sim-step-text", "How large each claim is."))),
+              tags$li(div(div(class = "sim-step-title", "Tail adjustments"),
+                          div(class = "sim-step-text", "Optional Pareto slices and claim caps."))),
+              tags$li(div(div(class = "sim-step-title", "Reinsurance"),
+                          div(class = "sim-step-text", "EEL and aggregate layers, with reinstatements."))),
+              tags$li(div(div(class = "sim-step-title", "Export"),
+                          div(class = "sim-step-text", "Download the simulated data or an HTML report.")))
             )
           )
+        )
+      ),
+
+      bslib::layout_columns(
+        col_widths = bslib::breakpoints(sm = 12, md = c(4, 4, 4)),
+        div(
+          class = "sim-stat",
+          div(class = "sim-stat-label", icon("chart-bar"), "Frequency models"),
+          div(class = "sim-stat-value",
+              paste(unname(vapply(freq_dist_options, function(x) x@distr_label, character(1))), collapse = paste0(" ", intToUtf8(183), " ")))
+        ),
+        div(
+          class = "sim-stat",
+          div(class = "sim-stat-label", icon("chart-line"), "Severity models"),
+          div(class = "sim-stat-value",
+              paste(unname(vapply(sev_dist_options, function(x) x@distr_label, character(1))), collapse = paste0(" ", intToUtf8(183), " ")))
+        ),
+        div(
+          class = "sim-stat",
+          div(class = "sim-stat-label", icon("shield-halved"), "Reinsurance"),
+          div(class = "sim-stat-value",
+              paste(setdiff(reinsurance_structures_options, "No Reinsurance Structure"), collapse = paste0(" ", intToUtf8(183), " ")))
+        )
+      ),
+
+      bslib::card(
+        sim_card_header("user", "About", "Feedback and bug reports are very welcome."),
+        bslib::card_body(
+          p(
+            "Created by Yiannis Parizas. For more information, visit my ",
+            a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/",
+              target = "_blank", rel = "noopener noreferrer"),
+            ". You can also reach me by email at ",
+            a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
+            "."
+          ),
+          p(class = "sim-muted mb-0",
+            "Please reach out if you have any feedback or encounter any bugs.")
+        )
+      )
+    ),
+
+    # ------------------------------------------------------- Claims simulator
+    bslib::nav_panel(
+      title = "Claims Simulator",
+      value = "simulator",
+      icon = icon("dice"),
+
+      div(
+        class = "sim-page-intro",
+        div(
+          h2(class = "sim-page-title", "Claims simulator"),
+          p(class = "sim-page-subtitle",
+            "Configure the model on the right, then run it from the panel on the left.")
+        )
+      ),
+
+      bslib::layout_columns(
+        class = "sim-layout",
+        col_widths = bslib::breakpoints(sm = 12, lg = c(4, 8), xxl = c(3, 9)),
+
+        # ---- Run panel
+        bslib::card(
+          sim_card_header("gear", "Simulation", "Run settings and outputs"),
+          bslib::card_body(
+            #the same limits as the validation in find_missing_simulation_settings()
+            numericInput('numberOfSimulations', 'Number of simulations',
+                         value = 50000L, min = 1L, max = max_number_of_simulations, step = 1L),
+            bslib::input_switch('seedSetBinary', 'Custom seed', value = FALSE),
+            uiOutput("seed_value"),
+            bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),
+            helpText("Runs chunks in parallel. Faster for large runs, but without live progress."),
+
+            uiOutput("expected_gross_claims"),
+
+            tags$hr(class = "sim-divider"),
+
+            actionButton("RunSimulations", "Run Simulations", icon = icon("play"), class = "btn-run"),
+
+            tags$hr(class = "sim-divider"),
+
+            div(class = "sim-section-label", "Results"),
+            div(
+              class = "sim-downloads",
+              uiOutput("downloadDataButton"),
+              uiOutput("downloadReportButton"),
+              div(class = "sim-downloads-hint", icon("circle-info"),
+                  "Run a simulation to enable the downloads.")
+            ),
+
+            #save and load settings, and built-in examples (R/ShinySimulatorSettingsIO.R)
+            tags$hr(class = "sim-divider"),
+            sim_settings_io_ui()
+          )
         ),
 
-        bslib::card(
-          sim_card_header("scissors", "Tail adjustments", "Optionally reshape or cap the severity tail."),
-          bslib::card_body(
-            bslib::layout_columns(
-              col_widths = bslib::breakpoints(sm = 12, md = c(7, 5)),
+        # ---- Model configuration
+        bslib::layout_columns(
+          col_widths = bslib::breakpoints(sm = 12, md = c(6, 6, 12, 6, 6)),
+
+          bslib::card(
+            sim_card_header("chart-bar", "Frequency", "How many claims occur per simulated period."),
+            bslib::card_body(
+              div(class = "sim-section-label", "Distribution"),
               div(
-                sim_pareto_slices_ui()
+                class = "pill-radio",
+                sim_hidden_label(radioButtons(
+                  inputId = 'freqDistr',
+                  label = 'Frequency distribution',
+                  inline = TRUE,
+                  choiceNames = unname(vapply(freq_dist_options, function(x) x@distr_label, character(1))),
+                  choiceValues = unname(vapply(freq_dist_options, function(x) x@distrID, character(1)))
+                ))
+              ),
+              div(class = "sim-section-label mt-2", "Parameters"),
+              div(
+                class = "param-grid",
+                lapply(seq_len(max(vapply(freq_dist_options, function(x) length(x@paramIDs), integer(1)))),
+                       function(i){ uiOutput(paste0('freq_param_', i)) })
+              ),
+              uiOutput("freq_implied_moments")
+            )
+          ),
+
+          bslib::card(
+            sim_card_header("chart-line", "Severity", "The size of each individual claim."),
+            bslib::card_body(
+              div(class = "sim-section-label", "Distribution"),
+              div(
+                class = "pill-radio",
+                sim_hidden_label(radioButtons(
+                  inputId = 'sevDistr',
+                  label = 'Severity distribution',
+                  inline = TRUE,
+                  choiceNames = unname(vapply(sev_dist_options, function(x) x@distr_label, character(1))),
+                  choiceValues = unname(vapply(sev_dist_options, function(x) x@distrID, character(1)))
+                ))
+              ),
+              div(class = "sim-section-label mt-2", "Parameters"),
+              div(
+                class = "param-grid",
+                lapply(seq_len(max(vapply(sev_dist_options, function(x) length(x@paramIDs), integer(1)))),
+                       function(i){ uiOutput(paste0('sev_param_', i)) })
+              ),
+              uiOutput("sev_implied_moments"),
+              conditionalPanel(
+                condition = "input.sevDistr == 'Normal'",
+                class = "sim-truncate",
+                bslib::input_switch('sevTruncateAtZero', 'Truncate at zero', value = FALSE),
+                helpText("Draws claims from the Normal distribution conditional on being positive, so no claim is negative.")
+              )
+            )
+          ),
+
+          bslib::card(
+            sim_card_header("scissors", "Tail adjustments", "Optionally reshape or cap the severity tail."),
+            bslib::card_body(
+              bslib::layout_columns(
+                col_widths = bslib::breakpoints(sm = 12, md = c(7, 5)),
+                div(
+                  sim_pareto_slices_ui()
+                ),
+                div(
+                  bslib::input_switch('sevCapBinary', 'Severity cap', value = FALSE),
+                  helpText("Caps any single claim at a maximum amount."),
+                  uiOutput("sev_cap_amount_ui")
+                )
+              )
+            )
+          ),
+
+          bslib::card(
+            sim_card_header("shield-halved", "Each & every loss (EEL)",
+                            "Applied to each claim before it is summed into the total."),
+            bslib::card_body(
+              div(class = "sim-section-label", "Structure"),
+              div(
+                class = "pill-radio pill-radio-grid",
+                sim_hidden_label(radioButtons('reinsuranceStructureEEL', 'Each and every loss structure',
+                                              choices = reinsurance_structures_options, inline = TRUE))
               ),
               div(
-                bslib::input_switch('sevCapBinary', 'Severity cap', value = FALSE),
-                helpText("Caps any single claim at a maximum amount."),
-                uiOutput("sev_cap_amount_ui")
+                class = "param-grid mt-3",
+                uiOutput("reinsuranceStructureDeductibleEEL"),
+                uiOutput("reinsuranceStructureLimitEEL")
+              ),
+              uiOutput("reinsuranceStructureLimitedReinstatements_ui"),
+              uiOutput("reinsuranceStructureReinstatementLimit_ui")
+            )
+          ),
+
+          bslib::card(
+            sim_card_header("umbrella", "Aggregate layer (AL)",
+                            "Applied to each simulation's total after EEL: deductible first, then the limit and reinstatement cap."),
+            bslib::card_body(
+              div(class = "sim-section-label", "Structure"),
+              div(
+                class = "pill-radio pill-radio-grid",
+                sim_hidden_label(radioButtons('reinsuranceStructureAL', 'Aggregate layer structure',
+                                              choices = reinsurance_structures_options, inline = TRUE))
+              ),
+              div(
+                class = "param-grid mt-3",
+                uiOutput("reinsuranceStructureDeductibleAL"),
+                uiOutput("reinsuranceStructureLimitAL")
               )
             )
           )
-        ),
-
-        bslib::card(
-          sim_card_header("shield-halved", "Each & every loss (EEL)",
-                          "Applied to each claim before it is summed into the total."),
-          bslib::card_body(
-            div(class = "sim-section-label", "Structure"),
-            div(
-              class = "pill-radio pill-radio-grid",
-              sim_hidden_label(radioButtons('reinsuranceStructureEEL', 'Each and every loss structure',
-                                            choices = reinsurance_structures_options, inline = TRUE))
-            ),
-            div(
-              class = "param-grid mt-3",
-              uiOutput("reinsuranceStructureDeductibleEEL"),
-              uiOutput("reinsuranceStructureLimitEEL")
-            ),
-            uiOutput("reinsuranceStructureLimitedReinstatements_ui"),
-            uiOutput("reinsuranceStructureReinstatementLimit_ui")
-          )
-        ),
-
-        bslib::card(
-          sim_card_header("umbrella", "Aggregate layer (AL)",
-                          "Applied to each simulation's total after EEL: deductible first, then the limit and reinstatement cap."),
-          bslib::card_body(
-            div(class = "sim-section-label", "Structure"),
-            div(
-              class = "pill-radio pill-radio-grid",
-              sim_hidden_label(radioButtons('reinsuranceStructureAL', 'Aggregate layer structure',
-                                            choices = reinsurance_structures_options, inline = TRUE))
-            ),
-            div(
-              class = "param-grid mt-3",
-              uiOutput("reinsuranceStructureDeductibleAL"),
-              uiOutput("reinsuranceStructureLimitAL")
-            )
-          )
         )
       )
-    )
-  ),
+    ),
 
-  # ------------------------------------------------ Report and Compare tabs
-  #defined in R/ShinySimulatorTabs.R
-  sim_report_tab_ui("report"),
-  sim_compare_tab_ui("compare"),
+    # ------------------------------------------------ Report and Compare tabs
+    #defined in R/ShinySimulatorTabs.R
+    sim_report_tab_ui("report"),
+    sim_compare_tab_ui("compare"),
 
-  bslib::nav_spacer(),
-  bslib::nav_item(sim_theme_switch())
-)
+    bslib::nav_spacer(),
+    bslib::nav_item(sim_theme_switch())
+  )
+}

@@ -93,7 +93,7 @@ test_that("a fixed seed must lie in the integer range that set.seed() accepts", 
 })
 
 test_that("the app's number of simulations input has the limits that validation applies", {
-  html <- as.character(shiny_simulator_ui)
+  html <- as.character(shiny_simulator_ui(NULL))
   expect_match(html, 'id="numberOfSimulations"[^>]*min="1"[^>]*max="10000000"')
   expect_length(find_missing_simulation_settings(base_settings(numOfSimulations = max_number_of_simulations)), 0)
   expect_settings_error("Number of simulations.*10,000,000", numOfSimulations = max_number_of_simulations + 1)
