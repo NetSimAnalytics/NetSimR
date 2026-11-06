@@ -1,0 +1,309 @@
+# Pure IBNR exposure from a reporting delay distribution
+
+## 1.Introduction
+
+This vignette will cover pure IBNR functions of the NetSimR package. It
+will overview the theory behind these functions, propose possible uses
+and illustrate examples. The reporting delay distributions supported are
+LogNormal and Gamma. An application of the pure IBNR functions is
+suggested in the article “Escaping the triangle” accessible
+[here](https://www.theactuary.com/features/2019/06/2019/06/05/escaping-triangle).
+
+## 2.Background theory
+
+### 2.1 Reporting delay distribution
+
+Reporting delay is the time difference between when the accident
+occurred and when the insurer was notified. Reporting delay is a
+positive and positively skewed variable. It can be modelled with a
+LogNormal or Gamma regression. As suggested by the article cited in the
+introduction, estimating reserves can be more accurate if the reserves
+are split to pure IBNR and IBNER. Also note that reporting delay is a
+right truncated variable. The closer the exposure period to the
+valuation date, the more the truncation. As such reporting delay would
+be better modelled by a right truncated regression.
+
+### 2.2 From reporting delay to pure IBNR
+
+Pure IBNR refers to claims not reported yet to the insurer, while IBNER
+refers to the over/under estimation in the outstanding part of reported
+claims. Together the two form the insurer’s reserves for claims
+occurred. Unearned premium will also be calculated by the functions
+provided, and this relates to future claims from business already
+written. If we split the period to days, one can think of the reporting
+delay cumulative distribution function as the proportion of the day
+earned net of pure IBNR, based on the maximum reporting delay (Maximum
+reporting delay would be the difference between the reference day and
+the valuation day). As integration is equivalent to summing the function
+values, when the partition size is one, one can derive that integrating
+from the maximum to the minimum reporting delay calculates the pure IBNR
+earned exposure for the period. This can be proportioned with the full
+duration and the earned duration, to provide different metrics.
+
+## 3. Functions usage
+
+In this section we will suggest possible uses of the specified
+functions.
+
+### 3.1 Pure IBNR
+
+The function will input the inception, expiry, valuation dates and
+estimate the proportions unearned and allocated to pure IBNR. The pure
+IBNR proportion multiplied by the frequency-severity from exposure
+rating, can provide an accurate estimate of the reserve. Alternatively
+multiplying this with the premium and a loss ratio proxy will provide an
+acceptable approximation of the reserve. The proportion of the unearned
+exposure multiplied by the premium will provide the unearned premium
+reserve. One can use the exposure net of unearned period and pure IBNR
+as the offset (exposure) for modelling frequency in exposure or
+experience rating. This will be the modeller’s choice rather than
+removing the last periods in situations where data is less. The pure
+IBNR and unearned exposures can be used for simulating stochastic claim
+reserves. Following the above, the analyst can incorporate the unearned
+and pure IBNR exposure models to dashboards, hence automate estimating
+the reserves. For all the above this method is able to drill down
+individual segments and be insensitive to portfolio mix changes, when
+the reporting delay is modelled with generalised linear models. When
+this method is combined with a truncated regression, the method can
+adjust for reporting delay development for the latest periods. The
+method can also reveal patterns otherwise invisible to the analyst.
+Reinsurance structures are easier to implement on top of this method
+compared to triangles.
+
+## 4. Examples
+
+### 4.1 Pure IBNR
+
+In the below example we will follow these steps:
+
+- Construct a policy dataset with policy inception/expiry dates
+- Generate claims
+- Generate accident and reporting dates, through a reporting delay
+  distribution
+- Derive reported claims up to the valuation date
+- Model reporting delay
+- Use the function of the NetSimR package to estimate PureIBNR duration
+- Model claim frequency with adjusted claim duration and compare
+  modelling without adjusting
+- Predict claim frequency for pure IBNR and unearned duration and
+  compare with our data
+- Generate a chain ladder estimate for pure IBNR claims count and
+  compare with the data and the GLM approach
+- Simulate the pure IBNR reserve distribution
+
+``` r
+
+library("NetSimR")
+#set the seed
+set.seed(0)
+
+#Set the reporting delay distribution parameters
+mu <- 3
+sigma <- 1
+
+#Generate reporting delays and preview the distribution
+x<-rlnorm(1000,mu,sigma)
+summary(x)
+```
+
+    ##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+    ##   0.7895   9.8902  18.9372  32.7484  39.9504 526.5859
+
+``` r
+
+hist(x, breaks = 100)
+```
+
+![](PureIBNR_files/figure-html/pure%20IBNR%20example-1.png)
+
+``` r
+
+#Generate dates data
+PoliciesPerDay<-100
+PeriodLength<-365*2
+InceptionDateStart<-as.Date("2011/1/1")
+InceptionDate<-seq(InceptionDateStart, by = "day", length.out = PeriodLength)
+InceptionDate<-rep(InceptionDate,PoliciesPerDay)
+#assume all policies are yearly
+DayPolicyDuration<-365
+ExpiryDate<-InceptionDate+DayPolicyDuration
+ValuationDate<-max(InceptionDate)
+Data<-data.frame(InceptionDate,ExpiryDate)
+summary(Data)
+```
+
+    ##  InceptionDate          ExpiryDate        
+    ##  Min.   :2011-01-01   Min.   :2012-01-01  
+    ##  1st Qu.:2011-07-02   1st Qu.:2012-07-01  
+    ##  Median :2011-12-31   Median :2012-12-30  
+    ##  Mean   :2011-12-31   Mean   :2012-12-30  
+    ##  3rd Qu.:2012-07-01   3rd Qu.:2013-07-01  
+    ##  Max.   :2012-12-30   Max.   :2013-12-30
+
+``` r
+
+ValuationDate
+```
+
+    ## [1] "2012-12-30"
+
+``` r
+
+#Generate Claims Counts Data and reporting delays
+#Assume only 1 claim per policy possible with probability of claiming 10%
+ClaimFreq<-0.1
+Data$ClaimCount<-ifelse(runif(nrow(Data))<ClaimFreq,1,0)
+#generate accident date assuming uniformly happening throughout the year
+Data$AccidentDate<-Data$InceptionDate+runif(nrow(Data))*(Data$ExpiryDate-Data$InceptionDate)
+#generate reporting delays
+Data$ReportingDelay<-round(Data$ClaimCount*rlnorm(nrow(Data),mu,sigma),1)
+#generate reporting days
+Data$NotificationDate<-Data$AccidentDate+Data$ReportingDelay
+#remove claims reported beyond valuation day
+Data$ClaimReportedBeforeValuation<-ifelse(Data$NotificationDate>ValuationDate,0,Data$ClaimCount)
+#Maximum reporting delays
+Data$MaxReportingDelay<-as.numeric(ValuationDate-Data$AccidentDate)+1
+
+#Earned Duration
+Data$EarnedDuration<-ifelse(Data$ExpiryDate>ValuationDate,as.numeric(ValuationDate-Data$InceptionDate),as.numeric(Data$ExpiryDate-Data$InceptionDate))/365
+
+#Filter claims only data
+ModelData<-Data[Data$ClaimReportedBeforeValuation==1,]
+
+#model reporting delays with a linear model
+lm<-lm(log(ModelData$ReportingDelay)~1)
+#summary(lm)
+cbind(coefficients(lm),summary(lm)$sigma)
+```
+
+    ##                 [,1]     [,2]
+    ## (Intercept) 2.916398 0.958557
+
+``` r
+
+#model reporting delays with a truncated model (splitting to monthly periods would be more accurate in terms of maximum reporting delay):
+#a normal model of the log delays, fitted by maximum likelihood, where each claim's density is divided by the probability of
+#a delay short enough to be reported by the valuation date
+truncatedLogLik <- function(par, y, maxDelay) {
+  mu <- par[1]
+  sigma <- exp(par[2])
+  sum(dnorm(y, mu, sigma, log = TRUE) - pnorm(maxDelay, mu, sigma, log.p = TRUE))
+}
+logDelay <- log(ModelData$ReportingDelay)
+fit <- optim(c(mean(logDelay), log(sd(logDelay))),
+             function(par) -truncatedLogLik(par, logDelay, log(ModelData$MaxReportingDelay)), method = "BFGS")
+truncated <- c(mu = fit$par[1], sigma = exp(fit$par[2]))
+truncated
+```
+
+    ##        mu     sigma 
+    ## 2.9752599 0.9919744
+
+``` r
+
+#Generate and predict pure IBNR and UPR Claims
+Data$PureIBNRClaims<-ifelse(Data$AccidentDate>ValuationDate,0,Data$ClaimCount-Data$ClaimReportedBeforeValuation)
+Data$UPRClaims<-Data$ClaimCount-Data$ClaimReportedBeforeValuation-Data$PureIBNRClaims
+PureIBNRPrediction<-PureIBNRLNorm(Data$InceptionDate,Data$ExpiryDate,ValuationDate,truncated[["mu"]],truncated[["sigma"]])
+Data$PredictedPureIBNRYears<-PureIBNRPrediction$PureIBNRDuration/DayPolicyDuration
+Data$PredictedUPRYears<-PureIBNRPrediction$UnearnedDuration/DayPolicyDuration
+Data$NetEarnedDuration<-1-Data$PredictedUPRYears-Data$PredictedPureIBNRYears+0.00001
+
+#Predict Claim Frequency with reduced exposure to adjust for pure IBNR
+AdjFreqGLM<-glm(Data$ClaimReportedBeforeValuation~1, offset = log(Data$NetEarnedDuration), family = "poisson")
+#summary(AdjFreqGLM)
+PredictedFrequency<-exp(AdjFreqGLM$coefficients)
+
+#Compare as if not adjusting for pure IBNR
+UnAdjFreqGLM<-glm(Data$ClaimReportedBeforeValuation~1, offset = log(Data$EarnedDuration+0.00001), family = "poisson")
+#summary(UnAdjFreqGLM)
+
+cbind(AdjustedModel=round(exp(AdjFreqGLM$coefficients),3),UnAdjustedModel=round(exp(UnAdjFreqGLM$coefficients),3),Actual=ClaimFreq)
+```
+
+    ##             AdjustedModel UnAdjustedModel Actual
+    ## (Intercept)           0.1           0.094    0.1
+
+``` r
+
+#Compare UPR Claim predictions
+cbind(Actual=sum(Data$UPRClaims),Predicted=round(sum(Data$PredictedUPRYears)*PredictedFrequency,0))
+```
+
+    ##             Actual Predicted
+    ## (Intercept)   1888      1822
+
+``` r
+
+#Theoretical uses the true reporting delay parameters and claim frequency instead of the fitted ones
+TheoreticalPureIBNR<-PureIBNRLNorm(Data$InceptionDate,Data$ExpiryDate,ValuationDate,mu,sigma)
+TheoreticalPureIBNRClaims<-sum(TheoreticalPureIBNR$PureIBNRDuration/DayPolicyDuration)*ClaimFreq
+
+#Compare Pure IBNR Claim predictions
+cbind(Actual=sum(Data$PureIBNRClaims),Predicted=round(sum(Data$PredictedPureIBNRYears)*PredictedFrequency,0), Theoretical=round(TheoreticalPureIBNRClaims,0))
+```
+
+    ##             Actual Predicted Theoretical
+    ## (Intercept)    344       318         330
+
+``` r
+
+#Compare Pure IBNR predictions with Chain Ladder
+ClaimsAY1RY1<-sum(Data[Data$AccidentDate<as.Date("2012/1/1") & Data$NotificationDate<as.Date("2012/1/1"), ]$ClaimReportedBeforeValuation)
+
+ClaimsAY1RY2<-sum(Data[Data$AccidentDate<as.Date("2012/1/1") & Data$NotificationDate<as.Date("2013/1/1"), ]$ClaimReportedBeforeValuation)
+
+ClaimsAY2RY1<-sum(Data$ClaimReportedBeforeValuation)-ClaimsAY1RY1-ClaimsAY1RY2
+
+PredictedPureIBNRClaimsChainLadder<-(ClaimsAY1RY2/ClaimsAY1RY1-1)*ClaimsAY2RY1
+
+cbind(Actual=sum(Data$PureIBNRClaims),PredictedGLM=round(sum(Data$PredictedPureIBNRYears)*PredictedFrequency,0),PredictedCL=round(PredictedPureIBNRClaimsChainLadder,0))
+```
+
+    ##             Actual PredictedGLM PredictedCL
+    ## (Intercept)    344          318         321
+
+``` r
+
+#Note: Chain ladder can predict better if periods break down to months or quarters
+
+#Sliced LogNormal-Pareto claim Severity assumption
+mu=5.6
+sigma=1.65
+s=10000
+alpha=1.5
+
+#Simulate the reserve distribution
+numberOfSimulations=10000
+SimulatedYears <- numeric(length = numberOfSimulations)
+ExpectedFrequency <- sum(Data$PredictedPureIBNRYears)*PredictedFrequency
+
+for (i in 1 :numberOfSimulations){
+  SimulatedYears[i]=round(sum(qSlicedLNormPareto(runif(rpois(1,ExpectedFrequency)),mu,sigma,s,alpha)),0)
+}
+
+#Visualising pure IBNR reserve distribution
+head(SimulatedYears)
+```
+
+    ## [1]  389186  507867 1628801  236865  471060  437146
+
+``` r
+
+hist(SimulatedYears, breaks = 1000, xlim = c(0,1.5e6))
+```
+
+![](PureIBNR_files/figure-html/pure%20IBNR%20example%20continued-1.png)
+
+``` r
+
+summary(SimulatedYears)
+```
+
+    ##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+    ##   157777   293934   335702   373093   394701 25837662
+
+``` r
+
+#Note: the strength of the method illustrated is that it can have GLM factors for reporting delay, frequency and severity, and run the simulations per risk
+```

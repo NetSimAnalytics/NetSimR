@@ -1,0 +1,13 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  CappedMean: CappedMean.html
+  PureIBNR: PureIBNR.html
+  Reserving: Reserving.html
+  SimulateClaims: SimulateClaims.html
+  SlicedDistributions: SlicedDistributions.html
+last_built: 2026-11-06T23:41Z
+urls:
+  reference: https://netsimanalytics.github.io/NetSimR/reference
+  article: https://netsimanalytics.github.io/NetSimR/articles

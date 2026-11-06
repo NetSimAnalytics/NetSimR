@@ -1,0 +1,23 @@
+# Authors and Citation
+
+## Authors
+
+- **Yiannis Parizas**. Author, maintainer.
+  [](https://orcid.org/0009-0000-0523-0751)
+
+## Citation
+
+Source:
+[`DESCRIPTION`](https://github.com/NetSimAnalytics/NetSimR/blob/main/DESCRIPTION)
+
+Parizas Y (2026). *NetSimR: Actuarial Functions for Non-Life Insurance
+Modelling*. R package version 0.3.4,
+<https://netsimanalytics.github.io/NetSimR/>.
+
+    @Manual{,
+      title = {NetSimR: Actuarial Functions for Non-Life Insurance Modelling},
+      author = {Yiannis Parizas},
+      year = {2026},
+      note = {R package version 0.3.4},
+      url = {https://netsimanalytics.github.io/NetSimR/},
+    }
