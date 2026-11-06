@@ -243,6 +243,22 @@ test_that("amounts typed into the simulator show thousands separators and reach 
   expect_equal(server("numberOfSimulations"), 1234567)
   type_amount("numberOfSimulations", "1,500,000")
   expect_equal(server("numberOfSimulations"), 1500000)
+  #spaces group the digits too, as in much of Europe
+  type_amount("numberOfSimulations", "2 500 000")
+  expect_identical(shown("numberOfSimulations"), "2,500,000")
+  expect_equal(server("numberOfSimulations"), 2500000)
+  #a decimal comma is not a thousands separator: 2,50 was read as 250, a hundred times too much
+  type_amount("numberOfSimulations", "2,50")
+  expect_identical(shown("numberOfSimulations"), "2,50")
+  expect_true(is.na(server("numberOfSimulations")))
+  #Enter shows the separators, as leaving the field does
+  app$run_js("var e = document.getElementById('numberOfSimulations'); e.focus(); e.select();")
+  cdp$Input$insertText(text = "75000")
+  cdp$Input$dispatchKeyEvent(type = "keyDown", key = "Enter", code = "Enter", windowsVirtualKeyCode = 13)
+  cdp$Input$dispatchKeyEvent(type = "keyUp", key = "Enter", code = "Enter", windowsVirtualKeyCode = 13)
+  app_idle(app)
+  expect_identical(shown("numberOfSimulations"), "75,000")
+  expect_equal(server("numberOfSimulations"), 75000)
   #an empty field, or text that is not a number, is NA, and the text is left to correct
   type_amount("numberOfSimulations", "")
   expect_true(is.na(server("numberOfSimulations")))

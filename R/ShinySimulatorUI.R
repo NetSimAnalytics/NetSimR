@@ -88,10 +88,28 @@ sim_amount_input_js <- "
     }
     return out;
   }
-  /* the number in a field's text, or null when it is empty or not a number */
+  function digits_only(s) { return /^[0-9]+$/.test(s); }
+  /* the number in a field's text, or null when it is empty or not a number. Commas and
+     spaces (as in much of Europe) are thousands separators only where they group the whole
+     part in threes: 1,000,000 and 1 000 000 are a million, but 2,50 is not read as 250,
+     a decimal comma that would silently make an amount a hundred times larger */
   function parse(text) {
-    var t = String(text === null || text === undefined ? '' : text).split(',').join('').trim();
+    var t = String(text === null || text === undefined ? '' : text).trim();
+    [' ', String.fromCharCode(160), String.fromCharCode(8239)].forEach(function (space) {
+      t = t.split(space).join(',');
+    });
     if (t === '') return null;
+    if (t.indexOf(',') >= 0) {
+      var sign = /^[+-]/.test(t) ? t.charAt(0) : '';
+      var parts = t.slice(sign.length).split('.');
+      if (parts.length > 2) return null;
+      var groups = parts[0].split(',');
+      var grouped = groups[0].length >= 1 && groups[0].length <= 3 && groups.every(function (g, i) {
+        return digits_only(g) && (i === 0 || g.length === 3);
+      });
+      if (!grouped || (parts.length === 2 && parts[1] !== '' && !digits_only(parts[1]))) return null;
+      t = sign + groups.join('') + (parts.length === 2 ? '.' + parts[1] : '');
+    }
     var n = Number(t);
     return isNaN(n) || !isFinite(n) ? null : n;
   }
@@ -123,6 +141,8 @@ sim_amount_input_js <- "
     subscribe: function (el, callback) {
       $(el).on('input.simAmount', function () { callback(true); });
       $(el).on('change.simAmount', function () { tidy(el); callback(false); });
+      /* Enter shows the separators at once, as leaving the field does */
+      $(el).on('keydown.simAmount', function (event) { if (event.key === 'Enter') tidy(el); });
     },
     unsubscribe: function (el) { $(el).off('.simAmount'); },
     getRatePolicy: function () { return { policy: 'debounce', delay: 250 }; },
