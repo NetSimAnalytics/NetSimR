@@ -114,7 +114,13 @@ sim_tab_describe_settings <- function(s) {
     if (length(values) == 0 || anyNA(values)) return(label)
     #labels such as "lambda (mean claims)" are shortened to their first word
     labels <- if (known) sub("\\s*\\(.*$", "", options[[id]]@param_labels) else NULL
-    shown <- if (length(labels) == length(values)) paste(labels, "=", fmt_param(values)) else fmt_param(values)
+    #in the order the app shows them (the Pareto's x_m before alpha)
+    shown <- if (length(labels) == length(values)) {
+      order <- param_display_positions(options[[id]])
+      paste(labels[order], "=", fmt_param(values)[order])
+    } else {
+      fmt_param(values)
+    }
     paste0(label, " (", paste(shown, collapse = ", "), ")")
   }
 

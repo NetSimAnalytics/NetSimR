@@ -1,3 +1,15 @@
+Changes in Version 0.3.4
+
+  o Claims simulator: the Pareto severity asks for x_m (the minimum) before
+    alpha, each Pareto slice for its threshold before its alpha, and each
+    reinsurance layer for its limit before its deductible, the order in which
+    actuaries enter them. The report and the Compare tab follow the same order:
+    the Pareto's x_m before alpha, each slice's threshold before its alpha, and
+    each layer's limit before its deductible. Only the order shown changes: the
+    input ids, the settings files, and the Pareto's parameters passed as
+    c(alpha, x_m) to simulate_function() and simulate_claims() stay as they
+    were.
+
 Changes in Version 0.3.3
 
   o run_shiny_simulator() and run_shiny_distribution_fitting_tool() stopped

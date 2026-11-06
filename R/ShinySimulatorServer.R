@@ -147,8 +147,10 @@ shiny_simulator_server <- function(input, output, session) {
     )
   })
 
-  #help function to render freq/sev parameters
-  render_UI_param <- function(param_id, object){
+  #help function to render freq/sev parameters: the slot'th input shown, in the
+  #distribution's display order (the Pareto shows x_m before alpha)
+  render_UI_param <- function(slot, object){
+    param_id <- param_display_positions(object)[slot]
     return(if(!is.na(object@paramIDs[param_id])){numericInput(
       inputId = object@paramIDs[param_id]
       ,label = object@param_labels[param_id]
@@ -162,14 +164,14 @@ shiny_simulator_server <- function(input, output, session) {
   #render frequency parameters
   lapply(freq_dist_parameter_placeholders$param_number, function(i) {
     output[[paste0("freq_param_", i)]] <- renderUI({
-      render_UI_param(param_id=i, object=freq_dist_options[[input$freqDistr]])
+      render_UI_param(slot=i, object=freq_dist_options[[input$freqDistr]])
     })
   })
 
   #render severity parameters
   lapply(sev_dist_parameter_placeholders$param_number, function(i) {
     output[[paste0("sev_param_", i)]] <- renderUI({
-      render_UI_param(param_id=i, object=sev_dist_options[[input$sevDistr]])
+      render_UI_param(slot=i, object=sev_dist_options[[input$sevDistr]])
     })
   })
 

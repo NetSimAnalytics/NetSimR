@@ -134,7 +134,10 @@ setClassUnion("functionOrNULL", c("function", "NULL"))
 #' \code{split_func}, which draws the number of claims and how many of them are large.
 #' Allowed ranges are \code{param_min_values} and \code{param_max_values} (NA for no
 #' bound), with \code{param_min_strict} and \code{param_max_strict} marking bounds the
-#' value may not equal.
+#' value may not equal. \code{param_display_order} is the order the app shows the
+#' parameters' inputs in, as positions in \code{paramIDs} (empty for that order): the
+#' Pareto shows its minimum, x_m, before alpha, the order actuaries enter them in, while
+#' its parameters stay \code{c(alpha, x_m)} wherever they are passed as a vector.
 #' @keywords internal
 distributionClass <- setClass(
   "distributionClass",
@@ -148,6 +151,7 @@ distributionClass <- setClass(
     ,param_min_strict = "logical"
     ,param_max_strict = "logical"
     ,param_whole_numbers = "logical"
+    ,param_display_order = "integer"
     ,simulate_func = "function"
     ,moments_func = "function"
     ,survival_func = "functionOrNULL"
@@ -161,6 +165,7 @@ distributionClass <- setClass(
     ,param_min_strict = logical(0)
     ,param_max_strict = logical(0)
     ,param_whole_numbers = logical(0)
+    ,param_display_order = integer(0)
     ,survival_func = NULL
     ,tail_quantile_func = NULL
     ,sum_func = NULL
@@ -178,12 +183,30 @@ distributionClass <- setClass(
         problems <- c(problems, paste(slot_name, "must be empty or have one value per parameter"))
       }
     }
+    order <- object@param_display_order
+    if (length(order) && !identical(sort(order), seq_len(n))) {
+      problems <- c(problems, "param_display_order must be empty or list each parameter's position once")
+    }
     if (is.null(object@survival_func) != is.null(object@tail_quantile_func)) {
       problems <- c(problems, "survival_func and tail_quantile_func must be given together")
     }
     if (length(problems)) problems else TRUE
   }
 )
+
+#' Positions of a distribution's parameters in the order they are shown
+#'
+#' The app's inputs, the report and the Compare tab show a distribution's parameters in
+#' \code{param_display_order} when it is set (the Pareto shows x_m before alpha), and in
+#' \code{paramIDs} order otherwise.
+#'
+#' @param object A distribution object.
+#' @return Positions in \code{paramIDs}, first the one shown first.
+#' @noRd
+param_display_positions <- function(object) {
+  order <- object@param_display_order
+  if (length(order)) order else seq_along(object@paramIDs)
+}
 
 #' A vector with the frequency distribution objects
 #'
@@ -388,6 +411,7 @@ sev_dist_options <- c(
     ,param_labels=c("alpha (shape)", "x_m (minimum)")
     ,param_min_values=c(0, 0)
     ,param_min_strict=c(TRUE, TRUE)
+    ,param_display_order=c(2L, 1L)
     ,simulate_func = function(number_of_simulations, parameters){
       rpareto_xm(n = number_of_simulations, alpha = parameters[1], x_m = parameters[2])
     }

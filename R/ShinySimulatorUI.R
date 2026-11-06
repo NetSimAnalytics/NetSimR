@@ -1014,8 +1014,9 @@ sim_pareto_slices_ui <- function() {
           div(class = "sim-slice-badge", i, title = paste("Slice", i)),
           div(
             class = "param-grid-2 sim-slice-fields",
-            numericInput(paste0("slice_pareto_param_", 2 * i - 1), "Alpha", value = NULL, min = 0),
-            numericInput(paste0("slice_pareto_param_", 2 * i), "Threshold (x_m)", value = NULL, min = 0)
+            #the threshold first, the order actuaries enter a slice in (the ids keep alpha odd)
+            numericInput(paste0("slice_pareto_param_", 2 * i), "Threshold (x_m)", value = NULL, min = 0),
+            numericInput(paste0("slice_pareto_param_", 2 * i - 1), "Alpha", value = NULL, min = 0)
           ),
           tags$button(
             id = paste0("remove_pareto_slice_", i), type = "button",
@@ -1328,8 +1329,9 @@ shiny_simulator_ui <- function(request) {
               ),
               div(
                 class = "param-grid mt-3",
-                uiOutput("reinsuranceStructureDeductibleEEL"),
-                uiOutput("reinsuranceStructureLimitEEL")
+                #the limit first, as a layer is quoted ("limit xs deductible")
+                uiOutput("reinsuranceStructureLimitEEL"),
+                uiOutput("reinsuranceStructureDeductibleEEL")
               ),
               uiOutput("reinsuranceStructureLimitedReinstatements_ui"),
               uiOutput("reinsuranceStructureReinstatementLimit_ui")
@@ -1348,8 +1350,8 @@ shiny_simulator_ui <- function(request) {
               ),
               div(
                 class = "param-grid mt-3",
-                uiOutput("reinsuranceStructureDeductibleAL"),
-                uiOutput("reinsuranceStructureLimitAL")
+                uiOutput("reinsuranceStructureLimitAL"),
+                uiOutput("reinsuranceStructureDeductibleAL")
               )
             )
           )

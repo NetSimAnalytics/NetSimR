@@ -762,8 +762,10 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     shown <- vapply(values, function(v) sub("\\.?0+$", "", fmt_num(v, max(4, display_digits(v)))), character(1))
     labels <- if (known(options, id)) options[[id]]@param_labels else NULL
     if (length(labels) == length(values)) {
-      #non-breaking spaces keep each "name = value" pair on one line
-      paste(paste(labels, shown, sep = paste0(nbsp, "=", nbsp)), collapse = ", ")
+      #in the order the app shows them (the Pareto's x_m before alpha); non-breaking spaces
+      #keep each "name = value" pair on one line
+      order <- param_display_positions(options[[id]])
+      paste(paste(labels[order], shown[order], sep = paste0(nbsp, "=", nbsp)), collapse = ", ")
     } else {
       paste(shown, collapse = ", ")
     }
@@ -1084,7 +1086,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     x_ms <- unlist(s$slice_pareto_x_ms)
     stats::setNames(
       lapply(seq_len(slice_count), function(j) {
-        paste0(alpha, " ", fmt_num(alphas[j], 2), " from ", fmt_setting(x_ms[j]))
+        #the threshold first, as the app asks for it
+        paste0("From ", fmt_setting(x_ms[j]), ", ", alpha, " ", fmt_num(alphas[j], 2))
       }),
       paste("Pareto slice", seq_len(slice_count))
     )
@@ -1117,8 +1120,9 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       )),
       setting_card("Each & every loss (EEL)", list(
         "Structure" = if (no_structure(eel)) off("None") else eel,
-        "Deductible" = if (has_deductible(eel)) fmt_setting(s$reinsurance_structure_eel_dedctible_amount),
+        #the limit first, as a layer is quoted ("limit xs deductible")
         "Limit" = if (has_limit(eel)) fmt_setting(s$reinsurance_structure_eel_limit_amount),
+        "Deductible" = if (has_deductible(eel)) fmt_setting(s$reinsurance_structure_eel_dedctible_amount),
         "Reinstatements" = if (isTRUE(eel == "Limited Layer")) {
           if (isTRUE(s$reinsuranceStructureLimitedReinstatements)) {
             paste("Up to", fmt_int(s$reinsuranceStructureReinstatementLimit))
@@ -1129,8 +1133,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       )),
       setting_card("Aggregate layer (AL)", list(
         "Structure" = if (no_structure(al)) off("None") else al,
-        "Deductible" = if (has_deductible(al)) fmt_setting(s$reinsurance_structure_al_dedctible_amount),
-        "Limit" = if (has_limit(al)) fmt_setting(s$reinsurance_structure_al_limit_amount)
+        "Limit" = if (has_limit(al)) fmt_setting(s$reinsurance_structure_al_limit_amount),
+        "Deductible" = if (has_deductible(al)) fmt_setting(s$reinsurance_structure_al_dedctible_amount)
       ))
     )
   )

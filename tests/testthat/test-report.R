@@ -101,3 +101,39 @@ test_that("empty totals are an error", {
   expect_error(write_simulation_report(file, base_settings(), data.frame(total_claims = c(NA_real_, NA_real_))))
   expect_error(write_simulation_report(file, base_settings(), data.frame(gross_claims = 1:5)), "total_claims")
 })
+
+test_that("the report's settings show each layer's limit before its deductible", {
+  #the order a layer is quoted in ("limit xs deductible"), as on the simulator's page
+  settings <- base_settings(numOfSimulations = 300, seedValue = 1,
+                            reinsuranceStructureEEL = "Limited Layer",
+                            reinsurance_structure_eel_dedctible_amount = 100, reinsurance_structure_eel_limit_amount = 400,
+                            reinsuranceStructureAL = "Limited Layer",
+                            reinsurance_structure_al_dedctible_amount = 200, reinsurance_structure_al_limit_amount = 1000)
+  html <- report_text(settings, do.call(simulate_function, settings))
+  cards <- strsplit(html, '<div class="setting-card">', fixed = TRUE)[[1]]
+  for (title in c("Each &amp; every loss (EEL)", "Aggregate layer (AL)")) {
+    card <- grep(title, cards, fixed = TRUE, value = TRUE)
+    expect_length(card, 1)
+    limit <- regexpr("<dt>Limit</dt>", card, fixed = TRUE)[1]
+    deductible <- regexpr("<dt>Deductible</dt>", card, fixed = TRUE)[1]
+    expect_gt(limit, 0)
+    expect_gt(deductible, 0)
+    expect_lt(limit, deductible)
+  }
+})
+
+test_that("the report and the Compare tab show the Pareto's x_m before alpha, and each slice's threshold first", {
+  #as the simulator asks for them; the parameters are still passed as c(alpha, x_m)
+  settings <- base_settings(numOfSimulations = 300, seedValue = 1, sevDistr = "Pareto", sev_params = c(2.5, 1000),
+                            paretoSlice = TRUE, pareto_slice_times = 2,
+                            slice_pareto_alphas = c(2, 1.6), slice_pareto_x_ms = c(50000, 250000))
+  html <- report_text(settings, do.call(simulate_function, settings))
+  text <- gsub(intToUtf8(160), " ", gsub("<[^>]+>", " ", html), fixed = TRUE)
+  expect_match(text, "x_m (minimum) = 1,000, alpha (shape) = 2.5", fixed = TRUE)
+  expect_match(text, paste0("From 50,000, ", intToUtf8(945), " 2.00"), fixed = TRUE)
+  expect_match(text, paste0("From 250,000, ", intToUtf8(945), " 1.60"), fixed = TRUE)
+  expect_match(sim_tab_describe_settings(settings), "Pareto (x_m = 1000, alpha = 2.5)", fixed = TRUE)
+  #a distribution without a display order keeps its own
+  settings <- base_settings(numOfSimulations = 300, seedValue = 1, sev_params = c(6, 1))
+  expect_match(sim_tab_describe_settings(settings), "Log-Normal (mu = 6, sigma = 1)", fixed = TRUE)
+})

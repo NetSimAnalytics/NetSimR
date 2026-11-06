@@ -532,3 +532,46 @@ test_that("the tail counts and TVaR follow their documented definitions", {
   expect_match(words, "Average of the worst 0.5%", fixed = TRUE)
   expect_match(words, "TVaR 99.5% is the mean of the worst 0.5% of the simulations", fixed = TRUE)
 })
+
+test_that("the Pareto shows x_m before alpha, a slice its threshold first and a layer its limit first", {
+  #the order actuaries enter them in; the parameters keep their order everywhere else
+  shiny::testServer(shiny_simulator_server, {
+    set_page_inputs(session)
+    session$setInputs(sevDistr = "Pareto")
+    expect_match(ui_html(output$sev_param_1), 'id="x_m"')
+    expect_match(ui_html(output$sev_param_2), 'id="alpha"')
+    #the other distributions are shown in their own order
+    session$setInputs(x_m = 1000, alpha = 2.5)
+    session$setInputs(sevDistr = "LogNormal")
+    expect_match(ui_html(output$sev_param_1), 'id="mu"')
+    expect_match(ui_html(output$sev_param_2), 'id="sigma"')
+    #and back to the Pareto, the values typed are kept, each in its own field
+    session$setInputs(sevDistr = "Pareto")
+    expect_match(ui_html(output$sev_param_1), 'id="x_m"[^>]*value="1000"')
+    expect_match(ui_html(output$sev_param_2), 'id="alpha"[^>]*value="2.5"')
+  })
+  expect_identical(sev_dist_options$Pareto@paramIDs, c("alpha", "x_m"))
+  #the engine still takes c(alpha, x_m): a Pareto with x_m = 1000 has no claim below 1000
+  totals <- simulate_function(numOfSimulations = 200, freq_params = 1, sev_params = c(2.5, 1000), seedValue = 1,
+                              freqDistr = "Fixed_number_of_Counts", sevDistr = "Pareto")$total_claims
+  expect_true(all(totals >= 1000))
+  #a display order that is not a reordering of the parameters is refused
+  expect_error(distributionClass(distrID = "x", distr_label = "x", paramIDs = c("a", "b"), param_labels = c("a", "b"),
+                                 param_display_order = c(1L, 1L), simulate_func = identity, moments_func = identity),
+               "param_display_order")
+
+  html <- as.character(shiny_simulator_ui(NULL))
+  position <- function(pattern) regexpr(pattern, html, fixed = TRUE)[1]
+  for (i in seq_len(max_number_of_pareto_slices)) {
+    threshold <- position(paste0('id="slice_pareto_param_', 2 * i, '"'))
+    alpha <- position(paste0('id="slice_pareto_param_', 2 * i - 1, '"'))
+    expect_gt(threshold, 0)
+    expect_lt(threshold, alpha)
+  }
+  for (layer in c("EEL", "AL")) {
+    limit <- position(paste0('id="reinsuranceStructureLimit', layer, '"'))
+    deductible <- position(paste0('id="reinsuranceStructureDeductible', layer, '"'))
+    expect_gt(limit, 0)
+    expect_lt(limit, deductible)
+  }
+})

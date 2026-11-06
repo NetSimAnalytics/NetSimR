@@ -17,6 +17,9 @@ of a given number of claims in one step. Frequency distributions may have
 \code{split_func}, which draws the number of claims and how many of them are large.
 Allowed ranges are \code{param_min_values} and \code{param_max_values} (NA for no
 bound), with \code{param_min_strict} and \code{param_max_strict} marking bounds the
-value may not equal.
+value may not equal. \code{param_display_order} is the order the app shows the
+parameters' inputs in, as positions in \code{paramIDs} (empty for that order): the
+Pareto shows its minimum, x_m, before alpha, the order actuaries enter them in, while
+its parameters stay \code{c(alpha, x_m)} wherever they are passed as a vector.
 }
 \keyword{internal}
