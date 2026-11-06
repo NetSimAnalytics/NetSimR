@@ -214,3 +214,77 @@ test_that("a run with totals of both +Inf and -Inf and an aggregate exclude laye
 
   expect_app_logs_clean(app)
 })
+
+test_that("amounts typed into the simulator show thousands separators and reach the server as numbers", {
+  skip_if_no_app_browser()
+  app <- start_netsimr_app("simulator", "simulator-amounts")
+  on.exit(app$stop(), add = TRUE)
+  app_goto(app, "simulator")
+  cdp <- app$get_chromote_session()
+  #types as a person does: select the field's text, type, then leave the field with Tab
+  type_amount <- function(id, text) {
+    app$run_js(sprintf("var e = document.getElementById(%s); e.focus(); e.select();", app_js_string(id)))
+    if (nzchar(text)) {
+      cdp$Input$insertText(text = text)
+    } else {
+      cdp$Input$dispatchKeyEvent(type = "keyDown", key = "Delete", code = "Delete", windowsVirtualKeyCode = 46)
+    }
+    cdp$Input$dispatchKeyEvent(type = "keyDown", key = "Tab", code = "Tab", windowsVirtualKeyCode = 9)
+    cdp$Input$dispatchKeyEvent(type = "keyUp", key = "Tab", code = "Tab", windowsVirtualKeyCode = 9)
+    app_idle(app)
+  }
+  shown <- function(id) app$get_js(sprintf("document.getElementById(%s).value", app_js_string(id)))
+  server <- function(id) app$get_values(input = id)$input[[id]]
+
+  #the starting value, then a typed one with and without separators
+  expect_identical(shown("numberOfSimulations"), "50,000")
+  type_amount("numberOfSimulations", "1234567")
+  expect_identical(shown("numberOfSimulations"), "1,234,567")
+  expect_equal(server("numberOfSimulations"), 1234567)
+  type_amount("numberOfSimulations", "1,500,000")
+  expect_equal(server("numberOfSimulations"), 1500000)
+  #an empty field, or text that is not a number, is NA, and the text is left to correct
+  type_amount("numberOfSimulations", "")
+  expect_true(is.na(server("numberOfSimulations")))
+  type_amount("numberOfSimulations", "abc")
+  expect_identical(shown("numberOfSimulations"), "abc")
+  expect_true(is.na(server("numberOfSimulations")))
+  #negative amounts and decimals
+  app_set(app, sevDistr = "Normal")
+  type_amount("normal_mean", "-2500")
+  expect_identical(shown("normal_mean"), "-2,500")
+  expect_equal(server("normal_mean"), -2500)
+  type_amount("normal_sd", "1234.5")
+  expect_identical(shown("normal_sd"), "1,234.5")
+  expect_equal(server("normal_sd"), 1234.5)
+  #a layer's amounts, and an example loaded with updateNumericInput()
+  app_set(app, reinsuranceStructureEEL = "Limited Layer")
+  type_amount("reinsurance_structure_eel_limit_amount", "400000")
+  expect_identical(shown("reinsurance_structure_eel_limit_amount"), "400,000")
+  expect_equal(server("reinsurance_structure_eel_limit_amount"), 400000)
+  #the severity cap
+  app_set(app, sevCapBinary = TRUE)
+  type_amount("sev_cap_amount", "5000000")
+  expect_identical(shown("sev_cap_amount"), "5,000,000")
+  expect_equal(server("sev_cap_amount"), 5e6)
+  #the slices' thresholds; removing the first slice moves the second's values up, formatted
+  app_click(app, "add_pareto_slice")
+  app_idle(app)
+  app_click(app, "add_pareto_slice")
+  app_idle(app)
+  type_amount("slice_pareto_param_2", "50000")
+  type_amount("slice_pareto_param_4", "250000")
+  expect_identical(shown("slice_pareto_param_2"), "50,000")
+  expect_equal(server("slice_pareto_param_4"), 250000)
+  app_click(app, "remove_pareto_slice_1")
+  app$wait_for_js("document.getElementById('slice_pareto_param_2').value === '250,000'", timeout = 30 * 1000)
+  expect_equal(server("slice_pareto_param_2"), 250000)
+  expect_identical(shown("slice_pareto_param_4"), "")
+  expect_true(is.na(server("slice_pareto_param_4")))
+  sim_load_example(app, "Motor: excess of loss layer",
+                   list(numberOfSimulations = 50000, reinsurance_structure_eel_limit_amount = 200000))
+  expect_identical(shown("numberOfSimulations"), "50,000")
+  expect_identical(shown("reinsurance_structure_eel_limit_amount"), "200,000")
+
+  expect_app_logs_clean(app)
+})

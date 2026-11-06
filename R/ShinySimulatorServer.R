@@ -148,18 +148,25 @@ shiny_simulator_server <- function(input, output, session) {
   })
 
   #help function to render freq/sev parameters: the slot'th input shown, in the
-  #distribution's display order (the Pareto shows x_m before alpha)
+  #distribution's display order (the Pareto shows x_m before alpha); amounts show
+  #thousands separators
   render_UI_param <- function(slot, object){
     param_id <- param_display_positions(object)[slot]
-    return(if(!is.na(object@paramIDs[param_id])){numericInput(
-      inputId = object@paramIDs[param_id]
+    if (is.na(object@paramIDs[param_id])) return(NULL)
+    id <- object@paramIDs[param_id]
+    if (isTRUE(object@param_amounts[param_id])) {
+      return(sim_amount_input(id, object@param_labels[param_id], value = last_typed(id),
+                              min = object@param_min_values[param_id], max = object@param_max_values[param_id]))
+    }
+    numericInput(
+      inputId = id
       ,label = object@param_labels[param_id]
       ,min = object@param_min_values[param_id]
       ,max = object@param_max_values[param_id]
       ,step = if (isTRUE(object@param_whole_numbers[param_id])) 1 else NA
-      ,value = last_typed(object@paramIDs[param_id])
+      ,value = last_typed(id)
     )
-    })}
+  }
 
   #render frequency parameters
   lapply(freq_dist_parameter_placeholders$param_number, function(i) {
@@ -235,22 +242,22 @@ shiny_simulator_server <- function(input, output, session) {
   #render severity cap amount
   output$sev_cap_amount_ui <- renderUI({
     if (input$sevCapBinary) {
-      numericInput('sev_cap_amount', 'Severity Cap Amount', value = last_typed('sev_cap_amount'), min = 0)
+      sim_amount_input('sev_cap_amount', 'Severity Cap Amount', value = last_typed('sev_cap_amount'), min = 0)
     }
   })
 
   #reinsurance structure EEL inputs
   output$reinsuranceStructureDeductibleEEL <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      numericInput('reinsurance_structure_eel_dedctible_amount', 'EEL Deductible Amount',
-                   value = last_typed('reinsurance_structure_eel_dedctible_amount'), min = 0)
+      sim_amount_input('reinsurance_structure_eel_dedctible_amount', 'EEL Deductible Amount',
+                       value = last_typed('reinsurance_structure_eel_dedctible_amount'), min = 0)
     }
   })
 
   output$reinsuranceStructureLimitEEL <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Limited Layer', 'Exclude Layer')) {
-      numericInput('reinsurance_structure_eel_limit_amount', 'EEL Limit Amount',
-                   value = last_typed('reinsurance_structure_eel_limit_amount'), min = 0)
+      sim_amount_input('reinsurance_structure_eel_limit_amount', 'EEL Limit Amount',
+                       value = last_typed('reinsurance_structure_eel_limit_amount'), min = 0)
     }
   })
 
@@ -274,15 +281,15 @@ shiny_simulator_server <- function(input, output, session) {
   #reinsurance structure AL inputs
   output$reinsuranceStructureDeductibleAL <- renderUI({
     if (input$reinsuranceStructureAL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      numericInput('reinsurance_structure_al_dedctible_amount', 'AL Deductible Amount',
-                   value = last_typed('reinsurance_structure_al_dedctible_amount'), min = 0)
+      sim_amount_input('reinsurance_structure_al_dedctible_amount', 'AL Deductible Amount',
+                       value = last_typed('reinsurance_structure_al_dedctible_amount'), min = 0)
     }
   })
 
   output$reinsuranceStructureLimitAL <- renderUI({
     if (input$reinsuranceStructureAL %in% c('Limited Layer', 'Exclude Layer')) {
-      numericInput('reinsurance_structure_al_limit_amount', 'AL Limit Amount',
-                   value = last_typed('reinsurance_structure_al_limit_amount'), min = 0)
+      sim_amount_input('reinsurance_structure_al_limit_amount', 'AL Limit Amount',
+                       value = last_typed('reinsurance_structure_al_limit_amount'), min = 0)
     }
   })
 

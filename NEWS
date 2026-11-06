@@ -1,5 +1,13 @@
 Changes in Version 0.3.4
 
+  o Claims simulator: the number of simulations, the Normal severity's mean
+    and standard deviation, the Pareto's x_m, the fixed claim amount, the
+    Pareto slices' thresholds, the severity cap, and the limits and
+    deductibles of the EEL and aggregate layers show thousands
+    separators (1,000,000) once a value is entered. They can be typed with or
+    without separators. A browser's number input cannot show separators, so
+    these are text inputs that send the server the number, as before: NA when
+    a field is empty or does not hold a number.
   o Claims simulator: the Pareto severity asks for x_m (the minimum) before
     alpha, each Pareto slice for its threshold before its alpha, and each
     reinsurance layer for its limit before its deductible, the order in which

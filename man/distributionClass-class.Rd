@@ -21,5 +21,7 @@ value may not equal. \code{param_display_order} is the order the app shows the
 parameters' inputs in, as positions in \code{paramIDs} (empty for that order): the
 Pareto shows its minimum, x_m, before alpha, the order actuaries enter them in, while
 its parameters stay \code{c(alpha, x_m)} wherever they are passed as a vector.
+\code{param_amounts} marks the parameters that are amounts of money (empty for none),
+which the app shows with thousands separators.
 }
 \keyword{internal}

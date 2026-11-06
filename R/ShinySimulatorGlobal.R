@@ -138,6 +138,8 @@ setClassUnion("functionOrNULL", c("function", "NULL"))
 #' parameters' inputs in, as positions in \code{paramIDs} (empty for that order): the
 #' Pareto shows its minimum, x_m, before alpha, the order actuaries enter them in, while
 #' its parameters stay \code{c(alpha, x_m)} wherever they are passed as a vector.
+#' \code{param_amounts} marks the parameters that are amounts of money (empty for none),
+#' which the app shows with thousands separators.
 #' @keywords internal
 distributionClass <- setClass(
   "distributionClass",
@@ -152,6 +154,7 @@ distributionClass <- setClass(
     ,param_max_strict = "logical"
     ,param_whole_numbers = "logical"
     ,param_display_order = "integer"
+    ,param_amounts = "logical"
     ,simulate_func = "function"
     ,moments_func = "function"
     ,survival_func = "functionOrNULL"
@@ -166,6 +169,7 @@ distributionClass <- setClass(
     ,param_max_strict = logical(0)
     ,param_whole_numbers = logical(0)
     ,param_display_order = integer(0)
+    ,param_amounts = logical(0)
     ,survival_func = NULL
     ,tail_quantile_func = NULL
     ,sum_func = NULL
@@ -178,7 +182,8 @@ distributionClass <- setClass(
       problems <- c(problems, "distrID and distr_label must be single strings")
     }
     if (length(object@param_labels) != n) problems <- c(problems, "param_labels must have one label per parameter")
-    for (slot_name in c("param_min_values", "param_max_values", "param_min_strict", "param_max_strict", "param_whole_numbers")) {
+    for (slot_name in c("param_min_values", "param_max_values", "param_min_strict", "param_max_strict", "param_whole_numbers",
+                        "param_amounts")) {
       if (!(length(methods::slot(object, slot_name)) %in% c(0, n))) {
         problems <- c(problems, paste(slot_name, "must be empty or have one value per parameter"))
       }
@@ -322,6 +327,7 @@ sev_dist_options <- c(
     ,paramIDs=c("normal_mean", "normal_sd")
     ,param_labels=c("Mean", "Standard deviation")
     ,param_min_values=c(NA, 0)
+    ,param_amounts=c(TRUE, TRUE)
     ,simulate_func = function(number_of_simulations, parameters){
       stats::rnorm(n = number_of_simulations, mean = parameters[1], sd = parameters[2])
     }
@@ -412,6 +418,7 @@ sev_dist_options <- c(
     ,param_min_values=c(0, 0)
     ,param_min_strict=c(TRUE, TRUE)
     ,param_display_order=c(2L, 1L)
+    ,param_amounts=c(FALSE, TRUE)
     ,simulate_func = function(number_of_simulations, parameters){
       rpareto_xm(n = number_of_simulations, alpha = parameters[1], x_m = parameters[2])
     }
@@ -425,6 +432,7 @@ sev_dist_options <- c(
     ,paramIDs=c("Fixed_sev_amount")
     ,param_labels=c("Claim amount")
     ,param_min_values=c(0)
+    ,param_amounts=c(TRUE)
     ,simulate_func = function(number_of_simulations, parameters){
       rep(parameters[1], number_of_simulations)
     }

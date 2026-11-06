@@ -37,6 +37,111 @@ sim_hidden_label <- function(input) {
   input
 }
 
+#' A number input that shows thousands separators
+#'
+#' A browser's number input cannot show "1,000,000", so amounts are text inputs that the
+#' script \code{sim_amount_input_js} gives a shiny input binding: the field shows the
+#' amount with thousands separators once it is entered (on leaving the field), and shiny
+#' receives the number, as from \code{numericInput()}: NA when the field is empty or does
+#' not hold a number. \code{updateNumericInput()} updates it as it updates a number input.
+#'
+#' @param inputId The input id.
+#' @param label The label.
+#' @param value The starting number, or NULL or NA for an empty field.
+#' @param min,max The bounds, NA for none; shown as attributes, checked by the server.
+#' @return A shiny input container.
+#' @noRd
+sim_amount_input <- function(inputId, label, value = NULL, min = NA, max = NA) {
+  no_sci <- function(x) format(x, scientific = FALSE, trim = TRUE, digits = 15)
+  shown <- if (length(value) == 1 && is.numeric(value) && is.finite(value)) sim_amount_text(value) else ""
+  div(
+    class = "form-group shiny-input-container",
+    tags$label(class = "control-label", id = paste0(inputId, "-label"), `for` = inputId, label),
+    tags$input(
+      id = inputId, type = "text", class = "form-control sim-amount-input", value = shown,
+      #a keypad with a minus sign only where an amount can be negative
+      inputmode = if (isTRUE(min >= 0)) "decimal" else "text", autocomplete = "off",
+      min = if (!is.na(min)) no_sci(min), max = if (!is.na(max)) no_sci(max)
+    )
+  )
+}
+
+#' An amount as the amount inputs show it: thousands separators below 1e15, the number as R
+#' writes it otherwise (1e+308 rather than 309 digits)
+#' @noRd
+sim_amount_text <- function(x) {
+  if (abs(x) >= 1e15) return(format(x, digits = 15))
+  format(x, big.mark = ",", scientific = FALSE, trim = TRUE, digits = 15)
+}
+
+#' The shiny input binding of the amount inputs (see sim_amount_input())
+#' @noRd
+sim_amount_input_js <- "
+(function () {
+  if (!window.Shiny || !Shiny.inputBindings) return;
+  /* a whole number written with thousands separators */
+  function group(digits) {
+    var out = '';
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 === 0) out += ',';
+      out += digits.charAt(i);
+    }
+    return out;
+  }
+  /* the number in a field's text, or null when it is empty or not a number */
+  function parse(text) {
+    var t = String(text === null || text === undefined ? '' : text).split(',').join('').trim();
+    if (t === '') return null;
+    var n = Number(t);
+    return isNaN(n) || !isFinite(n) ? null : n;
+  }
+  /* a number as the field shows it, as sim_amount_text() writes it in R */
+  function format(x) {
+    if (typeof x !== 'number' || !isFinite(x)) return '';
+    var s = String(x);
+    if (Math.abs(x) >= 1e15 || s.indexOf('e') >= 0) return s;
+    var sign = s.charAt(0) === '-' ? '-' : '';
+    if (sign) s = s.slice(1);
+    var dot = s.indexOf('.');
+    return sign + group(dot < 0 ? s : s.slice(0, dot)) + (dot < 0 ? '' : s.slice(dot));
+  }
+  /* once a number is entered the field shows it with its separators; text that is not a
+     number is left as typed, for the user to correct */
+  function tidy(el) {
+    var n = parse(el.value);
+    if (n !== null) el.value = format(n);
+  }
+  var binding = new Shiny.InputBinding();
+  $.extend(binding, {
+    find: function (scope) { return $(scope).find('input.sim-amount-input'); },
+    getValue: function (el) { return parse(el.value); },
+    /* as a number input: shiny turns an empty field into NA */
+    getType: function () { return 'shiny.number'; },
+    setValue: function (el, value) {
+      el.value = typeof value === 'number' ? format(value) : format(parse(value));
+    },
+    subscribe: function (el, callback) {
+      $(el).on('input.simAmount', function () { callback(true); });
+      $(el).on('change.simAmount', function () { tidy(el); callback(false); });
+    },
+    unsubscribe: function (el) { $(el).off('.simAmount'); },
+    getRatePolicy: function () { return { policy: 'debounce', delay: 250 }; },
+    /* the messages of updateNumericInput() */
+    receiveMessage: function (el, data) {
+      if (data.hasOwnProperty('value')) this.setValue(el, data.value);
+      ['min', 'max'].forEach(function (key) {
+        if (data.hasOwnProperty(key)) el.setAttribute(key, data[key]);
+      });
+      if (typeof data.label === 'string') $('#' + el.id + '-label').text(data.label);
+      $(el).trigger('change');
+    },
+    getState: function (el) { return { label: $('#' + el.id + '-label').text(), value: parse(el.value) }; }
+  });
+  /* before shiny's text binding, which would otherwise claim these text inputs */
+  Shiny.inputBindings.register(binding, 'netsimr.amountInput', 10);
+})();
+"
+
 #' Theme switcher (light / dark / system) for the Shiny simulator UI
 #'
 #' @noRd
@@ -1015,7 +1120,7 @@ sim_pareto_slices_ui <- function() {
           div(
             class = "param-grid-2 sim-slice-fields",
             #the threshold first, the order actuaries enter a slice in (the ids keep alpha odd)
-            numericInput(paste0("slice_pareto_param_", 2 * i), "Threshold (x_m)", value = NULL, min = 0),
+            sim_amount_input(paste0("slice_pareto_param_", 2 * i), "Threshold (x_m)", value = NULL, min = 0),
             numericInput(paste0("slice_pareto_param_", 2 * i - 1), "Alpha", value = NULL, min = 0)
           ),
           tags$button(
@@ -1091,6 +1196,7 @@ shiny_simulator_ui <- function(request) {
     header = tagList(
       tags$head(
         tags$script(HTML(netsimr_theme_js("netsimr-simulator-theme"))),
+        tags$script(HTML(sim_amount_input_js)),
         tags$style(HTML(sim_ui_css))
       ),
       #Shiny's built-in busy indicators follow the app theme, so they work in dark mode too
@@ -1212,8 +1318,8 @@ shiny_simulator_ui <- function(request) {
           sim_card_header("gear", "Simulation", "Run settings and outputs"),
           bslib::card_body(
             #the same limits as the validation in find_missing_simulation_settings()
-            numericInput('numberOfSimulations', 'Number of simulations',
-                         value = 50000L, min = 1L, max = max_number_of_simulations, step = 1L),
+            sim_amount_input('numberOfSimulations', 'Number of simulations',
+                             value = 50000L, min = 1L, max = max_number_of_simulations),
             bslib::input_switch('seedSetBinary', 'Custom seed', value = FALSE),
             uiOutput("seed_value"),
             bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),

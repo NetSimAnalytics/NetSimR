@@ -299,9 +299,9 @@ test_that("typed parameters and layer amounts survive switching options away and
 
     #a limited and an unlimited layer both have a deductible: switching keeps it
     session$setInputs(reinsuranceStructureEEL = "Unlimited Layer")
-    expect_match(ui_html(output$reinsuranceStructureDeductibleEEL), 'value="5000"', fixed = TRUE)
+    expect_match(ui_html(output$reinsuranceStructureDeductibleEEL), 'value="5,000"', fixed = TRUE)
     session$setInputs(reinsuranceStructureEEL = "Limited Layer")
-    expect_match(ui_html(output$reinsuranceStructureLimitEEL), 'value="20000"', fixed = TRUE)
+    expect_match(ui_html(output$reinsuranceStructureLimitEEL), 'value="20,000"', fixed = TRUE)
   })
 })
 
@@ -363,8 +363,8 @@ test_that("fields built after loading settings start from the loaded values, eve
     expect_match(ui_html(output$freq_param_1), 'id="lamda"[^>]*value="5"')
     expect_match(ui_html(output$sev_param_1), 'id="mu"[^>]*value="9"')
     expect_match(ui_html(output$seed_value), 'value="1"', fixed = TRUE)
-    expect_match(ui_html(output$reinsuranceStructureDeductibleEEL), 'value="50000"', fixed = TRUE)
-    expect_match(ui_html(output$reinsuranceStructureLimitEEL), 'value="2e\\+05"|value="200000"')
+    expect_match(ui_html(output$reinsuranceStructureDeductibleEEL), 'value="50,000"', fixed = TRUE)
+    expect_match(ui_html(output$reinsuranceStructureLimitEEL), 'value="200,000"', fixed = TRUE)
     expect_match(ui_html(output$reinsuranceStructureLimitedReinstatements_ui), "checked", fixed = TRUE)
     session$setInputs(reinsuranceStructureLimitedReinstatements = TRUE)
     expect_match(ui_html(output$reinsuranceStructureReinstatementLimit_ui), 'value="2"', fixed = TRUE)
@@ -547,7 +547,7 @@ test_that("the Pareto shows x_m before alpha, a slice its threshold first and a 
     expect_match(ui_html(output$sev_param_2), 'id="sigma"')
     #and back to the Pareto, the values typed are kept, each in its own field
     session$setInputs(sevDistr = "Pareto")
-    expect_match(ui_html(output$sev_param_1), 'id="x_m"[^>]*value="1000"')
+    expect_match(ui_html(output$sev_param_1), 'id="x_m"[^>]*value="1,000"')
     expect_match(ui_html(output$sev_param_2), 'id="alpha"[^>]*value="2.5"')
   })
   expect_identical(sev_dist_options$Pareto@paramIDs, c("alpha", "x_m"))
@@ -574,4 +574,54 @@ test_that("the Pareto shows x_m before alpha, a slice its threshold first and a 
     expect_gt(limit, 0)
     expect_lt(limit, deductible)
   }
+})
+
+test_that("amounts and the number of simulations are inputs that show thousands separators", {
+  #a browser's number input cannot show 1,000,000, so these are text inputs with their own binding
+  expect_identical(sim_amount_text(1234567), "1,234,567")
+  expect_identical(sim_amount_text(1234.5), "1,234.5")
+  expect_identical(sim_amount_text(-2500), "-2,500")
+  expect_identical(sim_amount_text(0.25), "0.25")
+  #from 1e15 the number as R writes it, not hundreds of digits
+  expect_identical(sim_amount_text(1e308), "1e+308")
+  field <- as.character(sim_amount_input("amount", "Amount", value = 50000, min = 0, max = 1e7))
+  expect_match(field, 'id="amount"[^>]*type="text"[^>]*class="form-control sim-amount-input"[^>]*value="50,000"')
+  expect_match(field, 'inputmode="decimal"[^>]*min="0"[^>]*max="10000000"')
+  #an amount that can be negative gets a keypad with a minus sign; an empty field has no value
+  expect_match(as.character(sim_amount_input("mean", "Mean", value = NA)), 'value=""[^>]*inputmode="text"')
+  page <- as.character(shiny_simulator_ui(NULL))
+  expect_match(page, 'id="numberOfSimulations"[^>]*sim-amount-input[^>]*value="50,000"')
+  #the slices' thresholds are amounts, their alphas are not
+  for (i in seq_len(max_number_of_pareto_slices)) {
+    expect_match(page, paste0('id="slice_pareto_param_', 2 * i, '"[^>]*sim-amount-input'))
+    expect_match(page, paste0('id="slice_pareto_param_', 2 * i - 1, '"[^>]*type="number"'))
+  }
+
+  shiny::testServer(shiny_simulator_server, {
+    set_page_inputs(session, reinsuranceStructureEEL = "Limited Layer", reinsuranceStructureAL = "Limited Layer")
+    amount <- function(html, id) grepl(paste0('id="', id, '"[^>]*sim-amount-input'), html)
+    session$setInputs(sevDistr = "Normal")
+    expect_true(amount(ui_html(output$sev_param_1), "normal_mean"))
+    expect_true(amount(ui_html(output$sev_param_2), "normal_sd"))
+    session$setInputs(sevDistr = "Pareto")
+    expect_true(amount(ui_html(output$sev_param_1), "x_m"))
+    #alpha is not an amount
+    expect_match(ui_html(output$sev_param_2), 'id="alpha"[^>]*type="number"')
+    session$setInputs(sevDistr = "Fixed_Severity")
+    expect_true(amount(ui_html(output$sev_param_1), "Fixed_sev_amount"))
+    session$setInputs(sevDistr = "LogNormal")
+    expect_match(ui_html(output$sev_param_1), 'id="mu"[^>]*type="number"')
+    session$setInputs(sevCapBinary = TRUE)
+    expect_true(amount(ui_html(output$sev_cap_amount_ui), "sev_cap_amount"))
+    for (layer in c("eel", "al")) {
+      expect_true(amount(ui_html(output[[paste0("reinsuranceStructureLimit", toupper(layer))]]),
+                         paste0("reinsurance_structure_", layer, "_limit_amount")))
+      expect_true(amount(ui_html(output[[paste0("reinsuranceStructureDeductible", toupper(layer))]]),
+                         paste0("reinsurance_structure_", layer, "_dedctible_amount")))
+    }
+  })
+  #a parameter list marking amounts must have one mark per parameter
+  expect_error(distributionClass(distrID = "x", distr_label = "x", paramIDs = c("a", "b"), param_labels = c("a", "b"),
+                                 param_amounts = TRUE, simulate_func = identity, moments_func = identity),
+               "param_amounts")
 })
