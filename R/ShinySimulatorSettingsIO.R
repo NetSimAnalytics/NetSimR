@@ -34,10 +34,11 @@ sim_settings_input_ids <- function() {
     ,paste0("slice_pareto_param_", seq_len(2 * max_number_of_pareto_slices))
     ,"sevCapBinary", "sev_cap_amount", "sevTruncateAtZero"
     ,"reinsuranceStructureEEL"
-    ,"reinsurance_structure_eel_dedctible_amount", "reinsurance_structure_eel_limit_amount"
+    ,"reinsurance_structure_eel_deductible_amount", "reinsurance_structure_eel_limit_amount"
     ,"reinsuranceStructureLimitedReinstatements", "reinsuranceStructureReinstatementLimit"
+    ,"reinsurance_structure_eel_premium", "reinsurance_structure_eel_reinstatement_rate_pct"
     ,"reinsuranceStructureAL"
-    ,"reinsurance_structure_al_dedctible_amount", "reinsurance_structure_al_limit_amount"
+    ,"reinsurance_structure_al_deductible_amount", "reinsurance_structure_al_limit_amount"
   ))
 }
 
@@ -80,7 +81,10 @@ sim_settings_write <- function(input_values, file) {
 sim_settings_read <- function(file) {
   tryCatch({
     settings <- read_settings_file(file, tool = sim_settings_tool)
-    list(version = settings$version, inputs = settings$values)
+    inputs <- settings$values
+    #files saved before 0.3.4 spelled the deductibles 'dedctible'
+    names(inputs) <- sub("^(reinsurance_structure_(eel|al))_dedctible_amount$", "\\1_deductible_amount", names(inputs))
+    list(version = settings$version, inputs = inputs)
   }, error = function(cond) conditionMessage(cond))
 }
 
@@ -225,8 +229,11 @@ sim_settings_plan <- function(inputs) {
   }
   #the truncation switch is always in the page (shown for the Normal only), so it is set at
   #once; a file without it, or saved with another severity, switches it off, so that an
-  #earlier Normal's truncation does not reappear when the Normal is picked later
-  add("sevTruncateAtZero", "switch", value = isTRUE(as.logical(inputs$sevTruncateAtZero)))
+  #earlier Normal's truncation does not reappear when the Normal is picked later; a file with
+  #no severity (a frequency sent from the distribution fitting tool) leaves it as it is
+  if (!is.null(inputs$sevDistr) || !is.null(inputs$sevTruncateAtZero)) {
+    add("sevTruncateAtZero", "switch", value = isTRUE(as.logical(inputs$sevTruncateAtZero)))
+  }
   add("numberOfSimulations", "numeric")
 
   #stage two: the fields rendered for the chosen options
@@ -260,22 +267,23 @@ sim_settings_plan <- function(inputs) {
   eel <- inputs$reinsuranceStructureEEL
   if (is.character(eel) && length(eel) == 1) {
     eel_gate <- function(input) same(input$reinsuranceStructureEEL, eel)
-    if (eel %in% layers_with_deductible) add("reinsurance_structure_eel_dedctible_amount", "numeric", gate = eel_gate)
+    if (eel %in% layers_with_deductible) add("reinsurance_structure_eel_deductible_amount", "numeric", gate = eel_gate)
     if (eel %in% layers_with_limit) add("reinsurance_structure_eel_limit_amount", "numeric", gate = eel_gate)
     if (eel == "Limited Layer") {
       add("reinsuranceStructureLimitedReinstatements", "checkbox", gate = eel_gate)
       if (isTRUE(inputs$reinsuranceStructureLimitedReinstatements)) {
-        add(
-          "reinsuranceStructureReinstatementLimit", "numeric"
-          ,gate = function(input) eel_gate(input) && isTRUE(input$reinsuranceStructureLimitedReinstatements)
-        )
+        reinstatements_gate <- function(input) eel_gate(input) && isTRUE(input$reinsuranceStructureLimitedReinstatements)
+        add("reinsuranceStructureReinstatementLimit", "numeric", gate = reinstatements_gate)
+        #(files saved before reinstatement premiums lack these; add() skips what a file lacks)
+        add("reinsurance_structure_eel_premium", "numeric", gate = reinstatements_gate)
+        add("reinsurance_structure_eel_reinstatement_rate_pct", "numeric", gate = reinstatements_gate)
       }
     }
   }
   al <- inputs$reinsuranceStructureAL
   if (is.character(al) && length(al) == 1) {
     al_gate <- function(input) same(input$reinsuranceStructureAL, al)
-    if (al %in% layers_with_deductible) add("reinsurance_structure_al_dedctible_amount", "numeric", gate = al_gate)
+    if (al %in% layers_with_deductible) add("reinsurance_structure_al_deductible_amount", "numeric", gate = al_gate)
     if (al %in% layers_with_limit) add("reinsurance_structure_al_limit_amount", "numeric", gate = al_gate)
   }
   entries
@@ -298,7 +306,7 @@ sim_settings_examples <- list(
     ,sevCapBinary = FALSE
     ,sevTruncateAtZero = FALSE
     ,reinsuranceStructureEEL = "Limited Layer"
-    ,reinsurance_structure_eel_dedctible_amount = 50000
+    ,reinsurance_structure_eel_deductible_amount = 50000
     ,reinsurance_structure_eel_limit_amount = 200000
     ,reinsuranceStructureLimitedReinstatements = TRUE
     ,reinsuranceStructureReinstatementLimit = 2
@@ -317,7 +325,7 @@ sim_settings_examples <- list(
     ,sevTruncateAtZero = FALSE
     ,reinsuranceStructureEEL = "No Reinsurance Structure"
     ,reinsuranceStructureAL = "Limited Layer"
-    ,reinsurance_structure_al_dedctible_amount = 1000000
+    ,reinsurance_structure_al_deductible_amount = 1000000
     ,reinsurance_structure_al_limit_amount = 2000000
   )
   ,"Simple: truncated Normal" = list(

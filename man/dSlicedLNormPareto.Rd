@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdLogNormalPareto.R
 \name{dSlicedLNormPareto}
 \alias{dSlicedLNormPareto}
+\alias{dsliced_lnorm_pareto}
 \title{The probability density function (pdf) of a Sliced LogNormal Pareto severity distribution}
 \usage{
 dSlicedLNormPareto(x, mu, sigma, SlicePoint, shape)
+
+dsliced_lnorm_pareto(x, mu, sigma, SlicePoint, shape)
 }
 \arguments{
 \item{x}{A real number -  the claim amount where the probability density function (pdf) will be evaluated. The pdf is 0 for negative \code{x}.}

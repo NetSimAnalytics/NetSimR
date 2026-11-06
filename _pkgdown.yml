@@ -1,0 +1,85 @@
+url: https://netsimanalytics.github.io/NetSimR/
+
+template:
+  bootstrap: 5
+
+home:
+  title: Actuarial functions for non-life insurance
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+reference:
+- title: Shiny tools
+  desc: Applications that run the package's models without writing code.
+  contents:
+  - run_shiny_simulator
+  - run_shiny_distribution_fitting_tool
+  - run_shiny_glm_fitting_tool
+  - run_shiny_reserving_tool
+- title: Claims simulation and reinsurance
+  desc: Frequency-severity simulation with Pareto tails, caps and layers.
+  contents:
+  - simulate_claims
+  - simulate_function
+  - apply_deductible_limit
+  - reinstatement_premium
+- title: Claims reserving
+  desc: Chain ladder with Mack's standard errors, methods with premiums, the bootstrap, the one-year view and the Munich chain ladder.
+  contents:
+  - chain_ladder
+  - bornhuetter_ferguson
+  - cape_cod
+  - bootstrap_chain_ladder
+  - merz_wuthrich
+  - munich_chain_ladder
+  - as_triangle
+- title: Capped means
+  contents:
+  - GammaCappedMean
+  - LNormCappedMean
+  - ParetoCappedMean
+  - ParetoCappedMeanCalc
+  - SlicedGammaParetoCappedMean
+  - SlicedLNormParetoCappedMean
+- title: Exposure curves and increased limit factors
+  contents:
+  - starts_with("ExposureCurve")
+  - starts_with("ILF")
+- title: Sliced distributions
+  desc: LogNormal or Gamma bodies with a Pareto tail.
+  contents:
+  - SlicedGammaParetoMean
+  - SlicedLNormParetoMean
+  - dSlicedGammaPareto
+  - pSlicedGammaPareto
+  - qSlicedGammaPareto
+  - dSlicedLNormPareto
+  - pSlicedLNormPareto
+  - qSlicedLNormPareto
+- title: Pure IBNR and unearned premium
+  contents:
+  - PureIBNRGamma
+  - PureIBNRLNorm
+- title: Special functions
+  contents:
+  - IGamma
+  - erf
+- title: Data sets
+  contents:
+  - raa_triangle
+  - taylor_ashe_triangle
+  - quarg_mack
+  - simulated_motor_claims
+
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - SimulateClaims
+  - Reserving
+  - CappedMean
+  - SlicedDistributions
+  - PureIBNR

@@ -1,0 +1,11 @@
+# Codecov settings: the coverage is reported, and does not fail a pull request
+comment: false
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true

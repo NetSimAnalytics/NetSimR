@@ -1,5 +1,100 @@
 Changes in Version 0.3.4
 
+  o Claims reserving. New chain_ladder(): the chain ladder with Mack's
+    standard errors (process and parameter, by origin and in total), with
+    volume-weighted, simple or regression averages, the latest calendar
+    periods only, link ratios left out, and a tail factor entered or fitted
+    (exponential or inverse power curve); its results match the ChainLadder
+    package's MackChainLadder(). New bornhuetter_ferguson() (Benktander with
+    iterations = 2), cape_cod() (with Gluck's decay) and
+    bootstrap_chain_ladder(), England and Verrall's over-dispersed Poisson
+    bootstrap of the reserves with a gamma or over-dispersed Poisson process.
+    New as_triangle() builds a triangle from a table of claims, long (payments
+    are added up) or wide. New data sets raa_triangle, taylor_ashe_triangle
+    and simulated_motor_claims.
+  o New merz_wuthrich(): the one-year view of the reserves, the standard
+    error of the next year's claims development result (Merz and Wuthrich),
+    matching the ChainLadder package's CDR(). New munich_chain_ladder(): paid
+    and incurred claims projected together (Quarg and Mack), matching
+    MunichChainLadder(). New data sets quarg_mack_paid and
+    quarg_mack_incurred; simulated_motor_claims gains an incurred column.
+  o New vignette "Claims reserving with the chain ladder and its relatives".
+  o New reserving tool, run_shiny_reserving_tool(): load an example or a file
+    of paid or incurred claims, choose the development factors (click a link
+    ratio to leave it out) and the tail, compare the chain ladder,
+    Bornhuetter-Ferguson, Benktander and Cape Cod ultimates and loss ratios
+    with each origin's premium, a priori loss ratio and method, and measure
+    the uncertainty with Mack's standard errors and the bootstrap, with
+    downloads of the results, the projected triangle and the simulations.
+    A Paid & incurred tab gives the Munich chain ladder, the Uncertainty tab
+    the one-year view, and the Data tab saves and loads the session's
+    settings (the link ratios left out and each origin's choices included).
+  o The deductible arguments of simulate_function() are now spelled
+    reinsurance_structure_eel_deductible_amount and
+    reinsurance_structure_al_deductible_amount. The misspelled names
+    (dedctible) still work, with a deprecation warning, and simulator
+    settings files saved with them still load.
+  o Every CamelCase function has a snake_case name too, the same function:
+    pareto_capped_mean() for ParetoCappedMean(), ilf_gamma() for ILFGamma(),
+    psliced_lnorm_pareto() for pSlicedLNormPareto(), upper_incomplete_gamma()
+    for IGamma(), and so on. The CamelCase names keep working.
+  o A package website, built with pkgdown, at
+    https://netsimanalytics.github.io/NetSimR/, and the share of the code
+    the tests run measured on every push (covr and Codecov).
+  o Fewer dependencies. Parallel simulations run on base R's parallel
+    package instead of future, which is no longer needed (with the globals,
+    listenv and parallelly packages it brought). simulate_function() and
+    simulate_claims() take a new workers argument: NULL (the default) for one
+    worker per available core, a number of workers, or a cluster from
+    parallel::makeCluster() to reuse across calls; a future plan set with
+    future::plan() is no longer used. Seeded results are unchanged, and the
+    simulator app still keeps its workers running between runs. The
+    CappedMean and PureIBNR vignettes fit their censored and truncated models
+    with a few lines of optim() instead of the crch package, which is no
+    longer suggested.
+  o GLM fitting tool: PostgreSQL databases are read with RPostgres, the
+    current DBI driver, instead of the older RPostgreSQL; 64-bit integer
+    columns come back as numbers.
+  o New reinstatement_premium(): the reinstatement premium of each
+    simulation, from the reinstatements used, the upfront premium and the
+    rate of each reinstatement, pro rata as to amount. simulate_claims() takes
+    eel_premium and eel_reinstatement_rates (simulate_function()
+    reinsurance_structure_eel_premium and
+    reinsurance_structure_eel_reinstatement_rates) and returns a
+    reinstatement_premium column. In the claims simulator, a limited EEL layer
+    with reinstatements takes an optional upfront premium and a reinstatement
+    rate; the summary and the report give the rate on line and the expected
+    reinstatement premium, total premium and loss ratio.
+  o Claims simulator: the report gives the occurrence exceedance probability
+    (OEP), the largest single claim of each simulation, next to the aggregate
+    (AEP): the return period chart draws both and the tail table has a
+    column for it. simulate_claims() and simulate_function() take
+    largest_claims = TRUE to return each simulation's largest claim. The app
+    asks for it unless a run would draw more than 20 million claims, where it
+    would slow the run down.
+  o Distribution fitting tool: the Severity tab takes an optional reporting
+    threshold. For claims reported only above it, each distribution is fitted
+    by maximum likelihood to the claims above the threshold as claims from
+    zero (left truncation): the parameters are of all claims, and the means,
+    K-S distances and charts of the claims above the threshold. A fit that
+    runs to the edge of its parameters, as a Normal or a Gamma does for claims
+    with a heavier tail, is shown as failed and explained under the table.
+  o Distribution fitting tool: a new Export tab saves fitted models as a
+    settings file of the claims simulator, which its Load settings button
+    loads: the Poisson or Negative Binomial of the Frequency tab, and a
+    severity of the Severity tab, a sliced LogNormal - Pareto (- Pareto), or
+    a piecewise Pareto as a Pareto with the simulator's Pareto slices. With a
+    severity fitted above a reporting threshold, the counts of the claims
+    above it are scaled up to all claims.
+  o GLM fitting tool: a "Rating factors (CSV)" download gives each variable's
+    levels with their coefficient, standard error and, for a log link, their
+    relativity to the base level and its 95% interval.
+  o Claims simulator: loading a settings file without a severity (such as a
+    frequency saved by the distribution fitting tool) no longer switches off
+    the Normal's truncation at zero.
+  o The three apps: an off switch's knob and the sliders' handle, track and
+    value are now clearly visible in the dark and the light theme. The
+    sliders' handle was drawn in the card's colour, so it could not be seen.
   o Claims simulator: the number of simulations, the Normal severity's mean
     and standard deviation, the Pareto's x_m, the fixed claim amount, the
     Pareto slices' thresholds, the severity cap, and the limits and

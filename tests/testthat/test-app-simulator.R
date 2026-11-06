@@ -186,7 +186,7 @@ test_that("a run with totals of both +Inf and -Inf and an aggregate exclude laye
     "sevTruncateAtZero: FALSE",
     "reinsuranceStructureEEL: \"No Reinsurance Structure\"",
     "reinsuranceStructureAL: \"Exclude Layer\"",
-    "reinsurance_structure_al_dedctible_amount: 1e+300",
+    "reinsurance_structure_al_deductible_amount: 1e+300",
     "reinsurance_structure_al_limit_amount: 1e+308"
   ), settings)
 
@@ -198,7 +198,7 @@ test_that("a run with totals of both +Inf and -Inf and an aggregate exclude laye
   app_wait_for_inputs(app, list(
     freqDistr = "Binomial", n = 10, p = 0.5, sevDistr = "Normal", normal_mean = 1e308, normal_sd = 1e308,
     sevTruncateAtZero = FALSE, numberOfSimulations = 3000, seedSetBinary = TRUE, seedValue = 1,
-    reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_dedctible_amount = 1e300,
+    reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_deductible_amount = 1e300,
     reinsurance_structure_al_limit_amount = 1e308
   ), "the settings of the file")
   app_clear_notifications(app)
@@ -302,5 +302,29 @@ test_that("amounts typed into the simulator show thousands separators and reach 
   expect_identical(shown("numberOfSimulations"), "50,000")
   expect_identical(shown("reinsurance_structure_eel_limit_amount"), "200,000")
 
+  expect_app_logs_clean(app)
+})
+
+test_that("a switch that is off shows its knob clearly in the dark and the light theme", {
+  #Bootstrap's off knob, a 25% tint, was 2.2:1 against the page in the dark theme and 1.8:1 in the
+  #light one, too faint to see that a switch is off; a control needs 3:1
+  skip_if_no_app_browser()
+  app <- start_netsimr_app("simulator", "simulator-switches")
+  on.exit(app$stop(), add = TRUE)
+  app_goto(app, "simulator")
+  for (mode in c("dark", "light")) {
+    app_theme(app, mode)
+    parts <- app$get_js("(function () {
+      var e = document.getElementById('seedSetBinary');
+      var s = getComputedStyle(e);
+      return {checked: e.checked, bg: s.backgroundColor,
+              knob: (decodeURIComponent(s.backgroundImage).match(/fill=.(#[0-9a-fA-F]{3,6}|rgba?[^)]*[)])/) || [null, ''])[1]};
+    })()")
+    expect_false(parts$checked)
+    expect_true(nzchar(parts$knob), label = paste("the off knob's colour in the", mode, "theme"))
+    #(the knob is drawn over the switch's own background, which is what it must stand out from)
+    track <- app_colour(parts$bg)
+    expect_gte(app_contrast(app_colour(parts$knob, beneath = track), track), 3)
+  }
   expect_app_logs_clean(app)
 })

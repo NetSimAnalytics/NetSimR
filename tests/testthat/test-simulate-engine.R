@@ -41,16 +41,12 @@ test_that("without a fixed seed, set.seed() before the call makes the run reprod
   expect_identical(first, second)
 })
 
-#the parallel tests of this file share one 2-worker multisession plan, so its workers start
-#once rather than once per test; the plan in place before this file is restored at its end
+#the parallel tests of this file share one cluster of 2 workers, so its workers start once
+#rather than once per test; it is stopped at the end of the file
 shared_workers <- new.env()
 use_shared_workers <- function() {
-  if (is.null(shared_workers$previous_plan)) {
-    shared_workers$previous_plan <- future::plan(future::multisession, workers = 2)
-  } else if (!(inherits(future::plan(), "multisession") && future::nbrOfWorkers() == 2)) {
-    future::plan(future::multisession, workers = 2)
-  }
-  invisible(NULL)
+  if (is.null(shared_workers$cluster)) shared_workers$cluster <- parallel::makePSOCKcluster(2)
+  shared_workers$cluster
 }
 
 #the socket connections open in this session (the workers' ones), by number and description
@@ -62,33 +58,82 @@ open_sockets <- function() {
 
 test_that("parallel runs give the same results as sequential runs", {
   skip_on_cran()
-  use_shared_workers()
   settings <- layered_settings(numOfSimulations = 3000, chunk_size = 700)
   sequential <- do.call(simulate_function, utils::modifyList(settings, list(multiprocessing = FALSE)))
-  parallel_run <- do.call(simulate_function, utils::modifyList(settings, list(multiprocessing = TRUE)))
+  parallel_run <- do.call(simulate_function, utils::modifyList(settings, list(multiprocessing = TRUE,
+                                                                              workers = use_shared_workers())))
   expect_identical(parallel_run, sequential)
 })
 
-test_that("an error in a parallel chunk is raised with its message", {
+test_that("an error in a parallel chunk is raised with its message, and the workers survive it", {
   skip_on_cran()
-  use_shared_workers()
+  cluster <- use_shared_workers()
+  pids <- unlist(parallel::clusterCall(cluster, Sys.getpid))
   worker_sockets <- open_sockets()
   #a huge (finite) Poisson mean passes the settings checks but makes the chunks fail
   sequential_error <- tryCatch(suppressWarnings(run_simulation(freq_params = 1e300)), error = identity)
-  parallel_error <- tryCatch(suppressWarnings(run_simulation(freq_params = 1e300, multiprocessing = TRUE)),
+  parallel_error <- tryCatch(suppressWarnings(run_simulation(freq_params = 1e300, multiprocessing = TRUE, workers = cluster)),
                              error = identity)
   expect_s3_class(sequential_error, "error")
   expect_s3_class(parallel_error, "error")
+  expect_false(inherits(parallel_error, "netsimr_worker_error"))
   expect_identical(conditionMessage(parallel_error), conditionMessage(sequential_error))
-  #the workers survive the error: a chunk group whose result was left unread made future
-  #relaunch its worker on the next run, and the new worker's connection was not closed when
-  #the plan was shut down (the garbage collector closed it later, with a warning)
-  expect_equal(nrow(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE)), 1000)
+  #the same workers run the next simulation
+  expect_equal(nrow(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE, workers = cluster)), 1000)
+  expect_identical(unlist(parallel::clusterCall(cluster, Sys.getpid)), pids)
   expect_identical(open_sockets(), worker_sockets)
 })
 
-#values captured from version 0.2.1 (chunks run with future.apply) before the parallel runs
-#moved to plain futures; a seed must keep giving these exact results, sequential and parallel
+test_that("the warnings of parallel chunks are raised in the caller", {
+  skip_on_cran()
+  warn <- function(i) {
+    warning("chunk ", i, " warns")
+    i
+  }
+  environment(warn) <- globalenv()
+  expect_warning(result <- run_chunks_on_workers(use_shared_workers(), warn, as.list(1:3)), "chunk 1 warns")
+  expect_identical(result, as.list(1:3))
+})
+
+test_that("a worker that dies gives a worker error, and its workers can still be shut down", {
+  skip_on_cran()
+  sockets_before <- open_sockets()
+  cluster <- netsimr_start_workers(2)
+  die <- function(i) {
+    if (i == 1) tools::pskill(Sys.getpid())
+    Sys.sleep(0.5)
+    i
+  }
+  environment(die) <- globalenv()
+  error <- tryCatch(run_chunks_on_workers(cluster, die, as.list(1:2)), error = identity)
+  expect_s3_class(error, "netsimr_worker_error")
+  expect_match(conditionMessage(error), "A parallel worker failed")
+  netsimr_stop_workers(cluster)
+  expect_identical(open_sockets(), sockets_before)
+  #no connection is left for the garbage collector to close with a warning
+  expect_no_warning(gc(), message = "closing unused connection")
+})
+
+test_that("the number of workers follows mc.cores and the limit of R CMD check", {
+  old_options <- options(mc.cores = 3)
+  on.exit(options(old_options), add = TRUE)
+  expect_identical(netsimr_available_cores(), 3L)
+  options(mc.cores = NULL)
+  old_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)
+  on.exit(if (is.na(old_limit)) Sys.unsetenv("_R_CHECK_LIMIT_CORES_") else Sys.setenv(`_R_CHECK_LIMIT_CORES_` = old_limit),
+          add = TRUE)
+  Sys.setenv(`_R_CHECK_LIMIT_CORES_` = "TRUE")
+  expect_lte(netsimr_available_cores(), 2L)
+  Sys.setenv(`_R_CHECK_LIMIT_CORES_` = "false")
+  cores <- parallel::detectCores()
+  expect_identical(netsimr_available_cores(), if (is.na(cores)) 1L else as.integer(cores))
+  expect_error(run_simulation(multiprocessing = TRUE, workers = 0), "workers must be")
+  expect_error(run_simulation(multiprocessing = TRUE, workers = "four"), "workers must be")
+})
+
+#values captured from version 0.2.1 (chunks run with future.apply), before the parallel runs
+#moved to plain futures and then to the parallel package; a seed must keep giving these exact
+#results, sequential and parallel
 captured_runs <- list(
   lognormal = list(
     settings = base_settings(numOfSimulations = 3000, chunk_size = 700),
@@ -115,7 +160,7 @@ captured_runs <- list(
   layer_only = list(
     settings = base_settings(numOfSimulations = 2000, freq_params = 4, sev_params = c(7, 1.2), seedValue = 2024,
                              chunk_size = 500, gross = FALSE, reinsuranceStructureEEL = "Unlimited Layer",
-                             reinsurance_structure_eel_dedctible_amount = 2000),
+                             reinsurance_structure_eel_deductible_amount = 2000),
     rows = c(1, 500, 501, 2000),
     total_claims = c(9365.3522021841109, 18682.392983290858, 21316.137577761365, 10301.807862973266),
     sum_total = 9447174.21068554, sum_counts = 8133L
@@ -145,36 +190,30 @@ test_that("seeded runs give the results captured from earlier versions", {
   }
 })
 
-test_that("seeded parallel runs give the captured results, on the caller's plan or their own", {
+test_that("seeded parallel runs give the captured results, on the caller's workers or their own", {
   skip_on_cran()
-  use_shared_workers()
   for (name in names(captured_runs)) {
     case <- captured_runs[[name]]
-    settings <- utils::modifyList(case$settings, list(multiprocessing = TRUE))
-    expect_captured_run(do.call(simulate_function, settings), case, paste(name, "(caller's plan)"))
+    settings <- utils::modifyList(case$settings, list(multiprocessing = TRUE, workers = use_shared_workers()))
+    expect_captured_run(do.call(simulate_function, settings), case, paste(name, "(caller's workers)"))
   }
-  #with a one-worker plan the call starts its own workers and restores the plan afterwards
-  future::plan(future::sequential)
-  sequential_plan <- future::plan()
-  old_options <- options(mc.cores = 2, parallelly.availableCores.methods = "mc.cores")
-  on.exit(options(old_options), add = TRUE)
+  #given a number of workers, the call starts its own
   case <- captured_runs$layered
-  settings <- utils::modifyList(case$settings, list(multiprocessing = TRUE))
-  expect_captured_run(do.call(simulate_function, settings), case, "layered (own plan)")
-  expect_identical(future::plan(), sequential_plan)
+  settings <- utils::modifyList(case$settings, list(multiprocessing = TRUE, workers = 2))
+  expect_captured_run(do.call(simulate_function, settings), case, "layered (own workers)")
 })
 
 test_that("a parallel call on its own workers leaves no connections open, after an error too", {
   skip_on_cran()
-  old_plan <- future::plan(future::sequential)
-  on.exit(future::plan(old_plan), add = TRUE)
-  old_options <- options(mc.cores = 2, parallelly.availableCores.methods = "mc.cores")
-  on.exit(options(old_options), add = TRUE)
   sockets_before <- open_sockets()
-  expect_equal(nrow(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE)), 1000)
+  expect_equal(nrow(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE, workers = 2)), 1000)
   expect_identical(open_sockets(), sockets_before)
-  expect_error(suppressWarnings(run_simulation(freq_params = 1e300, multiprocessing = TRUE)))
+  expect_error(suppressWarnings(run_simulation(freq_params = 1e300, multiprocessing = TRUE, workers = 2)))
   expect_identical(open_sockets(), sockets_before)
+  #the caller's cluster is left running
+  cluster <- use_shared_workers()
+  run_simulation(numOfSimulations = 500, multiprocessing = TRUE, workers = cluster)
+  expect_length(unlist(parallel::clusterCall(cluster, Sys.getpid)), 2)
 })
 
 test_that("the progress callback is called once per chunk", {
@@ -186,7 +225,7 @@ test_that("the progress callback is called once per chunk", {
 
 test_that("the default chunk size handles high claim frequencies", {
   res <- run_simulation(numOfSimulations = 1500, freq_params = 1000, sevDistr = "Exponential", sev_params = 0.01,
-                        reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_dedctible_amount = 0)
+                        reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_deductible_amount = 0)
   expect_equal(nrow(res), 1500)
   expect_lt(abs(mean(res$claim_counts) - 1000), 5)
 })
@@ -224,7 +263,7 @@ test_that("negative means are valid for the Normal and the Log-Normal", {
 
 test_that("negative amounts and zero limits are rejected", {
   expect_error(run_simulation(reinsuranceStructureEEL = "Unlimited Layer",
-                              reinsurance_structure_eel_dedctible_amount = -500),
+                              reinsurance_structure_eel_deductible_amount = -500),
                "EEL Deductible Amount must be at least 0")
   expect_error(run_simulation(sevCapBinary = TRUE, sev_cap_amount = -100), "Severity Cap Amount must be at least 0")
   expect_error(run_layered_simulation(reinsurance_structure_eel_limit_amount = 0),
@@ -239,7 +278,7 @@ test_that("negative amounts and zero limits are rejected", {
                "Slice 1 alpha must be greater than 0")
   expect_error(run_simulation(chunk_size = 0), "Chunk size")
   #a deductible of zero and no reinstatements are valid
-  expect_equal(nrow(run_layered_simulation(reinsurance_structure_eel_dedctible_amount = 0,
+  expect_equal(nrow(run_layered_simulation(reinsurance_structure_eel_deductible_amount = 0,
                                            reinsuranceStructureReinstatementLimit = 0)), 2000)
 })
 
@@ -327,13 +366,13 @@ test_that("drawing only the claims that reach the layer gives the same distribut
     expect_lt(abs(mean(thin$total_claims == 0) - mean(full$total_claims == 0)), 0.01)
     list(full = full, thin = thin)
   }
-  layer <- list(reinsuranceStructureEEL = "Limited Layer", reinsurance_structure_eel_dedctible_amount = 1000,
+  layer <- list(reinsuranceStructureEEL = "Limited Layer", reinsurance_structure_eel_deductible_amount = 1000,
                 reinsurance_structure_eel_limit_amount = 5000)
   do.call(compare, layer)
   do.call(compare, c(layer, list(freqDistr = "Negative_Binomial", freq_params = c(2, 1.5))))
   do.call(compare, c(layer, list(freqDistr = "Binomial", freq_params = c(10, 0.3))))
   do.call(compare, c(layer, list(freqDistr = "Fixed_number_of_Counts", freq_params = 3)))
-  do.call(compare, list(reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_dedctible_amount = 2000,
+  do.call(compare, list(reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_deductible_amount = 2000,
                         sevDistr = "Gamma", sev_params = c(2, 500)))
   do.call(compare, c(layer, list(paretoSlice = TRUE, pareto_slice_times = 2, slice_pareto_alphas = c(2, 1.5),
                                  slice_pareto_x_ms = c(800, 3000), sevCapBinary = TRUE, sev_cap_amount = 4000)))
@@ -342,7 +381,7 @@ test_that("drawing only the claims that reach the layer gives the same distribut
   runs <- do.call(compare, c(layer, list(reinsuranceStructureLimitedReinstatements = TRUE,
                                         reinsuranceStructureReinstatementLimit = 1,
                                         reinsuranceStructureAL = "Limited Layer",
-                                        reinsurance_structure_al_dedctible_amount = 500,
+                                        reinsurance_structure_al_deductible_amount = 500,
                                         reinsurance_structure_al_limit_amount = 6000)))
   expect_true(all(runs$thin$total_claims <= 6000))
   expect_true(all(runs$thin$number_of_reinstatements_used <= 1))
@@ -350,11 +389,10 @@ test_that("drawing only the claims that reach the layer gives the same distribut
 
 test_that("a cap at or below the deductible cedes nothing with layer-only draws", {
   res <- run_simulation(numOfSimulations = 500, gross = FALSE, sevCapBinary = TRUE, sev_cap_amount = 800,
-                        reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_dedctible_amount = 1000)
+                        reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_deductible_amount = 1000)
   expect_equal(res$total_claims, rep(0, 500))
   expect_gt(mean(res$claim_counts), 2.5)
 })
 
-#put back the plan in place before this file (on CRAN the parallel tests are skipped and
-#never start the shared workers)
-if (!is.null(shared_workers$previous_plan)) future::plan(shared_workers$previous_plan)
+#stop the shared workers (on CRAN the parallel tests are skipped and never start them)
+if (!is.null(shared_workers$cluster)) parallel::stopCluster(shared_workers$cluster)

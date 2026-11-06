@@ -2,9 +2,12 @@
 % Please edit documentation in R/Gamma.R
 \name{ExposureCurveGamma}
 \alias{ExposureCurveGamma}
+\alias{exposure_curve_gamma}
 \title{Exposure Curve from a Gamma severity distribution}
 \usage{
 ExposureCurveGamma(x, shape, rate)
+
+exposure_curve_gamma(x, shape, rate)
 }
 \arguments{
 \item{x}{A non-negative real number -  the claim amount where the exposure curve will be evaluated.}

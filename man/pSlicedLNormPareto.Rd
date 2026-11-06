@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdLogNormalPareto.R
 \name{pSlicedLNormPareto}
 \alias{pSlicedLNormPareto}
+\alias{psliced_lnorm_pareto}
 \title{The cumulative distribution function (cdf) of a Sliced LogNormal Pareto severity distribution}
 \usage{
 pSlicedLNormPareto(x, mu, sigma, SlicePoint, shape)
+
+psliced_lnorm_pareto(x, mu, sigma, SlicePoint, shape)
 }
 \arguments{
 \item{x}{A real number -  the claim amount where the cumulative distribution function (cdf) will be evaluated. The cdf is 0 for negative \code{x}.}

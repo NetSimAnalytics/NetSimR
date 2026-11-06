@@ -1,4 +1,4 @@
-#Helpers for the browser tests of the three Shiny tools (tests/testthat/test-app-*.R).
+#Helpers for the browser tests of the four Shiny tools (tests/testthat/test-app-*.R).
 #
 #The tests drive each app in headless Chrome with shinytest2. They are skipped on CRAN,
 #when shinytest2 is not installed and when chromote finds no Chrome or Chromium.
@@ -51,7 +51,8 @@ app_test_dir <- function(tool) {
   run <- c(
     simulator = "run_shiny_simulator",
     distribution = "run_shiny_distribution_fitting_tool",
-    glm = "run_shiny_glm_fitting_tool"
+    glm = "run_shiny_glm_fitting_tool",
+    reserving = "run_shiny_reserving_tool"
   )[[tool]]
   root <- app_test_source_root()
   load <- if (is.null(root)) {
@@ -66,7 +67,7 @@ app_test_dir <- function(tool) {
   dir
 }
 
-#starts one of the tools ("simulator", "distribution" or "glm") in headless Chrome; the caller
+#starts one of the tools ("simulator", "distribution", "glm" or "reserving") in headless Chrome; the caller
 #stops it with on.exit(app$stop(), add = TRUE)
 start_netsimr_app <- function(tool, name, width = 1300, height = 900) {
   shinytest2::AppDriver$new(
@@ -311,4 +312,23 @@ app_claims_csv <- function() {
   data <- data.frame(age, region, exposure, weight, claim_count, stringsAsFactors = FALSE)
   utils::write.csv(data, file, row.names = FALSE)
   file
+}
+
+#a CSS colour as red, green and blue; a translucent one as it shows over the colour beneath it
+app_colour <- function(x, beneath = c(255, 255, 255)) {
+  x <- trimws(x)
+  if (grepl("^#", x)) return(strtoi(substring(sub("^#", "", x), c(1, 3, 5), c(2, 4, 6)), 16L))
+  v <- as.numeric(strsplit(gsub("[^0-9.,]", "", x), ",")[[1]])
+  if (length(v) == 4) round(v[1:3] * v[4] + beneath * (1 - v[4])) else v
+}
+
+#the WCAG contrast ratio of two colours given as red, green and blue
+app_contrast <- function(a, b) {
+  luminance <- function(rgb) {
+    c <- rgb / 255
+    c <- ifelse(c <= 0.03928, c / 12.92, ((c + 0.055) / 1.055)^2.4)
+    sum(c * c(0.2126, 0.7152, 0.0722))
+  }
+  l <- c(luminance(a), luminance(b))
+  (max(l) + 0.05) / (min(l) + 0.05)
 }

@@ -313,12 +313,68 @@ glm_value_labels <- function(values) {
   if (anyDuplicated(labels)) as.character(values) else labels
 }
 
+# The rating factors of a fitted model, a row per coefficient as pricing teams load them:
+# the intercept, a row per level of each factor (its base level first, with coefficient 0
+# and relativity 1) and a row per unit of each numeric variable. With a log link the
+# relativity is exp(coefficient), with a 95% interval; with another link exp(coefficient)
+# is not a relativity, so the relativity columns are NA and the coefficients are given.
+# Terms that are neither a single factor nor a single number (interactions, poly()) get a
+# row per coefficient, named as glm() names them. An aliased coefficient is NA.
+glm_relativity_table <- function(model) {
+  coefs <- stats::coef(model)
+  ses <- rep(NA_real_, length(coefs))
+  names(ses) <- names(coefs)
+  estimable <- summary(model)$coefficients
+  ses[rownames(estimable)] <- estimable[, "Std. Error"]
+  matrix <- stats::model.matrix(model)
+  assign <- attr(matrix, "assign")
+  columns <- colnames(matrix)
+  labels <- attr(stats::terms(model), "term.labels")
+  levels_of <- model$xlevels
+  row <- function(variable, level, base, coefficient, se) {
+    data.frame(variable = variable, level = level, base = base, coefficient = coefficient,
+               std_error = se, stringsAsFactors = FALSE)
+  }
+  rows <- list()
+  if (0 %in% assign) {
+    rows[[1]] <- row("(Intercept)", "", FALSE, coefs[["(Intercept)"]], ses[["(Intercept)"]])
+  }
+  for (t in seq_along(labels)) {
+    in_term <- columns[assign == t]
+    if (!length(in_term)) next
+    variable <- gsub("^`|`$", "", labels[t])
+    levels <- levels_of[[variable]]
+    if (!is.null(levels) && length(in_term) == length(levels) - 1) {
+      #treatment contrasts: the columns are the levels after the base level, in order
+      rows[[length(rows) + 1]] <- row(variable, levels[1], TRUE, 0, NA_real_)
+      rows[[length(rows) + 1]] <- row(rep(variable, length(in_term)), levels[-1], FALSE,
+                                      unname(coefs[in_term]), unname(ses[in_term]))
+    } else if (length(in_term) == 1 && identical(in_term, labels[t])) {
+      rows[[length(rows) + 1]] <- row(variable, "(per unit)", FALSE, coefs[[in_term]], ses[[in_term]])
+    } else {
+      rows[[length(rows) + 1]] <- row(rep(variable, length(in_term)), in_term, FALSE,
+                                      unname(coefs[in_term]), unname(ses[in_term]))
+    }
+  }
+  table <- do.call(rbind, rows)
+  rownames(table) <- NULL
+  log_link <- identical(model$family$link, "log")
+  relativity <- function(x) if (log_link) exp(x) else rep(NA_real_, length(x))
+  table$relativity <- relativity(table$coefficient)
+  table$relativity_lower_95 <- relativity(table$coefficient - stats::qnorm(0.975) * table$std_error)
+  table$relativity_upper_95 <- relativity(table$coefficient + stats::qnorm(0.975) * table$std_error)
+  #the base level has no uncertainty of its own: its relativity is 1 by definition
+  table$relativity_lower_95[table$base] <- table$relativity[table$base]
+  table$relativity_upper_95[table$base] <- table$relativity[table$base]
+  table
+}
+
 # Database driver packages used by the GLM fitting tool. They are in Suggests,
 # so a user who only imports CSV files does not need to install them.
 glm_tool_db_packages <- c(
   "SQLite" = "RSQLite",
   "SQL Server" = "RODBC",
-  "PostgreSQL" = "RPostgreSQL"
+  "PostgreSQL" = "RPostgres"
 )
 
 # Checks that the packages needed for the selected database type are installed.

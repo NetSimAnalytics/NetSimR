@@ -24,12 +24,12 @@ base_settings <- function(...) {
 layered_settings <- function(...) {
   settings <- base_settings(
     reinsuranceStructureEEL = "Limited Layer",
-    reinsurance_structure_eel_dedctible_amount = 1000,
+    reinsurance_structure_eel_deductible_amount = 1000,
     reinsurance_structure_eel_limit_amount = 5000,
     reinsuranceStructureLimitedReinstatements = TRUE,
     reinsuranceStructureReinstatementLimit = 2,
     reinsuranceStructureAL = "Limited Layer",
-    reinsurance_structure_al_dedctible_amount = 500,
+    reinsurance_structure_al_deductible_amount = 500,
     reinsurance_structure_al_limit_amount = 10000
   )
   utils::modifyList(settings, list(...))
@@ -38,3 +38,15 @@ layered_settings <- function(...) {
 run_simulation <- function(...) do.call(simulate_function, base_settings(...))
 
 run_layered_simulation <- function(...) do.call(simulate_function, layered_settings(...))
+
+#inputs that the simulator server needs before its dynamic fields render
+set_page_inputs <- function(session, ...) {
+  inputs <- list(
+    freqDistr = "Poisson", sevDistr = "LogNormal",
+    seedSetBinary = FALSE, sevCapBinary = FALSE, sevTruncateAtZero = FALSE,
+    pareto_slice_times = 0, multiprocessingBinary = FALSE,
+    reinsuranceStructureEEL = "No Reinsurance Structure",
+    reinsuranceStructureAL = "No Reinsurance Structure"
+  )
+  do.call(session$setInputs, utils::modifyList(inputs, list(...)))
+}

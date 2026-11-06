@@ -515,6 +515,17 @@ body {
   color: var(--sim-label);
 }
 
+/* The knob of a switch that is off: Bootstrap draws it in a 25% tint, 1.8:1 against the page in
+   the light theme and 2.2:1 in the dark, too faint to see that a switch is off; these greys are
+   well over the 3:1 a control needs. A focused switch keeps Bootstrap's focus colour. All three
+   tools load these styles. */
+.form-switch .form-check-input:not(:checked):not(:focus) {
+  --bs-form-switch-bg: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%2364748b'/%3e%3c/svg%3e\");
+}
+:root[data-bs-theme='dark'] .form-switch .form-check-input:not(:checked):not(:focus) {
+  --bs-form-switch-bg: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%2394a3b8'/%3e%3c/svg%3e\");
+}
+
 .bslib-input-switch {
   margin-bottom: 0.5rem;
 }
@@ -940,9 +951,9 @@ body {
   }
 }
 
-/* below 1400 px there is no room for every part at full size (the fitting tools have five
-   or six tabs): the theme switch shows its icons only and the nav links sit closer */
-@media (min-width: 992px) and (max-width: 1399.98px) {
+/* below 1500 px there is no room for every part at full size (the fitting tools have six
+   or seven tabs): the theme switch shows its icons only and the nav links sit closer */
+@media (min-width: 992px) and (max-width: 1499.98px) {
   .theme-btn-label {
     display: none;
   }
@@ -952,11 +963,18 @@ body {
   }
 }
 
-/* and below 1200 px the brand subtitle and the nav link icons are left out too */
-@media (min-width: 992px) and (max-width: 1199.98px) {
+/* and below 1300 px the brand subtitle and the nav link icons are left out too */
+@media (min-width: 992px) and (max-width: 1299.98px) {
   .sim-brand-subtitle,
   .navbar .nav-link > i {
     display: none;
+  }
+}
+
+/* and below 1100 px the nav links sit closer still */
+@media (min-width: 992px) and (max-width: 1099.98px) {
+  .navbar .nav-link {
+    padding: 0.55rem 0.35rem !important;
   }
 }
 

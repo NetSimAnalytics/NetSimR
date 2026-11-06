@@ -48,15 +48,19 @@
 #' @param eel_deductible The deductible of the each-and-every-loss layer.
 #' @param eel_limit The limit of a "limited" or "exclude" each-and-every-loss layer.
 #' @param eel_reinstatements The number of reinstatements of a "limited" each-and-every-loss layer, so it pays at most \code{(eel_reinstatements + 1) * eel_limit} per simulation. NULL (the default) for unlimited reinstatements.
+#' @param eel_premium The upfront premium of the each-and-every-loss layer, which prices the reinstatements used: given, the results gain the column \code{reinstatement_premium}. Needs \code{eel_reinstatements}. NULL (the default) for none.
+#' @param eel_reinstatement_rates The premium rate of each reinstatement as a share of \code{eel_premium}: one rate for all of them, or one per reinstatement. Defaults to 1 (100\%). See \code{\link{reinstatement_premium}}.
 #' @param agg_layer The aggregate layer: "none" (the default), "unlimited", "limited" or "exclude".
 #' @param agg_deductible The deductible of the aggregate layer.
 #' @param agg_limit The limit of a "limited" or "exclude" aggregate layer.
 #' @param parallel TRUE to run the chunks of simulations on parallel workers. Results are the same as a sequential run.
+#' @param workers The workers of a parallel run: NULL (the default) for one per available core, a number of workers (both started for the call and shut down after it), or a cluster from \code{parallel::makeCluster()}, which is used and left running so that several calls share it. See \code{\link{simulate_function}}.
 #' @param chunk_size The number of simulations per vectorised batch; NULL (the default) chooses it from the expected number of claims, aiming at about a million claims per batch but never fewer than 100 simulations, so batches are larger when the mean frequency exceeds 10,000. Results with a fixed seed depend on it.
 #' @param gross TRUE (the default) to return the gross totals before the layers. FALSE allows a much faster run with an "unlimited" or "limited" each-and-every-loss layer, by drawing only the claims that reach it.
 #' @param shortcuts TRUE (the default) to use exact shortcuts where the settings allow; see \code{\link{simulate_function}}.
 #' @param progress An optional function called after each chunk of a sequential run with the fraction done and a short description.
-#' @return A data frame with one row per simulation, at full precision: \code{claim_counts}, \code{total_claims} (after the layers), \code{gross_claims} (before them, unless \code{gross = FALSE}) and, with limited reinstatements, \code{number_of_reinstatements_used}: the layer's recoveries in the simulation divided by \code{eel_limit}, capped at \code{eel_reinstatements}. The recoveries are taken after the aggregate deductible and limit of an "unlimited" or "limited" aggregate layer, but before an "exclude" aggregate layer is taken out: with an exclusion, the reinstatements are counted on the each-and-every-loss recoveries (after the reinstatement capacity). So three claims of 100 through a layer of 60 excess of 30 with two reinstatements and an "exclude" aggregate layer of 150 excess of 50 give a total of 50 but 2 reinstatements used.
+#' @param largest_claims TRUE to add the column \code{largest_claim}: each simulation's largest single claim after the each-and-every-loss layer (the gross claim without one), for occurrence exceedance (OEP). Defaults to FALSE; every claim is then drawn, so it can be slower for very high frequencies.
+#' @return A data frame with one row per simulation, at full precision: \code{claim_counts}, \code{total_claims} (after the layers), \code{gross_claims} (before them, unless \code{gross = FALSE}) and, with limited reinstatements, \code{number_of_reinstatements_used}: the layer's recoveries in the simulation divided by \code{eel_limit}, capped at \code{eel_reinstatements}. The recoveries are taken after the aggregate deductible and limit of an "unlimited" or "limited" aggregate layer, but before an "exclude" aggregate layer is taken out: with an exclusion, the reinstatements are counted on the each-and-every-loss recoveries (after the reinstatement capacity). So three claims of 100 through a layer of 60 excess of 30 with two reinstatements and an "exclude" aggregate layer of 150 excess of 50 give a total of 50 but 2 reinstatements used. With \code{eel_premium}, \code{reinstatement_premium}: the premium for the reinstatements used, pro rata to the amount reinstated.
 #' @seealso \code{\link{simulate_function}}, which this calls, and \code{\link{run_shiny_simulator}} for the same model in an app.
 #' @export
 #' @examples
@@ -73,9 +77,11 @@
 #'   10000, "Poisson", 3, "LogNormal", c(8, 1.5), seed = 1,
 #'   pareto_thresholds = 100000, pareto_alphas = 1.5,
 #'   eel_layer = "limited", eel_deductible = 20000, eel_limit = 50000,
-#'   eel_reinstatements = 2
+#'   eel_reinstatements = 2, eel_premium = 10000
 #' )
 #' mean(ceded$total_claims)
+#' # the expected reinstatement premium, at 100% of the upfront premium of 10,000
+#' mean(ceded$reinstatement_premium)
 simulate_claims <- function(
     n_sims,
     frequency,
@@ -91,19 +97,24 @@ simulate_claims <- function(
     eel_deductible = NULL,
     eel_limit = NULL,
     eel_reinstatements = NULL,
+    eel_premium = NULL,
+    eel_reinstatement_rates = 1,
     agg_layer = "none",
     agg_deductible = NULL,
     agg_limit = NULL,
     parallel = FALSE,
+    workers = NULL,
     chunk_size = NULL,
     gross = TRUE,
     shortcuts = TRUE,
-    progress = NULL
+    progress = NULL,
+    largest_claims = FALSE
 ) {
   claims_check_flag(truncate_at_zero, "truncate_at_zero")
   claims_check_flag(parallel, "parallel")
   claims_check_flag(gross, "gross")
   claims_check_flag(shortcuts, "shortcuts")
+  claims_check_flag(largest_claims, "largest_claims")
   if (!is.null(progress) && !is.function(progress)) {
     stop("progress must be a function or NULL.", call. = FALSE)
   }
@@ -119,6 +130,9 @@ simulate_claims <- function(
   claims_check_layer(agg, agg_deductible, agg_limit, "agg")
   if (!is.null(eel_reinstatements) && eel != "limited") {
     stop("eel_reinstatements applies only to a \"limited\" eel_layer.", call. = FALSE)
+  }
+  if (!is.null(eel_premium) && is.null(eel_reinstatements)) {
+    stop("eel_premium prices the reinstatements used, so it needs eel_reinstatements.", call. = FALSE)
   }
 
   n_slices <- length(pareto_thresholds)
@@ -147,19 +161,23 @@ simulate_claims <- function(
     sevCapBinary = !is.null(severity_cap),
     sev_cap_amount = severity_cap,
     reinsuranceStructureEEL = claims_layer_names[[eel]],
-    reinsurance_structure_eel_dedctible_amount = eel_deductible,
+    reinsurance_structure_eel_deductible_amount = eel_deductible,
     reinsurance_structure_eel_limit_amount = eel_limit,
     reinsuranceStructureAL = claims_layer_names[[agg]],
-    reinsurance_structure_al_dedctible_amount = agg_deductible,
+    reinsurance_structure_al_deductible_amount = agg_deductible,
     reinsurance_structure_al_limit_amount = agg_limit,
     reinsuranceStructureLimitedReinstatements = !is.null(eel_reinstatements),
     reinsuranceStructureReinstatementLimit = eel_reinstatements,
+    reinsurance_structure_eel_premium = eel_premium,
+    reinsurance_structure_eel_reinstatement_rates = eel_reinstatement_rates,
     multiprocessing = isTRUE(parallel),
+    workers = workers,
     sevTruncateAtZero = isTRUE(truncate_at_zero),
     chunk_size = chunk_size,
     gross = gross,
     shortcuts = shortcuts,
-    progress = progress
+    progress = progress,
+    largest_claims = largest_claims
   )
 }
 

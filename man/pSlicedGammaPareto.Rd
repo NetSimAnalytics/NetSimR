@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdGammaPareto.R
 \name{pSlicedGammaPareto}
 \alias{pSlicedGammaPareto}
+\alias{psliced_gamma_pareto}
 \title{The cumulative distribution function (cdf) of a Sliced Gamma-Pareto severity distribution}
 \usage{
 pSlicedGammaPareto(x, GShape, GRate, SlicePoint, PShape)
+
+psliced_gamma_pareto(x, GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
 \item{x}{A real number -  the claim amount where the cumulative distribution function (cdf) will be evaluated. The cdf is 0 for negative \code{x}.}

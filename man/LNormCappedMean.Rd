@@ -2,9 +2,12 @@
 % Please edit documentation in R/LogNormal.R
 \name{LNormCappedMean}
 \alias{LNormCappedMean}
+\alias{lnorm_capped_mean}
 \title{Lognormal capped mean}
 \usage{
 LNormCappedMean(cap, mu, sigma)
+
+lnorm_capped_mean(cap, mu, sigma)
 }
 \arguments{
 \item{cap}{A non-negative real number -  the claim severity cap.}

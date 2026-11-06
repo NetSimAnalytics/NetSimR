@@ -147,3 +147,21 @@ PureIBNRLNorm <- function(IncDate, ExpDate, ValDate, mu, sigma){
   pure_ibnr_exposure(IncDate, ExpDate, ValDate, list(mu = mu, sigma = sigma),
                      function(delay, p) LNormCappedMean(delay,p$mu,p$sigma))
 }
+
+# snake_case names, the same functions under the naming of the package's newer functions
+
+#' @rdname LNormCappedMean
+#' @export
+lnorm_capped_mean <- LNormCappedMean
+
+#' @rdname ExposureCurveLNorm
+#' @export
+exposure_curve_lnorm <- ExposureCurveLNorm
+
+#' @rdname ILFLNorm
+#' @export
+ilf_lnorm <- ILFLNorm
+
+#' @rdname PureIBNRLNorm
+#' @export
+pure_ibnr_lnorm <- PureIBNRLNorm

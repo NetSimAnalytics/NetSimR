@@ -13,6 +13,9 @@ glm_ui_css <- "
   --sim-accent-soft: #f0fdfa;
   --sim-accent-text: #0f766e;
   --dft-row-hover: #f5fdfb;
+  /* the slider's value bubble, white text on it: the darker teal in both themes, as white
+     on the dark theme's lighter teal would be 3.7:1 */
+  --dft-slider-value: #0f766e;
 }
 
 [data-bs-theme='dark'] {
@@ -22,6 +25,7 @@ glm_ui_css <- "
   --sim-accent-soft: rgba(20, 184, 166, 0.16);
   --sim-accent-text: #5eead4;
   --dft-row-hover: rgba(20, 184, 166, 0.08);
+  --dft-slider-value: #0f766e;
   --bs-link-color: #5eead4;
   --bs-link-color-rgb: 94, 234, 212;
   --bs-link-hover-color: #99f6e4;

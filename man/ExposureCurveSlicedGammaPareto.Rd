@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdGammaPareto.R
 \name{ExposureCurveSlicedGammaPareto}
 \alias{ExposureCurveSlicedGammaPareto}
+\alias{exposure_curve_sliced_gamma_pareto}
 \title{Exposure Curve from a Sliced Gamma Pareto severity distribution}
 \usage{
 ExposureCurveSlicedGammaPareto(x, GShape, GRate, SlicePoint, PShape)
+
+exposure_curve_sliced_gamma_pareto(x, GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
 \item{x}{A non-negative real number -  the claim amount where the exposure curve will be evaluated.}

@@ -342,8 +342,19 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   #Severity analysis
   ######################
 
-  sev_input <- eventReactive(input$execute_sev_analysis, claim_sizes(input$severity_var))
+  # the claim sizes, and the reporting threshold (0 for none): with one, only the claims above it
+  sev_input <- eventReactive(input$execute_sev_analysis, {
+    sizes <- claim_sizes(input$severity_var)
+    d <- input$sev_threshold
+    if (is.null(d) || length(d) != 1 || is.na(d) || d == 0) return(c(sizes, list(threshold = 0, below = 0)))
+    validate(need(is.finite(d) && d > 0, "The reporting threshold must be a positive amount, or empty."))
+    above <- sizes$claims > d
+    validate(need(length(unique(sizes$claims[above])) >= 2,
+                  "At least two different claim sizes must lie above the reporting threshold."))
+    list(claims = sizes$claims[above], dropped = sizes$dropped, threshold = d, below = sum(!above))
+  })
   severity_data <- reactive(sev_input()$claims)
+  sev_threshold <- reactive(sev_input()$threshold)
 
   # maximum likelihood fits
   sev_norm_fit <- reactive({
@@ -357,8 +368,13 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   sev_pareto_xm <- reactive(min(severity_data()))
   sev_pareto_alpha <- reactive(length(severity_data()) / sum(log(severity_data() / sev_pareto_xm())))
 
-  # the fitted models, each with its parameters, mean, cdf and log-likelihood
+  # the fits to claims above a reporting threshold (a fit that fails is explained under the table)
+  sev_truncated_models <- reactive(dft_truncated_severity_models(severity_data(), sev_threshold()))
+
+  # the fitted models, each with its parameters, mean, cdf and log-likelihood; above a reporting
+  # threshold, the mean and cdf are of the claims above it
   sev_models <- reactive({
+    if (sev_threshold() > 0) return(sev_truncated_models())
     x <- severity_data()
     norm <- unname(sev_norm_fit()$estimate)
     lnorm <- unname(sev_lnorm_fit()$estimate)
@@ -386,7 +402,11 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     x <- severity_data()
     div(
       class = "dft-stats",
-      dft_stat_tile("Claims", format(length(x), big.mark = ","), note = rows_left_out_note(sev_input()$dropped), icon_name = "hashtag"),
+      dft_stat_tile("Claims", format(length(x), big.mark = ","), icon_name = "hashtag",
+                    note = paste(c(rows_left_out_note(sev_input()$dropped),
+                                   if (sev_input()$below > 0) paste(format(sev_input()$below, big.mark = ","), "at or below",
+                                                                    dft_fmt(sev_threshold()), "left out")),
+                                 collapse = "; ")),
       dft_stat_tile("Mean", dft_fmt(mean(x)), icon_name = "bullseye"),
       dft_stat_tile("Median", dft_fmt(median(x)), icon_name = "arrows-left-right"),
       dft_stat_tile("Coefficient of variation", dft_fmt(sd(x) / mean(x), 3), icon_name = "wave-square"),
@@ -412,10 +432,17 @@ distribution_fitting_tool_Server <- function(input, output, session) {
         dft_fmt(2 * m$k - 2 * m$loglik, 6)
       )
     })
+    d <- sev_threshold()
     dft_html_table(
-      c("Distribution", "Parameter 1", "Parameter 2", "Mean", "K-S distance", "AIC"), rows,
+      c("Distribution", "Parameter 1", "Parameter 2", if (d > 0) "Mean above threshold" else "Mean", "K-S distance", "AIC"), rows,
       best = if (any(is.finite(ks))) which.min(ks), best_label = "Closest",
-      note = paste0("Empirical mean ", dft_fmt(mean(x)), ". The Pareto starts at the smallest claim.")
+      note = if (d > 0) {
+        paste0("Fitted to the claims above the reporting threshold of ", dft_fmt(d), " as claims from zero: the parameters ",
+               "are of all claims, the means and the K-S distances of the claims above the threshold. Empirical mean ",
+               dft_fmt(mean(x)), ". The Pareto starts at the threshold.", dft_failed_fits_note(attr(models, "failed")))
+      } else {
+        paste0("Empirical mean ", dft_fmt(mean(x)), ". The Pareto starts at the smallest claim.")
+      }
     )
   })
 
@@ -736,5 +763,138 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     dft_line_chart(dft_cdf_series(d), "Claim size", "Cumulative probability", dark(),
                    x_log = log_scale, ylim = c(0, 1.02), vlines = mu)
   }, alt = "Empirical and fitted piecewise Pareto cumulative distributions of the claim sizes, with the thresholds")
+
+  ######################
+  #to the simulator
+  ######################
+
+  # the run of a model's tab, with a message naming the tab when it has not been run
+  need_tab_run <- function(button, tab, model) {
+    validate(
+      need(input$file1, "Upload a data file on the Data tab first."),
+      need(isTruthy(input[[button]]), paste0("Run the analysis on the ", tab, " tab to send its ", model, " fit."))
+    )
+  }
+
+  # the frequency chosen on the tab, as dft_simulator_settings() takes it; NULL to leave the simulator's
+  export_frequency <- reactive({
+    model <- or_default(input$export_frequency, "none")
+    if (identical(model, "none")) return(NULL)
+    need_tab_run("execute_freq_analysis", "Frequency", model)
+    if (model == "Poisson") {
+      fit <- freq_po_fit()
+      validate(need(!is.null(fit), "The Poisson fit failed on the Frequency tab."))
+      return(list(model = model, lambda = fit_value(fit, "lambda")))
+    }
+    fit <- freq_nb_fit()
+    validate(
+      need(!is.null(fit), "The Negative Binomial fit failed on the Frequency tab."),
+      # (its size is at the cap, a Poisson in all but name)
+      need(!isTRUE(fit$capped), paste("The counts are not overdispersed, so the Negative Binomial has no finite size:",
+                                      "send the Poisson instead."))
+    )
+    list(model = model, size = fit_value(fit, "size"), mu = fit_value(fit, "mu"))
+  })
+
+  # the severity chosen on the tab, with its slices; NULL to leave the simulator's
+  export_severity <- reactive({
+    model <- or_default(input$export_severity, "none")
+    if (identical(model, "none")) return(NULL)
+    tab <- dft_export_severity_models[[model]]
+    if (tab == "severity") {
+      need_tab_run("execute_sev_analysis", "Severity", model)
+      fit <- sev_models()[[match(model, c("Normal", "LogNormal", "Exponential", "Gamma", "Pareto"))]]
+      p <- fit$params
+      validate(need(!anyNA(p), paste("The", model, "fit failed on the Severity tab.")))
+      # above a reporting threshold, the share of all claims that exceed it
+      threshold <- list(threshold = sev_threshold(),
+                        share = if (sev_threshold() > 0) fit$survival_at_threshold else 1)
+      return(c(threshold, switch(model,
+        "Normal" = list(model = model, mean = p[["Mean"]], sd = p[["Std. dev."]]),
+        "LogNormal" = list(model = model, mu = p[["mu"]], sigma = p[["sigma"]]),
+        "Exponential" = list(model = model, mean = p[["Mean"]]),
+        "Gamma" = list(model = model, shape = p[["Shape"]], scale = p[["Scale"]]),
+        "Pareto" = list(model = model, xm = p[["xm"]], alpha = p[["alpha"]])
+      )))
+    }
+    if (tab == "sliced") {
+      need_tab_run("execute_sliced_sev_analysis", "Sliced severity", model)
+      points <- slicing_points()
+      body <- slc_sev_censored_lnorm_fit()$par
+      validate(need(!anyNA(body), "The LogNormal body failed to fit on the Sliced severity tab."))
+      slices <- if (model == "LogNormal - Pareto") {
+        data.frame(x_m = points[1], alpha = paretoX1Alpha())
+      } else {
+        data.frame(x_m = points, alpha = c(paretoX2AlphaMod(), paretoX2Alpha()))
+      }
+      return(list(model = "LogNormal", mu = body[1], sigma = body[2], slices = slices))
+    }
+    need_tab_run("execute_piecewise_sev_analysis", "Piecewise Pareto", model)
+    piecewise_ready()
+    dft_piecewise_severity(piecwise_pareto_mu(), piecwise_pareto_alpha())
+  })
+
+  # the share of all claims that the counts count: below 1 for a severity fitted above a reporting
+  # threshold, with counts of the claims above it (the simulator draws claims from zero)
+  export_share <- reactive({
+    severity <- export_severity()
+    if (is.null(severity) || is.null(severity$share) || severity$share >= 1) return(1)
+    if (isFALSE(input$export_counts_above_threshold)) 1 else severity$share
+  })
+
+  # the settings the file holds
+  export_values <- reactive({
+    frequency <- export_frequency()
+    severity <- export_severity()
+    validate(need(!is.null(frequency) || !is.null(severity), "Choose a frequency or a severity to send."))
+    values <- tryCatch(dft_simulator_settings(frequency, severity, frequency_share = if (is.null(frequency)) 1 else export_share()),
+                       error = function(e) conditionMessage(e))
+    validate(need(is.list(values), values))
+    values
+  })
+
+  # with a severity fitted above a reporting threshold: whether the counts are of those claims
+  output$export_threshold_option <- renderUI({
+    severity <- tryCatch(export_severity(), error = function(e) NULL)
+    if (is.null(severity) || is.null(severity$share) || severity$share >= 1) return(NULL)
+    current <- isolate(input$export_counts_above_threshold)
+    tagList(
+      bslib::input_switch("export_counts_above_threshold", "The claim counts are of the claims above the threshold",
+                          value = !isFALSE(current)),
+      dft_help(paste0("The severity is fitted as claims from zero, of which ", dft_fmt(100 * severity$share, 3),
+                      "% exceed the reporting threshold of ", dft_fmt(severity$threshold), ". The simulator draws claims ",
+                      "from zero, so counts of the claims above the threshold are scaled up to all claims."))
+    )
+  })
+
+  output$export_summary <- renderUI({
+    values <- export_values()
+    severity <- export_severity()
+    share <- export_share()
+    scaled <- !is.null(export_frequency()) && share < 1
+    unscaled_note <- !is.null(severity) && !is.null(severity$share) && severity$share < 1 && !scaled
+    dft_html_table(c("Setting", "Value"), dft_simulator_settings_rows(values), align = c("left", "right"),
+                   note = paste(c(
+                     "Parameters are sent in full; the table rounds them to six significant figures.",
+                     if (scaled) paste0("The frequency is of all claims from zero: the fitted counts of the claims above ",
+                                        "the threshold divided by ", dft_fmt(share, 4), ", the share of claims above it."),
+                     if (unscaled_note) paste0("The severity is of claims from zero, of which ", dft_fmt(100 * severity$share, 3),
+                                               "% exceed the threshold: the simulator's frequency must count all of them.")
+                   ), collapse = " "))
+  })
+
+  # the save button, shown once there is something to save
+  output$export_download <- renderUI({
+    ready <- tryCatch(is.list(export_values()), error = function(e) FALSE)
+    if (!ready) return(NULL)
+    downloadButton("export_settings", "Save simulator settings", icon = icon("download"), class = "btn-run")
+  })
+
+  output$export_settings <- downloadHandler(
+    filename = function() "fitted_claims_simulator_settings.txt",
+    content = function(file) {
+      write_settings_file(export_values(), file, tool = sim_settings_tool, version = sim_settings_version)
+    }
+  )
 
 }

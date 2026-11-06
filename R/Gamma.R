@@ -255,3 +255,25 @@ PureIBNRGamma <- function(IncDate, ExpDate, ValDate, shape, rate){
   pure_ibnr_exposure(IncDate, ExpDate, ValDate, list(shape = shape, rate = rate),
                      function(delay, p) GammaCappedMean(delay,p$shape,p$rate))
 }
+
+# snake_case names, the same functions under the naming of the package's newer functions
+
+#' @rdname IGamma
+#' @export
+upper_incomplete_gamma <- IGamma
+
+#' @rdname GammaCappedMean
+#' @export
+gamma_capped_mean <- GammaCappedMean
+
+#' @rdname ExposureCurveGamma
+#' @export
+exposure_curve_gamma <- ExposureCurveGamma
+
+#' @rdname ILFGamma
+#' @export
+ilf_gamma <- ILFGamma
+
+#' @rdname PureIBNRGamma
+#' @export
+pure_ibnr_gamma <- PureIBNRGamma

@@ -18,20 +18,28 @@ Description: Assists actuaries and other insurance modellers in pricing,
     distributions.
     Includes calculating pure IBNR exposure with LogNormal and
     Gamma distribution for reporting delay.
-    Includes three 'shiny' tools: a claims simulator with reinsurance
-    structures, a generalised linear model fitting tool, and a claims
-    frequency and severity distribution fitting tool.
+    Includes claims reserving: the chain ladder with Mack's standard
+    errors and tail factors, Bornhuetter-Ferguson, Benktander and Cape
+    Cod methods, a bootstrap of the reserves, the one-year view of
+    Merz and Wuthrich, and the Munich chain ladder of paid and incurred
+    claims.
+    Includes four 'shiny' tools: a claims simulator with reinsurance
+    structures, a generalised linear model fitting tool, a claims
+    frequency and severity distribution fitting tool, and a claims
+    reserving tool.
     Methods used in the package refer to
     Free for All by Yiannis Parizas (2023) <https://www.theactuary.com/2023/03/02/free-all>;
     Escaping the triangle by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/06/2019/06/05/escaping-triangle>;
     Taken to excess by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess>.
 License: GPL-3
-URL: https://github.com/NetSimAnalytics/NetSimR
+URL: https://netsimanalytics.github.io/NetSimR/, https://github.com/NetSimAnalytics/NetSimR
 BugReports: https://github.com/NetSimAnalytics/NetSimR/issues
 Encoding: UTF-8
 Language: en-GB
-Imports: shiny (>= 1.8.1), base64enc, bslib (>= 0.9.0), future (>= 1.17.0), parallel, methods, stats, utils, graphics, grDevices
-Suggests: knitr, rmarkdown, crch, testthat (>= 3.0.0), shinytest2, chromote, pkgload, htmltools, DBI, RODBC, RPostgreSQL, RSQLite
+Depends: R (>= 2.10)
+Imports: shiny (>= 1.8.1), base64enc, bslib (>= 0.9.0), parallel, methods, stats, utils, graphics, grDevices
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote, pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite
 VignetteBuilder: knitr
+LazyData: true
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0

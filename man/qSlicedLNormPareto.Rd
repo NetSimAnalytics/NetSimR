@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdLogNormalPareto.R
 \name{qSlicedLNormPareto}
 \alias{qSlicedLNormPareto}
+\alias{qsliced_lnorm_pareto}
 \title{The inverse cumulative distribution function of a Sliced LogNormal Pareto severity distribution}
 \usage{
 qSlicedLNormPareto(q, mu, sigma, SlicePoint, shape)
+
+qsliced_lnorm_pareto(q, mu, sigma, SlicePoint, shape)
 }
 \arguments{
 \item{q}{A real number between 0 and 1 -  the probability where the inverse cumulative distribution function will be evaluated. Values outside [0, 1] give \code{NaN} with a warning, as in \code{qlnorm()}.}

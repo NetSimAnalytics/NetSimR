@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdLogNormalPareto.R
 \name{SlicedLNormParetoMean}
 \alias{SlicedLNormParetoMean}
+\alias{sliced_lnorm_pareto_mean}
 \title{Sliced LogNormal Pareto mean}
 \usage{
 SlicedLNormParetoMean(mu, sigma, SlicePoint, shape)
+
+sliced_lnorm_pareto_mean(mu, sigma, SlicePoint, shape)
 }
 \arguments{
 \item{mu}{A real number -  the first parameter of the attritional Claim Severity's LogNormal distribution.}

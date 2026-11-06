@@ -19,14 +19,18 @@ simulate_claims(
   eel_deductible = NULL,
   eel_limit = NULL,
   eel_reinstatements = NULL,
+  eel_premium = NULL,
+  eel_reinstatement_rates = 1,
   agg_layer = "none",
   agg_deductible = NULL,
   agg_limit = NULL,
   parallel = FALSE,
+  workers = NULL,
   chunk_size = NULL,
   gross = TRUE,
   shortcuts = TRUE,
-  progress = NULL
+  progress = NULL,
+  largest_claims = FALSE
 )
 }
 \arguments{
@@ -58,6 +62,10 @@ simulate_claims(
 
 \item{eel_reinstatements}{The number of reinstatements of a "limited" each-and-every-loss layer, so it pays at most \code{(eel_reinstatements + 1) * eel_limit} per simulation. NULL (the default) for unlimited reinstatements.}
 
+\item{eel_premium}{The upfront premium of the each-and-every-loss layer, which prices the reinstatements used: given, the results gain the column \code{reinstatement_premium}. Needs \code{eel_reinstatements}. NULL (the default) for none.}
+
+\item{eel_reinstatement_rates}{The premium rate of each reinstatement as a share of \code{eel_premium}: one rate for all of them, or one per reinstatement. Defaults to 1 (100\%). See \code{\link{reinstatement_premium}}.}
+
 \item{agg_layer}{The aggregate layer: "none" (the default), "unlimited", "limited" or "exclude".}
 
 \item{agg_deductible}{The deductible of the aggregate layer.}
@@ -66,6 +74,8 @@ simulate_claims(
 
 \item{parallel}{TRUE to run the chunks of simulations on parallel workers. Results are the same as a sequential run.}
 
+\item{workers}{The workers of a parallel run: NULL (the default) for one per available core, a number of workers (both started for the call and shut down after it), or a cluster from \code{parallel::makeCluster()}, which is used and left running so that several calls share it. See \code{\link{simulate_function}}.}
+
 \item{chunk_size}{The number of simulations per vectorised batch; NULL (the default) chooses it from the expected number of claims, aiming at about a million claims per batch but never fewer than 100 simulations, so batches are larger when the mean frequency exceeds 10,000. Results with a fixed seed depend on it.}
 
 \item{gross}{TRUE (the default) to return the gross totals before the layers. FALSE allows a much faster run with an "unlimited" or "limited" each-and-every-loss layer, by drawing only the claims that reach it.}
@@ -73,9 +83,11 @@ simulate_claims(
 \item{shortcuts}{TRUE (the default) to use exact shortcuts where the settings allow; see \code{\link{simulate_function}}.}
 
 \item{progress}{An optional function called after each chunk of a sequential run with the fraction done and a short description.}
+
+\item{largest_claims}{TRUE to add the column \code{largest_claim}: each simulation's largest single claim after the each-and-every-loss layer (the gross claim without one), for occurrence exceedance (OEP). Defaults to FALSE; every claim is then drawn, so it can be slower for very high frequencies.}
 }
 \value{
-A data frame with one row per simulation, at full precision: \code{claim_counts}, \code{total_claims} (after the layers), \code{gross_claims} (before them, unless \code{gross = FALSE}) and, with limited reinstatements, \code{number_of_reinstatements_used}: the layer's recoveries in the simulation divided by \code{eel_limit}, capped at \code{eel_reinstatements}. The recoveries are taken after the aggregate deductible and limit of an "unlimited" or "limited" aggregate layer, but before an "exclude" aggregate layer is taken out: with an exclusion, the reinstatements are counted on the each-and-every-loss recoveries (after the reinstatement capacity). So three claims of 100 through a layer of 60 excess of 30 with two reinstatements and an "exclude" aggregate layer of 150 excess of 50 give a total of 50 but 2 reinstatements used.
+A data frame with one row per simulation, at full precision: \code{claim_counts}, \code{total_claims} (after the layers), \code{gross_claims} (before them, unless \code{gross = FALSE}) and, with limited reinstatements, \code{number_of_reinstatements_used}: the layer's recoveries in the simulation divided by \code{eel_limit}, capped at \code{eel_reinstatements}. The recoveries are taken after the aggregate deductible and limit of an "unlimited" or "limited" aggregate layer, but before an "exclude" aggregate layer is taken out: with an exclusion, the reinstatements are counted on the each-and-every-loss recoveries (after the reinstatement capacity). So three claims of 100 through a layer of 60 excess of 30 with two reinstatements and an "exclude" aggregate layer of 150 excess of 50 give a total of 50 but 2 reinstatements used. With \code{eel_premium}, \code{reinstatement_premium}: the premium for the reinstatements used, pro rata to the amount reinstated.
 }
 \description{
 A simpler interface to \code{\link{simulate_function}}, with short argument names and
@@ -127,9 +139,11 @@ ceded <- simulate_claims(
   10000, "Poisson", 3, "LogNormal", c(8, 1.5), seed = 1,
   pareto_thresholds = 100000, pareto_alphas = 1.5,
   eel_layer = "limited", eel_deductible = 20000, eel_limit = 50000,
-  eel_reinstatements = 2
+  eel_reinstatements = 2, eel_premium = 10000
 )
 mean(ceded$total_claims)
+# the expected reinstatement premium, at 100\% of the upfront premium of 10,000
+mean(ceded$reinstatement_premium)
 }
 \seealso{
 \code{\link{simulate_function}}, which this calls, and \code{\link{run_shiny_simulator}} for the same model in an app.

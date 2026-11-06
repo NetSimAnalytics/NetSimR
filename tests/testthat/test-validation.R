@@ -10,18 +10,18 @@ test_that("complete settings pass validation", {
 
 test_that("a blank AL limit is named in the error", {
   expect_settings_error("AL Limit Amount", reinsuranceStructureAL = "Limited Layer",
-                        reinsurance_structure_al_dedctible_amount = 100)
+                        reinsurance_structure_al_deductible_amount = 100)
   expect_settings_error("AL Limit Amount", reinsuranceStructureAL = "Limited Layer",
-                        reinsurance_structure_al_dedctible_amount = 100,
+                        reinsurance_structure_al_deductible_amount = 100,
                         reinsurance_structure_al_limit_amount = NA_real_)
   expect_settings_error("AL Limit Amount", reinsuranceStructureAL = "Exclude Layer",
-                        reinsurance_structure_al_dedctible_amount = 100,
+                        reinsurance_structure_al_deductible_amount = 100,
                         reinsurance_structure_al_limit_amount = "abc")
   expect_settings_error("AL Deductible Amount", reinsuranceStructureAL = "Unlimited Layer")
   expect_settings_error("EEL Limit Amount", reinsuranceStructureEEL = "Limited Layer",
-                        reinsurance_structure_eel_dedctible_amount = 100)
+                        reinsurance_structure_eel_deductible_amount = 100)
   expect_settings_error("Number of Reinstatements", reinsuranceStructureEEL = "Limited Layer",
-                        reinsurance_structure_eel_dedctible_amount = 100,
+                        reinsurance_structure_eel_deductible_amount = 100,
                         reinsurance_structure_eel_limit_amount = 1000,
                         reinsuranceStructureLimitedReinstatements = TRUE)
 })
@@ -44,7 +44,7 @@ test_that("several problems are reported together", {
   expect_settings_error("Severity Cap.*AL Limit Amount|AL Limit Amount.*Severity Cap",
                         sevCapBinary = TRUE,
                         reinsuranceStructureAL = "Limited Layer",
-                        reinsurance_structure_al_dedctible_amount = 100)
+                        reinsurance_structure_al_deductible_amount = 100)
 })
 
 test_that("claim counts must be whole numbers", {
@@ -115,7 +115,7 @@ test_that("infinite distribution parameters, counts and seeds are rejected", {
   expect_settings_error("Slice 1 alpha.*finite", paretoSlice = TRUE, pareto_slice_times = 1,
                         slice_pareto_alphas = Inf, slice_pareto_x_ms = 1000)
   expect_settings_error("Reinstatements.*finite", reinsuranceStructureEEL = "Limited Layer",
-                        reinsurance_structure_eel_dedctible_amount = 100, reinsurance_structure_eel_limit_amount = 1000,
+                        reinsurance_structure_eel_deductible_amount = 100, reinsurance_structure_eel_limit_amount = 1000,
                         reinsuranceStructureLimitedReinstatements = TRUE, reinsuranceStructureReinstatementLimit = Inf)
   expect_error(simulate_claims(100, "Poisson", Inf, "LogNormal", c(6, 1)), "lambda.*finite")
   expect_true(all(is.na(distribution_moments(freq_dist_options, "Poisson", Inf))))
@@ -125,15 +125,15 @@ test_that("Inf is still allowed for the cap, deductibles, limits and slice thres
   plain <- run_simulation(numOfSimulations = 300)
   expect_identical(run_simulation(numOfSimulations = 300, sevCapBinary = TRUE, sev_cap_amount = Inf), plain)
   unlimited <- run_simulation(numOfSimulations = 300, reinsuranceStructureEEL = "Unlimited Layer",
-                              reinsurance_structure_eel_dedctible_amount = 1000)
+                              reinsurance_structure_eel_deductible_amount = 1000)
   limited <- run_simulation(numOfSimulations = 300, reinsuranceStructureEEL = "Limited Layer",
-                            reinsurance_structure_eel_dedctible_amount = 1000, reinsurance_structure_eel_limit_amount = Inf)
+                            reinsurance_structure_eel_deductible_amount = 1000, reinsurance_structure_eel_limit_amount = Inf)
   expect_identical(limited$total_claims, unlimited$total_claims)
   above_all <- run_simulation(numOfSimulations = 300, reinsuranceStructureEEL = "Unlimited Layer",
-                              reinsurance_structure_eel_dedctible_amount = Inf)
+                              reinsurance_structure_eel_deductible_amount = Inf)
   expect_equal(above_all$total_claims, rep(0, 300))
   aggregate <- run_simulation(numOfSimulations = 300, reinsuranceStructureAL = "Limited Layer",
-                              reinsurance_structure_al_dedctible_amount = 0, reinsurance_structure_al_limit_amount = Inf)
+                              reinsurance_structure_al_deductible_amount = 0, reinsurance_structure_al_limit_amount = Inf)
   expect_equal(aggregate$total_claims, aggregate$gross_claims)
   sliced <- run_simulation(numOfSimulations = 300, paretoSlice = TRUE, pareto_slice_times = 2,
                            slice_pareto_alphas = c(2, 1.5), slice_pareto_x_ms = c(1000, Inf))

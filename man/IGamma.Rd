@@ -2,9 +2,12 @@
 % Please edit documentation in R/Gamma.R
 \name{IGamma}
 \alias{IGamma}
+\alias{upper_incomplete_gamma}
 \title{Upper incomplete gamma function}
 \usage{
 IGamma(a, x)
+
+upper_incomplete_gamma(a, x)
 }
 \arguments{
 \item{a}{A positive real number - the shape parameter.}

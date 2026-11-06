@@ -19,7 +19,7 @@ test_that("the layer hit probability of amounts in millions uses unrounded total
   n <- 20000
   settings <- base_settings(numOfSimulations = n, freq_params = 2, sev_params = c(-3, 1), seedValue = 1,
                             reinsuranceStructureEEL = "Unlimited Layer",
-                            reinsurance_structure_eel_dedctible_amount = 0.05)
+                            reinsurance_structure_eel_deductible_amount = 0.05)
   res <- do.call(simulate_function, settings)
   exact <- 1 - exp(-2 * stats::plnorm(0.05, -3, 1, lower.tail = FALSE))
   layer <- summarise_simulation(settings, res)$layer
@@ -37,7 +37,7 @@ test_that("reinstatements used are not rounded and 'all used' is exact", {
   expect_identical(res$number_of_reinstatements_used, rep(299 / 300, 10))
   settings <- base_settings(numOfSimulations = 10, freqDistr = "Fixed_number_of_Counts", freq_params = 1,
                             sevDistr = "Fixed_Severity", sev_params = 299,
-                            reinsuranceStructureEEL = "Limited Layer", reinsurance_structure_eel_dedctible_amount = 0,
+                            reinsuranceStructureEEL = "Limited Layer", reinsurance_structure_eel_deductible_amount = 0,
                             reinsurance_structure_eel_limit_amount = 300,
                             reinsuranceStructureLimitedReinstatements = TRUE, reinsuranceStructureReinstatementLimit = 1)
   layer <- summarise_simulation(settings, do.call(simulate_function, settings))$layer

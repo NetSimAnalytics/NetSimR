@@ -86,10 +86,13 @@ GLMFittingToolServer <- function(input, output, session) {
             },
             input$sql_query
           ),
+          # RPostgres, the current DBI driver for PostgreSQL (RPostgreSQL is its older
+          # predecessor); 64-bit integer columns come back as numbers, which the models
+          # take, instead of bit64's integer64
           "PostgreSQL" = glm_tool_query_dbi(
-            RPostgreSQL::PostgreSQL(), input$sql_query,
+            RPostgres::Postgres(), input$sql_query,
             host = input$db_host, port = db_port(5432), dbname = input$db_name,
-            user = input$db_user, password = input$db_password
+            user = input$db_user, password = input$db_password, bigint = "numeric"
           )
         )
       } else {
@@ -634,9 +637,13 @@ GLMFittingToolServer <- function(input, output, session) {
       downloadButton("download_model", "Model (RDS)", class = "btn-outline-glm"),
       downloadButton("download_summary", "Model summary (text)", class = "btn-outline-glm"),
       downloadButton("download_data_with_predictions", "Data with predictions (CSV)", class = "btn-outline-glm"),
+      downloadButton("download_relativities", "Rating factors (CSV)", class = "btn-outline-glm"),
       dft_help("The model refers to its data as model_data: to update() it in R, assign the data to ",
                "model_data first, or pass it to update() as data =. The predictions are added to the data ",
-               "as the column prediction (model_prediction when the data has a column of that name).")
+               "as the column prediction (model_prediction when the data has a column of that name). ",
+               "The rating factors list the intercept, every level of each factor (its base level with a ",
+               "relativity of 1) and each numeric variable per unit; with a log link the relativities are ",
+               "exp(coefficient), with 95% intervals, and with another link the coefficients are given alone.")
     )
   })
 
@@ -679,6 +686,16 @@ GLMFittingToolServer <- function(input, output, session) {
       data[[column]] <- model_predictions(result)
       #text from the uploaded data that a spreadsheet would read as a formula is written as text
       utils::write.csv(csv_safe(data), file, row.names = FALSE)
+    }
+  )
+
+  # the rating factors: the relativity of every level of each factor (see glm_relativity_table())
+  output$download_relativities <- downloadHandler(
+    filename = function() "glm_rating_factors.csv",
+    content = function(file) {
+      #the levels are values of the uploaded data, so they are written as text where a
+      #spreadsheet would read them as a formula
+      utils::write.csv(csv_safe(glm_relativity_table(downloadable_model())), file, row.names = FALSE)
     }
   )
 

@@ -19,19 +19,25 @@ simulate_function(
   sevCapBinary = FALSE,
   sev_cap_amount = NULL,
   reinsuranceStructureEEL = "No Reinsurance Structure",
-  reinsurance_structure_eel_dedctible_amount = NULL,
+  reinsurance_structure_eel_deductible_amount = NULL,
   reinsurance_structure_eel_limit_amount = NULL,
   reinsuranceStructureAL = "No Reinsurance Structure",
-  reinsurance_structure_al_dedctible_amount = NULL,
+  reinsurance_structure_al_deductible_amount = NULL,
   reinsurance_structure_al_limit_amount = NULL,
   reinsuranceStructureLimitedReinstatements = FALSE,
   reinsuranceStructureReinstatementLimit = NULL,
+  reinsurance_structure_eel_premium = NULL,
+  reinsurance_structure_eel_reinstatement_rates = 1,
   multiprocessing = FALSE,
+  workers = NULL,
   sevTruncateAtZero = FALSE,
   chunk_size = NULL,
   gross = TRUE,
   shortcuts = TRUE,
-  progress = NULL
+  progress = NULL,
+  largest_claims = FALSE,
+  reinsurance_structure_eel_dedctible_amount = NULL,
+  reinsurance_structure_al_dedctible_amount = NULL
 )
 }
 \arguments{
@@ -63,13 +69,13 @@ simulate_function(
 
 \item{reinsuranceStructureEEL}{The chosen reinsurance structure for each and every loss claim.}
 
-\item{reinsurance_structure_eel_dedctible_amount}{The deductible for each and every loss reinsurance structure.}
+\item{reinsurance_structure_eel_deductible_amount}{The deductible for each and every loss reinsurance structure.}
 
 \item{reinsurance_structure_eel_limit_amount}{The limit for each and every loss reinsurance structure.}
 
 \item{reinsuranceStructureAL}{The chosen reinsurance structure for aggregate claims.}
 
-\item{reinsurance_structure_al_dedctible_amount}{The deductible for aggregate reinsurance structure.}
+\item{reinsurance_structure_al_deductible_amount}{The deductible for aggregate reinsurance structure.}
 
 \item{reinsurance_structure_al_limit_amount}{The limit for aggregate reinsurance structure.}
 
@@ -77,7 +83,13 @@ simulate_function(
 
 \item{reinsuranceStructureReinstatementLimit}{The reinstatement limit.}
 
-\item{multiprocessing}{True to run the chunks in parallel with the future package, otherwise false. A future plan with more than one worker that the caller has already set is reused and left running. Otherwise the call starts a multisession plan with one worker per available core (\code{parallelly::availableCores()}), shuts those workers down when it finishes and restores the caller's plan, so every such call pays the start-up cost again. To choose the number of workers and reuse them across calls, set a plan first, e.g. \code{future::plan(future::multisession, workers = 4)}.}
+\item{reinsurance_structure_eel_premium}{The upfront premium of the EEL layer, or NULL (the default) for none. Given with a limited number of reinstatements, the results gain the column \code{reinstatement_premium}; ignored otherwise.}
+
+\item{reinsurance_structure_eel_reinstatement_rates}{The premium rate of each reinstatement as a share of the upfront premium: one rate for all of them, or one per reinstatement. Defaults to 1 (100\%). See \code{\link{reinstatement_premium}}.}
+
+\item{multiprocessing}{True to run the chunks in parallel on worker R processes (base R's \pkg{parallel} package), otherwise false. Results are the same as a sequential run. See \code{workers}.}
+
+\item{workers}{The workers of a parallel run: \code{NULL} (the default) for one per available core (\code{getOption("mc.cores")} if set, otherwise \code{parallel::detectCores()}, at most 2 under \code{R CMD check}), or a number of workers; these are started for the call and shut down when it finishes, so each call pays the start-up cost. To reuse workers across calls, pass a cluster made with \code{parallel::makeCluster()}: it is used as it is and left running, to be stopped with \code{parallel::stopCluster()}. Ignored unless \code{multiprocessing} is true.}
 
 \item{sevTruncateAtZero}{True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.}
 
@@ -88,6 +100,10 @@ simulate_function(
 \item{shortcuts}{True (the default) to use exact shortcuts where the settings allow: when no layer, cap, Pareto slice or truncation acts on individual claims, each simulation's total is drawn in one step for the Normal, Gamma, Exponential and fixed severities; with \code{gross = FALSE} and a layer, only the claims above the deductible are drawn. The results follow the same distribution as without shortcuts. Set it to FALSE to simulate every claim.}
 
 \item{progress}{An optional function called after each chunk of a sequential run with the fraction done and a short description, e.g. to update a progress bar.}
+
+\item{largest_claims}{True to add the column \code{largest_claim}: each simulation's largest single claim, for occurrence exceedance (OEP) as \code{total_claims} gives aggregate exceedance (AEP). Defaults to FALSE. Every claim is then drawn, so the one-step shortcut for totals (see \code{shortcuts}) is not used.}
+
+\item{reinsurance_structure_eel_dedctible_amount, reinsurance_structure_al_dedctible_amount}{Deprecated misspellings of \code{reinsurance_structure_eel_deductible_amount} and \code{reinsurance_structure_al_deductible_amount}, the names before version 0.3.4; they still work, with a warning.}
 }
 \value{
 A data frame with one row per simulation, at full precision: \code{claim_counts},
@@ -101,7 +117,13 @@ limit of an aggregate 'Unlimited Layer' or 'Limited Layer', but before an aggreg
 'Exclude Layer' is taken out: with an exclusion they are the EEL recoveries after the
 reinstatement capacity. For example, three claims of 100 through a layer of 60 excess of
 30 with two reinstatements and an aggregate exclusion of 150 excess of 50 give a total of
-50 but 2 reinstatements used (180 / 60, capped at 2).
+50 but 2 reinstatements used (180 / 60, capped at 2). With an upfront premium,
+\code{reinstatement_premium}: the premium for the reinstatements used, pro rata to the
+amount reinstated (see \code{\link{reinstatement_premium}}). With \code{largest_claims =
+TRUE}, \code{largest_claim}: the simulation's largest single claim after the
+each-and-every-loss structure (the layer's loss on that claim; the gross claim when there
+is no structure), before the reinstatement limit and the aggregate layer, which act on
+the period's total; 0 for a simulation without claims.
 Stops with an error that names any required setting that is missing or invalid.
 }
 \description{
@@ -157,7 +179,7 @@ layer <- simulate_function(
   numOfSimulations = 1000, freq_params = 3, sev_params = c(1000, 200),
   seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
   reinsuranceStructureEEL = "Limited Layer",
-  reinsurance_structure_eel_dedctible_amount = 800,
+  reinsurance_structure_eel_deductible_amount = 800,
   reinsurance_structure_eel_limit_amount = 1500
 )
 mean(layer$total_claims)

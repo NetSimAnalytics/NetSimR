@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdGammaPareto.R
 \name{dSlicedGammaPareto}
 \alias{dSlicedGammaPareto}
+\alias{dsliced_gamma_pareto}
 \title{The probability density function (pdf) of a Sliced Gamma Pareto severity distribution}
 \usage{
 dSlicedGammaPareto(x, GShape, GRate, SlicePoint, PShape)
+
+dsliced_gamma_pareto(x, GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
 \item{x}{A real number -  the claim amount where the probability density function (pdf) will be evaluated. The pdf is 0 for negative \code{x}.}

@@ -75,7 +75,7 @@ test_that("the headline figures of a rarely hit layer agree with the statistics 
   #to show as "2" because their decimals followed the gross totals (in the thousands)
   settings <- base_settings(numOfSimulations = 500, seedValue = 1, freq_params = 2, sev_params = c(6, 1),
                             reinsuranceStructureEEL = "Limited Layer",
-                            reinsurance_structure_eel_dedctible_amount = 5000,
+                            reinsurance_structure_eel_deductible_amount = 5000,
                             reinsurance_structure_eel_limit_amount = 100)
   results <- do.call(simulate_function, settings)
   expect_lt(max(results$total_claims), 1000)

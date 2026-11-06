@@ -71,7 +71,7 @@ test_that("infinite totals are left out of the charts with a note, and the table
   #an excluded layer: gross and net are infinite together, so ceded (Inf - Inf) is unknown
   #and its column blank, where it used to show NaN or statistics of the other rows only
   excluded <- utils::modifyList(settings, list(reinsuranceStructureEEL = "Exclude Layer",
-                                               reinsurance_structure_eel_dedctible_amount = 1000,
+                                               reinsurance_structure_eel_deductible_amount = 1000,
                                                reinsurance_structure_eel_limit_amount = 5000))
   words <- report_words(report_text(excluded, do.call(simulate_function, excluded)))
   expect_true(has_section(words, "gross-net"))
@@ -106,9 +106,9 @@ test_that("the report's settings show each layer's limit before its deductible",
   #the order a layer is quoted in ("limit xs deductible"), as on the simulator's page
   settings <- base_settings(numOfSimulations = 300, seedValue = 1,
                             reinsuranceStructureEEL = "Limited Layer",
-                            reinsurance_structure_eel_dedctible_amount = 100, reinsurance_structure_eel_limit_amount = 400,
+                            reinsurance_structure_eel_deductible_amount = 100, reinsurance_structure_eel_limit_amount = 400,
                             reinsuranceStructureAL = "Limited Layer",
-                            reinsurance_structure_al_dedctible_amount = 200, reinsurance_structure_al_limit_amount = 1000)
+                            reinsurance_structure_al_deductible_amount = 200, reinsurance_structure_al_limit_amount = 1000)
   html <- report_text(settings, do.call(simulate_function, settings))
   cards <- strsplit(html, '<div class="setting-card">', fixed = TRUE)[[1]]
   for (title in c("Each &amp; every loss (EEL)", "Aggregate layer (AL)")) {
@@ -136,4 +136,21 @@ test_that("the report and the Compare tab show the Pareto's x_m before alpha, an
   #a distribution without a display order keeps its own
   settings <- base_settings(numOfSimulations = 300, seedValue = 1, sev_params = c(6, 1))
   expect_match(sim_tab_describe_settings(settings), "Log-Normal (mu = 6, sigma = 1)", fixed = TRUE)
+})
+
+test_that("the report shows the largest single claim (OEP) beside the period total (AEP)", {
+  settings <- layered_settings(numOfSimulations = 3000, largest_claims = TRUE)
+  results <- do.call(simulate_function, settings)
+  expect_true("largest_claim" %in% names(results))
+  html <- report_text(settings, results)
+  text <- gsub("<[^>]+>", " ", html)
+  expect_match(text, "Largest claim (OEP)", fixed = TRUE)
+  expect_match(text, "before the reinstatement limit and the aggregate layer", fixed = TRUE)
+  #the OEP column at 1 in 100 is the 99th percentile of the largest claims
+  oep_99 <- stats::quantile(results$largest_claim[!is.na(results$total_claims)], 0.99, names = FALSE)
+  expect_match(html, format(round(oep_99, 2), big.mark = ",", nsmall = 2), fixed = TRUE)
+  #without the column, nothing about OEP
+  plain <- report_text(layered_settings(numOfSimulations = 3000), do.call(simulate_function, layered_settings(numOfSimulations = 3000)))
+  #(the visible text: the charts are embedded as base64, where any three letters can occur)
+  expect_false(grepl("(OEP)", gsub("<[^>]+>", " ", plain), fixed = TRUE))
 })

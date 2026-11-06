@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdGammaPareto.R
 \name{SlicedGammaParetoMean}
 \alias{SlicedGammaParetoMean}
+\alias{sliced_gamma_pareto_mean}
 \title{Sliced Gamma Pareto mean}
 \usage{
 SlicedGammaParetoMean(GShape, GRate, SlicePoint, PShape)
+
+sliced_gamma_pareto_mean(GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
 \item{GShape}{A positive real number -  the shape parameter of the attritional Claim Severity's Gamma distribution.}

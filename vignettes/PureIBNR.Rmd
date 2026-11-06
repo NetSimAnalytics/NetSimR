@@ -88,7 +88,7 @@ summary(x)
 hist(x, breaks = 100)
 ```
 
-```{r pure IBNR example continued, eval=requireNamespace("crch", quietly = TRUE)}
+```{r pure IBNR example continued}
 #Generate dates data
 PoliciesPerDay<-100
 PeriodLength<-365*2
@@ -129,15 +129,24 @@ lm<-lm(log(ModelData$ReportingDelay)~1)
 #summary(lm)
 cbind(coefficients(lm),summary(lm)$sigma)
 
-#model reporting delays with a truncated model (splitting to monthly periods would be more accurate in terms of maximum reporting delay)
-rTLm<-crch::crch(log(ModelData$ReportingDelay)~1, truncated = TRUE, right = log(ModelData$MaxReportingDelay), dist = "gaussian", link.scale = "identity")
-#summary(rTLm)
-coefficients(rTLm)
+#model reporting delays with a truncated model (splitting to monthly periods would be more accurate in terms of maximum reporting delay):
+#a normal model of the log delays, fitted by maximum likelihood, where each claim's density is divided by the probability of
+#a delay short enough to be reported by the valuation date
+truncatedLogLik <- function(par, y, maxDelay) {
+  mu <- par[1]
+  sigma <- exp(par[2])
+  sum(dnorm(y, mu, sigma, log = TRUE) - pnorm(maxDelay, mu, sigma, log.p = TRUE))
+}
+logDelay <- log(ModelData$ReportingDelay)
+fit <- optim(c(mean(logDelay), log(sd(logDelay))),
+             function(par) -truncatedLogLik(par, logDelay, log(ModelData$MaxReportingDelay)), method = "BFGS")
+truncated <- c(mu = fit$par[1], sigma = exp(fit$par[2]))
+truncated
 
 #Generate and predict pure IBNR and UPR Claims
 Data$PureIBNRClaims<-ifelse(Data$AccidentDate>ValuationDate,0,Data$ClaimCount-Data$ClaimReportedBeforeValuation)
 Data$UPRClaims<-Data$ClaimCount-Data$ClaimReportedBeforeValuation-Data$PureIBNRClaims
-PureIBNRPrediction<-PureIBNRLNorm(Data$InceptionDate,Data$ExpiryDate,ValuationDate,coefficients(rTLm)[1],coefficients(rTLm)[2])
+PureIBNRPrediction<-PureIBNRLNorm(Data$InceptionDate,Data$ExpiryDate,ValuationDate,truncated[["mu"]],truncated[["sigma"]])
 Data$PredictedPureIBNRYears<-PureIBNRPrediction$PureIBNRDuration/DayPolicyDuration
 Data$PredictedUPRYears<-PureIBNRPrediction$UnearnedDuration/DayPolicyDuration
 Data$NetEarnedDuration<-1-Data$PredictedUPRYears-Data$PredictedPureIBNRYears+0.00001

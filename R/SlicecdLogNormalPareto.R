@@ -242,3 +242,33 @@ dSlicedLNormPareto<-function(x, mu, sigma, SlicePoint, shape){
                        ,dlnorm(x, mu, sigma)
   ), args)
 }
+
+# snake_case names, the same functions under the naming of the package's newer functions
+
+#' @rdname SlicedLNormParetoMean
+#' @export
+sliced_lnorm_pareto_mean <- SlicedLNormParetoMean
+
+#' @rdname SlicedLNormParetoCappedMean
+#' @export
+sliced_lnorm_pareto_capped_mean <- SlicedLNormParetoCappedMean
+
+#' @rdname ExposureCurveSlicedLNormPareto
+#' @export
+exposure_curve_sliced_lnorm_pareto <- ExposureCurveSlicedLNormPareto
+
+#' @rdname ILFSlicedLNormPareto
+#' @export
+ilf_sliced_lnorm_pareto <- ILFSlicedLNormPareto
+
+#' @rdname pSlicedLNormPareto
+#' @export
+psliced_lnorm_pareto <- pSlicedLNormPareto
+
+#' @rdname qSlicedLNormPareto
+#' @export
+qsliced_lnorm_pareto <- qSlicedLNormPareto
+
+#' @rdname dSlicedLNormPareto
+#' @export
+dsliced_lnorm_pareto <- dSlicedLNormPareto

@@ -2,9 +2,12 @@
 % Please edit documentation in R/LogNormal.R
 \name{PureIBNRLNorm}
 \alias{PureIBNRLNorm}
+\alias{pure_ibnr_lnorm}
 \title{Pure IBNR exposure from a LogNormal reporting delay distribution}
 \usage{
 PureIBNRLNorm(IncDate, ExpDate, ValDate, mu, sigma)
+
+pure_ibnr_lnorm(IncDate, ExpDate, ValDate, mu, sigma)
 }
 \arguments{
 \item{IncDate}{A \code{Date} or \code{POSIXct} vector -  the inception dates of the periods. Numbers and character strings are not accepted; convert them with \code{as.Date()} first.}

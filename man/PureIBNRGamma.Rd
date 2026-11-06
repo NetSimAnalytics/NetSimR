@@ -2,9 +2,12 @@
 % Please edit documentation in R/Gamma.R
 \name{PureIBNRGamma}
 \alias{PureIBNRGamma}
+\alias{pure_ibnr_gamma}
 \title{Pure IBNR exposure from a Gamma reporting delay distribution}
 \usage{
 PureIBNRGamma(IncDate, ExpDate, ValDate, shape, rate)
+
+pure_ibnr_gamma(IncDate, ExpDate, ValDate, shape, rate)
 }
 \arguments{
 \item{IncDate}{A \code{Date} or \code{POSIXct} vector -  the inception dates of the periods. Numbers and character strings are not accepted; convert them with \code{as.Date()} first.}

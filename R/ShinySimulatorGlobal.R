@@ -213,6 +213,22 @@ param_display_positions <- function(object) {
   if (length(order)) order else seq_along(object@paramIDs)
 }
 
+#' Whether the simulator asks a run for its largest claims
+#'
+#' The largest claim of each period (for occurrence exceedance) needs every claim drawn,
+#' which a run without a layer, cap or slice otherwise skips by drawing each period's total
+#' in one step. The app asks for them unless the run expects more than 20 million claims,
+#' about 4 seconds of drawing, so a very large run is not slowed down.
+#'
+#' @param freq_mean The mean number of claims per period, or NA when it is not known.
+#' @param n The number of simulations.
+#' @return TRUE or FALSE.
+#' @noRd
+sim_wants_largest_claims <- function(freq_mean, n) {
+  expected <- suppressWarnings(as.numeric(freq_mean) * as.numeric(n))
+  !isTRUE(expected > 2e7)
+}
+
 #' A vector with the frequency distribution objects
 #'
 #' A named list of \code{distributionClass} objects, one for each claim count distribution
@@ -747,7 +763,7 @@ find_missing_simulation_settings <- function(settings) {
   if (!is_structure(s$reinsuranceStructureAL)) problems <- c(problems, "AL reinsurance structure")
 
   if (isTRUE(s$reinsuranceStructureEEL %in% layers_with_deductible)) {
-    check_amount(s$reinsurance_structure_eel_dedctible_amount, "EEL Deductible Amount")
+    check_amount(s$reinsurance_structure_eel_deductible_amount, "EEL Deductible Amount")
   }
   if (isTRUE(s$reinsuranceStructureEEL %in% layers_with_limit)) {
     check_amount(s$reinsurance_structure_eel_limit_amount, "EEL Limit Amount", strict = TRUE)
@@ -755,10 +771,24 @@ find_missing_simulation_settings <- function(settings) {
   if (isTRUE(s$reinsuranceStructureEEL == 'Limited Layer') &&
       isTRUE(s$reinsuranceStructureLimitedReinstatements)) {
     check_amount(s$reinsuranceStructureReinstatementLimit, "Number of Reinstatements", whole = TRUE, finite = TRUE)
+    #an upfront premium is optional; given, it prices the reinstatements used
+    premium <- s$reinsurance_structure_eel_premium
+    if (!is.null(premium) && !(length(premium) == 1 && is.na(premium))) {
+      check_amount(premium, "EEL Upfront Premium", finite = TRUE)
+      rates <- s$reinsurance_structure_eel_reinstatement_rates
+      if (is.null(rates)) rates <- 1
+      if (!is.numeric(rates) || length(rates) == 0 || any(!is.finite(rates)) || any(rates < 0)) {
+        problems <- c(problems, "Reinstatement premium rates must be non-negative numbers")
+      } else if (length(rates) > 1 && is_number(s$reinsuranceStructureReinstatementLimit) &&
+                 length(rates) != s$reinsuranceStructureReinstatementLimit) {
+        problems <- c(problems, paste("Reinstatement premium rates must be one rate, or one for each of the",
+                                      s$reinsuranceStructureReinstatementLimit, "reinstatements"))
+      }
+    }
   }
 
   if (isTRUE(s$reinsuranceStructureAL %in% layers_with_deductible)) {
-    check_amount(s$reinsurance_structure_al_dedctible_amount, "AL Deductible Amount")
+    check_amount(s$reinsurance_structure_al_deductible_amount, "AL Deductible Amount")
   }
   if (isTRUE(s$reinsuranceStructureAL %in% layers_with_limit)) {
     check_amount(s$reinsurance_structure_al_limit_amount, "AL Limit Amount", strict = TRUE)
@@ -821,19 +851,24 @@ find_missing_simulation_settings <- function(settings) {
 #' @param sevCapBinary True if there is a severity cap.
 #' @param sev_cap_amount The severity cap amount.
 #' @param reinsuranceStructureEEL The chosen reinsurance structure for each and every loss claim.
-#' @param reinsurance_structure_eel_dedctible_amount The deductible for each and every loss reinsurance structure.
+#' @param reinsurance_structure_eel_deductible_amount The deductible for each and every loss reinsurance structure.
 #' @param reinsurance_structure_eel_limit_amount The limit for each and every loss reinsurance structure.
 #' @param reinsuranceStructureAL The chosen reinsurance structure for aggregate claims.
-#' @param reinsurance_structure_al_dedctible_amount The deductible for aggregate reinsurance structure.
+#' @param reinsurance_structure_al_deductible_amount The deductible for aggregate reinsurance structure.
 #' @param reinsurance_structure_al_limit_amount The limit for aggregate reinsurance structure.
 #' @param reinsuranceStructureLimitedReinstatements True if there is a limit in reinstatements, otherwise false.
 #' @param reinsuranceStructureReinstatementLimit The reinstatement limit.
-#' @param multiprocessing True to run the chunks in parallel with the future package, otherwise false. A future plan with more than one worker that the caller has already set is reused and left running. Otherwise the call starts a multisession plan with one worker per available core (\code{parallelly::availableCores()}), shuts those workers down when it finishes and restores the caller's plan, so every such call pays the start-up cost again. To choose the number of workers and reuse them across calls, set a plan first, e.g. \code{future::plan(future::multisession, workers = 4)}.
+#' @param reinsurance_structure_eel_premium The upfront premium of the EEL layer, or NULL (the default) for none. Given with a limited number of reinstatements, the results gain the column \code{reinstatement_premium}; ignored otherwise.
+#' @param reinsurance_structure_eel_reinstatement_rates The premium rate of each reinstatement as a share of the upfront premium: one rate for all of them, or one per reinstatement. Defaults to 1 (100\%). See \code{\link{reinstatement_premium}}.
+#' @param multiprocessing True to run the chunks in parallel on worker R processes (base R's \pkg{parallel} package), otherwise false. Results are the same as a sequential run. See \code{workers}.
+#' @param workers The workers of a parallel run: \code{NULL} (the default) for one per available core (\code{getOption("mc.cores")} if set, otherwise \code{parallel::detectCores()}, at most 2 under \code{R CMD check}), or a number of workers; these are started for the call and shut down when it finishes, so each call pays the start-up cost. To reuse workers across calls, pass a cluster made with \code{parallel::makeCluster()}: it is used as it is and left running, to be stopped with \code{parallel::stopCluster()}. Ignored unless \code{multiprocessing} is true.
 #' @param sevTruncateAtZero True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.
 #' @param chunk_size The number of simulations processed per vectorised batch. By default (NULL) it is chosen from the expected number of claims per simulation, so that a batch holds about a million claims (between 100 and 10,000 simulations). Because of the floor of 100 simulations, a batch holds more than a million claims when the mean frequency exceeds 10,000 claims per simulation (about 100 million at a mean of a million), and memory use grows with it; give a smaller \code{chunk_size} to keep batches small. Results with a fixed seed depend on the chunk size.
 #' @param gross True (the default) to return the gross total claims before reinsurance. Set it to FALSE when only the totals after the structures are needed: with an each-and-every-loss layer this allows drawing only the claims that reach the layer, which is much faster.
 #' @param shortcuts True (the default) to use exact shortcuts where the settings allow: when no layer, cap, Pareto slice or truncation acts on individual claims, each simulation's total is drawn in one step for the Normal, Gamma, Exponential and fixed severities; with \code{gross = FALSE} and a layer, only the claims above the deductible are drawn. The results follow the same distribution as without shortcuts. Set it to FALSE to simulate every claim.
 #' @param progress An optional function called after each chunk of a sequential run with the fraction done and a short description, e.g. to update a progress bar.
+#' @param reinsurance_structure_eel_dedctible_amount,reinsurance_structure_al_dedctible_amount Deprecated misspellings of \code{reinsurance_structure_eel_deductible_amount} and \code{reinsurance_structure_al_deductible_amount}, the names before version 0.3.4; they still work, with a warning.
+#' @param largest_claims True to add the column \code{largest_claim}: each simulation's largest single claim, for occurrence exceedance (OEP) as \code{total_claims} gives aggregate exceedance (AEP). Defaults to FALSE. Every claim is then drawn, so the one-step shortcut for totals (see \code{shortcuts}) is not used.
 #' @return A data frame with one row per simulation, at full precision: \code{claim_counts},
 #' the claim count; \code{total_claims}, the total claims after the reinsurance structures;
 #' \code{gross_claims}, the gross total claims before them (after Pareto slices and the
@@ -845,7 +880,13 @@ find_missing_simulation_settings <- function(settings) {
 #' 'Exclude Layer' is taken out: with an exclusion they are the EEL recoveries after the
 #' reinstatement capacity. For example, three claims of 100 through a layer of 60 excess of
 #' 30 with two reinstatements and an aggregate exclusion of 150 excess of 50 give a total of
-#' 50 but 2 reinstatements used (180 / 60, capped at 2).
+#' 50 but 2 reinstatements used (180 / 60, capped at 2). With an upfront premium,
+#' \code{reinstatement_premium}: the premium for the reinstatements used, pro rata to the
+#' amount reinstated (see \code{\link{reinstatement_premium}}). With \code{largest_claims =
+#' TRUE}, \code{largest_claim}: the simulation's largest single claim after the
+#' each-and-every-loss structure (the layer's loss on that claim; the gross claim when there
+#' is no structure), before the reinstatement limit and the aggregate layer, which act on
+#' the period's total; 0 for a simulation without claims.
 #' Stops with an error that names any required setting that is missing or invalid.
 #' @seealso \code{\link{simulate_claims}}, a simpler interface with short argument names,
 #'   and \code{\link{run_shiny_simulator}} for the same model in an app.
@@ -863,7 +904,7 @@ find_missing_simulation_settings <- function(settings) {
 #'   numOfSimulations = 1000, freq_params = 3, sev_params = c(1000, 200),
 #'   seedSetBinary = TRUE, seedValue = 1, freqDistr = "Poisson", sevDistr = "Normal",
 #'   reinsuranceStructureEEL = "Limited Layer",
-#'   reinsurance_structure_eel_dedctible_amount = 800,
+#'   reinsurance_structure_eel_deductible_amount = 800,
 #'   reinsurance_structure_eel_limit_amount = 1500
 #' )
 #' mean(layer$total_claims)
@@ -882,20 +923,37 @@ simulate_function <- function(
     sevCapBinary = FALSE,
     sev_cap_amount = NULL,
     reinsuranceStructureEEL = "No Reinsurance Structure",
-    reinsurance_structure_eel_dedctible_amount = NULL,
+    reinsurance_structure_eel_deductible_amount = NULL,
     reinsurance_structure_eel_limit_amount = NULL,
     reinsuranceStructureAL = "No Reinsurance Structure",
-    reinsurance_structure_al_dedctible_amount = NULL,
+    reinsurance_structure_al_deductible_amount = NULL,
     reinsurance_structure_al_limit_amount = NULL,
     reinsuranceStructureLimitedReinstatements = FALSE,
     reinsuranceStructureReinstatementLimit = NULL,
+    reinsurance_structure_eel_premium = NULL,
+    reinsurance_structure_eel_reinstatement_rates = 1,
     multiprocessing = FALSE,
+    workers = NULL,
     sevTruncateAtZero = FALSE,
     chunk_size = NULL,
     gross = TRUE,
     shortcuts = TRUE,
-    progress = NULL
+    progress = NULL,
+    largest_claims = FALSE,
+    reinsurance_structure_eel_dedctible_amount = NULL,
+    reinsurance_structure_al_dedctible_amount = NULL
 ){
+  #the deductibles' names before 0.3.4, misspelled, still work
+  for (layer in c("eel", "al")) {
+    old_value <- get(paste0("reinsurance_structure_", layer, "_dedctible_amount"))
+    if (!is.null(old_value)) {
+      new_name <- paste0("reinsurance_structure_", layer, "_deductible_amount")
+      warning("reinsurance_structure_", layer, "_dedctible_amount is deprecated: use ", new_name, ".", call. = FALSE)
+      if (is.null(get(new_name))) assign(new_name, old_value)
+    }
+  }
+  reinsurance_structure_eel_dedctible_amount <- reinsurance_structure_al_dedctible_amount <- NULL
+  rm(layer, old_value)
   #collect the settings; an omitted argument without a default is treated as not set (NULL)
   arg_env <- environment()
   arg_defaults <- formals(sys.function())
@@ -936,12 +994,23 @@ simulate_function <- function(
 
   #exact shortcuts: one draw per simulation when nothing acts on individual claims, or
   #only the claims above the deductible when the gross totals are not needed
+  #(the largest claims need the claims themselves, which a total drawn in one step skips)
   sum_in_one_step <- isTRUE(shortcuts) && is.null(slices) && !isTRUE(sevCapBinary) && !truncate &&
-    identical(reinsuranceStructureEEL, "No Reinsurance Structure") && !is.null(sev_object@sum_func)
+    identical(reinsuranceStructureEEL, "No Reinsurance Structure") && !is.null(sev_object@sum_func) &&
+    !isTRUE(largest_claims)
+  #the largest of each simulation's values, a simulation without any being 0; id is sorted
+  largest_by_simulation <- function(values, id, n) {
+    largest <- numeric(n)
+    if (length(values)) {
+      maxima <- vapply(split(values, id), max, numeric(1))
+      largest[as.integer(names(maxima))] <- maxima
+    }
+    largest
+  }
   draw_large_claims_only <- isTRUE(shortcuts) && !isTRUE(gross) &&
     reinsuranceStructureEEL %in% c("Unlimited Layer", "Limited Layer") && !is.null(freq_object@split_func)
   if (draw_large_claims_only) {
-    eel_deductible <- reinsurance_structure_eel_dedctible_amount
+    eel_deductible <- reinsurance_structure_eel_deductible_amount
     final_survival <- if (is.null(slices)) model$survival else slices$survival
     final_tail_quantile <- if (is.null(slices)) model$tail_quantile else slices$tail_quantile
     #a claim cedes something only above the deductible; a cap at or below it cedes nothing
@@ -1000,6 +1069,7 @@ simulate_function <- function(
       #and draw only the large claims, from the tail of the severity
       counts <- freq_object@split_func(this_n, freq_params, large_prob)
       totals <- numeric(this_n)
+      largest <- numeric(this_n)
       n_large <- sum(counts$large)
       if (n_large > 0) {
         large_claims <- pmin(final_tail_quantile(stats::runif(n_large, min = 0, max = large_prob)), cap)
@@ -1009,10 +1079,13 @@ simulate_function <- function(
           ,deductible = eel_deductible
           ,limit = reinsurance_structure_eel_limit_amount
         )
-        sums <- rowsum(ceded, rep.int(seq_len(this_n), counts$large))
+        large_id <- rep.int(seq_len(this_n), counts$large)
+        sums <- rowsum(ceded, large_id)
         totals[as.integer(rownames(sums))] <- sums[, 1]
+        #the claims not drawn cede nothing, so the largest ceded claim is among those drawn
+        if (isTRUE(largest_claims)) largest <- largest_by_simulation(ceded, large_id, this_n)
       }
-      return(list(claim_counts = counts$total, total_claims = totals, gross_claims = NULL))
+      return(list(claim_counts = counts$total, total_claims = totals, gross_claims = NULL, largest_claim = largest))
     }
 
     #simulate claim counts for this chunk
@@ -1027,7 +1100,8 @@ simulate_function <- function(
 
     #edge case: chunk has zero claims across all simulations
     if(total_claims_needed == 0){
-      return(list(claim_counts = counts, total_claims = rep(0, this_n), gross_claims = rep(0, this_n)))
+      return(list(claim_counts = counts, total_claims = rep(0, this_n), gross_claims = rep(0, this_n),
+                  largest_claim = rep(0, this_n)))
     }
 
     sim_id <- rep.int(seq_len(this_n), counts)
@@ -1055,7 +1129,7 @@ simulate_function <- function(
     claims <- apply_deductible_limit(
       claims
       ,reinsurance_structure = reinsuranceStructureEEL
-      ,deductible = reinsurance_structure_eel_dedctible_amount
+      ,deductible = reinsurance_structure_eel_deductible_amount
       ,limit = reinsurance_structure_eel_limit_amount
     )
 
@@ -1067,23 +1141,28 @@ simulate_function <- function(
     gross_totals <- numeric(this_n)
     totals[ids] <- sums[, "total"]
     gross_totals[ids] <- sums[, "gross"]
+    #each simulation's largest single claim, on the basis of its total before the aggregate step
+    largest <- if (isTRUE(largest_claims)) largest_by_simulation(claims, sim_id, this_n)
 
-    return(list(claim_counts = counts, total_claims = totals, gross_claims = gross_totals))
+    return(list(claim_counts = counts, total_claims = totals, gross_claims = gross_totals, largest_claim = largest))
   }
   run_chunk <- function(i) simulate_chunk(chunk_sizes[i])
 
   #run chunks, optionally in parallel across chunks (not per-simulation)
   if (isTRUE(multiprocessing)) {
-    #reuse workers that are already running (e.g. the app keeps a warm multisession plan);
-    #otherwise start a plan for this call and restore the caller's plan afterwards
-    #keep objects the workers do not need (e.g. a Shiny progress callback) out of the chunk closure
+    #reuse a cluster the caller gives (e.g. the app keeps warm workers); otherwise start
+    #workers for this call and shut them down afterwards
+    #keep objects the workers do not need (e.g. a Shiny progress callback, or the cluster
+    #itself) out of the chunk closure, which is sent to the workers with its environment
     progress <- NULL
     settings <- NULL
-    if (future::nbrOfWorkers() <= 1) {
-      old_plan <- future::plan(future::multisession)
-      on.exit(future::plan(old_plan), add = TRUE)
+    cluster <- workers
+    workers <- NULL
+    if (!inherits(cluster, "cluster")) {
+      cluster <- netsimr_start_workers(cluster)
+      on.exit(netsimr_stop_workers(cluster), add = TRUE)
     }
-    chunk_results <- run_chunks_in_futures(run_chunk, chunk_seeds)
+    chunk_results <- run_chunks_on_workers(cluster, run_chunk, chunk_seeds)
   } else {
     chunk_results <- vector("list", n_chunks)
     for (i in seq_len(n_chunks)) {
@@ -1100,6 +1179,9 @@ simulate_function <- function(
   if (isTRUE(gross)) {
     data$gross_claims <- unlist(lapply(chunk_results, `[[`, "gross_claims"), use.names = FALSE)
   }
+  if (isTRUE(largest_claims)) {
+    data$largest_claim <- unlist(lapply(chunk_results, `[[`, "largest_claim"), use.names = FALSE)
+  }
   rm(chunk_results)
 
   #the aggregate step, on each simulation's total after the EEL structure (see Details);
@@ -1114,7 +1196,7 @@ simulate_function <- function(
   apply_al <- function(x) apply_deductible_limit(
     x
     ,reinsuranceStructureAL
-    ,reinsurance_structure_al_dedctible_amount
+    ,reinsurance_structure_al_deductible_amount
     ,reinsurance_structure_al_limit_amount
   )
   if (reinsuranceStructureAL %in% c('Unlimited Layer', 'Limited Layer')) {
@@ -1135,42 +1217,115 @@ simulate_function <- function(
       layer_recoveries / reinsurance_structure_eel_limit_amount
       ,reinsuranceStructureReinstatementLimit
     )
+    #and priced, given an upfront premium, pro rata to the amount reinstated
+    if (!is.null(reinsurance_structure_eel_premium) && !is.na(reinsurance_structure_eel_premium[1])) {
+      data$reinstatement_premium <- reinstatement_premium(
+        data$number_of_reinstatements_used
+        ,reinsurance_structure_eel_premium
+        ,reinsurance_structure_eel_reinstatement_rates
+      )
+    }
   }
   return(data)
 }
 
-#' Run the chunks of a simulation on the workers of the current future plan
+#' The number of workers of a parallel run
 #'
-#' Splits the chunks into one contiguous group per worker and runs each group in one
-#' future, so the setup cost is paid once per worker rather than once per chunk. Each
+#' One per available core: the \code{mc.cores} option when it is set, otherwise the cores
+#' that \code{parallel::detectCores()} finds, at most 2 when \code{R CMD check} limits the
+#' cores (as CRAN does).
+#' @return A whole number, at least 1.
+#' @noRd
+netsimr_available_cores <- function() {
+  option <- getOption("mc.cores")
+  if (is.numeric(option) && length(option) == 1 && is.finite(option) && option >= 1) return(as.integer(option))
+  cores <- suppressWarnings(parallel::detectCores())
+  if (is.na(cores) || cores < 1) cores <- 1L
+  limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
+  if (nzchar(limit) && !identical(tolower(limit), "false")) cores <- min(cores, 2L)
+  as.integer(cores)
+}
+
+#' Start worker R processes for a parallel run
+#'
+#' @param workers The number of workers, or NULL for one per available core.
+#' @return A socket cluster of the parallel package.
+#' @noRd
+netsimr_start_workers <- function(workers = NULL) {
+  if (is.null(workers)) workers <- netsimr_available_cores()
+  if (!is.numeric(workers) || length(workers) != 1 || !is.finite(workers) || workers < 1 || workers != round(workers)) {
+    stop("workers must be NULL, a whole number of at least 1, or a cluster from parallel::makeCluster().", call. = FALSE)
+  }
+  parallel::makePSOCKcluster(as.integer(workers))
+}
+
+#' Shut down the workers of a parallel run
+#'
+#' Asks each worker to stop; when that fails, as for a worker that has died, closes the
+#' connections of all of them, which ends the workers still running and leaves no
+#' connection for the garbage collector to close later with a warning.
+#' @param cluster A socket cluster of the parallel package, or NULL.
+#' @return NULL, invisibly.
+#' @noRd
+netsimr_stop_workers <- function(cluster) {
+  if (is.null(cluster)) return(invisible(NULL))
+  stopped <- tryCatch({
+    parallel::stopCluster(cluster)
+    TRUE
+  }, error = function(e) FALSE)
+  if (!stopped) {
+    for (node in cluster) tryCatch(close(node$con), error = function(e) NULL)
+  }
+  invisible(NULL)
+}
+
+#' Run the chunks of a simulation on parallel workers
+#'
+#' Splits the chunks into one contiguous group per worker and sends each group to one
+#' worker, so the setup cost is paid once per worker rather than once per chunk. Each
 #' chunk starts from its own random stream, set in the worker just before it runs, so the
-#' results are identical to a sequential run. An error in a chunk is raised again here
-#' with its message.
+#' results are identical to a sequential run, and the caller's stream is not touched. An
+#' error in a chunk is caught on its worker, which stays healthy, and raised again here
+#' with its message; the warnings of the chunks are raised again here too. Any other
+#' error, such as a worker that died, has the class \code{netsimr_worker_error}.
+#' @param cluster A socket cluster of the parallel package.
 #' @param run_chunk Function of the chunk index that returns the chunk's results.
 #' @param chunk_seeds List of L'Ecuyer-CMRG seeds (\code{.Random.seed} values), one per chunk.
 #' @return List of the chunk results, in chunk order.
 #' @noRd
-run_chunks_in_futures <- function(run_chunk, chunk_seeds) {
+run_chunks_on_workers <- function(cluster, run_chunk, chunk_seeds) {
   n_chunks <- length(chunk_seeds)
-  #min() also handles backends that report an infinite number of workers
-  groups <- parallel::splitIndices(n_chunks, min(n_chunks, future::nbrOfWorkers()))
-  futures <- lapply(groups, function(chunks) {
-    seeds <- chunk_seeds[chunks]
-    #the future's own seed is the first chunk's stream; giving one tells future that the
-    #expression uses random numbers, and draws nothing from the caller's stream
-    future::future({
-      lapply(seq_along(chunks), function(k) {
-        assign(".Random.seed", seeds[[k]], envir = globalenv())
-        run_chunk(chunks[[k]])
-      })
-    }, seed = seeds[[1]])
-  })
-  #wait for every group before collecting the values: value() stops at the first error, and a
-  #group still running would leave its result unread on its worker; future then finds that
-  #worker broken and relaunches it, and the relaunched worker's connection is not closed when
-  #the plan is shut down (the garbage collector closes it later, with a warning)
-  future::resolve(futures)
-  unlist(future::value(futures), recursive = FALSE, use.names = FALSE)
+  groups <- parallel::splitIndices(n_chunks, min(n_chunks, length(cluster)))
+  tasks <- lapply(groups, function(chunks) list(chunks = chunks, seeds = chunk_seeds[chunks]))
+  run_group <- function(task) {
+    warnings <- character(0)
+    result <- tryCatch(
+      withCallingHandlers(
+        lapply(seq_along(task$chunks), function(k) {
+          assign(".Random.seed", task$seeds[[k]], envir = globalenv())
+          run_chunk(task$chunks[[k]])
+        }),
+        warning = function(w) {
+          warnings <<- c(warnings, conditionMessage(w))
+          invokeRestart("muffleWarning")
+        }
+      ),
+      error = function(e) structure(list(message = conditionMessage(e)), class = "netsimr_chunk_error")
+    )
+    list(result = result, warnings = warnings)
+  }
+  groups_done <- tryCatch(
+    parallel::clusterApply(cluster, tasks, run_group),
+    error = function(e) {
+      stop(structure(class = c("netsimr_worker_error", "error", "condition"),
+                     list(message = paste("A parallel worker failed:", conditionMessage(e)), call = NULL)))
+    }
+  )
+  for (message in unique(unlist(lapply(groups_done, `[[`, "warnings")))) warning(message, call. = FALSE)
+  for (group in groups_done) {
+    if (inherits(group$result, "netsimr_chunk_error")) stop(group$result$message, call. = FALSE)
+  }
+  unlist(lapply(groups_done, `[[`, "result"), recursive = FALSE, use.names = FALSE)
 }
 
 #' A function to run the shiny simulator application

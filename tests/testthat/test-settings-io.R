@@ -102,10 +102,10 @@ custom_settings <- list(
   pareto_slice_times = 2, slice_pareto_param_1 = 2.2, slice_pareto_param_2 = 20000,
   slice_pareto_param_3 = 1.6, slice_pareto_param_4 = 80000,
   sevCapBinary = TRUE, sev_cap_amount = 1e6,
-  reinsuranceStructureEEL = "Limited Layer", reinsurance_structure_eel_dedctible_amount = 10000,
+  reinsuranceStructureEEL = "Limited Layer", reinsurance_structure_eel_deductible_amount = 10000,
   reinsurance_structure_eel_limit_amount = 50000, reinsuranceStructureLimitedReinstatements = TRUE,
   reinsuranceStructureReinstatementLimit = 3,
-  reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_dedctible_amount = 1e5,
+  reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_deductible_amount = 1e5,
   reinsurance_structure_al_limit_amount = 2e5
 )
 

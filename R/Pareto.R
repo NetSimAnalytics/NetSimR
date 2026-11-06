@@ -121,3 +121,21 @@ ILFPareto<-function(xLow,xHigh,scale,shape){
   xLow<-args$xLow; xHigh<-args$xHigh; scale<-args$scale; shape<-args$shape
   restore_shape(ParetoCappedMean(xHigh,scale,shape)/ParetoCappedMean(xLow,scale,shape), args)
 }
+
+# snake_case names, the same functions under the naming of the package's newer functions
+
+#' @rdname ParetoCappedMeanCalc
+#' @export
+pareto_capped_mean_calc <- ParetoCappedMeanCalc
+
+#' @rdname ParetoCappedMean
+#' @export
+pareto_capped_mean <- ParetoCappedMean
+
+#' @rdname ExposureCurvePareto
+#' @export
+exposure_curve_pareto <- ExposureCurvePareto
+
+#' @rdname ILFPareto
+#' @export
+ilf_pareto <- ILFPareto

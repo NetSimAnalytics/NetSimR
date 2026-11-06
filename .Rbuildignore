@@ -10,3 +10,8 @@
 ^\.github$
 ^.*\.tar\.gz$
 ^.*\.Rcheck$
+^data-raw$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^codecov\.yml$

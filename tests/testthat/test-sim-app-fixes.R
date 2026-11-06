@@ -17,18 +17,6 @@ compare_entry_of <- function(id, settings, data = do.call(simulate_function, set
 #the html of a renderUI output read in testServer()
 ui_html <- function(x) paste(as.character(x$html), collapse = "")
 
-#inputs that the simulator server needs before its dynamic fields render
-set_page_inputs <- function(session, ...) {
-  inputs <- list(
-    freqDistr = "Poisson", sevDistr = "LogNormal",
-    seedSetBinary = FALSE, sevCapBinary = FALSE, sevTruncateAtZero = FALSE,
-    pareto_slice_times = 0, multiprocessingBinary = FALSE,
-    reinsuranceStructureEEL = "No Reinsurance Structure",
-    reinsuranceStructureAL = "No Reinsurance Structure"
-  )
-  do.call(session$setInputs, utils::modifyList(inputs, list(...)))
-}
-
 # ---------------------------------------------------------------- compare chart
 
 test_that("the compare chart is drawn by netsimr_render_plot and keeps the 1 in 200 label inside", {
@@ -87,7 +75,7 @@ test_that("the Normal sum shortcut gives the totals the claims add up to instead
 test_that("undefined (NaN) totals are counted and reported, not dropped silently", {
   #infinite claims through an excluded layer with an infinite limit leave Inf - Inf = NaN
   settings <- base_settings(numOfSimulations = 1000, seedValue = 1, sevDistr = "Pareto", sev_params = c(0.002, 100),
-                            reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_dedctible_amount = 1000,
+                            reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_deductible_amount = 1000,
                             reinsurance_structure_eel_limit_amount = Inf)
   results <- do.call(simulate_function, settings)
   n_nan <- sum(is.nan(results$total_claims))
@@ -125,7 +113,7 @@ test_that("undefined (NaN) totals are counted and reported, not dropped silently
 
 test_that("totals of both +Inf and -Inf with a structure give a report and a compare entry", {
   #the gross mean of +Inf and -Inf is NaN, which made the share of the gross mean fail
-  exclude <- base_settings(reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_dedctible_amount = 1e300,
+  exclude <- base_settings(reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_deductible_amount = 1e300,
                            reinsurance_structure_al_limit_amount = 1e308)
   totals <- c(1:200, rep(NaN, 100), rep(Inf, 100), rep(-Inf, 100))
   results <- data.frame(claim_counts = 1L, total_claims = totals, gross_claims = totals)
@@ -147,7 +135,7 @@ test_that("totals of both +Inf and -Inf with a structure give a report and a com
   #the app's run: Binomial(10, 0.5) claims of Normal(1e308, 1e308) through an aggregate exclusion
   app <- base_settings(numOfSimulations = 600, seedValue = 1, freqDistr = "Binomial", freq_params = c(10, 0.5),
                        sevDistr = "Normal", sev_params = c(1e308, 1e308), reinsuranceStructureAL = "Exclude Layer",
-                       reinsurance_structure_al_dedctible_amount = 1e300, reinsurance_structure_al_limit_amount = 1e308)
+                       reinsurance_structure_al_deductible_amount = 1e300, reinsurance_structure_al_limit_amount = 1e308)
   data <- do.call(simulate_function, app)
   expect_true(any(data$total_claims == Inf, na.rm = TRUE) && any(data$total_claims == -Inf, na.rm = TRUE))
   expect_true(anyNA(data$total_claims))
@@ -169,7 +157,7 @@ test_that("the report explains undefined totals by their cause", {
   expect_match(sim_report_words(plain, totals), "NaN) totals: the claims overflowed to both +Inf and -Inf", fixed = TRUE)
 
   #a structure turned infinite gross totals into infinity minus infinity
-  exclude <- base_settings(reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_dedctible_amount = 1000,
+  exclude <- base_settings(reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_deductible_amount = 1000,
                            reinsurance_structure_eel_limit_amount = Inf)
   structure_words <- sim_report_words(exclude, data.frame(claim_counts = 1L, total_claims = totals,
                                                           gross_claims = c(1:200, Inf, Inf, Inf)))
@@ -244,7 +232,7 @@ test_that("the compare tab shows infinite values as Inf or -Inf and undefined on
 test_that("very large settings are described in scientific format on the compare tab", {
   s <- list(freqDistr = "Poisson", freq_params = 1, sevDistr = "Normal", sev_params = c(1e308, 1e308),
             reinsuranceStructureEEL = "No Reinsurance Structure", reinsuranceStructureAL = "Exclude Layer",
-            reinsurance_structure_al_dedctible_amount = 1e300, reinsurance_structure_al_limit_amount = 1e308)
+            reinsurance_structure_al_deductible_amount = 1e300, reinsurance_structure_al_limit_amount = 1e308)
   description <- sim_tab_describe_settings(s)
   expect_lt(nchar(description), 200)
   expect_match(description, "Mean = 1.000e+308, Standard deviation = 1.000e+308", fixed = TRUE)
@@ -274,7 +262,7 @@ test_that("very large implied moments are shown in scientific format", {
 test_that("typed parameters and layer amounts survive switching options away and back", {
   shiny::testServer(shiny_simulator_server, {
     set_page_inputs(session, reinsuranceStructureEEL = "Limited Layer")
-    session$setInputs(lamda = 4, mu = 7.5, sigma = 1.25, reinsurance_structure_eel_dedctible_amount = 5000,
+    session$setInputs(lamda = 4, mu = 7.5, sigma = 1.25, reinsurance_structure_eel_deductible_amount = 5000,
                       reinsurance_structure_eel_limit_amount = 20000)
 
     #Poisson -> Binomial -> Poisson keeps lambda; the Binomial's n field starts empty
@@ -333,7 +321,7 @@ test_that("values typed just after loading an example are kept, not set back to 
     #reports the example's values
     set_page_inputs(session, seedSetBinary = TRUE, reinsuranceStructureEEL = "Limited Layer", numberOfSimulations = 50000)
     session$elapse(300)
-    session$setInputs(lamda = 5, mu = 9, sigma = 1.3, seedValue = 1, reinsurance_structure_eel_dedctible_amount = 50000,
+    session$setInputs(lamda = 5, mu = 9, sigma = 1.3, seedValue = 1, reinsurance_structure_eel_deductible_amount = 50000,
                       reinsurance_structure_eel_limit_amount = 200000, reinsuranceStructureLimitedReinstatements = TRUE)
     session$setInputs(reinsuranceStructureReinstatementLimit = 2)
     #the user types new values at once
@@ -437,10 +425,10 @@ test_that("the layout keeps the brand, the example names and the compare labels 
   expect_match(sim_ui_css, "\\.sim-brand-text \\{[^}]*white-space: nowrap;[^}]*min-width: 0;")
   expect_match(sim_ui_css, "\\.sim-brand-subtitle \\{[^}]*text-overflow: ellipsis;")
   expect_match(sim_ui_css, "\\.navbar \\.navbar-toggle \\{[^}]*flex-shrink: 0;")
-  #the expanded header is one row: the nav never wraps, and below 1400 px the theme switch
-  #shows its icons only
+  #the expanded header is one row: the nav never wraps, and below 1500 px the theme switch
+  #shows its icons only (the distribution fitting tool has seven tabs)
   expect_match(sim_ui_css, "@media \\(min-width: 992px\\) \\{\\s*\\.navbar \\.navbar-nav \\{\\s*flex-wrap: nowrap;")
-  expect_match(sim_ui_css, "@media \\(min-width: 992px\\) and \\(max-width: 1399.98px\\) \\{\\s*\\.theme-btn-label \\{\\s*display: none;")
+  expect_match(sim_ui_css, "@media \\(min-width: 992px\\) and \\(max-width: 1499.98px\\) \\{\\s*\\.theme-btn-label \\{\\s*display: none;")
   #the example select has the full width of the card, with the button under it
   expect_match(sim_settings_io_css, "\\.sim-settings-example \\{[^}]*grid-template-columns: minmax\\(0, 1fr\\);")
   expect_match(sim_tab_css, "\\.sim-compare-table td:first-child \\{[^}]*white-space: nowrap;")
@@ -617,7 +605,7 @@ test_that("amounts and the number of simulations are inputs that show thousands 
       expect_true(amount(ui_html(output[[paste0("reinsuranceStructureLimit", toupper(layer))]]),
                          paste0("reinsurance_structure_", layer, "_limit_amount")))
       expect_true(amount(ui_html(output[[paste0("reinsuranceStructureDeductible", toupper(layer))]]),
-                         paste0("reinsurance_structure_", layer, "_dedctible_amount")))
+                         paste0("reinsurance_structure_", layer, "_deductible_amount")))
     }
   })
   #a parameter list marking amounts must have one mark per parameter

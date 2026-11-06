@@ -1,10 +1,11 @@
-#' @description The NetSimR package provides five categories of functions:
+#' @description The NetSimR package provides six categories of functions:
 #' \enumerate{
 #' \item Capped means, Exposure and ILF curves from various severity distributions, and the special functions behind them
 #' \item Pure IBNR and UPR earned periods
 #' \item Sliced distributions
 #' \item Frequency-severity claims simulation, and applying a reinsurance layer to simulated claims
-#' \item Shiny apps for simulating claims, fitting distributions and fitting GLMs
+#' \item Claims reserving: chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Benktander, Cape Cod and a bootstrap
+#' \item Shiny apps for simulating claims, fitting distributions, fitting GLMs and reserving
 #' }
 #'
 #' @section NetSimR special functions:
@@ -54,10 +55,25 @@
 #' \code{\link{simulate_function}}
 #' \code{\link{apply_deductible_limit}}
 #'
+#' @section NetSimR reserving functions:
+#' \code{\link{chain_ladder}}
+#' \code{\link{bornhuetter_ferguson}}
+#' \code{\link{cape_cod}}
+#' \code{\link{bootstrap_chain_ladder}}
+#' \code{\link{merz_wuthrich}}
+#' \code{\link{munich_chain_ladder}}
+#' \code{\link{as_triangle}}
+#'
+#' @section Function names:
+#' The older functions have CamelCase names (\code{ParetoCappedMean}); each also has a
+#' snake_case name, the same function, as the newer functions are named
+#' (\code{pareto_capped_mean}). Both work.
+#'
 #' @section NetSimR Shiny apps:
 #' \code{\link{run_shiny_simulator}}
 #' \code{\link{run_shiny_distribution_fitting_tool}}
 #' \code{\link{run_shiny_glm_fitting_tool}}
+#' \code{\link{run_shiny_reserving_tool}}
 #'
 #' @keywords internal
 "_PACKAGE"

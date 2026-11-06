@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdLogNormalPareto.R
 \name{SlicedLNormParetoCappedMean}
 \alias{SlicedLNormParetoCappedMean}
+\alias{sliced_lnorm_pareto_capped_mean}
 \title{Sliced LogNormal Pareto capped mean}
 \usage{
 SlicedLNormParetoCappedMean(cap, mu, sigma, SlicePoint, shape)
+
+sliced_lnorm_pareto_capped_mean(cap, mu, sigma, SlicePoint, shape)
 }
 \arguments{
 \item{cap}{A non-negative real number -  the claim severity cap.}

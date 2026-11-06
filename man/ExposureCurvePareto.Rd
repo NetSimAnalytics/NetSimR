@@ -2,9 +2,12 @@
 % Please edit documentation in R/Pareto.R
 \name{ExposureCurvePareto}
 \alias{ExposureCurvePareto}
+\alias{exposure_curve_pareto}
 \title{Exposure Curve from a Pareto severity distribution}
 \usage{
 ExposureCurvePareto(x, scale, shape)
+
+exposure_curve_pareto(x, scale, shape)
 }
 \arguments{
 \item{x}{A non-negative real number -  the claim amount where the exposure curve will be evaluated.}

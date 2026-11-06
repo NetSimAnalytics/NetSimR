@@ -2,9 +2,12 @@
 % Please edit documentation in R/LogNormal.R
 \name{ExposureCurveLNorm}
 \alias{ExposureCurveLNorm}
+\alias{exposure_curve_lnorm}
 \title{Exposure Curve from a LogNormal severity distribution}
 \usage{
 ExposureCurveLNorm(x, mu, sigma)
+
+exposure_curve_lnorm(x, mu, sigma)
 }
 \arguments{
 \item{x}{A non-negative real number -  the claim amount where the exposure curve will be evaluated.}

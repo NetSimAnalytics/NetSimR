@@ -89,7 +89,7 @@ test_that("limited reinstatements cap the ceded total and report the reinstateme
     freqDistr = "Fixed_number_of_Counts", freq_params = 10,
     sevDistr = "Fixed_Severity", sev_params = 100,
     reinsuranceStructureEEL = "Limited Layer",
-    reinsurance_structure_eel_dedctible_amount = 50,
+    reinsurance_structure_eel_deductible_amount = 50,
     reinsurance_structure_eel_limit_amount = 30,
     reinsuranceStructureLimitedReinstatements = TRUE,
     reinsuranceStructureReinstatementLimit = 2
@@ -189,4 +189,21 @@ test_that("truncation at zero is ignored for non-Normal severities", {
     without_flag <- run_simulation(sevDistr = case$distr, sev_params = case$params, sevTruncateAtZero = FALSE)
     expect_identical(with_flag, without_flag, info = case$distr)
   }
+})
+
+test_that("the deductibles' misspelled names before 0.3.4 still work, with a warning", {
+  settings <- layered_settings(numOfSimulations = 300)
+  expected <- do.call(simulate_function, settings)
+  old <- settings
+  names(old) <- sub("_deductible_amount$", "_dedctible_amount", names(old))
+  expect_warning(expect_warning(result <- do.call(simulate_function, old), "eel_dedctible_amount is deprecated"),
+                 "al_dedctible_amount is deprecated")
+  expect_identical(result, expected)
+  #a settings file saved with the old names loads with the new ones
+  file <- tempfile(fileext = ".txt")
+  on.exit(unlink(file), add = TRUE)
+  write_settings_file(list(reinsurance_structure_eel_dedctible_amount = 5000, reinsurance_structure_al_dedctible_amount = 100),
+                      file, tool = sim_settings_tool, version = sim_settings_version)
+  expect_identical(sim_settings_read(file)$inputs,
+                   list(reinsurance_structure_eel_deductible_amount = 5000, reinsurance_structure_al_deductible_amount = 100))
 })

@@ -2,9 +2,12 @@
 % Please edit documentation in R/Gamma.R
 \name{GammaCappedMean}
 \alias{GammaCappedMean}
+\alias{gamma_capped_mean}
 \title{Gamma capped mean}
 \usage{
 GammaCappedMean(cap, shape, rate)
+
+gamma_capped_mean(cap, shape, rate)
 }
 \arguments{
 \item{cap}{A non-negative real number -  the claim severity cap.}

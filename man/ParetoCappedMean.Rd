@@ -2,9 +2,12 @@
 % Please edit documentation in R/Pareto.R
 \name{ParetoCappedMean}
 \alias{ParetoCappedMean}
+\alias{pareto_capped_mean}
 \title{Pareto capped mean}
 \usage{
 ParetoCappedMean(cap, scale, shape)
+
+pareto_capped_mean(cap, scale, shape)
 }
 \arguments{
 \item{cap}{A non-negative real number -  the claim severity cap.}

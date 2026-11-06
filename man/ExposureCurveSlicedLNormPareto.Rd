@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdLogNormalPareto.R
 \name{ExposureCurveSlicedLNormPareto}
 \alias{ExposureCurveSlicedLNormPareto}
+\alias{exposure_curve_sliced_lnorm_pareto}
 \title{Exposure Curve from a Sliced LogNormal Pareto severity distribution}
 \usage{
 ExposureCurveSlicedLNormPareto(x, mu, sigma, SlicePoint, shape)
+
+exposure_curve_sliced_lnorm_pareto(x, mu, sigma, SlicePoint, shape)
 }
 \arguments{
 \item{x}{A non-negative real number -  the claim amount where the exposure curve will be evaluated.}

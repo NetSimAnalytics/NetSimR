@@ -503,3 +503,48 @@ test_that("GLM fitting tool draws its chart with the tools' plot device and redr
     expect_false(identical(narrow$src, wide$src))
   })
 })
+
+test_that("GLM fitting tool's rating factors give each level's relativity, its base level at 1", {
+  d <- glm_claims_data(1500)
+  d$`vehicle group` <- rep(c("A", "B", "C"), length.out = nrow(d))
+  fit <- glm(claim_count ~ offset(log(exposure)) + age + region + `vehicle group`, family = poisson, data = d)
+  tab <- glm_relativity_table(fit)
+  #every coefficient once, and a row for each base level
+  expect_setequal(tab$coefficient[!tab$base], unname(coef(fit)))
+  expect_identical(tab$level[tab$base], c("East", "A"))
+  expect_identical(tab$variable[tab$base], c("region", "vehicle group"))
+  expect_true(all(tab$relativity[tab$base] == 1))
+  #a relativity is exp(coefficient), with a 95% interval around it
+  south <- tab[tab$variable == "region" & tab$level == "South", ]
+  expect_equal(south$relativity, unname(exp(coef(fit)[["regionSouth"]])), tolerance = 1e-12)
+  expect_lt(south$relativity_lower_95, south$relativity)
+  expect_gt(south$relativity_upper_95, south$relativity)
+  expect_identical(tab$level[tab$variable == "age"], "(per unit)")
+  expect_equal(tab$relativity[tab$variable == "(Intercept)"], unname(exp(coef(fit)[["(Intercept)"]])), tolerance = 1e-12)
+  #with a link other than the log, exp(coefficient) is not a relativity: the coefficients alone
+  other <- glm_relativity_table(glm(claim_count ~ age + region, family = poisson(link = "sqrt"), data = d))
+  expect_true(all(is.na(other$relativity)))
+  expect_false(anyNA(other$coefficient))
+  #an interaction gets a row per coefficient, named as glm() names it
+  inter <- glm_relativity_table(glm(claim_count ~ region * age, family = poisson, data = d))
+  expect_true(all(c("regionNorth:age", "regionSouth:age") %in% inter$level))
+
+  #the download: refused without a model and after a new import, as the other downloads are
+  d$region[1:20] <- "=SUM(1)"
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
+    expect_error(output$download_relativities, "Fit a model", class = "shiny.silent.error")
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "log",
+                      offset = "exposure", offset_log = TRUE, weights = "None", formula = "age + region", fit_model = 1)
+    file <- output$download_relativities
+    written <- utils::read.csv(file, stringsAsFactors = FALSE)
+    expect_identical(names(written), c("variable", "level", "base", "coefficient", "std_error", "relativity",
+                                       "relativity_lower_95", "relativity_upper_95"))
+    expect_true("South" %in% written$level)
+    #a level a spreadsheet would read as a formula is written as text
+    expect_true("'=SUM(1)" %in% written$level)
+    expect_false("=SUM(1)" %in% written$level)
+    session$setInputs(csv_file = list(datapath = glm_write_csv(d[1:300, ]), name = "other.csv"), submit = 2)
+    expect_error(output$download_relativities, "fitted to data imported before", class = "shiny.silent.error")
+  })
+})

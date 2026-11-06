@@ -2,9 +2,12 @@
 % Please edit documentation in R/Gamma.R
 \name{ILFGamma}
 \alias{ILFGamma}
+\alias{ilf_gamma}
 \title{Increased Limit Factor Curve from a Gamma severity distribution}
 \usage{
 ILFGamma(xLow, xHigh, shape, rate)
+
+ilf_gamma(xLow, xHigh, shape, rate)
 }
 \arguments{
 \item{xLow}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}

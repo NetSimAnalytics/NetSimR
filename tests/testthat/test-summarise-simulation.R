@@ -37,7 +37,7 @@ test_that("the summary has the documented fields with the right types", {
 })
 
 test_that("undefined totals are split by cause, and a NaN gross mean gives no share", {
-  exclude <- base_settings(reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_dedctible_amount = 10,
+  exclude <- base_settings(reinsuranceStructureAL = "Exclude Layer", reinsurance_structure_al_deductible_amount = 10,
                            reinsurance_structure_al_limit_amount = Inf)
   #an undefined gross total comes from the claims (+Inf and -Inf), a defined one from the structure
   results <- data.frame(claim_counts = 1L, total_claims = c(1:20, NaN, NaN, NaN, Inf, -Inf),
@@ -51,14 +51,14 @@ test_that("undefined totals are split by cause, and a NaN gross mean gives no sh
   expect_equal(summarise_simulation(exclude, results$total_claims)$undefined_cause, c(claims = 0, structures = 0, unknown = 3))
   expect_equal(summarise_simulation(base_settings(), results$total_claims)$undefined_cause, c(claims = 3, structures = 0, unknown = 0))
   #a defined total whose gross total is NaN is counted apart, as its columns are left blank
-  ceded <- base_settings(reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_dedctible_amount = 0)
+  ceded <- base_settings(reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_deductible_amount = 0)
   gross_nan <- summarise_simulation(ceded, data.frame(claim_counts = 1L, total_claims = c(1:20, Inf), gross_claims = c(1:20, NaN)))
   expect_equal(gross_nan$gross$undefined, 1)
   expect_true(all(is.na(gross_nan$gross$table$Gross)))
 })
 
 test_that("infinite gross and modelled totals leave their difference unknown rather than NaN", {
-  settings <- base_settings(reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_dedctible_amount = 10,
+  settings <- base_settings(reinsuranceStructureEEL = "Exclude Layer", reinsurance_structure_eel_deductible_amount = 10,
                             reinsurance_structure_eel_limit_amount = 5)
   results <- data.frame(claim_counts = c(1, 1, 1, 1), total_claims = c(Inf, 90, 50, Inf), gross_claims = c(Inf, 95, 55, Inf))
   sm <- summarise_simulation(settings, results)
@@ -218,10 +218,10 @@ test_that("the gross block splits gross into ceded and net", {
 
 test_that("the layer block reports capacity, loss on line and reinstatements", {
   settings <- layered_settings(
-    reinsurance_structure_eel_dedctible_amount = 100000,
+    reinsurance_structure_eel_deductible_amount = 100000,
     reinsurance_structure_eel_limit_amount = 200000,
     reinsuranceStructureReinstatementLimit = 2,
-    reinsurance_structure_al_dedctible_amount = 100000,
+    reinsurance_structure_al_deductible_amount = 100000,
     reinsurance_structure_al_limit_amount = 1000000
   )
   #ceded totals under the aggregate order: min(max(S - 100,000, 0), 1,000,000, 600,000)
@@ -234,7 +234,12 @@ test_that("the layer block reports capacity, loss on line and reinstatements", {
   expect_type(layer, "list")
   expect_named(layer, c("hit_prob", "avg_loss_when_hit", "expected_loss", "loss_on_line", "line_limit",
                         "line_limit_name", "capacity", "exhaust_prob", "reinstatements_avg",
-                        "reinstatements_all_used_prob", "reinstatement_limit"))
+                        "reinstatements_all_used_prob", "reinstatement_limit", "upfront_premium", "rate_on_line",
+                        "reinstatement_rates", "expected_reinstatement_premium", "expected_total_premium",
+                        "expected_loss_ratio"))
+  #without an upfront premium the layer is not priced
+  expect_true(is.na(layer$upfront_premium))
+  expect_null(layer$reinstatement_rates)
   #(2 + 1) * 200,000 within the aggregate limit; the aggregate deductible comes off the
   #recoveries before the capacity caps them, so it does not reduce the capacity
   expect_equal(layer$capacity, 600000)
@@ -269,7 +274,7 @@ test_that("the layer block reports capacity, loss on line and reinstatements", {
 
   #an unlimited layer has no limit to relate the loss to
   unlimited <- summarise_simulation(
-    base_settings(reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_dedctible_amount = 1000),
+    base_settings(reinsuranceStructureEEL = "Unlimited Layer", reinsurance_structure_eel_deductible_amount = 1000),
     results
   )$layer
   expect_true(is.infinite(unlimited$capacity))

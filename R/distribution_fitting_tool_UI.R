@@ -15,11 +15,14 @@ dft_ui_css <- "
   --dft-row-hover: #faf8ff;
   --dft-best-bg: #ecfdf5;
   --dft-best-text: #047857;
+  /* the edge of a slider's track, which shows how far the slider runs */
+  --dft-slider-edge: #64748b;
 }
 
 [data-bs-theme='dark'] {
   --dft-accent: #8b5cf6;
   --dft-accent-strong: #7c3aed;
+  --dft-slider-edge: #94a3b8;
   --dft-accent-shadow: rgba(139, 92, 246, 0.30);
   --sim-accent-soft: rgba(139, 92, 246, 0.18);
   --sim-accent-text: #c4b5fd;
@@ -167,26 +170,36 @@ dft_ui_css <- "
   border-color: var(--dft-accent);
 }
 
+/* the value above the handle: white on a colour dark enough for it in both themes (the dark
+   theme's accent gave it 4.2:1, under the 4.5:1 text needs); its text colour is set here, as
+   bslib otherwise chooses black or white from each tool's theme colour */
 .irs--shiny .irs-single,
 .irs--shiny .irs-from,
 .irs--shiny .irs-to {
-  background: var(--dft-accent);
+  background: var(--dft-slider-value, var(--dft-accent-strong));
+  color: #ffffff;
 }
 
+/* the handle: a ring in the accent colour, as its border was 0px wide, which left a circle
+   of the card's colour that could not be seen against the card */
 .irs--shiny .irs-handle {
-  border-color: var(--dft-accent);
+  box-sizing: border-box;
+  border: 3px solid var(--dft-accent);
   background: var(--sim-card-bg);
 }
 
+/* the track: its fill in the border colour was 1.7:1 against the card in the dark theme and
+   1.5:1 in the light one, so it was hard to see where a slider runs; its edge is now well over
+   the 3:1 a control needs */
 .irs--shiny .irs-line {
   background: var(--sim-border-strong);
-  border-color: var(--sim-border-strong);
+  border: 1px solid var(--dft-slider-edge);
 }
 
 .irs--shiny .irs-min,
 .irs--shiny .irs-max {
   background: var(--bs-secondary-bg, #e9ecef);
-  color: var(--sim-muted);
+  color: var(--sim-label);
 }
 
 .irs--shiny .irs-grid-text {
@@ -664,7 +677,9 @@ distribution_fitting_tool_UI <- function(request) {
       tags$head(
         tags$script(HTML(netsimr_theme_js("netsimr-distribution-fitting-theme"))),
         tags$style(HTML(sim_ui_css)),
-        tags$style(HTML(dft_ui_css))
+        tags$style(HTML(dft_ui_css)),
+        #the binding of the reporting threshold's amount input
+        tags$script(HTML(sim_amount_input_js))
       ),
       #tells the server which theme is showing, so the charts are drawn in matching colours
       tags$script(HTML(sim_compare_theme_js("app_theme"))),
@@ -853,8 +868,12 @@ distribution_fitting_tool_UI <- function(request) {
         dft_settings_card(
           "sliders", "Settings", "Choose the claim sizes and run the fit.",
           dft_column_select("severity_var", "Claim size column"),
+          sim_amount_input("sev_threshold", "Reporting threshold (optional)", min = 0),
           dft_run_button("execute_sev_analysis"),
           dft_help("Missing, negative, zero and non-numeric values are left out."),
+          dft_help("For claims that are only reported above a threshold, enter it: the claims at or below it are left out,",
+                   "and each distribution is fitted to the claims above it as the claims from zero, of which the data",
+                   "holds only those above the threshold."),
           tags$hr(class = "sim-divider"),
           div(class = "sim-section-label", "Chart options"),
           dft_log_switch("sev_fit_log_scale"),
@@ -946,6 +965,47 @@ distribution_fitting_tool_UI <- function(request) {
         bslib::card(
           sim_card_header("chart-line", "CDF fit", "Empirical against fitted cumulative distribution."),
           bslib::card_body(dft_plot_output("piecewise_pareto_cdf_plot"))
+        )
+      )
+    ),
+
+    # ------------------------------------------------------- To the simulator
+    bslib::nav_panel(
+      #(a short title: with a longer one the tabs squeezed the tool's name in the navbar)
+      title = "Export",
+      value = "export",
+      icon = icon("paper-plane"),
+
+      dft_page_intro("Send a fit to the simulator",
+                     "Save fitted models as a settings file that the claims simulator loads."),
+
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Settings", "Choose the fitted models to send.",
+          selectInput("export_frequency", "Frequency",
+                      choices = c("Leave the simulator's" = "none", names(dft_export_frequency_models)),
+                      selectize = FALSE),
+          selectInput("export_severity", "Severity",
+                      choices = c("Leave the simulator's" = "none", names(dft_export_severity_models)),
+                      selectize = FALSE),
+          dft_help("Each model is the one fitted on its tab, with that tab's columns and slicing points:",
+                   "run the analysis there first."),
+          uiOutput("export_threshold_option"),
+          uiOutput("export_download")
+        ),
+        bslib::card(
+          sim_card_header("table-cells", "Settings to send", "What the file sets in the simulator."),
+          bslib::card_body(uiOutput("export_summary"))
+        ),
+        bslib::card(
+          sim_card_header("route", "In the simulator"),
+          bslib::card_body(
+            p("Open the claims simulator with ", tags$code("run_shiny_simulator()"), " and, in its Simulation card, ",
+              "load the file with ", tags$b("Load settings", .noWS = "after"), "."),
+            p(class = "sim-muted mb-0",
+              "The settings the file leaves out, such as the number of simulations and the layers, keep the values ",
+              "they have in the simulator. A sliced or piecewise Pareto model becomes the simulator's Pareto slices.")
+          )
         )
       )
     ),

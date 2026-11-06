@@ -244,3 +244,32 @@ dSlicedGammaPareto<-function(x, GShape, GRate, SlicePoint, PShape){
   ), args)
 }
 
+# snake_case names, the same functions under the naming of the package's newer functions
+
+#' @rdname SlicedGammaParetoMean
+#' @export
+sliced_gamma_pareto_mean <- SlicedGammaParetoMean
+
+#' @rdname SlicedGammaParetoCappedMean
+#' @export
+sliced_gamma_pareto_capped_mean <- SlicedGammaParetoCappedMean
+
+#' @rdname ExposureCurveSlicedGammaPareto
+#' @export
+exposure_curve_sliced_gamma_pareto <- ExposureCurveSlicedGammaPareto
+
+#' @rdname ILFSlicedGammaPareto
+#' @export
+ilf_sliced_gamma_pareto <- ILFSlicedGammaPareto
+
+#' @rdname pSlicedGammaPareto
+#' @export
+psliced_gamma_pareto <- pSlicedGammaPareto
+
+#' @rdname qSlicedGammaPareto
+#' @export
+qsliced_gamma_pareto <- qSlicedGammaPareto
+
+#' @rdname dSlicedGammaPareto
+#' @export
+dsliced_gamma_pareto <- dSlicedGammaPareto

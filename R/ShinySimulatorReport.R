@@ -694,6 +694,14 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   column_or_null <- function(name) if (name %in% names(results)) as.numeric(results[[name]]) else NULL
   #the claim counts of every simulation are defined, so the frequency chart uses them all
   counts <- column_or_null("claim_counts")
+  #each period's largest single claim, for occurrence exceedance (OEP), on the simulations the
+  #other figures use (those with a defined total)
+  largest <- column_or_null("largest_claim")
+  if (!is.null(largest)) {
+    largest <- largest[!is.na(as.numeric(results$total_claims))]
+    largest <- largest[!is.na(largest)]
+    if (!length(largest)) largest <- NULL
+  }
   results <- results[!is.na(results$total_claims), , drop = FALSE]
   gross <- column_or_null("gross_claims")
 
@@ -1044,6 +1052,10 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
 
   has_deductible <- function(structure) isTRUE(structure %in% c("Unlimited Layer", "Limited Layer", "Exclude Layer"))
   has_limit <- function(structure) isTRUE(structure %in% c("Limited Layer", "Exclude Layer"))
+  #an upfront premium prices the reinstatements of a limited layer with limited reinstatements
+  priced_reinstatements <- isTRUE(eel == "Limited Layer") && isTRUE(s$reinsuranceStructureLimitedReinstatements) &&
+    is.numeric(s$reinsurance_structure_eel_premium) && length(s$reinsurance_structure_eel_premium) == 1 &&
+    isTRUE(is.finite(s$reinsurance_structure_eel_premium))
   no_structure <- function(structure) is_blank(structure) || identical(structure, "No Reinsurance Structure")
 
   # ---------- key results ----------
@@ -1122,19 +1134,26 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         "Structure" = if (no_structure(eel)) off("None") else eel,
         #the limit first, as a layer is quoted ("limit xs deductible")
         "Limit" = if (has_limit(eel)) fmt_setting(s$reinsurance_structure_eel_limit_amount),
-        "Deductible" = if (has_deductible(eel)) fmt_setting(s$reinsurance_structure_eel_dedctible_amount),
+        "Deductible" = if (has_deductible(eel)) fmt_setting(s$reinsurance_structure_eel_deductible_amount),
         "Reinstatements" = if (isTRUE(eel == "Limited Layer")) {
           if (isTRUE(s$reinsuranceStructureLimitedReinstatements)) {
             paste("Up to", fmt_int(s$reinsuranceStructureReinstatementLimit))
           } else {
             off("Unlimited")
           }
+        },
+        #the premium that prices them, when there is one
+        "Upfront premium" = if (priced_reinstatements) fmt_setting(s$reinsurance_structure_eel_premium),
+        "Reinstatement rates" = if (priced_reinstatements) {
+          rates <- s$reinsurance_structure_eel_reinstatement_rates
+          if (is.null(rates)) rates <- 1
+          paste(paste0(signif(100 * rates, 6), "%"), collapse = ", ")
         }
       )),
       setting_card("Aggregate layer (AL)", list(
         "Structure" = if (no_structure(al)) off("None") else al,
         "Limit" = if (has_limit(al)) fmt_setting(s$reinsurance_structure_al_limit_amount),
-        "Deductible" = if (has_deductible(al)) fmt_setting(s$reinsurance_structure_al_dedctible_amount)
+        "Deductible" = if (has_deductible(al)) fmt_setting(s$reinsurance_structure_al_deductible_amount)
       ))
     )
   )
@@ -1258,6 +1277,23 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         c("Chance all reinstatements are used", fmt_prob(layer$reinstatements_all_used_prob), "Share of simulations that use every reinstatement")
       ))
     }
+    #with an upfront premium, the reinstatements used are priced
+    if (isTRUE(is.finite(layer$upfront_premium))) {
+      metric_rows <- c(metric_rows, list(
+        c("Upfront premium", fmt_amount(layer$upfront_premium), "The premium of the each-and-every-loss layer"),
+        if (!is.na(layer$rate_on_line)) {
+          c("Rate on line", fmt_pct(layer$rate_on_line, 2), "Upfront premium as a share of the each-and-every-loss limit")
+        },
+        c("Expected reinstatement premium", fmt_amount(layer$expected_reinstatement_premium),
+          "Mean premium for the reinstatements used, pro rata to the amount reinstated"),
+        c("Expected total premium", fmt_amount(layer$expected_total_premium),
+          "Upfront premium plus the expected reinstatement premium"),
+        if (!is.na(layer$expected_loss_ratio)) {
+          c("Expected loss ratio", fmt_pct(layer$expected_loss_ratio, 1), "Expected loss as a share of the expected total premium")
+        }
+      ))
+      metric_rows <- metric_rows[!vapply(metric_rows, is.null, logical(1))]
+    }
     metrics <- as.data.frame(do.call(rbind, metric_rows), stringsAsFactors = FALSE)
     names(metrics) <- c("Metric", "Value", "What it means")
     layer_section <- report_section(
@@ -1292,6 +1328,10 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
+  #the largest single claim at the same return periods (occurrence exceedance)
+  if (!is.null(largest)) {
+    tail_table$`Largest claim (OEP)` <- vapply(quantile_of_vec(largest, percentiles$prob), fmt_num, character(1))
+  }
   tail_note <- if (summary$percentiles_dropped) {
     tags$p(class = "table-note", paste0(
       "Return periods beyond ", fmt_return_period(max(percentiles$prob)),
@@ -1327,7 +1367,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     div(
       class = "two-col",
       div(class = "table-card", tags$h3("Summary statistics"), report_table(summary_stats, 2)),
-      div(class = "table-card", tags$h3("Percentiles, VaR and TVaR"), report_table(tail_table, c(3, 4)), tail_note)
+      div(class = "table-card", tags$h3("Percentiles, VaR and TVaR"), report_table(tail_table, seq(3, ncol(tail_table))), tail_note)
     ),
     div(
       class = "table-card",
@@ -1376,11 +1416,23 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   return_period_card <- if (max_return_period >= 5) {
     #colours are palette names, so each theme's copy of the chart uses its own colours
     modelled_series <- stats::setNames(list(list(values = claims, col = "blue", lty = 1, lwd = 2.6)), modelled_label)
+    #with the largest claims, the period total (aggregate exceedance, AEP) and the largest single
+    #claim (occurrence exceedance, OEP)
+    if (!is.null(largest)) {
+      modelled_series <- list(
+        "Period total (AEP)" = list(values = claims, col = "blue", lty = 1, lwd = 2.6),
+        "Largest single claim (OEP)" = list(values = largest, col = "navy", lty = 2, lwd = 2)
+      )
+    }
     div(class = "chart-card",
         tags$h3("Losses by return period"),
         tags$p(class = "chart-note", paste0(
           "The loss expected once in each number of periods, on a log scale.",
-          " Return periods are shown up to ", fmt_return_period(1 - 1 / max_return_period), "."
+          " Return periods are shown up to ", fmt_return_period(1 - 1 / max_return_period), ".",
+          if (!is.null(largest)) paste(
+            " The largest single claim is after the each-and-every-loss structure, before the",
+            "reinstatement limit and the aggregate layer, which act on the period's total."
+          )
         )),
         chart_image(function() draw_return_periods(modelled_series, modelled_label), 4.2, "Losses by return period"))
   }

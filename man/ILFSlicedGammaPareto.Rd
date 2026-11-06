@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdGammaPareto.R
 \name{ILFSlicedGammaPareto}
 \alias{ILFSlicedGammaPareto}
+\alias{ilf_sliced_gamma_pareto}
 \title{Increased Limit Factor Curve from a Sliced Gamma Pareto severity distribution}
 \usage{
 ILFSlicedGammaPareto(xLow, xHigh, GShape, GRate, SlicePoint, PShape)
+
+ilf_sliced_gamma_pareto(xLow, xHigh, GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
 \item{xLow}{A non-negative real number -  the claim amount where the Limit Factor Curve will be evaluated from.}

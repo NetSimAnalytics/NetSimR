@@ -1,4 +1,4 @@
-#the simulator server, driven through shiny::testServer(): failed runs and the future plan
+#the simulator server, driven through shiny::testServer(): failed runs and the parallel workers
 
 #inputs for a small sequential run without reinsurance; named arguments override them
 set_run_inputs <- function(session, ...) {
@@ -36,13 +36,12 @@ open_sockets <- function() {
   paste(rownames(connections)[is_socket], connections[is_socket, "description"])
 }
 
-#the process ids of the two workers of the current plan; each future keeps its worker busy
-#long enough for the other future to land on the other worker
-worker_pids <- function() {
-  futures <- lapply(1:2, function(i) future::future({ Sys.sleep(0.3); Sys.getpid() }))
-  future::resolve(futures)
-  sort(unlist(future::value(futures)))
-}
+#the session's workers, read through the environment of a function defined in the server
+#(testServer() copies plain server variables when it starts)
+session_workers <- function(server_function) get("workers", envir = environment(server_function))
+
+#the process ids of a cluster's workers
+worker_pids <- function(cluster) sort(unlist(parallel::clusterCall(cluster, Sys.getpid)))
 
 test_that("a failed run keeps the previous results", {
   shiny::testServer(shiny_simulator_server, {
@@ -51,64 +50,59 @@ test_that("a failed run keeps the previous results", {
     first <- last_run()
     expect_equal(first$id, 1L)
     expect_equal(nrow(simulated_data$data), 500)
-    expect_identical(current_settings(restore_original_plan), first$settings)
+    expect_identical(current_settings(stop_parallel_workers), first$settings)
 
     run_failing(session, run = 2)
     expect_identical(last_run(), first)
     expect_identical(simulated_data$data, first$data)
-    expect_identical(current_settings(restore_original_plan), first$settings)
+    expect_identical(current_settings(stop_parallel_workers), first$settings)
 
     #the next successful run replaces them
     session$setInputs(lamda = 2, RunSimulations = 3)
     expect_equal(last_run()$id, 2L)
-    expect_equal(current_settings(restore_original_plan)$freq_params, 2)
+    expect_equal(current_settings(stop_parallel_workers)$freq_params, 2)
     expect_identical(simulated_data$data, last_run()$data)
   })
 })
 
-test_that("the app leaves the user's future plan in place", {
-  old_plan <- future::plan(future::sequential, gc = TRUE)
-  on.exit(future::plan(old_plan), add = TRUE)
-  user_plan <- future::plan()
+test_that("a sequential session starts no workers", {
+  sockets_before <- open_sockets()
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session)
     session$setInputs(RunSimulations = 1)
     run_failing(session, run = 2)
-    expect_identical(future::plan(), user_plan)
+    expect_null(session_workers(stop_parallel_workers))
   })
-  expect_identical(future::plan(), user_plan)
+  expect_identical(open_sockets(), sockets_before)
 })
 
 test_that("workers started by the app stay warm through a failed run and are shut down with the session", {
   skip_on_cran()
   old_options <- options(mc.cores = 2)
   on.exit(options(old_options), add = TRUE)
-  old_plan <- future::plan(future::sequential, gc = TRUE)
-  on.exit(future::plan(old_plan), add = TRUE)
-  user_plan <- future::plan()
   sockets_before <- open_sockets()
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session)
     session$setInputs(multiprocessingBinary = TRUE)
-    expect_equal(future::nbrOfWorkers(), 2)
-    pids <- worker_pids()
+    cluster <- session_workers(stop_parallel_workers)
+    expect_length(cluster, 2)
+    pids <- worker_pids(cluster)
     worker_sockets <- open_sockets()
     #an error raised by the simulation leaves the workers healthy: a failed run used to shut
     #them down, and the next run paid the start-up cost again
     run_failing(session, run = 1)
-    expect_equal(future::nbrOfWorkers(), 2)
-    expect_identical(worker_pids(), pids)
+    expect_identical(session_workers(stop_parallel_workers), cluster)
+    expect_identical(worker_pids(cluster), pids)
     expect_identical(open_sockets(), worker_sockets)
     #the next run reuses the same workers and gives the results of a sequential run
     session$setInputs(lamda = 3, RunSimulations = 2)
     expect_equal(nrow(simulated_data$data), 500)
-    expect_identical(worker_pids(), pids)
+    expect_identical(worker_pids(cluster), pids)
     sequential <- do.call(simulate_function, utils::modifyList(last_run()$settings, list(multiprocessing = FALSE)))
     expect_identical(simulated_data$data, sequential)
     expect_identical(open_sockets(), worker_sockets)
   })
-  #the end of the session shuts the workers down and puts the user's plan back
-  expect_identical(future::plan(), user_plan)
+  #the end of the session shuts the workers down
   expect_identical(open_sockets(), sockets_before)
 })
 
@@ -116,39 +110,31 @@ test_that("a worker that dies during a run is replaced by fresh workers on the n
   skip_on_cran()
   old_options <- options(mc.cores = 2)
   on.exit(options(old_options), add = TRUE)
-  old_plan <- future::plan(future::sequential, gc = TRUE)
-  on.exit(future::plan(old_plan), add = TRUE)
-  user_plan <- future::plan()
   sockets_before <- open_sockets()
-  #one chunk group whose worker ends its own process while running it, and a second group
-  #still running on the other worker: future signals a FutureError (unlike an error raised
-  #by the chunks themselves) and replaces the dead worker, whose new connection is left open
-  dying_worker_chunks <- function(run_chunk, chunk_seeds) {
-    futures <- list(future::future(tools::pskill(Sys.getpid())), future::future({ Sys.sleep(1); 2 }))
-    future::resolve(futures)
-    future::value(futures)
-  }
+  #every chunk ends its worker's process while running
+  real_run_chunks <- run_chunks_on_workers
+  die <- function(i) tools::pskill(Sys.getpid())
+  environment(die) <- globalenv()
+  dying_workers <- function(cluster, run_chunk, chunk_seeds) real_run_chunks(cluster, die, chunk_seeds)
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session, multiprocessingBinary = TRUE)
-    pids <- worker_pids()
-    #the app's workers are shut down, the replacement that future started for the dead one
-    #included (its connection used to be left open, for the garbage collector to close later
-    #with a warning)
+    pids <- worker_pids(session_workers(stop_parallel_workers))
+    #the app shuts its workers down, leaving no connection open
     with_mocked_bindings(
       expect_message(session$setInputs(RunSimulations = 1), "Simulation failed"),
-      run_chunks_in_futures = dying_worker_chunks
+      run_chunks_on_workers = dying_workers
     )
-    expect_identical(future::plan(), user_plan)
+    expect_null(session_workers(stop_parallel_workers))
     expect_identical(open_sockets(), sockets_before)
     #no connection is left for the garbage collector to close with a warning
     expect_no_warning(gc(), message = "closing unused connection")
     #the next run starts fresh workers and succeeds on them
     session$setInputs(RunSimulations = 2)
     expect_equal(nrow(simulated_data$data), 500)
-    expect_equal(future::nbrOfWorkers(), 2)
-    expect_false(any(worker_pids() %in% pids))
+    cluster <- session_workers(stop_parallel_workers)
+    expect_length(cluster, 2)
+    expect_false(any(worker_pids(cluster) %in% pids))
   })
-  expect_identical(future::plan(), user_plan)
   expect_identical(open_sockets(), sockets_before)
 })
 
@@ -227,20 +213,4 @@ test_that("the compare chart's y axis spans negative runs, and infinite totals a
   expect_false(grepl("NaN", as.character(sim_tab_metrics_table(list(negative, infinite), c("A", "B"))), fixed = TRUE))
   #the x axis reaches 1 in 1,000,000, the longest return period of the largest run
   expect_true(all(c(2e5, 5e5, 1e6) %in% return_period_axis_ticks))
-})
-
-test_that("a multi-worker plan set by the user is reused and left running", {
-  skip_on_cran()
-  old_plan <- future::plan(future::multisession, workers = 2)
-  on.exit(future::plan(old_plan), add = TRUE)
-  user_plan <- future::plan()
-  shiny::testServer(shiny_simulator_server, {
-    set_run_inputs(session, multiprocessingBinary = TRUE)
-    session$setInputs(RunSimulations = 1)
-    expect_equal(nrow(simulated_data$data), 500)
-    run_failing(session, run = 2)
-    expect_identical(future::plan(), user_plan)
-  })
-  expect_identical(future::plan(), user_plan)
-  expect_equal(future::nbrOfWorkers(), 2)
 })

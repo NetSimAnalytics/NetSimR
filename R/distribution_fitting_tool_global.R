@@ -141,7 +141,8 @@ dft_legend_layout <- function(labels, width, cex) {
 
 # Draws the legend in the top margin, from `left` inches, one row every 1.4
 # lines. Entries are lists with a label, a colour and a type: "line", "point"
-# (a line with a marker) or "bar".
+# (a line with a marker), "marker" (a marker alone, of symbol pch) or "bar"; a
+# line can have a line type, lty.
 dft_draw_legend <- function(entries, layout, left, colours, cex) {
   inch <- graphics::par("csi")
   device_height <- graphics::par("din")[2]
@@ -157,8 +158,12 @@ dft_draw_legend <- function(entries, layout, left, colours, cex) {
     if (identical(entry$type, "bar")) {
       graphics::rect(to_x(x0 + 0.04), to_y(y - 0.065), to_x(x0 + layout$key - 0.04), to_y(y + 0.065),
                      col = colour, border = NA)
+    } else if (identical(entry$type, "marker")) {
+      graphics::points(to_x(x0 + layout$key / 2), to_y(y), pch = if (is.null(entry$pch)) 19 else entry$pch,
+                       cex = 0.9, col = colour, lwd = 1.5)
     } else {
-      graphics::segments(to_x(x0), to_y(y), to_x(x0 + layout$key), to_y(y), col = colour, lwd = 2.5)
+      graphics::segments(to_x(x0), to_y(y), to_x(x0 + layout$key), to_y(y), col = colour, lwd = 2.5,
+                         lty = if (is.null(entry$lty)) 1 else entry$lty)
       if (identical(entry$type, "point")) graphics::points(to_x(x0 + layout$key / 2), to_y(y), pch = 19, cex = 0.8, col = colour)
     }
     graphics::text(to_x(x0 + layout$key + layout$gap), to_y(y), entry$label, adj = c(0, 0.5), cex = cex, col = colours$font)
@@ -905,4 +910,266 @@ dft_cdf_series <- function(data, colours = dft_model_palette[seq_along(data$fitt
                 names(data$fitted), data$fitted, colours)
   c(list(list(name = "Empirical", x = data$x, y = data$empirical, colour = "empirical", step = TRUE, lwd = 2.5)),
     unname(fitted))
+}
+
+# ---------------------------------------------------------------- To the simulator
+
+# The models the tool can send to the simulator, as the "To the simulator" tab
+# offers them: the label shown, and the tab whose fit each one uses.
+dft_export_frequency_models <- c("Poisson" = "frequency", "Negative Binomial" = "frequency")
+dft_export_severity_models <- c(
+  "Normal" = "severity", "LogNormal" = "severity", "Exponential" = "severity",
+  "Gamma" = "severity", "Pareto" = "severity",
+  "LogNormal - Pareto" = "sliced", "LogNormal - Pareto - Pareto" = "sliced",
+  "Piecewise Pareto" = "piecewise"
+)
+
+# The settings that put a fitted model into the claims simulator, as a settings
+# file of the simulator holds them (sim_settings_input_ids()), so that the file
+# loads with its "Load settings" button.
+#
+# `frequency` is NULL (the simulator's frequency is left as it is) or a list with
+# `model` ("Poisson" or "Negative Binomial") and its fitted parameters: `lambda`,
+# or `size` and `mu` as fitdistrplus and the Frequency tab give them; the
+# simulator's Negative Binomial is a Poisson-Gamma mixture with shape r and scale
+# beta, so r = size and beta = mu / size.
+#
+# `severity` is NULL or a list with `model` ("Normal", "LogNormal",
+# "Exponential", "Gamma" or "Pareto"), its parameters (`mean` and `sd`; `mu` and
+# `sigma`; `mean`; `shape` and `scale`; `xm` and `alpha`) and optionally
+# `slices`, a data frame of increasing thresholds `x_m` and their `alpha`: above
+# each threshold the claims follow a Pareto with that alpha, which is the
+# simulator's splice (pareto_splice()) and the tool's sliced and piecewise
+# models alike. A severity without slices sets the number of slices to 0.
+#
+# `frequency_share` is the share of all claims that the counts count: for a
+# severity fitted to claims reported above a threshold, the counts are of those
+# claims, a share S(d) of all claims, while the simulator draws all claims from
+# its severity. Each claim being reported with probability p, a Poisson(lambda)
+# count of all claims gives a Poisson(p lambda) count of reported ones, and a
+# Negative Binomial(r, beta) one a Negative Binomial(r, p beta); so lambda and
+# beta are divided by the share.
+#
+# Every parameter must be a positive, finite number (a Normal mean any finite
+# number); otherwise it stops with a message naming the parameter.
+dft_simulator_settings <- function(frequency = NULL, severity = NULL, frequency_share = 1) {
+  if (!(is.numeric(frequency_share) && length(frequency_share) == 1 && is.finite(frequency_share) &&
+        frequency_share > 0 && frequency_share <= 1)) {
+    stop("The share of claims that the counts count must be above 0 and at most 1.", call. = FALSE)
+  }
+  values <- list()
+  check <- function(x, what, positive = TRUE) {
+    if (!is.numeric(x) || length(x) != 1 || !is.finite(x) || (positive && x <= 0)) {
+      stop(what, " is ", if (is.numeric(x) && length(x) == 1 && is.finite(x)) dft_fmt(x) else "not a finite number",
+           ", which the simulator does not accept", if (positive) "; it needs a positive number" else "", ".", call. = FALSE)
+    }
+    unname(x)
+  }
+  if (!is.null(frequency)) {
+    values <- switch(
+      frequency$model,
+      "Poisson" = list(freqDistr = "Poisson", lamda = check(frequency$lambda, "The Poisson lambda") / frequency_share),
+      "Negative Binomial" = {
+        size <- check(frequency$size, "The Negative Binomial size")
+        list(freqDistr = "Negative_Binomial", r = size,
+             beta = check(frequency$mu, "The Negative Binomial mean") / size / frequency_share)
+      },
+      stop("The simulator has no ", frequency$model, " frequency.", call. = FALSE)
+    )
+  }
+  if (!is.null(severity)) {
+    sev <- switch(
+      severity$model,
+      "Normal" = list(sevDistr = "Normal", normal_mean = check(severity$mean, "The Normal mean", positive = FALSE),
+                      normal_sd = check(severity$sd, "The Normal standard deviation")),
+      "LogNormal" = list(sevDistr = "LogNormal", mu = check(severity$mu, "The LogNormal mu", positive = FALSE),
+                         sigma = check(severity$sigma, "The LogNormal sigma")),
+      "Exponential" = list(sevDistr = "Exponential", rate = 1 / check(severity$mean, "The Exponential mean")),
+      "Gamma" = list(sevDistr = "Gamma", shape = check(severity$shape, "The Gamma shape"),
+                     scale = check(severity$scale, "The Gamma scale")),
+      #(x_m before alpha, as the simulator shows them)
+      "Pareto" = list(sevDistr = "Pareto", x_m = check(severity$xm, "The Pareto x_m"),
+                      alpha = check(severity$alpha, "The Pareto alpha")),
+      stop("The simulator has no ", severity$model, " severity.", call. = FALSE)
+    )
+    slices <- severity$slices
+    k <- if (is.null(slices)) 0L else nrow(slices)
+    if (k > max_number_of_pareto_slices) {
+      stop("The simulator takes at most ", max_number_of_pareto_slices, " Pareto slices; this model has ", k, ".", call. = FALSE)
+    }
+    if (k > 1 && any(diff(slices$x_m) <= 0)) stop("The slice thresholds must increase.", call. = FALSE)
+    sev$pareto_slice_times <- k
+    #the simulator's slice fields: alpha in the odd ones, the threshold in the even ones (the
+    #threshold written first, as the simulator shows it)
+    for (j in seq_len(k)) {
+      sev[[paste0("slice_pareto_param_", 2 * j)]] <- check(slices$x_m[j], paste("Slice", j, "threshold"))
+      sev[[paste0("slice_pareto_param_", 2 * j - 1)]] <- check(slices$alpha[j], paste("Slice", j, "alpha"))
+    }
+    values <- c(values, sev)
+  }
+  values
+}
+
+# The piecewise Pareto of the Piecewise Pareto tab, from thresholds `t` (the
+# first the smallest claim) and their alphas, as the simulator's severity: a
+# Pareto from the first threshold, with a slice at each later one.
+dft_piecewise_severity <- function(t, alpha) {
+  k <- length(t)
+  list(model = "Pareto", xm = t[1], alpha = alpha[1],
+       slices = if (k > 1) data.frame(x_m = t[-1], alpha = alpha[-1]))
+}
+
+# A summary of exported settings for the "To the simulator" tab: one row per
+# setting, its label in the simulator and its value.
+dft_simulator_settings_rows <- function(values) {
+  labels <- c(
+    freqDistr = "Frequency distribution", lamda = "lambda (mean claims)", r = "r (shape)", beta = "beta (scale)",
+    sevDistr = "Severity distribution", normal_mean = "Mean", normal_sd = "Standard deviation",
+    mu = "mu", sigma = "sigma", rate = "rate", shape = "shape", scale = "scale",
+    x_m = "x_m (minimum)", alpha = "alpha (shape)", pareto_slice_times = "Number of Pareto slices"
+  )
+  shown <- c(Negative_Binomial = "Negative Binomial")
+  rows <- list()
+  for (id in names(values)) {
+    value <- values[[id]]
+    slice <- regmatches(id, regexec("^slice_pareto_param_([0-9]+)$", id))[[1]]
+    label <- if (length(slice) == 2) {
+      i <- as.integer(slice[2])
+      paste("Slice", (i + 1) %/% 2, if (i %% 2 == 1) "alpha" else "threshold (x_m)")
+    } else labels[[id]]
+    text <- if (is.character(value)) (if (value %in% names(shown)) shown[[value]] else value) else dft_fmt(value, 6)
+    rows[[length(rows) + 1]] <- list(label, text)
+  }
+  rows
+}
+
+# ------------------------------------------------- Claims reported above a threshold
+
+# Maximum likelihood fits of the Severity tab's distributions to claims `x`
+# that are known only above a reporting threshold `d` > 0 (left truncated
+# data): each claim's density is divided by the fitted probability of
+# exceeding d, f(x) / S(d), so the fit is of the claims from zero (ground up)
+# without the claims below d that the data cannot hold.
+#
+# Returns the models in the form of the Severity tab: `name`, `params` (of the
+# ground-up distribution, named as the untruncated fits name them), `mean` (the
+# fitted mean of a claim above d, which the empirical mean estimates), `cdf`
+# (the fitted cdf of a claim above d, for the charts and the K-S distance),
+# `loglik` (of the truncated likelihood), `k` and `survival_at_threshold`
+# (S(d), the share of all claims that exceed d). A fit that fails has NA
+# parameters and no cdf, and its message is in the `failed` attribute.
+dft_truncated_severity_models <- function(x, d) {
+  n <- length(x)
+  if (!(is.numeric(d) && length(d) == 1 && is.finite(d) && d > 0)) stop("the threshold must be a positive number")
+  if (n < 2 || any(x <= d)) stop("the claims must all be above the threshold")
+  failed <- character()
+  # the fit from minus the log-likelihood over unconstrained parameters: Nelder-Mead from the
+  # starting point, then BFGS from where it stops
+  optimise <- function(nll, start, parscale) {
+    guarded <- function(p) {
+      v <- nll(p)
+      if (is.finite(v)) v else 1e300
+    }
+    fit <- stats::optim(start, guarded, control = list(maxit = 5000, reltol = 1e-14, parscale = parscale))
+    polished <- tryCatch(stats::optim(fit$par, guarded, method = "BFGS",
+                                      control = list(maxit = 1000, reltol = 1e-14, parscale = parscale)),
+                         error = function(e) fit)
+    if (polished$value <= fit$value) fit <- polished
+    if (fit$convergence != 0 || fit$value >= 1e300) stop("the optimisation did not converge")
+    fit$par
+  }
+  # a model from its log survival function, density and ground-up parameters. (Each fit is
+  # made in local(): tryCatch() evaluates in this function's frame, where the closures of one
+  # fit would see the parameters of the next.) A fit that leaves almost no claims above the
+  # threshold has run to the edge of its parameters: the claims above the threshold have a
+  # heavier tail than any of its distributions, and the claims below it are not fitted at all
+  model <- function(name, params, log_survival, log_density, mean_above, k = 2, optimised = TRUE) {
+    log_s_d <- log_survival(d)
+    if (optimised && (!is.finite(log_s_d) || log_s_d < log(1e-9))) {
+      stop("the claims above the threshold have a heavier tail than any ", name, ", and the fit runs to the edge of ",
+           "its parameters, leaving almost no claims above the threshold", call. = FALSE)
+    }
+    list(name = name, params = params, mean = mean_above, k = k,
+         cdf = function(q) ifelse(q <= d, 0, -expm1(log_survival(pmax(q, d)) - log_s_d)),
+         loglik = sum(log_density(x)) - n * log_s_d, survival_at_threshold = exp(log_s_d))
+  }
+  failed_model <- function(name, params, e) {
+    failed <<- c(failed, paste0(name, " fit above the threshold failed: ", conditionMessage(e)))
+    list(name = name, params = params, mean = NA_real_, k = 2, cdf = NULL, loglik = NA_real_,
+         survival_at_threshold = NA_real_)
+  }
+
+  normal <- tryCatch(local({
+    s0 <- stats::sd(x)
+    p <- optimise(function(p) -(sum(stats::dnorm(x, p[1], exp(p[2]), log = TRUE)) -
+                                  n * stats::pnorm(d, p[1], exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
+                  c(mean(x), log(s0)), c(s0, 1))
+    mu <- p[1]
+    sigma <- exp(p[2])
+    a <- (d - mu) / sigma
+    # E[X | X > d] = mu + sigma phi(a) / (1 - Phi(a)), its ratio from the logs for a far tail
+    model("Normal", c(Mean = mu, `Std. dev.` = sigma),
+          function(q) stats::pnorm(q, mu, sigma, lower.tail = FALSE, log.p = TRUE),
+          function(q) stats::dnorm(q, mu, sigma, log = TRUE),
+          mu + sigma * exp(stats::dnorm(a, log = TRUE) - stats::pnorm(a, lower.tail = FALSE, log.p = TRUE)))
+  }), error = function(e) failed_model("Normal", c(Mean = NA_real_, `Std. dev.` = NA_real_), e))
+
+  lnorm <- tryCatch(local({
+    lx <- log(x)
+    p <- optimise(function(p) -(sum(stats::dlnorm(x, p[1], exp(p[2]), log = TRUE)) -
+                                  n * stats::plnorm(d, p[1], exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
+                  c(mean(lx), log(stats::sd(lx))), c(1, 1))
+    mu <- p[1]
+    sigma <- exp(p[2])
+    model("LogNormal", c(mu = mu, sigma = sigma),
+          function(q) stats::plnorm(q, mu, sigma, lower.tail = FALSE, log.p = TRUE),
+          function(q) stats::dlnorm(q, mu, sigma, log = TRUE),
+          exp(mu + sigma^2 / 2 + stats::pnorm((log(d) - mu - sigma^2) / sigma, lower.tail = FALSE, log.p = TRUE) -
+                stats::pnorm((log(d) - mu) / sigma, lower.tail = FALSE, log.p = TRUE)))
+  }), error = function(e) failed_model("LogNormal", c(mu = NA_real_, sigma = NA_real_), e))
+
+  # (memoryless: the excess over the threshold is Exponential with the same rate)
+  rate <- 1 / (mean(x) - d)
+  exponential <- model("Exponential", c(Mean = 1 / rate),
+                       function(q) stats::pexp(q, rate, lower.tail = FALSE, log.p = TRUE),
+                       function(q) stats::dexp(q, rate, log = TRUE), mean(x), k = 1, optimised = FALSE)
+
+  gamma <- tryCatch(local({
+    start <- fit_gamma_profile(x)$estimate
+    p <- optimise(function(p) -(sum(stats::dgamma(x, shape = exp(p[1]), scale = exp(p[2]), log = TRUE)) -
+                                  n * stats::pgamma(d, shape = exp(p[1]), scale = exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
+                  log(c(start[["shape"]], start[["scale"]])), c(1, 1))
+    shape <- exp(p[1])
+    scale <- exp(p[2])
+    model("Gamma", c(Scale = scale, Shape = shape),
+          function(q) stats::pgamma(q, shape = shape, scale = scale, lower.tail = FALSE, log.p = TRUE),
+          function(q) stats::dgamma(q, shape = shape, scale = scale, log = TRUE),
+          # E[X | X > d] = shape scale S_{shape + 1}(d) / S_shape(d)
+          shape * scale * exp(stats::pgamma(d, shape = shape + 1, scale = scale, lower.tail = FALSE, log.p = TRUE) -
+                                stats::pgamma(d, shape = shape, scale = scale, lower.tail = FALSE, log.p = TRUE)))
+  }), error = function(e) failed_model("Gamma", c(Scale = NA_real_, Shape = NA_real_), e))
+
+  # a Pareto from the threshold, whose claims all exceed it
+  alpha <- n / sum(log(x / d))
+  pareto <- model("Pareto", c(xm = d, alpha = alpha),
+                  function(q) ifelse(q <= d, 0, alpha * (log(d) - log(q))),
+                  function(q) log(alpha) + alpha * log(d) - (alpha + 1) * log(q),
+                  if (alpha > 1) alpha * d / (alpha - 1) else Inf, optimised = FALSE)
+
+  structure(list(normal, lnorm, exponential, gamma, pareto), failed = failed)
+}
+
+# The note under the Severity tab's table on the fits above a threshold that
+# failed (the `failed` messages of dft_truncated_severity_models()): those that
+# run to the edge of their parameters together, any other failure as it is.
+dft_failed_fits_note <- function(failed) {
+  if (length(failed) == 0) return("")
+  names <- sub(" fit above the threshold failed: .*$", "", failed)
+  edge <- grepl("heavier tail than any", failed, fixed = TRUE)
+  either <- function(x) if (length(x) == 1) x else paste(paste(x[-length(x)], collapse = ", "), "or", x[length(x)])
+  paste0(
+    if (any(edge)) paste0(" No ", either(names[edge]), " fits: the claims above the threshold have a heavier tail than any ",
+                          either(names[edge]), ", whose fit runs to the edge of its parameters."),
+    if (any(!edge)) paste0(" ", paste0(failed[!edge], ".", collapse = " "))
+  )
 }

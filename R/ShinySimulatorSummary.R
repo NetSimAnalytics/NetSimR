@@ -138,6 +138,7 @@ summarise_simulation <- function(settings, results) {
   column_or_null <- function(name) if (name %in% names(results)) as.numeric(results[[name]]) else NULL
   gross <- column_or_null("gross_claims")
   reinstatements_used <- column_or_null("number_of_reinstatements_used")
+  reinstatement_premiums <- column_or_null("reinstatement_premium")
 
   is_blank <- function(x) is.null(x) || length(x) == 0 || all(is.na(x))
   is_number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
@@ -321,6 +322,14 @@ summarise_simulation <- function(settings, results) {
       reinstatements_all_used_prob <- mean(reinstatements_used >= reinstatement_limit * (1 - 1e-9))
     }
 
+    #with an upfront premium, the reinstatements used are priced (simulate_function adds the
+    #column); the figures a layer's price is quoted on
+    premium <- s$reinsurance_structure_eel_premium
+    priced <- reinstatements_limited && !is.null(reinstatement_premiums) && is_number(premium)
+    upfront_premium <- if (priced) premium else NA_real_
+    expected_reinstatement_premium <- if (priced) mean(reinstatement_premiums) else NA_real_
+    expected_total_premium <- upfront_premium + expected_reinstatement_premium
+
     layer <- list(
       hit_prob = mean(hit),
       avg_loss_when_hit = if (any(hit)) mean(totals[hit]) else NA_real_,
@@ -332,7 +341,13 @@ summarise_simulation <- function(settings, results) {
       exhaust_prob = exhaust_prob,
       reinstatements_avg = reinstatements_avg,
       reinstatements_all_used_prob = reinstatements_all_used_prob,
-      reinstatement_limit = reinstatement_limit
+      reinstatement_limit = reinstatement_limit,
+      upfront_premium = upfront_premium,
+      rate_on_line = if (priced && is_number(eel_limit) && eel_limit > 0) premium / eel_limit else NA_real_,
+      reinstatement_rates = if (priced) s$reinsurance_structure_eel_reinstatement_rates else NULL,
+      expected_reinstatement_premium = expected_reinstatement_premium,
+      expected_total_premium = expected_total_premium,
+      expected_loss_ratio = if (priced && expected_total_premium > 0) totals_mean / expected_total_premium else NA_real_
     )
   }
 

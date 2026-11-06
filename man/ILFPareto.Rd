@@ -2,9 +2,12 @@
 % Please edit documentation in R/Pareto.R
 \name{ILFPareto}
 \alias{ILFPareto}
+\alias{ilf_pareto}
 \title{Increased Limit Factor Curve from a Pareto severity distribution}
 \usage{
 ILFPareto(xLow, xHigh, scale, shape)
+
+ilf_pareto(xLow, xHigh, scale, shape)
 }
 \arguments{
 \item{xLow}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}

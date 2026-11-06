@@ -91,7 +91,7 @@ The code steps are:
 
 The example suggests that the proposed method outperforms the market approach on LogNormal distribution. The one-way benefit will not be significant on a Gamma distribution, but when we move to a GLM and the model relativities are larger, the capped mean benefit may also be significant.
 
-```{r capped mean example, eval=requireNamespace("crch", quietly = TRUE)}
+```{r capped mean example}
 library("NetSimR")
 
 #Set parameters
@@ -124,21 +124,30 @@ lmLinear<-lm(log(z)~1)
 summary(lmLinear)
 
 
-#fit right censored regression
-lmCensored<-crch::crch(log(z)~1, right = log(Cap), link.scale="identity", dist = "gaussian")
-summary(lmCensored)
+#fit a right censored normal model to log(z) by maximum likelihood: an uncapped claim
+#contributes its density, a capped one the probability of a claim above the cap
+censoredLogLik <- function(par, y, cap) {
+  mu <- par[1]
+  sigma <- exp(par[2])
+  capped <- y >= cap
+  sum(dnorm(y[!capped], mu, sigma, log = TRUE)) +
+    sum(capped) * pnorm(cap, mu, sigma, lower.tail = FALSE, log.p = TRUE)
+}
+fit <- optim(c(mean(log(z)), log(sd(log(z)))), function(par) -censoredLogLik(par, log(z), log(Cap)),
+             method = "BFGS")
+censored <- c(mu = fit$par[1], sigma = exp(fit$par[2]))
 
 
 #Compare regression outputs
 cbind(coefficients(lmLinear),summary(lmLinear)$sigma)
-coefficients(lmCensored)
+censored
 
 
 #Compare regressions' attritional capped cost to empirical
 round(cbind(
   Empirical=mean(z)
   ,LinearModel=exp(coefficients(lmLinear)+0.5*summary(lmLinear)$sigma*summary(lmLinear)$sigma)
-  ,CensoredModel=LNormCappedMean(Cap,coefficients(lmCensored)[1],coefficients(lmCensored)[2])
+  ,CensoredModel=LNormCappedMean(Cap,censored[["mu"]],censored[["sigma"]])
 ),0)
 ```
 

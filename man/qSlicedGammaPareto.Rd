@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdGammaPareto.R
 \name{qSlicedGammaPareto}
 \alias{qSlicedGammaPareto}
+\alias{qsliced_gamma_pareto}
 \title{The inverse cumulative distribution function of a Sliced Gamma Pareto severity distribution}
 \usage{
 qSlicedGammaPareto(q, GShape, GRate, SlicePoint, PShape)
+
+qsliced_gamma_pareto(q, GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
 \item{q}{A real number between 0 and 1 -  the probability where the inverse cumulative distribution function will be evaluated. Values outside [0, 1] give \code{NaN} with a warning, as in \code{qgamma()}.}

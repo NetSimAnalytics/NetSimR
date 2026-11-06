@@ -2,9 +2,12 @@
 % Please edit documentation in R/LogNormal.R
 \name{ILFLNorm}
 \alias{ILFLNorm}
+\alias{ilf_lnorm}
 \title{Increased Limit Factor Curve from a LogNormal severity distribution}
 \usage{
 ILFLNorm(xLow, xHigh, mu, sigma)
+
+ilf_lnorm(xLow, xHigh, mu, sigma)
 }
 \arguments{
 \item{xLow}{A non-negative real number -  the claim amount where the Increased Limit Factor Curve will be evaluated from.}

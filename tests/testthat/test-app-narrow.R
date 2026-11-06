@@ -1,4 +1,4 @@
-#Browser tests of the three tools at a phone's width (helpers in helper-app.R): the header
+#Browser tests of the four tools at a phone's width (helpers in helper-app.R): the header
 #fits, and no page scrolls sideways
 
 expect_fits_narrow_window <- function(tool, tab, then = NULL) {
@@ -81,4 +81,8 @@ test_that("the distribution fitting tool fits a 360 px window", {
 
 test_that("the GLM fitting tool fits a 360 px window", {
   expect_fits_narrow_window("glm", "model")
+})
+
+test_that("the reserving tool fits a 360 px window", {
+  expect_fits_narrow_window("reserving", "ultimates")
 })

@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdGammaPareto.R
 \name{SlicedGammaParetoCappedMean}
 \alias{SlicedGammaParetoCappedMean}
+\alias{sliced_gamma_pareto_capped_mean}
 \title{Sliced Gamma Pareto capped mean}
 \usage{
 SlicedGammaParetoCappedMean(cap, GShape, GRate, SlicePoint, PShape)
+
+sliced_gamma_pareto_capped_mean(cap, GShape, GRate, SlicePoint, PShape)
 }
 \arguments{
 \item{cap}{A non-negative real number -  the claim severity cap.}

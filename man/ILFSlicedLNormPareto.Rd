@@ -2,9 +2,12 @@
 % Please edit documentation in R/SlicecdLogNormalPareto.R
 \name{ILFSlicedLNormPareto}
 \alias{ILFSlicedLNormPareto}
+\alias{ilf_sliced_lnorm_pareto}
 \title{Increased Limit Factor Curve from a Sliced LogNormal Pareto severity distribution}
 \usage{
 ILFSlicedLNormPareto(xLow, xHigh, mu, sigma, SlicePoint, shape)
+
+ilf_sliced_lnorm_pareto(xLow, xHigh, mu, sigma, SlicePoint, shape)
 }
 \arguments{
 \item{xLow}{A non-negative real number -  the claim amount where the Limit Factor Curve will be evaluated from.}

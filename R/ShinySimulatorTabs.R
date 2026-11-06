@@ -135,14 +135,14 @@ sim_tab_describe_settings <- function(s) {
     )
   }
 
-  eel <- structure_text(s$reinsuranceStructureEEL, s$reinsurance_structure_eel_dedctible_amount,
+  eel <- structure_text(s$reinsuranceStructureEEL, s$reinsurance_structure_eel_deductible_amount,
                         s$reinsurance_structure_eel_limit_amount)
   if (identical(s$reinsuranceStructureEEL, "Limited Layer") &&
       isTRUE(s$reinsuranceStructureLimitedReinstatements) &&
       is_number(s$reinsuranceStructureReinstatementLimit)) {
     eel <- paste0(eel, " (", fmt(s$reinsuranceStructureReinstatementLimit), " reinst.)")
   }
-  al <- structure_text(s$reinsuranceStructureAL, s$reinsurance_structure_al_dedctible_amount,
+  al <- structure_text(s$reinsuranceStructureAL, s$reinsurance_structure_al_deductible_amount,
                        s$reinsurance_structure_al_limit_amount)
 
   #only the Normal distribution can be truncated at zero; older settings lists lack the field

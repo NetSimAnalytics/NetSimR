@@ -84,9 +84,9 @@ test_that("combinations without a reinstatement capacity and an aggregate layer 
 })
 
 test_that("the summary capacity is the reinstatement capacity within the aggregate limit", {
-  settings <- layered_settings(reinsurance_structure_eel_limit_amount = 100, reinsurance_structure_eel_dedctible_amount = 0,
+  settings <- layered_settings(reinsurance_structure_eel_limit_amount = 100, reinsurance_structure_eel_deductible_amount = 0,
                                reinsuranceStructureReinstatementLimit = 0,
-                               reinsurance_structure_al_dedctible_amount = 50, reinsurance_structure_al_limit_amount = 1000,
+                               reinsurance_structure_al_deductible_amount = 50, reinsurance_structure_al_limit_amount = 1000,
                                freqDistr = "Fixed_number_of_Counts", freq_params = 3,
                                sevDistr = "Fixed_Severity", sev_params = 100, numOfSimulations = 20)
   res <- do.call(simulate_function, settings)

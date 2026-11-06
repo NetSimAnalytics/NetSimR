@@ -11,60 +11,36 @@
 #'   session; the value is not used.
 #' @keywords internal
 #' @import shiny
-#' @importFrom future plan
-#' @importFrom future sequential
-#' @importFrom future multisession
 #' @import methods
 #' @import stats
 #' @import utils
 shiny_simulator_server <- function(input, output, session) {
-  #the future plan in effect when the app starts; the app puts it back when the session
-  #ends or a worker breaks, and only shuts down workers that it started itself
-  original_plan <- future::plan()
-  app_started_workers <- FALSE
-  #the socket connections open in this R session: their descriptions, keyed by connection
-  #number and description together (a reused number gets a fresh key)
-  open_socket_connections <- function() {
-    connections <- showConnections(all = TRUE)
-    is_socket <- connections[, "class"] == "sockconn"
-    descriptions <- connections[is_socket, "description"]
-    stats::setNames(descriptions, paste(rownames(connections)[is_socket], descriptions))
-  }
-  sockets_before_workers <- character(0)
-  restore_original_plan <- function() {
-    if (!app_started_workers) return(invisible(FALSE))
-    app_started_workers <<- FALSE
-    #the connections open just before the plan is shut down, minus the ones open before the
-    #workers started; if a worker died during a run, future replaced it at once but the plan
-    #knows only its original workers, so the replacement's connection is left open (and its
-    #process alive) for the garbage collector to close later, with a warning
-    worker_sockets <- open_socket_connections()
-    worker_sockets <- worker_sockets[!(names(worker_sockets) %in% names(sockets_before_workers))]
-    future::plan(original_plan)
-    #close any of those the plan's shutdown left behind, which ends the stray worker; the
-    #connection number is read back from the key, and only worker connections are touched
-    for (key in names(worker_sockets)) {
-      number <- as.integer(sub(" .*", "", key))
-      still_open <- open_socket_connections()
-      if (key %in% names(still_open)) tryCatch(close(getConnection(number)), error = function(e) NULL)
-    }
+  #the parallel workers of the session (a socket cluster of the parallel package): started
+  #once, when multiprocessing is switched on, so that every run reuses the warm workers
+  #instead of paying the start-up cost each time; shut down when the session ends, or when
+  #a worker fails, and the next run starts fresh ones
+  workers <- NULL
+  stop_parallel_workers <- function() {
+    if (is.null(workers)) return(invisible(FALSE))
+    cluster <- workers
+    workers <<- NULL
+    netsimr_stop_workers(cluster)
     invisible(TRUE)
   }
-  session$onSessionEnded(restore_original_plan)
+  session$onSessionEnded(stop_parallel_workers)
 
-  #start the parallel workers once, when multiprocessing is switched on, so that every
-  #run reuses the warm workers instead of paying the start-up cost each time;
-  #a multi-worker plan that the user has set is used as it is
   start_parallel_workers <- function() {
-    if (future::nbrOfWorkers() > 1) return(invisible(FALSE))
+    if (!is.null(workers)) return(invisible(FALSE))
     showNotification("Starting parallel workers...", type = "message", duration = 3, id = "parallel_workers_notice")
-    sockets_before_workers <<- open_socket_connections()
-    future::plan(future::multisession)
-    app_started_workers <<- TRUE
+    workers <<- netsimr_start_workers()
     invisible(TRUE)
   }
   observeEvent(input$multiprocessingBinary, {
-    if (isTRUE(input$multiprocessingBinary)) start_parallel_workers()
+    if (isTRUE(input$multiprocessingBinary)) {
+      tryCatch(start_parallel_workers(), error = function(e) {
+        showNotification(paste("The parallel workers could not be started:", conditionMessage(e)), type = "error", duration = NULL)
+      })
+    }
   })
 
   #the last value of each input that the server rebuilds (distribution parameters, the seed,
@@ -79,9 +55,10 @@ shiny_simulator_server <- function(input, output, session) {
     unlist(lapply(freq_dist_options, function(x) x@paramIDs), use.names = FALSE)
     ,unlist(lapply(sev_dist_options, function(x) x@paramIDs), use.names = FALSE)
     ,"seedValue", "sev_cap_amount"
-    ,"reinsurance_structure_eel_dedctible_amount", "reinsurance_structure_eel_limit_amount"
+    ,"reinsurance_structure_eel_deductible_amount", "reinsurance_structure_eel_limit_amount"
     ,"reinsuranceStructureLimitedReinstatements", "reinsuranceStructureReinstatementLimit"
-    ,"reinsurance_structure_al_dedctible_amount", "reinsurance_structure_al_limit_amount"
+    ,"reinsurance_structure_eel_premium", "reinsurance_structure_eel_reinstatement_rate_pct"
+    ,"reinsurance_structure_al_deductible_amount", "reinsurance_structure_al_limit_amount"
   ))
   lapply(remembered_ids, function(id) {
     #a cleared field (NA) is remembered too; a field that is not on the page (NULL) is not
@@ -249,8 +226,8 @@ shiny_simulator_server <- function(input, output, session) {
   #reinsurance structure EEL inputs
   output$reinsuranceStructureDeductibleEEL <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      sim_amount_input('reinsurance_structure_eel_dedctible_amount', 'EEL Deductible Amount',
-                       value = last_typed('reinsurance_structure_eel_dedctible_amount'), min = 0)
+      sim_amount_input('reinsurance_structure_eel_deductible_amount', 'EEL Deductible Amount',
+                       value = last_typed('reinsurance_structure_eel_deductible_amount'), min = 0)
     }
   })
 
@@ -272,8 +249,19 @@ shiny_simulator_server <- function(input, output, session) {
     req(input$reinsuranceStructureLimitedReinstatements)
     if (input$reinsuranceStructureEEL %in% c('Limited Layer')) {
       if(input$reinsuranceStructureLimitedReinstatements) {
-        numericInput('reinsuranceStructureReinstatementLimit', 'Number of Reinstatements',
-                     value = last_typed('reinsuranceStructureReinstatementLimit'), min = 0)
+        tagList(
+          numericInput('reinsuranceStructureReinstatementLimit', 'Number of Reinstatements',
+                       value = last_typed('reinsuranceStructureReinstatementLimit'), min = 0),
+          #an optional upfront premium prices the reinstatements used
+          div(
+            class = "param-grid",
+            sim_amount_input('reinsurance_structure_eel_premium', 'Upfront premium (optional)',
+                             value = last_typed('reinsurance_structure_eel_premium'), min = 0),
+            numericInput('reinsurance_structure_eel_reinstatement_rate_pct', 'Reinstatement rate (% of upfront)',
+                         value = last_typed('reinsurance_structure_eel_reinstatement_rate_pct', 100), min = 0)
+          ),
+          helpText("With an upfront premium, the results price the reinstatements used, pro rata to the amount reinstated.")
+        )
       }
     }
   })
@@ -281,8 +269,8 @@ shiny_simulator_server <- function(input, output, session) {
   #reinsurance structure AL inputs
   output$reinsuranceStructureDeductibleAL <- renderUI({
     if (input$reinsuranceStructureAL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      sim_amount_input('reinsurance_structure_al_dedctible_amount', 'AL Deductible Amount',
-                       value = last_typed('reinsurance_structure_al_dedctible_amount'), min = 0)
+      sim_amount_input('reinsurance_structure_al_deductible_amount', 'AL Deductible Amount',
+                       value = last_typed('reinsurance_structure_al_deductible_amount'), min = 0)
     }
   })
 
@@ -354,15 +342,22 @@ shiny_simulator_server <- function(input, output, session) {
       ,sevCapBinary = input$sevCapBinary
       ,sev_cap_amount = input$sev_cap_amount
       ,reinsuranceStructureEEL = input$reinsuranceStructureEEL
-      ,reinsurance_structure_eel_dedctible_amount = input$reinsurance_structure_eel_dedctible_amount
+      ,reinsurance_structure_eel_deductible_amount = input$reinsurance_structure_eel_deductible_amount
       ,reinsurance_structure_eel_limit_amount = input$reinsurance_structure_eel_limit_amount
       ,reinsuranceStructureAL = input$reinsuranceStructureAL
-      ,reinsurance_structure_al_dedctible_amount = input$reinsurance_structure_al_dedctible_amount
+      ,reinsurance_structure_al_deductible_amount = input$reinsurance_structure_al_deductible_amount
       ,reinsurance_structure_al_limit_amount = input$reinsurance_structure_al_limit_amount
       ,multiprocessing = input$multiprocessingBinary
       ,sevTruncateAtZero = isTRUE(input$sevTruncateAtZero) && input$sevDistr == "Normal"
       ,reinsuranceStructureLimitedReinstatements = input$reinsuranceStructureLimitedReinstatements
       ,reinsuranceStructureReinstatementLimit = input$reinsuranceStructureReinstatementLimit
+      #the premium is optional: an empty field (NA) is no premium; the rate is typed in %
+      ,reinsurance_structure_eel_premium = input$reinsurance_structure_eel_premium
+      ,reinsurance_structure_eel_reinstatement_rates = input$reinsurance_structure_eel_reinstatement_rate_pct / 100
+      #the largest claim of each period, for the report's occurrence exceedance (OEP); left out of
+      #runs of more than 20 million claims, where drawing every claim would take many seconds
+      ,largest_claims = sim_wants_largest_claims(tryCatch(freq_moments()[["mean"]], error = function(e) NA),
+                                                 input$numberOfSimulations)
     )
 
     #stop before running and tell the user which fields are empty
@@ -383,15 +378,14 @@ shiny_simulator_server <- function(input, output, session) {
 
     on.exit(gc(), add = TRUE)
 
-    #workers may have been shut down after a worker broke; make sure they are up before a parallel run
-    if (isTRUE(new_settings$multiprocessing)) start_parallel_workers()
-
     #run simmulations
     results <- tryCatch(
       {
         if (isTRUE(new_settings$multiprocessing)) {
+          #workers may have been shut down after a worker failed; make sure they are up
+          start_parallel_workers()
           showNotification("Running the simulations on the parallel workers...", type = "message", duration = 3, id = "parallel_run_notice")
-          do.call(simulate_function, new_settings)
+          do.call(simulate_function, c(new_settings, list(workers = workers)))
         } else {
           #sequential runs report their progress chunk by chunk
           shiny::withProgress(message = "Simulating", value = 0, {
@@ -402,10 +396,10 @@ shiny_simulator_server <- function(input, output, session) {
         }
       }, error = function(cond) {
         #an error raised by the simulation itself (a parameter out of range, an overflow) is
-        #re-signalled by future with its own class and leaves the workers healthy, so they
-        #stay warm for the next run; a FutureError means a worker died or its connection was
-        #lost, so the ones the app started are shut down and the next run starts fresh ones
-        if (inherits(cond, "FutureError")) restore_original_plan()
+        #caught on its worker, which stays healthy and warm for the next run; a worker error
+        #means a worker died or its connection was lost, so the workers are shut down and the
+        #next run starts fresh ones
+        if (inherits(cond, "netsimr_worker_error")) stop_parallel_workers()
         showNotification(
           paste("Error:", conditionMessage(cond)),
           type = "error",
