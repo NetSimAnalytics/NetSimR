@@ -6,5 +6,5 @@ Imports: shiny (>= 1.8.1), base64enc, bslib (>= 0.9.0), parallel,
 Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote,
         pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite
 License: GPL-3
-MD5sum: 7bfbb1fbef57e1b083f90a7b64a0c989
+MD5sum: a6a7c560cc8ae71559fb06eae64a7dac
 NeedsCompilation: no
