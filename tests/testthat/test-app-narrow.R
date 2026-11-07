@@ -83,6 +83,23 @@ test_that("the GLM fitting tool fits a 360 px window", {
   expect_fits_narrow_window("glm", "model")
 })
 
+#the reserving tool's other tabs, with the paid and incurred example so that the Paid &
+#incurred tab shows its table, and the Data tab's settings file card
+expect_reserving_tabs_fit <- function(app) {
+  app_goto(app, "data")
+  app_set(app, example = "motor")
+  app$wait_for_js("/With incurred claims/i.test((document.getElementById('data_overview') || {innerText: ''}).innerText)",
+                  timeout = 60 * 1000)
+  expect_no_horizontal_scroll(app, "The data tab of the reserving tool")
+  for (tab in c("development", "munich", "uncertainty")) {
+    app_goto(app, tab)
+    expect_no_horizontal_scroll(app, paste0("The ", tab, " tab of the reserving tool"))
+  }
+  app$wait_for_js("/Total/.test((document.getElementById('one_year_table') || {innerText: ''}).innerText)",
+                  timeout = 60 * 1000)
+  expect_no_horizontal_scroll(app, "The uncertainty tab of the reserving tool, with its tables")
+}
+
 test_that("the reserving tool fits a 360 px window", {
-  expect_fits_narrow_window("reserving", "ultimates")
+  expect_fits_narrow_window("reserving", "ultimates", then = expect_reserving_tabs_fit)
 })
