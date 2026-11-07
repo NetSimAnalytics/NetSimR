@@ -8,8 +8,13 @@ home:
 
 navbar:
   structure:
-    left: [intro, reference, articles, news]
+    left: [intro, tryonline, reference, articles, news]
     right: [search, github]
+  components:
+    tryonline:
+      text: Try online
+      icon: fa-play
+      href: articles/try-online.html
 
 reference:
 - title: Shiny tools
@@ -19,6 +24,7 @@ reference:
   - run_shiny_distribution_fitting_tool
   - run_shiny_glm_fitting_tool
   - run_shiny_reserving_tool
+  - run_shiny_reinsurance_pricing_tool
 - title: Claims simulation and reinsurance
   desc: Frequency-severity simulation with Pareto tails, caps and layers.
   contents:
@@ -36,6 +42,15 @@ reference:
   - merz_wuthrich
   - munich_chain_ladder
   - as_triangle
+- title: Excess of loss pricing
+  desc: Burning cost, Pareto rating, exposure rating with MBBEFD curves or a claim size distribution, and the technical premium.
+  contents:
+  - burning_cost
+  - pareto_rating
+  - property_exposure_rating
+  - mbbefd_curve
+  - technical_premium
+  - credibility_weight
 - title: Capped means
   contents:
   - GammaCappedMean
@@ -73,6 +88,10 @@ reference:
   - taylor_ashe_triangle
   - quarg_mack
   - simulated_motor_claims
+  - xl_large_losses
+  - xl_premium
+  - xl_property_profile
+  - xl_casualty_profile
 
 articles:
 - title: Articles
@@ -80,6 +99,11 @@ articles:
   contents:
   - SimulateClaims
   - Reserving
+  - ReinsurancePricing
   - CappedMean
   - SlicedDistributions
   - PureIBNR
+- title: Online
+  navbar: ~
+  contents:
+  - articles/try-online

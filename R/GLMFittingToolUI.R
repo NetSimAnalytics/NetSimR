@@ -442,7 +442,9 @@ GLMFittingToolUI <- function(request) {
           "file-import", "Import", "Choose where the data comes from.",
           div(class = "sim-section-label", "Source"),
           div(class = "pill-radio",
-              radioButtons("data_source", NULL, c("CSV file" = "CSV File", "Database" = "Database"),
+              #(a web browser cannot reach a database)
+              radioButtons("data_source", NULL,
+                           if (netsimr_in_browser()) c("CSV file" = "CSV File") else c("CSV file" = "CSV File", "Database" = "Database"),
                            "CSV File", inline = TRUE)),
 
           conditionalPanel(

@@ -197,7 +197,9 @@ test_that("seeded parallel runs give the captured results, on the caller's worke
     settings <- utils::modifyList(case$settings, list(multiprocessing = TRUE, workers = use_shared_workers()))
     expect_captured_run(do.call(simulate_function, settings), case, paste(name, "(caller's workers)"))
   }
-  #given a number of workers, the call starts its own
+  #given a number of workers, the call starts its own (small as the run is)
+  op <- options(NetSimR.parallel_min_claims = 0)
+  on.exit(options(op), add = TRUE)
   case <- captured_runs$layered
   settings <- utils::modifyList(case$settings, list(multiprocessing = TRUE, workers = 2))
   expect_captured_run(do.call(simulate_function, settings), case, "layered (own workers)")
@@ -205,6 +207,8 @@ test_that("seeded parallel runs give the captured results, on the caller's worke
 
 test_that("a parallel call on its own workers leaves no connections open, after an error too", {
   skip_on_cran()
+  op <- options(NetSimR.parallel_min_claims = 0)
+  on.exit(options(op), add = TRUE)
   sockets_before <- open_sockets()
   expect_equal(nrow(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE, workers = 2)), 1000)
   expect_identical(open_sockets(), sockets_before)
@@ -393,6 +397,59 @@ test_that("a cap at or below the deductible cedes nothing with layer-only draws"
   expect_equal(res$total_claims, rep(0, 500))
   expect_gt(mean(res$claim_counts), 2.5)
 })
+
+test_that("a small parallel run stays in the session unless it is given workers or the option says so", {
+  started <- 0
+  local_mocked_bindings(netsimr_start_workers = function(workers = NULL) {
+    started <<- started + 1
+    stop("workers started")
+  })
+  expected <- run_simulation(numOfSimulations = 1000, chunk_size = 250)
+  #a run expected to draw fewer claims than the cut-off runs here, with the same results,
+  #and its progress is reported as in any sequential run
+  calls <- numeric(0)
+  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE,
+                                  progress = function(value, detail) calls <<- c(calls, value)), expected)
+  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE, workers = 2), expected)
+  expect_equal(calls, c(0.25, 0.5, 0.75, 1))
+  expect_identical(started, 0)
+  #the workers argument is still checked
+  expect_error(run_simulation(multiprocessing = TRUE, workers = 0), "workers must be")
+  #with the cut-off at 0 the call starts its own workers, unless the run is a single chunk
+  op <- options(NetSimR.parallel_min_claims = 0)
+  on.exit(options(op), add = TRUE)
+  expect_error(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE), "workers started")
+  expect_identical(started, 1)
+  expect_no_error(run_simulation(numOfSimulations = 200, chunk_size = 250, multiprocessing = TRUE))
+  expect_identical(started, 1)
+  #an invalid option falls back to ten million claims
+  options(NetSimR.parallel_min_claims = "many")
+  expect_identical(netsimr_parallel_min_claims(), 1e7)
+  options(NetSimR.parallel_min_claims = NULL)
+  expect_identical(netsimr_parallel_min_claims(), 1e7)
+  options(NetSimR.parallel_min_claims = 5e6)
+  expect_identical(netsimr_parallel_min_claims(), 5e6)
+  #a large run expected to draw more claims than the cut-off starts its workers
+  expect_error(run_simulation(numOfSimulations = 1000, chunk_size = 250, freq_params = 1e4, multiprocessing = TRUE),
+               "workers started")
+  expect_identical(started, 2)
+})
+
+test_that("a small run on the caller's workers uses them", {
+  skip_on_cran()
+  cluster <- use_shared_workers()
+  real_run_chunks <- run_chunks_on_workers
+  sent <- 0
+  local_mocked_bindings(run_chunks_on_workers = function(cluster, run_chunk, chunk_seeds) {
+    sent <<- sent + 1
+    real_run_chunks(cluster, run_chunk, chunk_seeds)
+  })
+  expected <- run_simulation(numOfSimulations = 1000, chunk_size = 250)
+  expect_identical(sent, 0)
+  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE, workers = cluster), expected)
+  expect_identical(sent, 1)
+})
+
 
 #stop the shared workers (on CRAN the parallel tests are skipped and never start them)
 if (!is.null(shared_workers$cluster)) parallel::stopCluster(shared_workers$cluster)

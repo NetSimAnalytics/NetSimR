@@ -38,8 +38,11 @@ test_that("with a layer, largest_claim is the largest ceded claim, in both ways 
 
 test_that("largest claims are the same in parallel, are checked by simulate_claims(), and the app asks for them", {
   skip_on_cran()
-  par <- simulate_claims(4000, "Poisson", 3, "LogNormal", c(9, 1.5), seed = 4, largest_claims = TRUE, parallel = TRUE)
-  seq <- simulate_claims(4000, "Poisson", 3, "LogNormal", c(9, 1.5), seed = 4, largest_claims = TRUE)
+  op <- options(NetSimR.parallel_min_claims = 0)
+  on.exit(options(op), add = TRUE)
+  par <- simulate_claims(4000, "Poisson", 3, "LogNormal", c(9, 1.5), seed = 4, largest_claims = TRUE, parallel = TRUE,
+                         chunk_size = 1000, workers = 2)
+  seq <- simulate_claims(4000, "Poisson", 3, "LogNormal", c(9, 1.5), seed = 4, largest_claims = TRUE, chunk_size = 1000)
   expect_identical(par$largest_claim, seq$largest_claim)
   expect_error(simulate_claims(10, "Poisson", 3, "LogNormal", c(9, 1.5), seed = 1, largest_claims = "yes"), "largest_claims")
   #the app asks for them unless a run expects more than 20 million claims

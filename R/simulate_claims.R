@@ -53,7 +53,7 @@
 #' @param agg_layer The aggregate layer: "none" (the default), "unlimited", "limited" or "exclude".
 #' @param agg_deductible The deductible of the aggregate layer.
 #' @param agg_limit The limit of a "limited" or "exclude" aggregate layer.
-#' @param parallel TRUE to run the chunks of simulations on parallel workers. Results are the same as a sequential run.
+#' @param parallel TRUE to run the chunks of simulations on parallel workers. Results are the same as a sequential run. Workers started for the call take a second or two to start, so a run expected to draw fewer than ten million claims runs in the session instead (the option \code{NetSimR.parallel_min_claims} changes that number); a cluster given as \code{workers} is always used. See \code{\link{simulate_function}}.
 #' @param workers The workers of a parallel run: NULL (the default) for one per available core, a number of workers (both started for the call and shut down after it), or a cluster from \code{parallel::makeCluster()}, which is used and left running so that several calls share it. See \code{\link{simulate_function}}.
 #' @param chunk_size The number of simulations per vectorised batch; NULL (the default) chooses it from the expected number of claims, aiming at about a million claims per batch but never fewer than 100 simulations, so batches are larger when the mean frequency exceeds 10,000. Results with a fixed seed depend on it.
 #' @param gross TRUE (the default) to return the gross totals before the layers. FALSE allows a much faster run with an "unlimited" or "limited" each-and-every-loss layer, by drawing only the claims that reach it.

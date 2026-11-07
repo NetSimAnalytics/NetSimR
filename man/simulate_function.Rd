@@ -87,7 +87,7 @@ simulate_function(
 
 \item{reinsurance_structure_eel_reinstatement_rates}{The premium rate of each reinstatement as a share of the upfront premium: one rate for all of them, or one per reinstatement. Defaults to 1 (100\%). See \code{\link{reinstatement_premium}}.}
 
-\item{multiprocessing}{True to run the chunks in parallel on worker R processes (base R's \pkg{parallel} package), otherwise false. Results are the same as a sequential run. See \code{workers}.}
+\item{multiprocessing}{True to run the chunks in parallel on worker R processes (base R's \pkg{parallel} package), otherwise false. Results are the same as a sequential run. See \code{workers}. When the call would start its own workers, which takes a second or two, a run expected to draw fewer than ten million claims (or of a single chunk) runs in the session instead, being faster there; set \code{options(NetSimR.parallel_min_claims = )} to change that number, e.g. to 0 to always start the workers. A cluster given as \code{workers} is always used.}
 
 \item{workers}{The workers of a parallel run: \code{NULL} (the default) for one per available core (\code{getOption("mc.cores")} if set, otherwise \code{parallel::detectCores()}, at most 2 under \code{R CMD check}), or a number of workers; these are started for the call and shut down when it finishes, so each call pays the start-up cost. To reuse workers across calls, pass a cluster made with \code{parallel::makeCluster()}: it is used as it is and left running, to be stopped with \code{parallel::stopCluster()}. Ignored unless \code{multiprocessing} is true.}
 

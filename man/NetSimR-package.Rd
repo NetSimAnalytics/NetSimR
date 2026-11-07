@@ -6,14 +6,15 @@
 \alias{NetSimR-package}
 \title{NetSimR: Actuarial Functions for Non-Life Insurance Modelling}
 \description{
-The NetSimR package provides six categories of functions:
+The NetSimR package provides seven categories of functions:
 \enumerate{
 \item Capped means, Exposure and ILF curves from various severity distributions, and the special functions behind them
 \item Pure IBNR and UPR earned periods
 \item Sliced distributions
 \item Frequency-severity claims simulation, and applying a reinsurance layer to simulated claims
 \item Claims reserving: chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Benktander, Cape Cod and a bootstrap
-\item Shiny apps for simulating claims, fitting distributions, fitting GLMs and reserving
+\item Excess of loss pricing: burning cost, Pareto rating, exposure rating with MBBEFD curves, and the technical premium
+\item Shiny apps for simulating claims, fitting distributions, fitting GLMs, reserving and reinsurance pricing
 }
 }
 \section{NetSimR special functions}{
@@ -90,6 +91,17 @@ The NetSimR package provides six categories of functions:
 \code{\link{as_triangle}}
 }
 
+\section{NetSimR reinsurance pricing functions}{
+
+\code{\link{burning_cost}}
+\code{\link{pareto_rating}}
+\code{\link{property_exposure_rating}}
+\code{\link{casualty_exposure_rating}}
+\code{\link{mbbefd_curve}}
+\code{\link{technical_premium}}
+\code{\link{credibility_weight}}
+}
+
 \section{Function names}{
 
 The older functions have CamelCase names (\code{ParetoCappedMean}); each also has a
@@ -103,6 +115,7 @@ snake_case name, the same function, as the newer functions are named
 \code{\link{run_shiny_distribution_fitting_tool}}
 \code{\link{run_shiny_glm_fitting_tool}}
 \code{\link{run_shiny_reserving_tool}}
+\code{\link{run_shiny_reinsurance_pricing_tool}}
 }
 
 \seealso{

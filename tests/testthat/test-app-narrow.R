@@ -1,4 +1,4 @@
-#Browser tests of the four tools at a phone's width (helpers in helper-app.R): the header
+#Browser tests of the five tools at a phone's width (helpers in helper-app.R): the header
 #fits, and no page scrolls sideways
 
 expect_fits_narrow_window <- function(tool, tab, then = NULL) {
@@ -102,4 +102,18 @@ expect_reserving_tabs_fit <- function(app) {
 
 test_that("the reserving tool fits a 360 px window", {
   expect_fits_narrow_window("reserving", "ultimates", then = expect_reserving_tabs_fit)
+})
+
+#the reinsurance pricing tool's other tabs: the By year inputs of the Experience tab, the
+#Exposure tab's tables and the Pricing tab
+expect_reinsurance_tabs_fit <- function(app) {
+  for (tab in c("experience", "exposure", "pricing")) {
+    app_goto(app, tab)
+    app_idle(app)
+    expect_no_horizontal_scroll(app, paste0("The ", tab, " tab of the reinsurance pricing tool"))
+  }
+}
+
+test_that("the reinsurance pricing tool fits a 360 px window", {
+  expect_fits_narrow_window("reinsurance", "layer", then = expect_reinsurance_tabs_fit)
 })

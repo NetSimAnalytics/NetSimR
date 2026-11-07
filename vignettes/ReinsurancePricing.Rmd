@@ -1,0 +1,111 @@
+---
+title: "Pricing an excess of loss layer"
+author: "Yiannis Parizas"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Pricing an excess of loss layer}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 4)
+```
+
+## 1. Introduction
+
+This vignette prices a layer of an excess of loss treaty: 4 million excess of 1 million, each and every loss, with one reinstatement at 100%, for the year 2025. It rates the layer on its loss experience, with the burning cost and a Pareto model of the large losses, then on its exposure, with a risk profile and an exposure curve, blends the two and turns the expected loss into a premium.
+
+Every step here also runs in the reinsurance pricing tool, `run_shiny_reinsurance_pricing_tool()`, which can be tried in the browser on the package's website.
+
+## 2. The experience
+
+`xl_large_losses` holds the large losses of a simulated portfolio from 2015 to 2024, those of at least 500,000 in the money of their year, and `xl_premium` the subject premium of each year, with a rate index that brings it to the rates of 2025 and the development factor of its layer losses:
+
+```{r data}
+library("NetSimR")
+head(xl_large_losses)
+xl_premium
+```
+
+## 3. The burning cost
+
+`burning_cost()` brings each loss to the money of 2025 with the claims inflation, takes its part in the layer, develops each year's layer losses to ultimate, applies the annual aggregate limit (two limits, with one reinstatement) and divides by the year's on-level premium:
+
+```{r burning cost}
+development <- setNames(xl_premium$development, xl_premium$year)
+rate_index <- setNames(xl_premium$rate_index, xl_premium$year)
+premium <- xl_premium[, c("year", "premium")]
+bc <- burning_cost(xl_large_losses, premium, deductible = 1e6, limit = 4e6, aggregate_limit = 8e6,
+                   inflation = 0.04, rating_year = 2025, development = development,
+                   premium_index = rate_index, threshold = 5e5, rating_premium = 60e6)
+bc
+bc$by_year[, c("year", "layer_count", "aggregate_losses", "onlevel_premium", "burning_cost")]
+```
+
+The threshold of the data matters: a loss just below 500,000 in 2015 is about 740,000 in the money of 2025. Had the deductible been below the indexed threshold, losses missing from the data could have reached the layer, and `burning_cost()` would have warned.
+
+## 4. The Pareto model
+
+The burning cost rests on the few losses that reached the layer, and it cannot price a layer above the largest loss seen. `pareto_rating()` fits a Pareto distribution to the indexed losses above a threshold and prices the layer from the frequency of large losses and their expected part in the layer. The threshold must be at least the reporting threshold indexed from the oldest year, here about 740,000: below it, the oldest years lack the losses that were under 500,000 in their own money, and the fitted alpha comes out too low. So the threshold is 750,000:
+
+```{r pareto}
+pr <- pareto_rating(xl_large_losses, premium, threshold = 7.5e5, deductible = 1e6, limit = 4e6,
+                    inflation = 0.04, rating_year = 2025, development = development,
+                    premium_index = rate_index, rating_premium = 60e6)
+pr
+```
+
+A market alpha can replace the one estimated with `alpha =`, which is how a thin experience is often priced.
+
+## 5. Exposure rating
+
+Exposure rating needs no loss experience. `xl_property_profile` is the risk profile of a property portfolio: bands of sum insured with their premium. With an expected loss ratio of 55%, each band's expected loss is shared between the layer and the rest by an exposure curve, here Swiss Re's Y3 curve (`mbbefd_curve()`, `swiss_re_curve()`):
+
+```{r exposure}
+exposure <- property_exposure_rating(xl_property_profile, deductible = 1e6, limit = 4e6,
+                                     curve = "Y3", loss_ratio = 0.55)
+exposure
+exposure$bands[, c("band", "sum_insured", "deductible_share", "exhaustion_share", "layer_share", "layer_loss")]
+```
+
+The curves run from Y1, for personal lines, where most losses are small against the sum insured, to Y4 for large industrial risks; the Lloyd's curve (c = 5) has more total losses still:
+
+```{r curves}
+x <- seq(0, 1, by = 0.01)
+plot(x, swiss_re_curve(x, "Y1"), type = "l", xlab = "Deductible as a share of the sum insured",
+     ylab = "Share of the expected loss below it")
+for (c in c("Y2", "Y3", "Y4", "Lloyds")) lines(x, swiss_re_curve(x, c))
+```
+
+For casualty business, `casualty_exposure_rating()` does the same with the policy limits of the profile and a claim size distribution, such as one fitted with the distribution fitting tool:
+
+```{r casualty}
+casualty_exposure_rating(xl_casualty_profile, deductible = 1e6, limit = 4e6, severity = "LogNormal",
+                         severity_params = c(meanlog = 10, sdlog = 2), loss_ratio = 0.65)
+```
+
+## 6. Blending and the premium
+
+The experience and exposure rates are blended with a credibility weight. Limited fluctuation credibility gives the experience the weight \(\sqrt{n / n_{full}}\) for \(n\) losses in the layer; the standard of 1,082 losses for full credibility is a strict one for a layer, and a lower one is often chosen:
+
+```{r blend}
+z <- credibility_weight(bc$n_layer_losses, full = 100)
+z
+rate <- z * bc$rate + (1 - z) * exposure$rate
+expected_loss <- rate * 60e6
+expected_loss
+```
+
+`technical_premium()` loads the expected loss for expenses, brokerage and profit: the upfront premium and the expected reinstatement premium together are the expected loss over one minus the loading. The reinstatement premium depends on how much of the reinstated cover is used each year. This is a working layer, whose losses some years exceed the one reinstated limit, so the expected loss over the limit would overstate it; the burning cost's years, at the rating year's premium and scaled to the blended expected loss, give a better estimate:
+
+```{r premium}
+years <- bc$by_year$at_rating_premium * expected_loss / bc$expected_loss
+used <- mean(pmin(years, 1 * 4e6)) / 4e6
+used
+premium <- technical_premium(expected_loss, limit = 4e6, loading = 0.25, reinstatements = 1,
+                             reinstatement_rate = 1, used = used)
+premium
+```
+
+The upfront premium is `r round(100 * premium$rate_on_line)`% of the limit, a rate on line typical of a working layer, which pays back the limit in `r formatC(premium$payback, format = "f", digits = 1)` years. For the distribution of the layer's annual losses and reinstatement premiums, simulate the portfolio with `simulate_claims()`, using the Pareto fitted here for the large losses.

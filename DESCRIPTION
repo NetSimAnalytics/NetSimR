@@ -23,10 +23,15 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Cod methods, a bootstrap of the reserves, the one-year view of
     Merz and Wuthrich, and the Munich chain ladder of paid and incurred
     claims.
-    Includes four 'shiny' tools: a claims simulator with reinsurance
+    Includes excess of loss reinsurance pricing: the burning cost, a
+    Pareto model of the large losses, exposure rating with the MBBEFD
+    exposure curves of Bernegger (1997) <doi:10.2143/AST.27.1.563208>
+    or a claim size distribution, and the
+    technical premium with reinstatements.
+    Includes five 'shiny' tools: a claims simulator with reinsurance
     structures, a generalised linear model fitting tool, a claims
-    frequency and severity distribution fitting tool, and a claims
-    reserving tool.
+    frequency and severity distribution fitting tool, a claims
+    reserving tool and a reinsurance pricing tool.
     Methods used in the package refer to
     Free for All by Yiannis Parizas (2023) <https://www.theactuary.com/2023/03/02/free-all>;
     Escaping the triangle by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/06/2019/06/05/escaping-triangle>;

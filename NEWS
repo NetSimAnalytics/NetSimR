@@ -19,6 +19,34 @@ Changes in Version 0.3.4
     MunichChainLadder(). New data sets quarg_mack_paid and
     quarg_mack_incurred; simulated_motor_claims gains an incurred column.
   o New vignette "Claims reserving with the chain ladder and its relatives".
+  o Excess of loss pricing. New burning_cost(): the past large losses indexed
+    to the rating year, put through the layer as if it had been in force,
+    developed to ultimate, with annual aggregate terms, over the on-level
+    premium of their year; it warns when an indexed reporting threshold is
+    above the deductible. New pareto_rating(): a Pareto fitted to the indexed
+    large losses gives the frequency and the expected loss to the layer, also
+    for layers above the largest loss seen. New property_exposure_rating() and
+    casualty_exposure_rating(): a risk profile's expected losses shared with
+    the layer by an MBBEFD exposure curve or a claim size distribution's
+    limited expected value. New mbbefd_curve(), swiss_re_curve() and
+    swiss_re_parameters(): Bernegger's exposure curves, Swiss Re's Y1 to Y4
+    and the Lloyd's curve, checked against the mbbefd package. New
+    technical_premium(), with the loading and the expected reinstatement
+    premium, rate on line and payback, and credibility_weight(). New data sets
+    xl_large_losses, xl_premium, xl_property_profile and xl_casualty_profile,
+    and a vignette, "Pricing an excess of loss layer".
+  o New reinsurance pricing tool, run_shiny_reinsurance_pricing_tool(): the
+    layer and rating year; the burning cost and Pareto rating of an example or
+    uploaded large loss list, with each year's premium, rate index,
+    development and inclusion; the exposure rating of a property or casualty
+    risk profile; the blend with a credibility weight; the technical premium;
+    downloads and saved settings.
+  o The five tools run in the browser on the package's website, with webR and
+    shinylive, with nothing to install
+    (https://netsimanalytics.github.io/NetSimR/articles/try-online.html).
+    There, the simulator has no multiprocessing switch and the GLM tool reads
+    CSV files only, as a browser cannot start worker processes or reach a
+    database.
   o New reserving tool, run_shiny_reserving_tool(): load an example or a file
     of paid or incurred claims, choose the development factors (click a link
     ratio to leave it out) and the tail, compare the chain ladder,
@@ -48,10 +76,17 @@ Changes in Version 0.3.4
     worker per available core, a number of workers, or a cluster from
     parallel::makeCluster() to reuse across calls; a future plan set with
     future::plan() is no longer used. Seeded results are unchanged, and the
-    simulator app still keeps its workers running between runs. The
-    CappedMean and PureIBNR vignettes fit their censored and truncated models
-    with a few lines of optim() instead of the crch package, which is no
-    longer suggested.
+    simulator app still keeps its workers running between runs. A parallel run
+    that would start its own workers, which takes a second or two, stays in
+    the session when it is expected to draw fewer than ten million claims,
+    as it is faster there (option NetSimR.parallel_min_claims); a cluster
+    given as workers is always used, and the app's warm workers are always
+    used, as they speed up runs of any size.
+    The CappedMean and PureIBNR vignettes fit their censored and truncated
+    models with a few lines of optim() instead of the crch package, which is
+    no longer suggested.
+  o Claims simulator: finding each simulation's largest claim, for the
+    occurrence exceedance probability, is faster.
   o GLM fitting tool: PostgreSQL databases are read with RPostgres, the
     current DBI driver, instead of the older RPostgreSQL; 64-bit integer
     columns come back as numbers.

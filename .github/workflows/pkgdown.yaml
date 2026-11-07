@@ -1,6 +1,8 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 # Builds the package website with pkgdown and publishes it to the gh-pages branch, which
-# GitHub Pages serves at https://netsimanalytics.github.io/NetSimR/
+# GitHub Pages serves at https://netsimanalytics.github.io/NetSimR/. With the site go the five
+# Shiny tools, exported with shinylive to run in the browser (apps/), and a WebAssembly build of
+# the package for webR, from which they install it (wasm/).
 on:
   push:
     branches: [main]
@@ -34,12 +36,27 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::pkgdown, local::.
+          extra-packages: any::pkgdown, local::., github::posit-dev/r-shinylive
           needs: website
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
+
+      # the tools for the browser; they install NetSimR from the WebAssembly repository below
+      - name: Export the tools for the browser
+        if: github.event_name != 'pull_request'
+        run: Rscript pkgdown/shinylive-apps.R docs/apps https://netsimanalytics.github.io/NetSimR/wasm
+
+      # a repository of the package built for webR (its dependencies come from webR's own); the
+      # step runs in Docker, and its files cannot be changed by later steps
+      - name: Build the package for WebAssembly
+        if: github.event_name != 'pull_request'
+        uses: r-wasm/actions/build-rwasm@v3
+        with:
+          packages: "."
+          repo-path: "docs/wasm"
+          image-path: "wasm-image"
 
       # pull requests build the site to check it, without publishing it
       - name: Deploy to GitHub pages

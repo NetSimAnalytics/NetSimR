@@ -36,7 +36,7 @@ shiny_simulator_server <- function(input, output, session) {
     invisible(TRUE)
   }
   observeEvent(input$multiprocessingBinary, {
-    if (isTRUE(input$multiprocessingBinary)) {
+    if (isTRUE(input$multiprocessingBinary) && !netsimr_in_browser()) {
       tryCatch(start_parallel_workers(), error = function(e) {
         showNotification(paste("The parallel workers could not be started:", conditionMessage(e)), type = "error", duration = NULL)
       })
@@ -347,7 +347,7 @@ shiny_simulator_server <- function(input, output, session) {
       ,reinsuranceStructureAL = input$reinsuranceStructureAL
       ,reinsurance_structure_al_deductible_amount = input$reinsurance_structure_al_deductible_amount
       ,reinsurance_structure_al_limit_amount = input$reinsurance_structure_al_limit_amount
-      ,multiprocessing = input$multiprocessingBinary
+      ,multiprocessing = isTRUE(input$multiprocessingBinary) && !netsimr_in_browser()
       ,sevTruncateAtZero = isTRUE(input$sevTruncateAtZero) && input$sevDistr == "Normal"
       ,reinsuranceStructureLimitedReinstatements = input$reinsuranceStructureLimitedReinstatements
       ,reinsuranceStructureReinstatementLimit = input$reinsuranceStructureReinstatementLimit

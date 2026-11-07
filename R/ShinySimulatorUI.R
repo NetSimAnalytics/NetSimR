@@ -1360,8 +1360,13 @@ shiny_simulator_ui <- function(request) {
                              value = 50000L, min = 1L, max = max_number_of_simulations),
             bslib::input_switch('seedSetBinary', 'Custom seed', value = FALSE),
             uiOutput("seed_value"),
-            bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),
-            helpText("Runs chunks in parallel. Faster for large runs, but without live progress."),
+            #(worker processes cannot be started in a web browser)
+            if (!netsimr_in_browser()) {
+              tagList(
+                bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),
+                helpText("Runs chunks in parallel. Faster for large runs, but without live progress.")
+              )
+            },
 
             uiOutput("expected_gross_claims"),
 
