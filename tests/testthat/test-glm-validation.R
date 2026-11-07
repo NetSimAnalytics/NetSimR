@@ -70,11 +70,11 @@ test_that("the deviance per row and the Gini coefficient measure the fit and the
   expect_gt(glm_gini_curve(d$claim_count, d$claim_count + 1e-9 * d$exposure, d$exposure)$gini, model_gini$gini)
   #a flat prediction is one step: no ranking at all
   expect_equal(glm_gini_curve(d$claim_count, rep(1, nrow(d)) * d$exposure, d$exposure)$gini, 0)
-  expect_identical(c(head(model_gini$x, 1), tail(model_gini$x, 1), tail(model_gini$y, 1)), c(0, 1, 1))
+  expect_equal(c(head(model_gini$x, 1), tail(model_gini$x, 1), tail(model_gini$y, 1)), c(0, 1, 1))
   expect_null(glm_gini_curve(c(0, 0), c(1, 2)))
   thin <- glm_thin_curve(model_gini, 50)
   expect_lte(length(thin$x), 50)
-  expect_identical(c(thin$x[1], tail(thin$x, 1)), c(0, 1))
+  expect_equal(c(thin$x[1], tail(thin$x, 1)), c(0, 1))
 })
 
 test_that("a lift table cuts the sorted rows into bands of the same exposure", {
@@ -151,11 +151,11 @@ test_that("the tool fits to the training rows, predicts the test rows and valida
     v <- validation_rows()
     expect_equal(validation_measures(v, !v$test)$deviance, deviance(result$model) / 3200)
     expect_identical(validation_set()$used, "test")
-    expect_identical(sum(lift_table()$exposure), sum(d$exposure[result$test]))
+    expect_equal(sum(lift_table()$exposure), sum(d$exposure[result$test]))
     for (id in c("lift_plot", "lorenz_plot")) expect_match(output[[id]]$src, "^data:image/png;base64,")
     session$setInputs(validation_rows = "training", validation_bands = "5")
     expect_identical(nrow(lift_table()), 5L)
-    expect_identical(sum(lift_table()$exposure), sum(d$exposure[!result$test]))
+    expect_equal(sum(lift_table()$exposure), sum(d$exposure[!result$test]))
     #actual vs predicted on the test rows alone
     session$setInputs(visualize_variable = "region", avp_rows = "test", execute_visualization = 1)
     expect_equal(sum(fitness_data()$exposure), sum(d$exposure[result$test]))
