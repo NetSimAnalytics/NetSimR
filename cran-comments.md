@@ -1,38 +1,49 @@
 ## Release summary
 
-NetSimR 0.3.3 fixes two of the package's three Shiny tools, which could not
-start on any machine other than the one that built the package, and so did
-not work for users installing a CRAN binary.
+NetSimR 0.3.4 adds claims reserving to the package's pricing and capital
+modelling functions. It follows 0.3.3 closely because 0.3.3 was an urgent fix
+(two of the Shiny tools could not start from a CRAN binary); this is the
+feature release that was in progress at the time.
 
-* run_shiny_simulator() and run_shiny_distribution_fitting_tool() stopped
-  with "File to import not found or unreadable:
-  D:\RCompile\CRANpkg\lib\4.6\bslib\lib\bs5\scss\_functions.scss" on a
-  Windows machine that installed the CRAN binary. The two tools' pages were
-  built when the package was installed, and their bslib theme kept absolute
-  paths to Bootstrap's SCSS files on the build machine. The pages are now
-  built when a tool starts, from the bslib installed where it runs, as the
-  third tool's page already was.
-* The checks could not show the problem, because they build and use the
-  package on the same machine. A new test fails if any object of the package
-  holds a path to bslib's SCSS files, and checks that each tool's page is
-  built from the bslib of the session.
+* New reserving functions: chain_ladder() with Mack's standard errors and
+  tail factors, bornhuetter_ferguson() (and Benktander), cape_cod(),
+  bootstrap_chain_ladder() (England and Verrall's ODP bootstrap),
+  merz_wuthrich() (the one-year view) and munich_chain_ladder(), with
+  as_triangle(), four small data sets and a vignette. Their results were
+  checked against the ChainLadder package; the tests compare with stored
+  values, so ChainLadder is not a dependency.
+* A fourth Shiny tool, run_shiny_reserving_tool(). Like the other three, its
+  page is built when the tool starts, not when the package is installed.
+* Fewer dependencies: parallel simulations use base R's parallel package
+  instead of future, the vignettes fit with optim() instead of crch, and the
+  GLM tool reads PostgreSQL with RPostgres instead of RPostgreSQL (Suggests).
+* The misspelled deductible arguments of simulate_function() are corrected;
+  the old names still work, with a deprecation warning.
+* Every CamelCase function also has a snake_case name. The CamelCase names
+  are unchanged, so existing code keeps working.
 
-No function's results change. See NEWS for details.
+See NEWS for details.
 
 ## Test environments
 
-* local Windows 11 x64, R 4.6.1 (ucrt), R CMD check --as-cran
-* the package installed against one copy of bslib and used with another,
-  after that copy was removed: the two tools failed before the fix and work
-  after it
-* the test suite also run with TZ set to UTC, America/New_York,
-  Australia/Sydney and Asia/Nicosia
+* local Windows 11 x64, R 4.6.2 (ucrt), R CMD check --as-cran
+* the test suite, including the browser tests of the four Shiny tools, also
+  run with TZ set to UTC, America/New_York, Australia/Sydney and Asia/Nicosia
+* win-builder: R-devel (2026-11-06 r90845 ucrt) and R-release (4.6.2)
 * GitHub Actions: macOS (release), Windows (release), Ubuntu (devel, release
   and oldrel-1)
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
+
+* checking CRAN incoming feasibility ... NOTE
+  Possibly misspelled words in DESCRIPTION: Benktander, Bornhuetter, Merz,
+  Wuthrich.
+
+  These are the surnames of the authors of the reserving methods
+  (Benktander, Bornhuetter and Ferguson, Merz and Wuthrich), spelled
+  correctly.
 
 The references in the Description field point to articles on
 www.theactuary.com. The site answers automated requests with HTTP 403 (a
