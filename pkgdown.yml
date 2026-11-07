@@ -4,10 +4,12 @@ pkgdown_sha: ~
 articles:
   CappedMean: CappedMean.html
   PureIBNR: PureIBNR.html
+  ReinsurancePricing: ReinsurancePricing.html
   Reserving: Reserving.html
   SimulateClaims: SimulateClaims.html
   SlicedDistributions: SlicedDistributions.html
-last_built: 2026-11-07T15:33Z
+  articles/try-online: try-online.html
+last_built: 2026-11-07T17:19Z
 urls:
   reference: https://netsimanalytics.github.io/NetSimR/reference
   article: https://netsimanalytics.github.io/NetSimR/articles

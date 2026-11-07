@@ -6,9 +6,19 @@
   simulate_claims()](https://netsimanalytics.github.io/NetSimR/articles/SimulateClaims.md):
 - [Claims reserving with the chain ladder and its
   relatives](https://netsimanalytics.github.io/NetSimR/articles/Reserving.md):
+- [Pricing an excess of loss
+  layer](https://netsimanalytics.github.io/NetSimR/articles/ReinsurancePricing.md):
 - [Capped means, exposure curves and increased limit
   factors](https://netsimanalytics.github.io/NetSimR/articles/CappedMean.md):
 - [Sliced LogNormal-Pareto and Gamma-Pareto
   distributions](https://netsimanalytics.github.io/NetSimR/articles/SlicedDistributions.md):
 - [Pure IBNR exposure from a reporting delay
   distribution](https://netsimanalytics.github.io/NetSimR/articles/PureIBNR.md):
+
+### Online
+
+- [Try the tools in your
+  browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.md):
+
+  The package’s five Shiny tools, running in your browser with webR: no
+  R to install.

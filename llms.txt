@@ -7,10 +7,14 @@ status](https://www.r-pkg.org/badges/version/NetSimR)](https://CRAN.R-project.or
 coverage](https://codecov.io/gh/NetSimAnalytics/NetSimR/graph/badge.svg)](https://app.codecov.io/gh/NetSimAnalytics/NetSimR)
 
 NetSimR is an R package of actuarial functions for non-life insurance
-and reinsurance pricing, reserving and capital modelling, with four
-Shiny tools for simulating claims, fitting distributions and GLMs, and
-reserving. Its website, with every help page and the vignettes, is
-<https://netsimanalytics.github.io/NetSimR/>.
+and reinsurance pricing, reserving and capital modelling, with five
+Shiny tools for simulating claims, fitting distributions and GLMs,
+reserving and pricing excess of loss reinsurance. Its website, with
+every help page and the vignettes, is
+<https://netsimanalytics.github.io/NetSimR/>, where the tools can also
+be [tried in the
+browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.html),
+with nothing to install.
 
 ## Installation
 
@@ -41,11 +45,16 @@ remotes::install_github("NetSimAnalytics/NetSimR")
   bootstrap of the reserves’ distribution, the one-year view
   (Merz-Wuthrich) and the Munich chain ladder of paid and incurred
   claims.
-- **Four Shiny tools**: a claims simulator with reports and run
+- **Excess of loss pricing**: the burning cost with indexation,
+  development and aggregate terms, a Pareto model of the large losses,
+  exposure rating with the Swiss Re and Lloyd’s (MBBEFD) curves or a
+  claim size distribution, credibility blending and the technical
+  premium with reinstatements.
+- **Five Shiny tools**: a claims simulator with reports and run
   comparison; a distribution fitting tool for claim counts and sizes,
   including claims reported only above a threshold, whose fits it saves
   as simulator settings; a GLM fitting tool with a rating factor table;
-  and a reserving tool.
+  a reserving tool; and a reinsurance pricing tool.
 
 ## Examples
 
@@ -91,6 +100,12 @@ bootstrap_chain_ladder(raa_triangle, n = 10000, seed = 1)$total[["p99.5"]]
 # the one-year view of the same reserves, and paid and incurred claims projected together
 merz_wuthrich(raa_triangle)$total
 munich_chain_ladder(quarg_mack_paid, quarg_mack_incurred)$total
+
+# a layer of 4m excess of 1m priced on its experience and on a property risk
+# profile with the Swiss Re Y3 exposure curve
+burning_cost(xl_large_losses, xl_premium[, c("year", "premium")], 1e6, 4e6,
+             inflation = 0.04, rating_premium = 60e6)
+property_exposure_rating(xl_property_profile, 1e6, 4e6, curve = "Y3", loss_ratio = 0.55)
 ```
 
 ## Shiny tools
@@ -101,17 +116,20 @@ run_shiny_simulator()                  # claims simulator
 run_shiny_distribution_fitting_tool()  # frequency and severity fits
 run_shiny_glm_fitting_tool()           # generalised linear models
 run_shiny_reserving_tool()             # claims reserving
+run_shiny_reinsurance_pricing_tool()   # excess of loss pricing
 ```
 
 ## Vignettes
 
-Four vignettes set out the theory behind the functions and work through
+Six vignettes set out the theory behind the functions and work through
 examples:
 
 - *Capped means, exposure curves and increased limit factors*
 - *Sliced LogNormal-Pareto and Gamma-Pareto distributions*
 - *Pure IBNR exposure from a reporting delay distribution*
 - *Simulating claims with simulate_claims()*
+- *Claims reserving with the chain ladder and its relatives*
+- *Pricing an excess of loss layer*
 
 They are on the package’s [CRAN
 page](https://CRAN.R-project.org/package=NetSimR), and
@@ -143,6 +161,8 @@ Applications that run the package’s models without writing code.
   : Run the generalised linear model fitting application
 - [`run_shiny_reserving_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md)
   : Run the claims reserving application
+- [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
+  : Run the reinsurance pricing application
 
 ## Claims simulation and reinsurance
 
@@ -177,6 +197,27 @@ bootstrap, the one-year view and the Munich chain ladder.
   : Munich chain ladder of paid and incurred claims
 - [`as_triangle()`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
   : Build a claims triangle from a table
+
+## Excess of loss pricing
+
+Burning cost, Pareto rating, exposure rating with MBBEFD curves or a
+claim size distribution, and the technical premium.
+
+- [`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+  : Burning cost of an excess of loss layer
+- [`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md)
+  : Pareto rating of an excess of loss layer
+- [`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+  [`casualty_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+  : Exposure rating of property and casualty excess of loss layers
+- [`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+  [`swiss_re_parameters()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+  [`swiss_re_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+  : MBBEFD exposure curves
+- [`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+  : Technical premium of an excess of loss layer
+- [`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
+  : Credibility of the loss experience
 
 ## Capped means
 
@@ -297,6 +338,14 @@ LogNormal or Gamma bodies with a Pareto tail.
   : Paid and incurred triangles of the Munich chain ladder paper
 - [`simulated_motor_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulated_motor_claims.md)
   : Simulated motor claims with premiums
+- [`xl_large_losses`](https://netsimanalytics.github.io/NetSimR/reference/xl_large_losses.md)
+  : Simulated large losses of an excess of loss treaty
+- [`xl_premium`](https://netsimanalytics.github.io/NetSimR/reference/xl_premium.md)
+  : Subject premiums of an excess of loss treaty
+- [`xl_property_profile`](https://netsimanalytics.github.io/NetSimR/reference/xl_property_profile.md)
+  : Risk profile of a property portfolio
+- [`xl_casualty_profile`](https://netsimanalytics.github.io/NetSimR/reference/xl_casualty_profile.md)
+  : Risk profile of a casualty portfolio
 
 # Articles
 
@@ -306,9 +355,19 @@ LogNormal or Gamma bodies with a Pareto tail.
   simulate_claims()](https://netsimanalytics.github.io/NetSimR/articles/SimulateClaims.md):
 - [Claims reserving with the chain ladder and its
   relatives](https://netsimanalytics.github.io/NetSimR/articles/Reserving.md):
+- [Pricing an excess of loss
+  layer](https://netsimanalytics.github.io/NetSimR/articles/ReinsurancePricing.md):
 - [Capped means, exposure curves and increased limit
   factors](https://netsimanalytics.github.io/NetSimR/articles/CappedMean.md):
 - [Sliced LogNormal-Pareto and Gamma-Pareto
   distributions](https://netsimanalytics.github.io/NetSimR/articles/SlicedDistributions.md):
 - [Pure IBNR exposure from a reporting delay
   distribution](https://netsimanalytics.github.io/NetSimR/articles/PureIBNR.md):
+
+### Online
+
+- [Try the tools in your
+  browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.md):
+
+  The package’s five Shiny tools, running in your browser with webR: no
+  R to install.

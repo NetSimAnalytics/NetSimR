@@ -1,0 +1,1 @@
+[{"name":"app.R","content":"# written by pkgdown/shinylive-apps.R\nlibrary(shiny)\nwebr::install(\"NetSimR\", repos = c(\"https://netsimanalytics.github.io/NetSimR/wasm\", \"https://repo.r-wasm.org\"))\ngetExportedValue(\"NetSimR\", \"run_shiny_reinsurance_pricing_tool\")()\n","type":"text"}]

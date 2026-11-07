@@ -12,6 +12,8 @@ Applications that run the package’s models without writing code.
   : Run the generalised linear model fitting application
 - [`run_shiny_reserving_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md)
   : Run the claims reserving application
+- [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
+  : Run the reinsurance pricing application
 
 ## Claims simulation and reinsurance
 
@@ -46,6 +48,27 @@ bootstrap, the one-year view and the Munich chain ladder.
   : Munich chain ladder of paid and incurred claims
 - [`as_triangle()`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
   : Build a claims triangle from a table
+
+## Excess of loss pricing
+
+Burning cost, Pareto rating, exposure rating with MBBEFD curves or a
+claim size distribution, and the technical premium.
+
+- [`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+  : Burning cost of an excess of loss layer
+- [`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md)
+  : Pareto rating of an excess of loss layer
+- [`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+  [`casualty_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+  : Exposure rating of property and casualty excess of loss layers
+- [`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+  [`swiss_re_parameters()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+  [`swiss_re_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+  : MBBEFD exposure curves
+- [`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+  : Technical premium of an excess of loss layer
+- [`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
+  : Credibility of the loss experience
 
 ## Capped means
 
@@ -166,3 +189,11 @@ LogNormal or Gamma bodies with a Pareto tail.
   : Paid and incurred triangles of the Munich chain ladder paper
 - [`simulated_motor_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulated_motor_claims.md)
   : Simulated motor claims with premiums
+- [`xl_large_losses`](https://netsimanalytics.github.io/NetSimR/reference/xl_large_losses.md)
+  : Simulated large losses of an excess of loss treaty
+- [`xl_premium`](https://netsimanalytics.github.io/NetSimR/reference/xl_premium.md)
+  : Subject premiums of an excess of loss treaty
+- [`xl_property_profile`](https://netsimanalytics.github.io/NetSimR/reference/xl_property_profile.md)
+  : Risk profile of a property portfolio
+- [`xl_casualty_profile`](https://netsimanalytics.github.io/NetSimR/reference/xl_casualty_profile.md)
+  : Risk profile of a casualty portfolio

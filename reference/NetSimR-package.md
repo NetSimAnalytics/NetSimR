@@ -1,6 +1,6 @@
 # NetSimR: Actuarial Functions for Non-Life Insurance Modelling
 
-The NetSimR package provides six categories of functions:
+The NetSimR package provides seven categories of functions:
 
 1.  Capped means, Exposure and ILF curves from various severity
     distributions, and the special functions behind them
@@ -15,8 +15,11 @@ The NetSimR package provides six categories of functions:
 5.  Claims reserving: chain ladder with Mack's standard errors,
     Bornhuetter-Ferguson, Benktander, Cape Cod and a bootstrap
 
-6.  Shiny apps for simulating claims, fitting distributions, fitting
-    GLMs and reserving
+6.  Excess of loss pricing: burning cost, Pareto rating, exposure rating
+    with MBBEFD curves, and the technical premium
+
+7.  Shiny apps for simulating claims, fitting distributions, fitting
+    GLMs, reserving and reinsurance pricing
 
 ## NetSimR special functions
 
@@ -83,6 +86,16 @@ The NetSimR package provides six categories of functions:
 [`munich_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md)
 [`as_triangle`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
 
+## NetSimR reinsurance pricing functions
+
+[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+[`pareto_rating`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md)
+[`property_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+[`casualty_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+[`mbbefd_curve`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+[`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`credibility_weight`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
+
 ## Function names
 
 The older functions have CamelCase names (`ParetoCappedMean`); each also
@@ -95,6 +108,7 @@ named (`pareto_capped_mean`). Both work.
 [`run_shiny_distribution_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md)
 [`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md)
 [`run_shiny_reserving_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md)
+[`run_shiny_reinsurance_pricing_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
 
 ## See also
 

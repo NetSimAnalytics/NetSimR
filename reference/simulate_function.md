@@ -158,7 +158,13 @@ simulate_function(
 
   True to run the chunks in parallel on worker R processes (base R's
   parallel package), otherwise false. Results are the same as a
-  sequential run. See `workers`.
+  sequential run. See `workers`. When the call would start its own
+  workers, which takes a second or two, a run expected to draw fewer
+  than ten million claims (or of a single chunk) runs in the session
+  instead, being faster there; set
+  `options(NetSimR.parallel_min_claims = )` to change that number, e.g.
+  to 0 to always start the workers. A cluster given as `workers` is
+  always used.
 
 - workers:
 
