@@ -275,7 +275,7 @@ glm_family_links <- list(
 #' User interface of the Shiny GLM fitting tool
 #'
 #' @description Builds the pages of the GLM fitting tool: Welcome, Data, Model,
-#'   Actual vs predicted and Save & load, with the theme switch.
+#'   Actual vs predicted, Validation and Save & load, with the theme switch.
 #'
 #' @details A function of the request, so that it is built when the app starts,
 #'   after every helper of the package is defined.
@@ -382,7 +382,9 @@ GLMFittingToolUI <- function(request) {
               tags$li(div(div(class = "sim-step-title", "Fit"),
                           div(class = "sim-step-text", "Choose the response, family, link, offset, weights and formula."))),
               tags$li(div(div(class = "sim-step-title", "Compare"),
-                          div(class = "sim-step-text", "Store two models and compare their AIC."))),
+                          div(class = "sim-step-text", "Store two models and compare their AIC, or let stepwise selection suggest the terms."))),
+              tags$li(div(div(class = "sim-step-title", "Validate"),
+                          div(class = "sim-step-text", "Hold out rows for testing: deviance, Gini, lift and double lift charts."))),
               tags$li(div(div(class = "sim-step-title", "Check and export"),
                           div(class = "sim-step-text", "Actual against predicted, then download the model and predictions.")))
             )
@@ -538,6 +540,14 @@ GLMFittingToolUI <- function(request) {
             dft_help("Click a column to add it. Use + between terms, * for interactions, ",
                      "and 1 for an intercept-only model. The terms may only use the data's columns, numbers, ",
                      "+ - * : / ^ and ", glm_formula_functions_text(), "; nothing else is run."),
+            div(class = "sim-section-label mt-2", "Hold out for testing"),
+            div(class = "pill-radio", radioButtons("holdout_share", NULL, glm_holdout_choices, "0", inline = TRUE)),
+            conditionalPanel(
+              condition = "input.holdout_share != '0'",
+              numericInput("holdout_seed", "Seed", value = 1, min = 1, step = 1),
+              dft_help("The model is fitted to the other rows; the Validation tab measures it on the rows held out. ",
+                       "The same seed holds out the same rows.")
+            ),
             actionButton("fit_model", "Fit model", icon = icon("play"), class = "btn-run mt-3")
           ),
           bslib::card(
@@ -571,6 +581,18 @@ GLMFittingToolUI <- function(request) {
               })
             )
           )
+        ),
+        bslib::card(
+          sim_card_header("wand-magic-sparkles", "Variable selection", "Stepwise from the fitted model, by AIC or BIC."),
+          bslib::card_body(
+            div(class = "sim-section-label", "Criterion"),
+            div(class = "pill-radio",
+                radioButtons("select_criterion", NULL, c("AIC" = "AIC", "BIC (fewer terms)" = "BIC"), "AIC", inline = TRUE)),
+            selectizeInput("select_candidates", "Columns it may add", choices = NULL, multiple = TRUE,
+                           options = list(placeholder = "Every column that can be a predictor")),
+            actionButton("run_selection", "Suggest terms", icon = icon("wand-magic-sparkles"), class = "btn-outline-glm"),
+            div(class = "mt-3", uiOutput("selection_result"))
+          )
         )
       )
     ),
@@ -594,6 +616,7 @@ GLMFittingToolUI <- function(request) {
           div(class = "pill-radio",
               radioButtons("band_method", NULL, c("Equal counts" = "quantile", "Equal width" = "width"),
                            "quantile", inline = TRUE)),
+          uiOutput("avp_rows_ui"),
           actionButton("execute_visualization", "Draw chart", icon = icon("chart-column"), class = "btn-run mt-2"),
           dft_help("Numeric variables with more distinct values than bands are grouped into bands. ",
                    "With an offset, the chart compares rates per unit of exposure; with weights, weighted averages. ",
@@ -602,6 +625,37 @@ GLMFittingToolUI <- function(request) {
         bslib::card(
           sim_card_header("chart-column", "Actual vs predicted", "Per band of the explanatory variable, for the fitted model."),
           bslib::card_body(dft_plot_output("fitness_plot", height = "520px"), uiOutput("fitness_note"))
+        )
+      )
+    ),
+
+    # ----------------------------------------------------------- Validation
+    bslib::nav_panel(
+      title = "Validation",
+      value = "validation",
+      icon = icon("bullseye"),
+
+      dft_page_intro("Validation",
+                     "How well the model ranks and predicts the rows, above all the rows it was not fitted to."),
+
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Settings", "Choose the rows and the bands.",
+          div(class = "sim-section-label", "Rows"),
+          div(class = "pill-radio",
+              radioButtons("validation_rows", NULL, c("Test" = "test", "Training" = "training", "All" = "all"),
+                           "test", inline = TRUE)),
+          selectInput("validation_bands", "Bands", c("5" = "5", "10" = "10", "20" = "20"), selected = "10"),
+          selectInput("validation_compare", "Double lift against", c("None" = "none", "Model 1" = "1", "Model 2" = "2")),
+          dft_help("Hold out rows on the Model tab to test the model on rows it has not seen. ",
+                   "The double lift compares this model with a stored one, fitted again to the same rows.")
+        ),
+        uiOutput("validation_stats"),
+        dft_tabs(
+          id = "validation_tabs",
+          bslib::nav_panel("Lift", dft_plot_output("lift_plot", height = "460px"), uiOutput("lift_note")),
+          bslib::nav_panel("Lorenz curve", dft_plot_output("lorenz_plot", height = "460px")),
+          bslib::nav_panel("Double lift", dft_plot_output("double_lift_plot", height = "460px"), uiOutput("double_lift_note"))
         )
       )
     ),

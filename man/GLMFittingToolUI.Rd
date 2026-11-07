@@ -14,7 +14,7 @@ The user interface of the application, a bslib navbar page.
 }
 \description{
 Builds the pages of the GLM fitting tool: Welcome, Data, Model,
-  Actual vs predicted and Save & load, with the theme switch.
+  Actual vs predicted, Validation and Save & load, with the theme switch.
 }
 \details{
 A function of the request, so that it is built when the app starts,

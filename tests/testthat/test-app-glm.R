@@ -69,5 +69,23 @@ test_that("the GLM tool's model download holds no password or session, and its s
   expect_false("db_password" %in% names(full))
   expect_false(any(grepl(password, full_text, fixed = TRUE)))
 
+  #rows held out for testing: the Validation tab measures the model on them, and the selection
+  #suggests the terms from the fitted model
+  app_goto(app, "model")
+  app_set(app, holdout_share = "0.2")
+  app_click(app, "fit_model")
+  app$wait_for_js("/held out for testing/.test((document.getElementById('model_stats') || {innerText: ''}).innerText)",
+                  timeout = 60 * 1000)
+  expect_match(tolower(app_text(app, "#model_stats")), "observations 1,600", fixed = TRUE)
+  app_click(app, "run_selection")
+  app$wait_for_js("/Suggested terms/i.test((document.getElementById('selection_result') || {innerText: ''}).innerText)",
+                  timeout = 60 * 1000)
+  #(the table's headers are in capitals, which innerText keeps)
+  expect_match(tolower(app_text(app, "#selection_result")), "test deviance per row", fixed = TRUE)
+  app_goto(app, "validation")
+  app$wait_for_js("(document.getElementById('validation_stats') || {innerText: ''}).innerText.includes('1,600 / 400')",
+                  timeout = 60 * 1000)
+  app$wait_for_js("!!document.querySelector('#lift_plot img')", timeout = 60 * 1000)
+
   expect_app_logs_clean(app)
 })

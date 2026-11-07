@@ -211,7 +211,7 @@ GLMFittingToolServer <- function(input, output, session) {
   # with the previous count response, which fails). A value the server sets is held here until
   # the browser reports it; a value the server sets to what is already shown is not held, as
   # the browser reports nothing for it.
-  spec_inputs <- c("response_variable", "offset", "offset_log", "weights", "formula")
+  spec_inputs <- c("response_variable", "offset", "offset_log", "weights", "formula", "holdout_share", "holdout_seed")
   unreported <- reactiveValues()
   for (id in spec_inputs) local({
     input_id <- id
@@ -269,7 +269,10 @@ GLMFittingToolServer <- function(input, output, session) {
       offset = or_default(spec_value("offset"), "None"),
       offset_log = isTRUE(spec_value("offset_log")),
       weights = or_default(spec_value("weights"), "None"),
-      formula = trimws(or_default(spec_value("formula"), ""))
+      formula = trimws(or_default(spec_value("formula"), "")),
+      # the share of the rows held out for testing ("0" for none) and the seed that picks them
+      holdout = or_default(as.character(spec_value("holdout_share")), "0"),
+      seed = glm_holdout_seed(spec_value("holdout_seed"))
     )
   }
 
@@ -353,9 +356,12 @@ GLMFittingToolServer <- function(input, output, session) {
       stop("no row has a value in every column the model uses",
            if (length(empty) > 0) paste0(": ", paste0("'", empty, "'", collapse = ", "), if (length(empty) == 1) " has" else " have", " no values"))
     }
+    # the rows held out for testing: the model is fitted to the others, the training rows
+    test <- glm_holdout_rows(nrow(model_data), or_default(spec$holdout, "0"), or_default(spec$seed, 1L))
+    if (!any(complete & !test)) stop("no training row has a value in every column the model uses")
     # a text predictor with a single value in those rows has no contrasts, which glm() reports as
     # "contrasts can be applied only to factors with 2 or more levels" without naming it
-    frame <- stats::model.frame(model_formula, data = model_data[complete, used_columns, drop = FALSE])
+    frame <- stats::model.frame(model_formula, data = model_data[complete & !test, used_columns, drop = FALSE])
     for (column in names(frame)[-1]) {
       x <- frame[[column]]
       if ((is.character(x) || is.factor(x) || is.logical(x)) && length(unique(x)) < 2) {
@@ -392,7 +398,7 @@ GLMFittingToolServer <- function(input, output, session) {
     # everything it refers to: the call is evaluated where only the data and the family (built
     # apart, see glm_family_object()) are, and the formula's environment is the global one
     fit_env <- new.env(parent = globalenv())
-    fit_env$model_data <- model_data
+    fit_env$model_data <- model_data[!test, , drop = FALSE]
     fit_env$family_object <- glm_family_object(spec$family, link)
     model <- withCallingHandlers(
       eval(fit_call, fit_env),
@@ -403,7 +409,7 @@ GLMFittingToolServer <- function(input, output, session) {
     )
     model$call$family <- family_call
     spec$link <- link
-    list(model = model, spec = spec, data = model_data, warnings = unique(warnings), left_out = left_out, error = NULL)
+    list(model = model, spec = spec, data = model_data, test = test, warnings = unique(warnings), left_out = left_out, error = NULL)
   }
 
   fit_result <- eventReactive(input$fit_model, {
@@ -429,16 +435,45 @@ GLMFittingToolServer <- function(input, output, session) {
     result
   })
 
-  # predictions for every row of the data the model was fitted to (NA where a variable is missing)
+  # whether the model was fitted to part of the rows, the others held out for testing
+  has_holdout <- function(result) isTRUE(any(result$test))
+
+  # predictions for every row of the data (NA where a variable is missing); with rows held out,
+  # for those too, and NA for a row with a value of a factor the training rows did not have
   model_predictions <- function(result) {
+    if (has_holdout(result)) return(glm_predict_all(result$model, result$data)$predicted)
     unname(stats::predict(result$model, type = "response"))
   }
 
   # the response as glm() codes it (a text binomial response is 0 for its first level and 1 for
   # every other), for every row of the data (NA where the fit left the row out)
   model_actuals <- function(result) {
+    if (has_holdout(result)) return(glm_response_coded(result$data[[result$spec$response]]))
     unname(stats::naresid(result$model$na.action, result$model$y))
   }
+
+  # the exposure of every row: the offset column when the offset is its log, exp(offset) for a
+  # raw offset with the log link; a raw offset with another link is not an exposure, so the rows
+  # count as 1 each. NULL as the name when there is no exposure
+  model_exposure <- function(result) {
+    spec <- result$spec
+    df <- result$data
+    uses_exposure <- spec$offset != "None" && (spec$offset_log || spec$link == "log")
+    if (!uses_exposure) return(list(values = rep(1, nrow(df)), name = NULL))
+    if (spec$offset_log) return(list(values = df[[spec$offset]], name = spec$offset))
+    list(values = exp(df[[spec$offset]]), name = paste0("exp(", spec$offset, ")"))
+  }
+
+  model_weights <- function(result) {
+    if (result$spec$weights == "None") rep(1, nrow(result$data)) else result$data[[result$spec$weights]]
+  }
+
+  # the predictions of the shown model, computed once for the chart, the validation and the download
+  shown_predictions <- reactive({
+    result <- fit_result()
+    req(result$model)
+    model_predictions(result)
+  })
 
   fitted_model <- reactive({
     if (!isTruthy(input$fit_model)) return(NULL)
@@ -493,7 +528,10 @@ GLMFittingToolServer <- function(input, output, session) {
       div(
         class = "dft-stats",
         dft_stat_tile("Observations", format(facts$n, big.mark = ","), icon_name = "hashtag",
-                      note = if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ","), "rows with missing values left out")),
+                      note = paste(c(
+                        if (has_holdout(fit_result())) paste(format(sum(fit_result()$test), big.mark = ","), "rows held out for testing"),
+                        if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ","), "rows with missing values left out")
+                      ), collapse = "; ")),
         dft_stat_tile("Parameters", facts$parameters, icon_name = "list-ol"),
         dft_stat_tile("AIC", dft_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE),
         dft_stat_tile("Deviance explained", if (is.finite(facts$deviance_explained)) paste0(dft_fmt(100 * facts$deviance_explained, 3), "%") else dft_dash,
@@ -589,6 +627,12 @@ GLMFittingToolServer <- function(input, output, session) {
     bslib::update_switch("offset_log", value = isTRUE(spec$offset_log), session = session)
     hold_spec_input("formula", spec$formula)
     updateTextAreaInput(session, "formula", value = spec$formula)
+    holdout <- or_default(spec$holdout, "0")
+    hold_spec_input("holdout_share", holdout)
+    updateRadioButtons(session, "holdout_share", selected = holdout)
+    seed <- or_default(spec$seed, 1L)
+    hold_spec_input("holdout_seed", seed)
+    updateNumericInput(session, "holdout_seed", value = seed)
   }
 
   observeEvent(input$save_formula_1, store_model(1))
@@ -606,16 +650,21 @@ GLMFittingToolServer <- function(input, output, session) {
     # log-likelihood, so a weighted and an unweighted AIC differ
     comparable <- !is.null(other) && identical(other$import$id, stored$import$id) &&
       identical(other$left_out_rows, stored$left_out_rows) && identical(other$spec$response, spec$response) &&
-      other$n == stored$n && identical(other$spec$weights, spec$weights)
+      other$n == stored$n && identical(other$spec$weights, spec$weights) &&
+      identical(or_default(other$spec$holdout, "0"), or_default(spec$holdout, "0")) &&
+      identical(or_default(other$spec$seed, 1L), or_default(spec$seed, 1L))
     lhs <- paste(c(paste(term(spec$response), "~"), offset_term(spec$offset, spec$offset_log)), collapse = " ")
     tagList(
       div(class = "glm-slot-formula", paste(lhs, if (!is.null(offset_term(spec$offset, spec$offset_log))) "+", if (spec$formula == "") "1" else spec$formula)),
       div(class = "sim-muted", paste0(spec$family, " (", spec$link, " link)",
                                       if (spec$weights != "None") paste0(", weights ", spec$weights), ", ",
-                                      format(stored$n, big.mark = ","), " observations")),
+                                      format(stored$n, big.mark = ","), " observations",
+                                      if (!identical(or_default(spec$holdout, "0"), "0")) {
+                                        paste0(", ", names(glm_holdout_choices)[glm_holdout_choices == spec$holdout], " held out (seed ", spec$seed, ")")
+                                      })),
       div(class = "glm-slot-aic", paste("AIC", dft_fmt(stored$aic, 7)),
           if (comparable && stored$aic < other$aic) tags$span(class = "glm-better", " lower")),
-      if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different data, response, observations or weights.")
+      if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different data, response, observations, weights or rows held out.")
     )
   }
 
@@ -683,7 +732,9 @@ GLMFittingToolServer <- function(input, output, session) {
       data <- result$data
       # a prediction column of the data keeps its name; the model's gets one of its own
       column <- if ("prediction" %in% names(data)) make.unique(c(names(data), "model_prediction"))[ncol(data) + 1] else "prediction"
-      data[[column]] <- model_predictions(result)
+      data[[column]] <- shown_predictions()
+      # with rows held out, which rows the model was fitted to
+      if (has_holdout(result)) data[[make.unique(c(names(data), "sample"))[ncol(data) + 1]]] <- ifelse(result$test, "test", "training")
       #text from the uploaded data that a spreadsheet would read as a formula is written as text
       utils::write.csv(csv_safe(data), file, row.names = FALSE)
     }
@@ -706,7 +757,7 @@ GLMFittingToolServer <- function(input, output, session) {
   # actual and predicted per band of the chosen variable; with an offset the chart compares
   # rates per unit of exposure, and weights (e.g. binomial trials) weigh each row
   # redrawn when the chart is asked for and when the model is refitted
-  fitness_data <- eventReactive(list(input$execute_visualization, input$fit_model), {
+  fitness_data <- eventReactive(list(input$execute_visualization, input$fit_model, input$avp_rows), {
     model <- fitted_model()
     validate(need(!is.null(model), "Fit a model on the Model tab first."))
     result <- fit_result()
@@ -717,18 +768,13 @@ GLMFittingToolServer <- function(input, output, session) {
     validate(need(!is.null(variable) && variable %in% names(df), "Choose the explanatory variable."))
     # the response as the model codes it, on the same scale as the prediction
     actual <- model_actuals(result)
-    predicted <- model_predictions(result)
-    # the exposure: the offset column when the offset is its log, exp(offset) for a raw offset with
-    # the log link; a raw offset with another link is not an exposure, so the rows count as 1 each
-    uses_exposure <- spec$offset != "None" && (spec$offset_log || spec$link == "log")
-    exposure <- if (!uses_exposure) {
-      rep(1, nrow(df))
-    } else if (spec$offset_log) {
-      df[[spec$offset]]
-    } else {
-      exp(df[[spec$offset]])
-    }
-    weight <- if (spec$weights == "None") rep(1, nrow(df)) else df[[spec$weights]]
+    predicted <- shown_predictions()
+    exposure_of <- model_exposure(result)
+    exposure <- exposure_of$values
+    weight <- model_weights(result)
+    # with rows held out, the chart can show the training or the test rows alone
+    rows <- if (has_holdout(result)) or_default(input$avp_rows, "all") else "all"
+    in_rows <- switch(rows, training = !result$test, test = result$test, rep(TRUE, nrow(df)))
     grouping <- df[[variable]]
     # within the slider's range, whatever a client sends
     bands <- glm_band_count(input$number_of_bands_input)
@@ -741,7 +787,7 @@ GLMFittingToolServer <- function(input, output, session) {
     } else {
       grouping <- factor(grouping, levels = values, labels = if (is.numeric(values)) glm_value_labels(values) else values)
     }
-    keep <- !is.na(actual) & !is.na(predicted) & !is.na(grouping) & is.finite(exposure) & is.finite(weight)
+    keep <- in_rows & !is.na(actual) & !is.na(predicted) & !is.na(grouping) & is.finite(exposure) & is.finite(weight)
     validate(need(any(keep), "No row has the response, the prediction and the variable all present."))
     band <- droplevels(grouping[keep])
     # text is not grouped: an ID would draw hundreds of unreadable bars
@@ -758,8 +804,9 @@ GLMFittingToolServer <- function(input, output, session) {
       exposure = denominator,
       stringsAsFactors = FALSE
     )
-    attr(plot_data, "dropped") <- sum(!keep)
-    attr(plot_data, "exposure") <- if (!uses_exposure) NULL else if (spec$offset_log) spec$offset else paste0("exp(", spec$offset, ")")
+    attr(plot_data, "dropped") <- sum(in_rows & !keep)
+    attr(plot_data, "rows") <- rows
+    attr(plot_data, "exposure") <- exposure_of$name
     attr(plot_data, "variable") <- variable
     plot_data
   })
@@ -807,6 +854,245 @@ GLMFittingToolServer <- function(input, output, session) {
     labels <- tryCatch(fitness_labels(), error = function(e) NULL)
     if (is.null(labels)) return("Actual and predicted chart")
     paste0("Actual and predicted by band of ", labels$x, ". Left axis: ", labels$y, ". Bars on the right axis: ", labels$bars, ".")
+  })
+
+  # the choice of rows, shown for a model fitted with rows held out
+  output$avp_rows_ui <- renderUI({
+    result <- if (isTruthy(input$fit_model)) fit_result() else NULL
+    if (!has_holdout(result)) return(NULL)
+    tagList(
+      div(class = "sim-section-label mt-2", "Rows"),
+      div(class = "pill-radio",
+          radioButtons("avp_rows", NULL, c("All" = "all", "Training" = "training", "Test" = "test"),
+                       or_default(isolate(input$avp_rows), "all"), inline = TRUE))
+    )
+  })
+
+  ######################
+  #validation
+  ######################
+
+  # every row's actual, prediction, exposure and weight, and which rows were held out
+  validation_rows <- reactive({
+    validate(need(input$fit_model, "Fit a model on the Model tab first."))
+    result <- fit_result()
+    validate(need(!is.null(result$model), "Fit a model on the Model tab first."))
+    exposure <- model_exposure(result)
+    list(result = result, actual = model_actuals(result), predicted = shown_predictions(),
+         exposure = exposure$values, exposure_name = exposure$name, weight = model_weights(result),
+         test = if (has_holdout(result)) result$test else rep(FALSE, nrow(result$data)))
+  })
+
+  # the rows the charts are drawn for: the test rows when there are any (the training rows
+  # otherwise, said in a note), the training rows or all of them
+  validation_set <- reactive({
+    v <- validation_rows()
+    wanted <- or_default(input$validation_rows, "test")
+    used <- if (identical(wanted, "test") && !any(v$test)) "training" else wanted
+    rows <- switch(used, test = v$test, training = !v$test, rep(TRUE, length(v$test)))
+    list(rows = rows, used = used, wanted = wanted)
+  })
+
+  validation_label <- function(used) switch(used, test = "test rows", training = "training rows", "all rows")
+
+  # the deviance per row and the Gini coefficient of a set of rows
+  validation_measures <- function(v, rows) {
+    gini <- glm_gini_curve(v$actual[rows], v$predicted[rows], v$exposure[rows], v$weight[rows])
+    list(deviance = glm_unit_deviance(v$result$model$family, v$actual[rows], v$predicted[rows], v$weight[rows]),
+         gini = if (is.null(gini)) NA_real_ else gini$gini, rows = sum(rows))
+  }
+
+  output$validation_stats <- renderUI({
+    v <- validation_rows()
+    training <- validation_measures(v, !v$test)
+    test <- if (any(v$test)) validation_measures(v, v$test)
+    both <- function(f) if (is.null(test)) f(training) else paste(f(training), "/", f(test))
+    fmt <- function(x, digits) if (is.finite(x)) dft_fmt(x, digits) else dft_dash
+    tagList(
+      if (model_outdated()) outdated_note("Click Fit model to fit it to the new data."),
+      if (is.null(test)) dft_help("No rows were held out: the figures are of the rows the model was fitted to. ",
+                                  "Hold out rows on the Model tab to see how it does on rows it has not seen."),
+      div(
+        class = "dft-stats",
+        dft_stat_tile(if (is.null(test)) "Training rows" else "Training / test rows",
+                      both(function(m) format(m$rows, big.mark = ",")), icon_name = "table-list"),
+        dft_stat_tile(if (is.null(test)) "Deviance per row" else "Deviance per row, training / test",
+                      both(function(m) fmt(m$deviance, 4)), icon_name = "scale-balanced", accent = TRUE,
+                      note = if (!is.null(test) && is.finite(test$deviance) && is.finite(training$deviance) &&
+                                 test$deviance > 1.2 * training$deviance) "Much higher on the test rows: the model may be overfitted"),
+        dft_stat_tile(if (is.null(test)) "Gini" else "Gini, training / test", both(function(m) fmt(m$gini, 3)),
+                      icon_name = "chart-area", note = "How well the predictions rank the rows: 0 is no better than chance")
+      )
+    )
+  })
+
+  validation_bands <- reactive({
+    bands <- suppressWarnings(as.integer(or_default(input$validation_bands, "10")))
+    if (length(bands) != 1 || is.na(bands) || !bands %in% c(5L, 10L, 20L)) 10L else bands
+  })
+
+  validation_y_title <- function(v) {
+    response <- v$result$spec$response
+    if (!is.null(v$exposure_name)) paste(response, "per unit of exposure") else paste("Average", response)
+  }
+
+  validation_bar_name <- function(v) {
+    if (!is.null(v$exposure_name)) paste0("Exposure (", v$exposure_name, ")") else if (v$result$spec$weights != "None") paste0("Weight (", v$result$spec$weights, ")") else "Rows"
+  }
+
+  set_note <- function(set) {
+    if (identical(set$wanted, "test") && set$used != "test") dft_help("No rows were held out, so the chart is of the training rows.")
+  }
+
+  lift_table <- reactive({
+    v <- validation_rows()
+    set <- validation_set()
+    r <- set$rows
+    table <- glm_lift_table(v$actual[r], v$predicted[r], v$predicted[r] / v$exposure[r], v$exposure[r], v$weight[r],
+                            bands = validation_bands())
+    validate(need(!is.null(table), "No row has both the response and a prediction."))
+    table
+  })
+
+  output$lift_plot <- netsimr_render_plot({
+    v <- validation_rows()
+    table <- lift_table()
+    dft_category_chart(
+      as.character(table$band),
+      bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
+      lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
+                   list(name = "Predicted", values = table$predicted, colour = dft_model_palette[2])),
+      x_title = paste0("Band of predicted rate, lowest to highest (", validation_label(validation_set()$used), ")"),
+      y_title = validation_y_title(v), dark = dark()
+    )
+  }, bg = "transparent", res = 96, alt = "Lift chart: actual and predicted per band of the predicted rate")
+
+  output$lift_note <- renderUI({
+    tagList(
+      set_note(validation_set()),
+      dft_help("The rows are sorted by their predicted rate and cut into bands of about the same exposure. ",
+               "A good model's actual line rises steeply from the first band to the last, and its predicted ",
+               "line follows it.")
+    )
+  })
+
+  output$lorenz_plot <- netsimr_render_plot({
+    v <- validation_rows()
+    r <- validation_set()$rows
+    curve <- glm_gini_curve(v$actual[r], v$predicted[r], v$exposure[r], v$weight[r])
+    validate(need(!is.null(curve), "No row has both the response and a prediction."))
+    curve <- glm_thin_curve(curve)
+    dft_line_chart(
+      list(list(x = curve$x, y = curve$y, name = paste0("Model (Gini ", dft_fmt(curve$gini, 3), ")"), colour = dft_model_palette[2]),
+           list(x = c(0, 1), y = c(0, 1), name = "No better than chance", colour = "muted", lwd = 1.4)),
+      x_title = paste0("Share of exposure, lowest predicted rate first (", validation_label(validation_set()$used), ")"),
+      y_title = paste("Share of", v$result$spec$response), dark = dark(), ylim = c(0, 1)
+    )
+  }, bg = "transparent", res = 96, alt = "Lorenz curve of the model's predictions, with its Gini coefficient")
+
+  # the stored model to compare with, fitted again to the same rows
+  double_lift <- reactive({
+    v <- validation_rows()
+    choice <- or_default(input$validation_compare, "none")
+    validate(need(choice %in% c("1", "2"), "Choose a stored model to compare this model with."))
+    stored <- stored_models[[as.integer(choice)]]()
+    validate(need(!is.null(stored), paste0("Model ", choice, " is empty: store a model in it on the Model tab.")))
+    result <- v$result
+    validate(need(!model_outdated(), "The data was imported again since this model was fitted: fit it again first."))
+    same_rows <- identical(stored$import$id, result$import$id) &&
+      identical(or_default(stored$spec$holdout, "0"), result$spec$holdout) && identical(or_default(stored$spec$seed, 1L), result$spec$seed)
+    validate(need(same_rows, paste0("Model ", choice, " was fitted to other data or other rows held out, so the two cannot be compared row by row.")))
+    other <- tryCatch(fit_glm(stored$spec, isolate(imported()$data)), error = function(e) NULL)
+    validate(need(!is.null(other), paste0("Model ", choice, " could not be fitted again.")))
+    other_predicted <- model_predictions(other)
+    r <- validation_set()$rows
+    table <- glm_lift_table(v$actual[r], v$predicted[r], v$predicted[r] / other_predicted[r], v$exposure[r], v$weight[r],
+                            bands = validation_bands(), others = list(other = other_predicted[r]))
+    validate(need(!is.null(table), "No row has the response and both predictions."))
+    list(table = table, name = paste("Model", choice))
+  })
+
+  output$double_lift_plot <- netsimr_render_plot({
+    v <- validation_rows()
+    d <- double_lift()
+    table <- d$table
+    dft_category_chart(
+      as.character(table$band),
+      bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
+      lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
+                   list(name = "This model", values = table$predicted, colour = dft_model_palette[2]),
+                   list(name = d$name, values = table$other, colour = dft_model_palette[1])),
+      x_title = paste0("Band of the ratio to ", d$name, " (", validation_label(validation_set()$used), ")"),
+      y_title = validation_y_title(v), dark = dark()
+    )
+  }, bg = "transparent", res = 96, alt = "Double lift chart: actual and both models' predictions per band of their ratio")
+
+  output$double_lift_note <- renderUI({
+    tagList(
+      set_note(validation_set()),
+      dft_help("The rows are sorted by the ratio of this model's prediction to the stored model's, and cut into bands. ",
+               "Where the two disagree most, at either end, the model whose line is nearer the actual line is the better one.")
+    )
+  })
+
+  ######################
+  #variable selection
+  ######################
+
+  # the columns a selection may add, offered once data is imported
+  observeEvent(selected_data(), {
+    updateSelectizeInput(session, "select_candidates", choices = glm_candidate_columns(selected_data()), selected = character(0))
+  })
+
+  selection <- eventReactive(input$run_selection, {
+    result <- if (isTruthy(input$fit_model)) fit_result() else NULL
+    if (is.null(result) || is.null(result$model)) return(list(error = "Fit a model first: the selection starts from its terms."))
+    if (model_outdated()) return(list(error = "The data was imported again since the model was fitted: fit it again first."))
+    spec <- result$spec
+    pool <- glm_candidate_columns(result$data, c(spec$response, spec$offset, spec$weights))
+    chosen <- input$select_candidates
+    candidates <- if (length(chosen) > 0) intersect(chosen, pool) else pool
+    test <- if (has_holdout(result)) result$data[result$test, , drop = FALSE]
+    criterion <- if (identical(input$select_criterion, "BIC")) "BIC" else "AIC"
+    tryCatch(
+      shiny::withProgress(message = "Selecting terms", value = 0.3,
+                          glm_stepwise(result$model, result$data[!result$test, , drop = FALSE], candidates, criterion, test)),
+      error = function(e) list(error = paste("The selection failed:", conditionMessage(e)))
+    )
+  })
+
+  output$selection_result <- renderUI({
+    s <- selection()
+    if (!is.null(s$error)) return(dft_help(s$error))
+    with_test <- any(is.finite(s$path$test_deviance))
+    best_test <- if (with_test) which.min(s$path$test_deviance)
+    rows <- lapply(seq_len(nrow(s$path)), function(i) {
+      cells <- list(as.character(i - 1), s$path$change[i], dft_fmt(s$path$criterion[i], 7))
+      if (with_test) cells <- c(cells, list(dft_fmt(s$path$test_deviance[i], 5)))
+      cells
+    })
+    tagList(
+      dft_html_table(c("Step", "Change", s$criterion, if (with_test) "Test deviance per row"), rows,
+                     best = best_test, best_label = "Lowest", align = c("left", "left", "right", "right")),
+      div(class = "sim-section-label mt-2", "Suggested terms"),
+      div(class = "glm-slot-formula", s$terms),
+      actionButton("use_selection", "Use these terms", icon = icon("arrow-up"), class = "btn-outline-glm mt-1"),
+      dft_help(
+        "Each step adds a column or drops a term, whichever lowers the ", s$criterion, " most, until none does. ",
+        if (s$left_out > 0) paste0(format(s$left_out, big.mark = ","), " rows with a candidate column missing were left out of the selection. "),
+        if (with_test) "The test deviance is measured on the rows held out: if it rises at a step, that step fits noise. ",
+        "Fit the suggested terms with Fit model, and check them on the Validation tab."
+      ),
+      if (length(s$warnings) > 0) dft_help(paste("The fits warned:", paste(s$warnings, collapse = "; ")))
+    )
+  })
+
+  observeEvent(input$use_selection, {
+    s <- selection()
+    req(is.null(s$error))
+    hold_spec_input("formula", s$terms)
+    updateTextAreaInput(session, "formula", value = s$terms)
+    showNotification("The suggested terms are in the formula. Click Fit model to fit them.", type = "message", duration = 6)
   })
 
   ######################
@@ -882,7 +1168,10 @@ GLMFittingToolServer <- function(input, output, session) {
       value <- values[[id]]
       switch(
         kinds[[id]],
-        radio = updateRadioButtons(session, id, selected = value),
+        radio = {
+          hold_spec_input(id, value)
+          updateRadioButtons(session, id, selected = value)
+        },
         switch = {
           hold_spec_input(id, isTRUE(value))
           bslib::update_switch(id, value = isTRUE(value), session = session)
@@ -893,6 +1182,10 @@ GLMFittingToolServer <- function(input, output, session) {
           updateTextAreaInput(session, id, value = value)
         },
         slider = updateSliderInput(session, id, value = value),
+        numeric = {
+          hold_spec_input(id, value)
+          updateNumericInput(session, id, value = value)
+        },
         select = updateSelectInput(session, id, selected = value),
         column = if (!is.null(columns) && value %in% c("None", columns)) {
           hold_spec_input(id, value)
@@ -912,7 +1205,7 @@ GLMFittingToolServer <- function(input, output, session) {
 
   # the tiles and the formula helpers are hidden while empty, and shiny does not render
   # hidden outputs, so they must render even when hidden or they would never appear
-  for (id in c("data_overview", "model_stats", "formula_columns", "formula_lhs")) {
+  for (id in c("data_overview", "model_stats", "formula_columns", "formula_lhs", "validation_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
 }

@@ -96,6 +96,17 @@ Changes in Version 0.3.4
     no longer suggested.
   o Claims simulator: finding each simulation's largest claim, for the
     occurrence exceedance probability, is faster.
+  o GLM fitting tool: validation and variable selection. The Model tab can
+    hold out 10%, 20% or 30% of the rows for testing (with a seed): the model
+    is fitted to the others, and every row is predicted. A new Validation tab
+    gives the deviance per row and the Gini coefficient of the training and
+    the test rows, a lift chart, the Lorenz curve, and a double lift chart
+    against a stored model. A Variable selection card suggests terms by
+    stepwise AIC or BIC from the fitted model, adding candidate columns or
+    dropping terms, with each step's deviance on the rows held out, and puts
+    them in the formula. The actual vs predicted chart can show the training
+    or the test rows alone, the predictions download marks each row's sample,
+    and the settings file keeps the rows held out, the seed and the criterion.
   o GLM fitting tool: PostgreSQL databases are read with RPostgres, the
     current DBI driver, instead of the older RPostgreSQL; 64-bit integer
     columns come back as numbers.

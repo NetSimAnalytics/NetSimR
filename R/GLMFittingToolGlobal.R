@@ -2,8 +2,10 @@
 #'
 #' @description Opens a Shiny application that imports data from a CSV file or
 #'   a database query, fits generalised linear models to it, compares the AIC
-#'   of stored models, charts actual against predicted values and downloads the
-#'   model and its predictions.
+#'   of stored models, suggests terms by stepwise AIC or BIC, charts actual
+#'   against predicted values, validates the model on rows held out for testing
+#'   (deviance per row, Gini coefficient, lift and double lift charts) and
+#'   downloads the model and its predictions.
 #'
 #' @details The formula typed in the application, or read from one of its
 #'   settings files, is restricted to the columns of the imported data, numbers,
@@ -48,11 +50,13 @@ glm_settings_inputs <- data.frame(
   id = c("data_source", "csv_header", "csv_sep", "csv_dec", "csv_quote",
          "db_type", "db_host", "db_name", "db_port", "windows_auth", "db_user", "sql_query",
          "glm_distribution", "link_function", "offset_log", "formula", "number_of_bands_input", "band_method",
-         "response_variable", "offset", "weights", "visualize_variable"),
+         "response_variable", "offset", "weights", "visualize_variable",
+         "holdout_share", "holdout_seed", "select_criterion"),
   kind = c("radio", "switch", "radio", "radio", "radio",
            "select", "text", "text", "text", "switch", "text", "textarea",
            "select", "select", "switch", "textarea", "slider", "radio",
-           "column", "column", "column", "column"),
+           "column", "column", "column", "column",
+           "radio", "numeric", "radio"),
   stringsAsFactors = FALSE
 )
 
@@ -75,7 +79,9 @@ glm_settings_choices <- list(
   db_type = c("SQLite", "SQL Server", "PostgreSQL"),
   glm_distribution = c("gaussian", "poisson", "binomial", "Gamma", "inverse.gaussian"),
   link_function = c("identity", "log", "inverse", "sqrt", "logit", "probit", "cloglog", "cauchit", "1/mu^2"),
-  band_method = c("quantile", "width")
+  band_method = c("quantile", "width"),
+  holdout_share = c("0", "0.1", "0.2", "0.3"),
+  select_criterion = c("AIC", "BIC")
 )
 
 # The usable values of a settings file (the values of read_settings_file()): a named
@@ -92,12 +98,14 @@ glm_settings_values <- function(inputs) {
       kinds[[id]],
       switch = is.logical(value),
       slider = is.numeric(value) && is.finite(value),
+      numeric = is.numeric(value) && is.finite(value),
       is.character(value)
     )
     if (!ok) next
     if (!is.null(glm_settings_choices[[id]]) && !value %in% glm_settings_choices[[id]]) next
     # a hand-edited file may hold any number of bands; the slider only offers its range
     if (id == "number_of_bands_input") value <- glm_band_count(value)
+    if (id == "holdout_seed") value <- glm_holdout_seed(value)
     values[[id]] <- value
   }
   if (length(values) == 0) NULL else values

@@ -45,7 +45,9 @@ remotes::install_github("NetSimAnalytics/NetSimR")
 - **Five Shiny tools**: a claims simulator with reports and run comparison; a
   distribution fitting tool for claim counts and sizes, including claims
   reported only above a threshold, whose fits it saves as simulator settings;
-  a GLM fitting tool with a rating factor table; a reserving tool; and a
+  a GLM fitting tool with a rating factor table, stepwise variable selection
+  and validation on held-out rows (Gini, lift and double lift); a reserving
+  tool; and a
   reinsurance pricing tool.
 
 ## Examples

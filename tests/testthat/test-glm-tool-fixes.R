@@ -133,7 +133,7 @@ test_that("GLM fitting tool compares the AIC of stored models only with the same
     both <- paste(output$aic_output_1$html, output$aic_output_2$html)
     expect_no_match(both, "lower", fixed = TRUE)
     expect_match(output$aic_output_1$html, "Not comparable", fixed = TRUE)
-    expect_match(output$aic_output_2$html, "different data, response, observations or weights", fixed = TRUE)
+    expect_match(output$aic_output_2$html, "different data, response, observations, weights or rows held out", fixed = TRUE)
     #the same weights: comparable, and the lower AIC is marked
     session$setInputs(formula = "age + region", fit_model = 3, save_formula_1 = 2)
     both <- paste(output$aic_output_1$html, output$aic_output_2$html)
