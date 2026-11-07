@@ -1114,7 +1114,13 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       setting_card("Simulation", list(
         "Simulations" = fmt_int(s$numOfSimulations),
         "Seed" = if (isTRUE(s$seedSetBinary)) paste("Fixed at", fmt_int(s$seedValue)) else off("Random"),
-        "Processing" = if (isTRUE(s$multiprocessing)) "Parallel" else "Single process"
+        "Processing" = if (!isTRUE(s$multiprocessing)) {
+          "Single process"
+        } else if (is.numeric(s$workers) && length(s$workers) == 1) {
+          paste("Parallel,", count_of(s$workers, "worker"))
+        } else {
+          "Parallel"
+        }
       )),
       setting_card("Frequency", list(
         "Distribution" = distr_label(freq_dist_options, s$freqDistr),

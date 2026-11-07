@@ -72,7 +72,7 @@ simulate_claims(
 
 \item{agg_limit}{The limit of a "limited" or "exclude" aggregate layer.}
 
-\item{parallel}{TRUE to run the chunks of simulations on parallel workers. Results are the same as a sequential run. Workers started for the call take a second or two to start, so a run expected to draw fewer than ten million claims runs in the session instead (the option \code{NetSimR.parallel_min_claims} changes that number); a cluster given as \code{workers} is always used. See \code{\link{simulate_function}}.}
+\item{parallel}{TRUE to run the chunks of simulations on parallel workers, FALSE (the default) to run them in this session, or "auto" to use workers only when that is expected to be at least a quarter faster, which for workers started by the call means a run of a few seconds or more. Results are the same either way. See \code{\link{simulate_function}}.}
 
 \item{workers}{The workers of a parallel run: NULL (the default) for one per available core, a number of workers (both started for the call and shut down after it), or a cluster from \code{parallel::makeCluster()}, which is used and left running so that several calls share it. See \code{\link{simulate_function}}.}
 

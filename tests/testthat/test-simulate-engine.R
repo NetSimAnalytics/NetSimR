@@ -198,8 +198,6 @@ test_that("seeded parallel runs give the captured results, on the caller's worke
     expect_captured_run(do.call(simulate_function, settings), case, paste(name, "(caller's workers)"))
   }
   #given a number of workers, the call starts its own (small as the run is)
-  op <- options(NetSimR.parallel_min_claims = 0)
-  on.exit(options(op), add = TRUE)
   case <- captured_runs$layered
   settings <- utils::modifyList(case$settings, list(multiprocessing = TRUE, workers = 2))
   expect_captured_run(do.call(simulate_function, settings), case, "layered (own workers)")
@@ -207,8 +205,6 @@ test_that("seeded parallel runs give the captured results, on the caller's worke
 
 test_that("a parallel call on its own workers leaves no connections open, after an error too", {
   skip_on_cran()
-  op <- options(NetSimR.parallel_min_claims = 0)
-  on.exit(options(op), add = TRUE)
   sockets_before <- open_sockets()
   expect_equal(nrow(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE, workers = 2)), 1000)
   expect_identical(open_sockets(), sockets_before)
@@ -398,41 +394,66 @@ test_that("a cap at or below the deductible cedes nothing with layer-only draws"
   expect_gt(mean(res$claim_counts), 2.5)
 })
 
-test_that("a small parallel run stays in the session unless it is given workers or the option says so", {
+test_that("a parallel run starts its workers unless it is a single chunk, and auto only when it pays", {
   started <- 0
   local_mocked_bindings(netsimr_start_workers = function(workers = NULL) {
     started <<- started + 1
     stop("workers started")
   })
   expected <- run_simulation(numOfSimulations = 1000, chunk_size = 250)
-  #a run expected to draw fewer claims than the cut-off runs here, with the same results,
-  #and its progress is reported as in any sequential run
-  calls <- numeric(0)
-  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE,
-                                  progress = function(value, detail) calls <<- c(calls, value)), expected)
-  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE, workers = 2), expected)
-  expect_equal(calls, c(0.25, 0.5, 0.75, 1))
-  expect_identical(started, 0)
-  #the workers argument is still checked
-  expect_error(run_simulation(multiprocessing = TRUE, workers = 0), "workers must be")
-  #with the cut-off at 0 the call starts its own workers, unless the run is a single chunk
-  op <- options(NetSimR.parallel_min_claims = 0)
-  on.exit(options(op), add = TRUE)
+  #TRUE starts the workers for any run of two chunks or more
   expect_error(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = TRUE), "workers started")
   expect_identical(started, 1)
+  #a single chunk runs here
   expect_no_error(run_simulation(numOfSimulations = 200, chunk_size = 250, multiprocessing = TRUE))
   expect_identical(started, 1)
-  #an invalid option falls back to ten million claims
-  options(NetSimR.parallel_min_claims = "many")
-  expect_identical(netsimr_parallel_min_claims(), 1e7)
-  options(NetSimR.parallel_min_claims = NULL)
-  expect_identical(netsimr_parallel_min_claims(), 1e7)
-  options(NetSimR.parallel_min_claims = 5e6)
-  expect_identical(netsimr_parallel_min_claims(), 5e6)
-  #a large run expected to draw more claims than the cut-off starts its workers
-  expect_error(run_simulation(numOfSimulations = 1000, chunk_size = 250, freq_params = 1e4, multiprocessing = TRUE),
+  #"auto" keeps a small run here, with the same results, and reports its progress as any
+  #sequential run does; it starts no workers
+  calls <- numeric(0)
+  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = "auto",
+                                  progress = function(value, detail) calls <<- c(calls, value)), expected)
+  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = "auto", workers = 2), expected)
+  expect_equal(calls, c(0.25, 0.5, 0.75, 1))
+  expect_false(netsimr_last_run$parallel)
+  expect_identical(started, 1)
+  #...and a function given as workers is not called
+  asked <- 0
+  expect_identical(run_simulation(numOfSimulations = 1000, chunk_size = 250, multiprocessing = "auto",
+                                  workers = function() { asked <<- asked + 1; stop("asked for workers") }), expected)
+  expect_identical(asked, 0)
+  #a run of many seconds starts them (the run itself is not reached)
+  local_mocked_bindings(netsimr_available_cores = function() 4L)
+  expect_error(run_simulation(numOfSimulations = 1000, chunk_size = 100, freq_params = 1e5, multiprocessing = "auto"),
                "workers started")
   expect_identical(started, 2)
+  expect_error(run_simulation(numOfSimulations = 1000, chunk_size = 100, freq_params = 1e5, multiprocessing = "auto",
+                              workers = function() { asked <<- asked + 1; stop("asked for workers") }), "asked for workers")
+  expect_identical(asked, 1)
+  #the arguments are still checked
+  expect_error(run_simulation(multiprocessing = TRUE, workers = 0), "workers must be")
+  expect_error(run_simulation(multiprocessing = "auto", workers = "four"), "workers must be")
+  expect_error(run_simulation(multiprocessing = "yes"), "multiprocessing must be")
+})
+
+test_that("the auto plan weighs the run's size against the workers' cost", {
+  local_mocked_bindings(netsimr_available_cores = function() 12L)
+  #too little work, or a single chunk, or a single core: no workers
+  expect_identical(netsimr_parallel_plan(claims = 5e5, simulations = 5e4, n_chunks = 5), 0L)
+  expect_identical(netsimr_parallel_plan(claims = 1e9, simulations = 1e4, n_chunks = 1), 0L)
+  expect_identical(netsimr_parallel_plan(claims = 1e9, simulations = 1e5, n_chunks = 100, start = 1), 0L)
+  expect_identical(netsimr_parallel_plan(claims = Inf, simulations = 1e5, n_chunks = 100), 0L)
+  #warm workers pay from a fraction of a second, so the same run goes to them
+  expect_identical(netsimr_parallel_plan(claims = 5e5, simulations = 5e4, n_chunks = 5, running = 12), 12L)
+  expect_identical(netsimr_parallel_plan(claims = 1e4, simulations = 1e4, n_chunks = 2, running = 12), 0L)
+  #workers to start pay from a few seconds of work, and it starts no more than the chunks use
+  expect_identical(netsimr_parallel_plan(claims = 1e7, simulations = 1e5, n_chunks = 10), 0L)
+  expect_identical(netsimr_parallel_plan(claims = 1e8, simulations = 1e5, n_chunks = 100), 12L)
+  expect_identical(netsimr_parallel_plan(claims = 1e8, simulations = 1e4, n_chunks = 10), 10L)
+  expect_identical(netsimr_parallel_plan(claims = 1e8, simulations = 1e5, n_chunks = 100, start = 4), 4L)
+  #a total drawn in one step costs little per simulation
+  expect_identical(netsimr_parallel_plan(claims = 0, simulations = 1e6, n_chunks = 100), 0L)
+  #ten thousand chunks of a high frequency cost more to send than they save
+  expect_identical(netsimr_parallel_plan(claims = 0, simulations = 1e6, n_chunks = 1e4, one_step = TRUE, running = 12), 0L)
 })
 
 test_that("a small run on the caller's workers uses them", {

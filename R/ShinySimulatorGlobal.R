@@ -860,8 +860,8 @@ find_missing_simulation_settings <- function(settings) {
 #' @param reinsuranceStructureReinstatementLimit The reinstatement limit.
 #' @param reinsurance_structure_eel_premium The upfront premium of the EEL layer, or NULL (the default) for none. Given with a limited number of reinstatements, the results gain the column \code{reinstatement_premium}; ignored otherwise.
 #' @param reinsurance_structure_eel_reinstatement_rates The premium rate of each reinstatement as a share of the upfront premium: one rate for all of them, or one per reinstatement. Defaults to 1 (100\%). See \code{\link{reinstatement_premium}}.
-#' @param multiprocessing True to run the chunks in parallel on worker R processes (base R's \pkg{parallel} package), otherwise false. Results are the same as a sequential run. See \code{workers}. When the call would start its own workers, which takes a second or two, a run expected to draw fewer than ten million claims (or of a single chunk) runs in the session instead, being faster there; set \code{options(NetSimR.parallel_min_claims = )} to change that number, e.g. to 0 to always start the workers. A cluster given as \code{workers} is always used.
-#' @param workers The workers of a parallel run: \code{NULL} (the default) for one per available core (\code{getOption("mc.cores")} if set, otherwise \code{parallel::detectCores()}, at most 2 under \code{R CMD check}), or a number of workers; these are started for the call and shut down when it finishes, so each call pays the start-up cost. To reuse workers across calls, pass a cluster made with \code{parallel::makeCluster()}: it is used as it is and left running, to be stopped with \code{parallel::stopCluster()}. Ignored unless \code{multiprocessing} is true.
+#' @param multiprocessing TRUE to run the chunks in parallel on worker R processes (base R's \pkg{parallel} package), FALSE (the default) to run them in this session, or "auto" to run them on workers only when that is expected to be at least a quarter faster. Results are the same either way. "auto" estimates both times from the expected number of claims drawn, the number of simulations and chunks, the cores, and whether the workers are already running: starting them takes about a second, so a single run goes to them from a few seconds of work, while a cluster given as \code{workers} is used from a fraction of a second; with \code{workers = NULL} it also chooses how many to start. A run of a single chunk runs in this session, unless TRUE is given with a cluster.
+#' @param workers The workers of a parallel run: \code{NULL} (the default) for one per available core (\code{getOption("mc.cores")} if set, otherwise \code{parallel::detectCores()}, at most 2 under \code{R CMD check}), or a number of workers; these are started for the call and shut down when it finishes, so each call pays the start-up cost. To reuse workers across calls, pass a cluster made with \code{parallel::makeCluster()}: it is used as it is and left running, to be stopped with \code{parallel::stopCluster()}. A function with no arguments that returns such a cluster is called only when the run goes to the workers (as "auto" decides), which lets a caller start them when they are first needed. Ignored unless \code{multiprocessing} is TRUE or "auto".
 #' @param sevTruncateAtZero True to draw Normal severities from the Normal distribution truncated at zero, so that no claim is negative. Ignored for other severity distributions. Defaults to FALSE.
 #' @param chunk_size The number of simulations processed per vectorised batch. By default (NULL) it is chosen from the expected number of claims per simulation, so that a batch holds about a million claims (between 100 and 10,000 simulations). Because of the floor of 100 simulations, a batch holds more than a million claims when the mean frequency exceeds 10,000 claims per simulation (about 100 million at a mean of a million), and memory use grows with it; give a smaller \code{chunk_size} to keep batches small. Results with a fixed seed depend on the chunk size.
 #' @param gross True (the default) to return the gross total claims before reinsurance. Set it to FALSE when only the totals after the structures are needed: with an each-and-every-loss layer this allows drawing only the claims that reach the layer, which is much faster.
@@ -1146,35 +1146,56 @@ simulate_function <- function(
   }
   run_chunk <- function(i) simulate_chunk(chunk_sizes[i])
 
-  #run chunks, optionally in parallel across chunks (not per-simulation); workers started
-  #for this call take about a second or two to start, so a small run stays in this session
-  #(the results are the same either way), while the caller's own cluster is always used
-  if (isTRUE(multiprocessing) && !inherits(workers, "cluster")) {
-    netsimr_check_workers(workers)
-    claims_drawn <- if (sum_in_one_step) {
-      0
-    } else if (draw_large_claims_only) {
-      expected_claims * large_prob * numOfSimulations
-    } else {
-      expected_claims * numOfSimulations
-    }
-    if (n_chunks < 2 || (is.finite(claims_drawn) && claims_drawn + numOfSimulations < netsimr_parallel_min_claims())) {
-      multiprocessing <- FALSE
+  #run chunks, optionally in parallel across chunks (not per-simulation); "auto" goes to the
+  #workers only when that is expected to be faster (see netsimr_parallel_plan()), and a run
+  #of a single chunk stays in this session unless a cluster is given (the results are the
+  #same either way)
+  if (is.character(multiprocessing) && !identical(multiprocessing, "auto")) {
+    stop("multiprocessing must be TRUE, FALSE or \"auto\".", call. = FALSE)
+  }
+  auto <- identical(multiprocessing, "auto")
+  if (isTRUE(multiprocessing) || auto) netsimr_check_workers(workers)
+  parallel_run <- (isTRUE(multiprocessing) && (n_chunks >= 2 || inherits(workers, "cluster"))) || (auto && n_chunks >= 2)
+  if (parallel_run) {
+    is_cluster <- inherits(workers, "cluster")
+    if (auto) {
+      claims_drawn <- if (sum_in_one_step) {
+        0
+      } else if (draw_large_claims_only) {
+        expected_claims * large_prob * numOfSimulations
+      } else {
+        expected_claims * numOfSimulations
+      }
+      #a cluster runs warm; a function starts all the available cores; a number is started as it is
+      planned <- netsimr_parallel_plan(
+        claims = claims_drawn, simulations = numOfSimulations, n_chunks = n_chunks,
+        one_step = sum_in_one_step, running = if (is_cluster) length(workers),
+        start = if (is.numeric(workers)) workers else if (is.function(workers)) netsimr_available_cores()
+      )
+      parallel_run <- planned > 0
+      if (parallel_run && is.null(workers)) workers <- planned
     }
   }
-  if (isTRUE(multiprocessing)) {
-    #reuse a cluster the caller gives (e.g. the app keeps warm workers); otherwise start
-    #workers for this call and shut them down afterwards
-    #keep objects the workers do not need (e.g. a Shiny progress callback, or the cluster
-    #itself) out of the chunk closure, which is sent to the workers with its environment
-    progress <- NULL
-    settings <- NULL
+  netsimr_last_run$parallel <- FALSE
+  netsimr_last_run$workers <- 0L
+  if (parallel_run) {
+    #reuse a cluster the caller gives (e.g. the app keeps warm workers), or the one a function
+    #given as workers returns (left running for the caller); otherwise start workers for this
+    #call and shut them down afterwards
     cluster <- workers
-    workers <- NULL
+    if (is.function(cluster)) cluster <- cluster()
     if (!inherits(cluster, "cluster")) {
       cluster <- netsimr_start_workers(cluster)
       on.exit(netsimr_stop_workers(cluster), add = TRUE)
     }
+    netsimr_last_run$parallel <- TRUE
+    netsimr_last_run$workers <- length(cluster)
+    if (is.function(progress)) progress(0, paste("On", length(cluster), "parallel workers"))
+    #keep objects the workers do not need (e.g. a Shiny progress callback, or the cluster
+    #itself) out of the chunk closure, which is sent to the workers with its environment
+    progress <- NULL
+    settings <- NULL
+    workers <- NULL
     chunk_results <- run_chunks_on_workers(cluster, run_chunk, chunk_seeds)
   } else {
     chunk_results <- vector("list", n_chunks)
@@ -1262,38 +1283,88 @@ netsimr_available_cores <- function() {
 #' Start worker R processes for a parallel run
 #'
 #' @param workers The number of workers, or NULL for one per available core.
-#' @return A socket cluster of the parallel package.
+#' @return A socket cluster of the parallel package, with the package loaded on its workers.
 #' @noRd
 netsimr_start_workers <- function(workers = NULL) {
   netsimr_check_workers(workers)
   if (is.null(workers)) workers <- netsimr_available_cores()
-  parallel::makePSOCKcluster(as.integer(workers))
+  #with Nagle's algorithm on, the many small writes of a run's settings and results stall
+  #on the sockets for a few tenths of a second (a fifth of a second each on Windows), more
+  #than a small run takes; the master's end of the sockets is made at the start
+  old_options <- options(socketOptions = "no-delay")
+  on.exit(options(old_options), add = TRUE)
+  cluster <- parallel::makePSOCKcluster(as.integer(workers))
+  #load the package on the workers now, about a second, rather than in the first run
+  tryCatch(parallel::clusterCall(cluster, loadNamespace, "NetSimR"), error = function(e) NULL)
+  cluster
 }
 
 #' Check the workers argument of a parallel run
 #'
-#' @param workers NULL, a whole number of at least 1, or a cluster.
+#' @param workers NULL, a whole number of at least 1, a cluster, or a function that returns one.
 #' @return NULL, invisibly; an error for anything else.
 #' @noRd
 netsimr_check_workers <- function(workers) {
-  if (is.null(workers) || inherits(workers, "cluster")) return(invisible(NULL))
+  if (is.null(workers) || inherits(workers, "cluster") || is.function(workers)) return(invisible(NULL))
   if (!is.numeric(workers) || length(workers) != 1 || !is.finite(workers) || workers < 1 || workers != round(workers)) {
-    stop("workers must be NULL, a whole number of at least 1, or a cluster from parallel::makeCluster().", call. = FALSE)
+    stop("workers must be NULL, a whole number of at least 1, a cluster from parallel::makeCluster(), or a function that returns one.", call. = FALSE)
   }
   invisible(NULL)
 }
 
-#' The smallest run worth starting workers for
+#' The record of the last simulation run's processing
 #'
-#' Starting worker R processes takes about a second or two, about as long as drawing ten
-#' million claims in one session, so a parallel run that would start its own workers stays
-#' in the session below this many claims (the option \code{NetSimR.parallel_min_claims}).
-#' @return A number of claims.
+#' \code{simulate_function()} sets \code{parallel} (TRUE when the chunks ran on workers) and
+#' \code{workers} (how many) on every call, so that the simulator app can show how an
+#' "auto" run went.
 #' @noRd
-netsimr_parallel_min_claims <- function() {
-  option <- getOption("NetSimR.parallel_min_claims")
-  if (is.numeric(option) && length(option) == 1 && !is.na(option) && option >= 0) return(as.numeric(option))
-  1e7
+netsimr_last_run <- new.env(parent = emptyenv())
+
+#' The costs that decide whether an "auto" run goes to parallel workers
+#'
+#' Measured on a 6-core, 12-thread Windows machine with R 4.6 (the decision rests on their
+#' ratios, which change less between machines than the times do): a second per 6.7 million
+#' claims drawn and per million simulations (5 million when each total is drawn in one step)
+#' in one session; workers that run \code{w} chunk groups at once are \code{w^0.75} times as
+#' fast (memory and shared cores limit the gain); sending a run to warm workers takes about
+#' 0.03 seconds and 0.1 milliseconds per chunk (each chunk's seed and results travel), and
+#' starting workers 0.6 seconds and 0.09 more per worker.
+#' @noRd
+netsimr_parallel_costs <- list(
+  claim = 1.5e-7, simulation = 1e-6, simulation_one_step = 2e-7,
+  scaling = 0.75, dispatch = 0.03, per_chunk = 1e-4, start = 0.6, start_per_worker = 0.09,
+  #the share of the single-process time a parallel run must beat, as it has no live progress
+  gain = 0.75
+)
+
+#' How many workers an "auto" run should use
+#'
+#' Estimates the time of the run in one session and on workers, from the expected number of
+#' claims drawn, the number of simulations and chunks, and the cost of starting workers that
+#' are not running yet; the chunks go to the workers when that is at least a quarter faster.
+#' @param claims The expected number of claims drawn by the whole run.
+#' @param simulations The number of simulations.
+#' @param n_chunks The number of chunks; the workers take contiguous groups of them.
+#' @param one_step TRUE when each simulation's total is drawn in one step.
+#' @param running The number of workers already running, or NULL.
+#' @param start The number of workers that would be started, or NULL to choose the fastest
+#'   number up to the available cores.
+#' @return The number of workers to use, 0 to run in the session.
+#' @noRd
+netsimr_parallel_plan <- function(claims, simulations, n_chunks, one_step = FALSE, running = NULL, start = NULL) {
+  costs <- netsimr_parallel_costs
+  if (!is.finite(claims) || n_chunks < 2) return(0L)
+  single <- costs$claim * claims + simulations * if (one_step) costs$simulation_one_step else costs$simulation
+  candidates <- if (!is.null(running)) running else if (!is.null(start)) start else seq_len(netsimr_available_cores())
+  candidates <- candidates[candidates >= 2]
+  if (!length(candidates)) return(0L)
+  #the chunks are split into one contiguous group per worker, so the slowest worker runs
+  #ceiling(n_chunks / workers) of them
+  in_parallel <- n_chunks / ceiling(n_chunks / pmin(candidates, n_chunks))
+  time <- single / in_parallel^costs$scaling + costs$dispatch + costs$per_chunk * n_chunks
+  if (is.null(running)) time <- time + costs$start + costs$start_per_worker * candidates
+  best <- which.min(time)
+  if (time[best] <= costs$gain * single) as.integer(candidates[best]) else 0L
 }
 
 #' Shut down the workers of a parallel run

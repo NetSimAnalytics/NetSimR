@@ -1363,8 +1363,9 @@ shiny_simulator_ui <- function(request) {
             #(worker processes cannot be started in a web browser)
             if (!netsimr_in_browser()) {
               tagList(
-                bslib::input_switch('multiprocessingBinary', 'Multiprocessing', value = FALSE),
-                helpText("Runs chunks in parallel. Faster for large runs, but without live progress.")
+                radioButtons('processing', 'Processing', inline = TRUE, selected = "auto",
+                             choices = c("Auto" = "auto", "Single" = "single", "Parallel" = "parallel")),
+                helpText("Auto runs the chunks on parallel workers when that is faster. Parallel runs show no live progress.")
               )
             },
 

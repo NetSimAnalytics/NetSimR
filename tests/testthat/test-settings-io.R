@@ -98,7 +98,7 @@ test_that("every example round-trips through a plain-text settings file", {
 custom_settings <- list(
   freqDistr = "Negative_Binomial", r = 2.5, beta = 3,
   sevDistr = "Normal", normal_mean = 5000, normal_sd = 2500, sevTruncateAtZero = TRUE,
-  numberOfSimulations = 12345, seedSetBinary = TRUE, seedValue = 99, multiprocessingBinary = FALSE,
+  numberOfSimulations = 12345, seedSetBinary = TRUE, seedValue = 99, processing = "single",
   pareto_slice_times = 2, slice_pareto_param_1 = 2.2, slice_pareto_param_2 = 20000,
   slice_pareto_param_3 = 1.6, slice_pareto_param_4 = 80000,
   sevCapBinary = TRUE, sev_cap_amount = 1e6,
@@ -285,4 +285,21 @@ test_that("six Pareto slices can be simulated", {
                    slice_pareto_x_ms = 1:7 * 1000),
     "from 1 to 6"
   )
+})
+
+test_that("a settings file of the multiprocessing switch loads as a processing choice", {
+  file <- tempfile(fileext = ".txt")
+  on.exit(unlink(file), add = TRUE)
+  for (case in list(list(saved = TRUE, loaded = "parallel"), list(saved = FALSE, loaded = "auto"))) {
+    write_settings_file(list(numberOfSimulations = 1000L, multiprocessingBinary = case$saved), file,
+                        tool = sim_settings_tool, version = sim_settings_version)
+    back <- sim_settings_read(file)
+    expect_identical(back$inputs, list(numberOfSimulations = 1000L, processing = case$loaded))
+    expect_true(isTRUE(sim_settings_validate(back$inputs, back$version)))
+  }
+  expect_match(sim_settings_validate(list(processing = "fast")), "unknown processing")
+  plan <- sim_settings_plan(list(processing = "single"))
+  expect_identical(plan[[1]][c("id", "kind", "value")], list(id = "processing", kind = "radio", value = "single"))
+  local_mocked_bindings(netsimr_in_browser = function() TRUE)
+  expect_length(sim_settings_plan(list(processing = "single")), 0)
 })

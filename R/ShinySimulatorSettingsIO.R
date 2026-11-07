@@ -29,7 +29,7 @@ sim_settings_input_ids <- function() {
     "freqDistr", "sevDistr"
     ,unlist(lapply(freq_dist_options, function(x) x@paramIDs), use.names = FALSE)
     ,unlist(lapply(sev_dist_options, function(x) x@paramIDs), use.names = FALSE)
-    ,"numberOfSimulations", "seedSetBinary", "seedValue", "multiprocessingBinary"
+    ,"numberOfSimulations", "seedSetBinary", "seedValue", "processing"
     ,"pareto_slice_times"
     ,paste0("slice_pareto_param_", seq_len(2 * max_number_of_pareto_slices))
     ,"sevCapBinary", "sev_cap_amount", "sevTruncateAtZero"
@@ -84,6 +84,12 @@ sim_settings_read <- function(file) {
     inputs <- settings$values
     #files saved before 0.3.4 spelled the deductibles 'dedctible'
     names(inputs) <- sub("^(reinsurance_structure_(eel|al))_dedctible_amount$", "\\1_deductible_amount", names(inputs))
+    #files saved before 0.3.4 had a multiprocessing switch: on is Parallel, off is Auto,
+    #which gives the same results
+    if (!is.null(inputs$multiprocessingBinary)) {
+      if (is.null(inputs$processing)) inputs$processing <- if (isTRUE(as.logical(inputs$multiprocessingBinary))) "parallel" else "auto"
+      inputs$multiprocessingBinary <- NULL
+    }
     list(version = settings$version, inputs = inputs)
   }, error = function(cond) conditionMessage(cond))
 }
@@ -134,6 +140,7 @@ sim_settings_validate <- function(inputs, version = sim_settings_version) {
     ,check_choice("sevDistr", names(sev_dist_options), "severity distribution")
     ,check_choice("reinsuranceStructureEEL", reinsurance_structures_options, "EEL reinsurance structure")
     ,check_choice("reinsuranceStructureAL", reinsurance_structures_options, "AL reinsurance structure")
+    ,check_choice("processing", c("auto", "single", "parallel"), "processing")
   )) {
     if (!is.null(problem)) return(problem)
   }
@@ -224,9 +231,11 @@ sim_settings_plan <- function(inputs) {
   add("sevDistr", "radio")
   add("reinsuranceStructureEEL", "radio")
   add("reinsuranceStructureAL", "radio")
-  for (id in c("seedSetBinary", "multiprocessingBinary", "sevCapBinary")) {
+  for (id in c("seedSetBinary", "sevCapBinary")) {
     add(id, "switch")
   }
+  #(in a web browser the app has no processing choice, and the setting is left out)
+  if (!netsimr_in_browser()) add("processing", "radio")
   #the truncation switch is always in the page (shown for the Normal only), so it is set at
   #once; a file without it, or saved with another severity, switches it off, so that an
   #earlier Normal's truncation does not reappear when the Normal is picked later; a file with
@@ -301,7 +310,6 @@ sim_settings_examples <- list(
     ,sevDistr = "LogNormal", mu = 9, sigma = 1.3
     ,numberOfSimulations = 50000
     ,seedSetBinary = TRUE, seedValue = 1
-    ,multiprocessingBinary = FALSE
     ,pareto_slice_times = 0
     ,sevCapBinary = FALSE
     ,sevTruncateAtZero = FALSE
@@ -318,7 +326,6 @@ sim_settings_examples <- list(
     ,sevDistr = "Gamma", shape = 1.5, scale = 20000
     ,numberOfSimulations = 50000
     ,seedSetBinary = FALSE
-    ,multiprocessingBinary = FALSE
     ,pareto_slice_times = 1
     ,slice_pareto_param_1 = 1.8, slice_pareto_param_2 = 150000
     ,sevCapBinary = TRUE, sev_cap_amount = 5000000
@@ -334,7 +341,6 @@ sim_settings_examples <- list(
     ,sevTruncateAtZero = TRUE
     ,numberOfSimulations = 20000
     ,seedSetBinary = FALSE
-    ,multiprocessingBinary = FALSE
     ,pareto_slice_times = 0
     ,sevCapBinary = FALSE
     ,reinsuranceStructureEEL = "No Reinsurance Structure"

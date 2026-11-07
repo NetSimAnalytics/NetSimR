@@ -44,7 +44,7 @@ Changes in Version 0.3.4
   o The five tools run in the browser on the package's website, with webR and
     shinylive, with nothing to install
     (https://netsimanalytics.github.io/NetSimR/articles/try-online.html).
-    There, the simulator has no multiprocessing switch and the GLM tool reads
+    There, the simulator has no processing choice and the GLM tool reads
     CSV files only, as a browser cannot start worker processes or reach a
     database.
   o New reserving tool, run_shiny_reserving_tool(): load an example or a file
@@ -76,12 +76,21 @@ Changes in Version 0.3.4
     worker per available core, a number of workers, or a cluster from
     parallel::makeCluster() to reuse across calls; a future plan set with
     future::plan() is no longer used. Seeded results are unchanged, and the
-    simulator app still keeps its workers running between runs. A parallel run
-    that would start its own workers, which takes a second or two, stays in
-    the session when it is expected to draw fewer than ten million claims,
-    as it is faster there (option NetSimR.parallel_min_claims); a cluster
-    given as workers is always used, and the app's warm workers are always
-    used, as they speed up runs of any size.
+    simulator app still keeps its workers running between runs.
+  o Parallel runs can choose themselves: multiprocessing = "auto" in
+    simulate_function() (parallel = "auto" in simulate_claims()) runs the
+    chunks on workers only when that is expected to be at least a quarter
+    faster, from the expected number of claims, the simulations, the chunks,
+    the cores and whether the workers are already running, and chooses how
+    many to start. The claims simulator's Multiprocessing switch is now a
+    Processing choice of Auto (the default), Single and Parallel: Auto starts
+    the workers on the first run they make faster and keeps them, and the
+    report says how many workers a run used. Settings files with the old
+    switch load, on as Parallel and off as Auto.
+  o Parallel runs are faster to send to the workers: their socket connections
+    no longer wait to bundle small packets (Nagle's algorithm), which held
+    each run up by 0.3 to 1.5 seconds on Windows, and the workers load the
+    package when they start rather than in the first run.
     The CappedMean and PureIBNR vignettes fit their censored and truncated
     models with a few lines of optim() instead of the crch package, which is
     no longer suggested.

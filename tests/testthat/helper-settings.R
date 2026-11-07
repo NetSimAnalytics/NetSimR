@@ -44,7 +44,7 @@ set_page_inputs <- function(session, ...) {
   inputs <- list(
     freqDistr = "Poisson", sevDistr = "LogNormal",
     seedSetBinary = FALSE, sevCapBinary = FALSE, sevTruncateAtZero = FALSE,
-    pareto_slice_times = 0, multiprocessingBinary = FALSE,
+    pareto_slice_times = 0, processing = "single",
     reinsuranceStructureEEL = "No Reinsurance Structure",
     reinsuranceStructureAL = "No Reinsurance Structure"
   )

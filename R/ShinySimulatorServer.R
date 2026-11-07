@@ -16,7 +16,8 @@
 #' @import utils
 shiny_simulator_server <- function(input, output, session) {
   #the parallel workers of the session (a socket cluster of the parallel package): started
-  #once, when multiprocessing is switched on, so that every run reuses the warm workers
+  #once, when Parallel is chosen or an Auto run first finds them worth starting, so that
+  #every later run reuses the warm workers
   #instead of paying the start-up cost each time; shut down when the session ends, or when
   #a worker fails, and the next run starts fresh ones
   workers <- NULL
@@ -35,8 +36,15 @@ shiny_simulator_server <- function(input, output, session) {
     workers <<- netsimr_start_workers()
     invisible(TRUE)
   }
-  observeEvent(input$multiprocessingBinary, {
-    if (isTRUE(input$multiprocessingBinary) && !netsimr_in_browser()) {
+  #the processing chosen: "auto" (the default), "single" or "parallel"; in a web browser no
+  #worker processes can be started, so everything runs in the session
+  processing_choice <- function() {
+    if (netsimr_in_browser()) return("single")
+    choice <- input$processing
+    if (is.character(choice) && length(choice) == 1 && choice %in% c("auto", "single", "parallel")) choice else "auto"
+  }
+  observeEvent(input$processing, {
+    if (identical(processing_choice(), "parallel")) {
       tryCatch(start_parallel_workers(), error = function(e) {
         showNotification(paste("The parallel workers could not be started:", conditionMessage(e)), type = "error", duration = NULL)
       })
@@ -347,7 +355,7 @@ shiny_simulator_server <- function(input, output, session) {
       ,reinsuranceStructureAL = input$reinsuranceStructureAL
       ,reinsurance_structure_al_deductible_amount = input$reinsurance_structure_al_deductible_amount
       ,reinsurance_structure_al_limit_amount = input$reinsurance_structure_al_limit_amount
-      ,multiprocessing = isTRUE(input$multiprocessingBinary) && !netsimr_in_browser()
+      ,multiprocessing = switch(processing_choice(), auto = "auto", single = FALSE, parallel = TRUE)
       ,sevTruncateAtZero = isTRUE(input$sevTruncateAtZero) && input$sevDistr == "Normal"
       ,reinsuranceStructureLimitedReinstatements = input$reinsuranceStructureLimitedReinstatements
       ,reinsuranceStructureReinstatementLimit = input$reinsuranceStructureReinstatementLimit
@@ -384,16 +392,19 @@ shiny_simulator_server <- function(input, output, session) {
         if (isTRUE(new_settings$multiprocessing)) {
           #workers may have been shut down after a worker failed; make sure they are up
           start_parallel_workers()
-          showNotification("Running the simulations on the parallel workers...", type = "message", duration = 3, id = "parallel_run_notice")
-          do.call(simulate_function, c(new_settings, list(workers = workers)))
-        } else {
-          #sequential runs report their progress chunk by chunk
-          shiny::withProgress(message = "Simulating", value = 0, {
-            do.call(simulate_function, c(new_settings, list(
-              progress = function(value, detail) shiny::setProgress(value, detail = detail)
-            )))
-          })
         }
+        #Auto starts the workers only for a run that is faster with them, and keeps them;
+        #a run on the workers shows the number of workers, a run in the session its chunks
+        run_workers <- if (!is.null(workers)) workers else function() {
+          start_parallel_workers()
+          workers
+        }
+        shiny::withProgress(message = "Simulating", value = 0, {
+          do.call(simulate_function, c(new_settings, list(
+            workers = run_workers,
+            progress = function(value, detail) shiny::setProgress(value, detail = detail)
+          )))
+        })
       }, error = function(cond) {
         #an error raised by the simulation itself (a parameter out of range, an overflow) is
         #caught on its worker, which stays healthy and warm for the next run; a worker error
@@ -413,7 +424,10 @@ shiny_simulator_server <- function(input, output, session) {
     #a failed run keeps the previous results, so the downloads and the results tabs still agree
     if (is.null(results)) return(NULL)
 
-    #record the run for the downloads and the results tabs
+    #record the run for the downloads and the results tabs, with how it ran: on how many
+    #workers, whatever the choice was
+    new_settings$multiprocessing <- isTRUE(netsimr_last_run$parallel)
+    new_settings$workers <- if (new_settings$multiprocessing) netsimr_last_run$workers
     simulation_settings <<- new_settings
     simulated_data$data <- results
     run_counter <<- run_counter + 1L

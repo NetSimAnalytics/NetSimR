@@ -7,7 +7,7 @@ set_run_inputs <- function(session, ...) {
     sevDistr = "LogNormal", mu = 6, sigma = 1.5,
     numberOfSimulations = 500,
     seedSetBinary = TRUE, seedValue = 1,
-    multiprocessingBinary = FALSE,
+    processing = "single",
     pareto_slice_times = 0,
     sevCapBinary = FALSE, sevTruncateAtZero = FALSE,
     reinsuranceStructureEEL = "No Reinsurance Structure",
@@ -83,7 +83,7 @@ test_that("workers started by the app stay warm through a failed run and are shu
   sockets_before <- open_sockets()
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session)
-    session$setInputs(multiprocessingBinary = TRUE)
+    session$setInputs(processing = "parallel")
     cluster <- session_workers(stop_parallel_workers)
     expect_length(cluster, 2)
     pids <- worker_pids(cluster)
@@ -106,6 +106,44 @@ test_that("workers started by the app stay warm through a failed run and are shu
   expect_identical(open_sockets(), sockets_before)
 })
 
+test_that("Auto keeps small runs in the session and starts the workers once a run pays for them", {
+  skip_on_cran()
+  old_options <- options(mc.cores = 2)
+  on.exit(options(old_options), add = TRUE)
+  sockets_before <- open_sockets()
+  #(testServer() runs its code on copies of the test's variables, so the plan is kept in an environment)
+  plan <- new.env()
+  plan$workers <- 0L
+  real_plan <- netsimr_parallel_plan
+  local_mocked_bindings(netsimr_parallel_plan = function(...) if (plan$workers > 0) plan$workers else real_plan(...))
+  shiny::testServer(shiny_simulator_server, {
+    #two chunks of a small run: Auto runs them here and starts nothing
+    set_run_inputs(session, processing = "auto", numberOfSimulations = 20000)
+    session$setInputs(RunSimulations = 1)
+    expect_null(session_workers(stop_parallel_workers))
+    expect_false(last_run()$settings$multiprocessing)
+    expect_identical(open_sockets(), sockets_before)
+    #a run that pays: the workers are started for it and kept
+    plan$workers <- 2L
+    session$setInputs(RunSimulations = 2)
+    cluster <- session_workers(stop_parallel_workers)
+    expect_length(cluster, 2)
+    expect_true(last_run()$settings$multiprocessing)
+    expect_identical(last_run()$settings$workers, 2L)
+    sequential <- do.call(simulate_function, utils::modifyList(last_run()$settings, list(multiprocessing = FALSE)))
+    expect_identical(simulated_data$data, sequential)
+    #the next run reuses them
+    pids <- worker_pids(cluster)
+    session$setInputs(RunSimulations = 3)
+    expect_identical(session_workers(stop_parallel_workers), cluster)
+    expect_identical(worker_pids(cluster), pids)
+    #Single runs here even with warm workers
+    session$setInputs(processing = "single", RunSimulations = 4)
+    expect_false(last_run()$settings$multiprocessing)
+  })
+  expect_identical(open_sockets(), sockets_before)
+})
+
 test_that("a worker that dies during a run is replaced by fresh workers on the next run", {
   skip_on_cran()
   old_options <- options(mc.cores = 2)
@@ -117,7 +155,7 @@ test_that("a worker that dies during a run is replaced by fresh workers on the n
   environment(die) <- globalenv()
   dying_workers <- function(cluster, run_chunk, chunk_seeds) real_run_chunks(cluster, die, chunk_seeds)
   shiny::testServer(shiny_simulator_server, {
-    set_run_inputs(session, multiprocessingBinary = TRUE)
+    set_run_inputs(session, processing = "parallel")
     pids <- worker_pids(session_workers(stop_parallel_workers))
     #the app shuts its workers down, leaving no connection open
     with_mocked_bindings(

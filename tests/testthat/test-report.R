@@ -154,3 +154,12 @@ test_that("the report shows the largest single claim (OEP) beside the period tot
   #(the visible text: the charts are embedded as base64, where any three letters can occur)
   expect_false(grepl("(OEP)", gsub("<[^>]+>", " ", plain), fixed = TRUE))
 })
+
+test_that("the report says how a run was processed", {
+  settings <- base_settings(numOfSimulations = 1000)
+  results <- do.call(simulate_function, settings)
+  expect_match(report_text(settings, results), "Single process", fixed = TRUE)
+  expect_match(report_text(utils::modifyList(settings, list(multiprocessing = TRUE, workers = 12L)), results),
+               "Parallel, 12 workers", fixed = TRUE)
+  expect_match(report_text(utils::modifyList(settings, list(multiprocessing = TRUE)), results), "Parallel<", fixed = TRUE)
+})
