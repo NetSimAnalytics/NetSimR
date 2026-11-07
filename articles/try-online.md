@@ -24,8 +24,9 @@ tool](https://netsimanalytics.github.io/NetSimR/apps/distribution/)
 
 ### GLM fitting
 
-Fit generalised linear models to a CSV file, compare them and download
-the rating factors.
+Fit generalised linear models to a CSV file, let stepwise selection
+suggest the terms, test them on held-out rows and download the rating
+factors.
 
 [Open the GLM tool](https://netsimanalytics.github.io/NetSimR/apps/glm/)
 

@@ -138,12 +138,11 @@ simulate_claims(
 
 - parallel:
 
-  TRUE to run the chunks of simulations on parallel workers. Results are
-  the same as a sequential run. Workers started for the call take a
-  second or two to start, so a run expected to draw fewer than ten
-  million claims runs in the session instead (the option
-  `NetSimR.parallel_min_claims` changes that number); a cluster given as
-  `workers` is always used. See
+  TRUE to run the chunks of simulations on parallel workers, FALSE (the
+  default) to run them in this session, or "auto" to use workers only
+  when that is expected to be at least a quarter faster, which for
+  workers started by the call means a run of a few seconds or more.
+  Results are the same either way. See
   [`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md).
 
 - workers:

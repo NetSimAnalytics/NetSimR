@@ -156,15 +156,17 @@ simulate_function(
 
 - multiprocessing:
 
-  True to run the chunks in parallel on worker R processes (base R's
-  parallel package), otherwise false. Results are the same as a
-  sequential run. See `workers`. When the call would start its own
-  workers, which takes a second or two, a run expected to draw fewer
-  than ten million claims (or of a single chunk) runs in the session
-  instead, being faster there; set
-  `options(NetSimR.parallel_min_claims = )` to change that number, e.g.
-  to 0 to always start the workers. A cluster given as `workers` is
-  always used.
+  TRUE to run the chunks in parallel on worker R processes (base R's
+  parallel package), FALSE (the default) to run them in this session, or
+  "auto" to run them on workers only when that is expected to be at
+  least a quarter faster. Results are the same either way. "auto"
+  estimates both times from the expected number of claims drawn, the
+  number of simulations and chunks, the cores, and whether the workers
+  are already running: starting them takes about a second, so a single
+  run goes to them from a few seconds of work, while a cluster given as
+  `workers` is used from a fraction of a second; with `workers = NULL`
+  it also chooses how many to start. A run of a single chunk runs in
+  this session, unless TRUE is given with a cluster.
 
 - workers:
 
@@ -178,7 +180,10 @@ simulate_function(
   [`parallel::makeCluster()`](https://rdrr.io/r/parallel/makeCluster.html):
   it is used as it is and left running, to be stopped with
   [`parallel::stopCluster()`](https://rdrr.io/r/parallel/makeCluster.html).
-  Ignored unless `multiprocessing` is true.
+  A function with no arguments that returns such a cluster is called
+  only when the run goes to the workers (as "auto" decides), which lets
+  a caller start them when they are first needed. Ignored unless
+  `multiprocessing` is TRUE or "auto".
 
 - sevTruncateAtZero:
 

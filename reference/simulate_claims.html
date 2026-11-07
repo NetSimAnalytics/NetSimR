@@ -166,7 +166,7 @@ no seed, no Pareto slices, no cap, no reinstatement limit.</p>
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p>TRUE to run the chunks of simulations on parallel workers. Results are the same as a sequential run. Workers started for the call take a second or two to start, so a run expected to draw fewer than ten million claims runs in the session instead (the option <code>NetSimR.parallel_min_claims</code> changes that number); a cluster given as <code>workers</code> is always used. See <code><a href="simulate_function.html">simulate_function</a></code>.</p></dd>
+<dd><p>TRUE to run the chunks of simulations on parallel workers, FALSE (the default) to run them in this session, or "auto" to use workers only when that is expected to be at least a quarter faster, which for workers started by the call means a run of a few seconds or more. Results are the same either way. See <code><a href="simulate_function.html">simulate_function</a></code>.</p></dd>
 
 
 <dt id="arg-workers">workers<a class="anchor" aria-label="anchor" href="#arg-workers"></a></dt>

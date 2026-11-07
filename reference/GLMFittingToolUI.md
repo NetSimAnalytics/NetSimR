@@ -1,7 +1,7 @@
 # User interface of the Shiny GLM fitting tool
 
 Builds the pages of the GLM fitting tool: Welcome, Data, Model, Actual
-vs predicted and Save & load, with the theme switch.
+vs predicted, Validation and Save & load, with the theme switch.
 
 ## Usage
 

@@ -345,12 +345,13 @@ The simulations run in chunks, and each chunk draws from its own random
 stream derived from the seed. So `parallel = TRUE`, which runs the
 chunks on worker R processes, gives exactly the same results as a
 sequential run. By default each call starts one worker per core and
-shuts them down when it finishes. Starting them takes a second or two,
-so a run expected to draw fewer than ten million claims stays in the
-session, where it is faster (the option `NetSimR.parallel_min_claims`
-changes that number). To reuse the same workers across calls, start them
-once with base R’s `parallel` package and pass them as `workers`. The
-chunk is not run here, as it starts worker processes:
+shuts them down when it finishes. Starting them takes about a second, so
+`parallel = "auto"` uses them only when a run is expected to be at least
+a quarter faster with them, which for workers started by the call means
+a few seconds of work or more; it also chooses how many to start. To
+reuse the same workers across calls, start them once with base R’s
+`parallel` package and pass them as `workers`. The chunk is not run
+here, as it starts worker processes:
 
 ``` r
 
