@@ -39,12 +39,16 @@ remotes::install_github("NetSimAnalytics/NetSimR")
 - **Claims simulation** with a frequency-severity model, Pareto tail
   slices, a severity cap, each-and-every-loss layers with reinstatements
   and their premiums, aggregate layers, and each period’s largest claim
-  (OEP).
+  (OEP), run in parallel when that is faster; portfolios of several
+  lines joined by a Gaussian or t copula, with VaR, TVaR,
+  diversification and capital allocation.
 - **Claims reserving**: the chain ladder with Mack’s standard errors and
   tail factors, Bornhuetter-Ferguson, Benktander and Cape Cod, a
   bootstrap of the reserves’ distribution, the one-year view
-  (Merz-Wuthrich) and the Munich chain ladder of paid and incurred
-  claims.
+  (Merz-Wuthrich), the Munich chain ladder of paid and incurred claims,
+  Clark’s growth curves, a chain ladder for claims inflation, and actual
+  against expected development.
+- **Pricing models**: a Tweedie family for GLMs of the loss cost.
 - **Excess of loss pricing**: the burning cost with indexation,
   development and aggregate terms, a Pareto model of the large losses,
   exposure rating with the Swiss Re and Lloyd’s (MBBEFD) curves or a
@@ -52,11 +56,12 @@ remotes::install_github("NetSimAnalytics/NetSimR")
   premium with reinstatements.
 - **Five Shiny tools**: a claims simulator with reports and run
   comparison; a distribution fitting tool for claim counts and sizes,
-  including claims reported only above a threshold, whose fits it saves
-  as simulator settings; a GLM fitting tool with a rating factor table,
-  stepwise variable selection and validation on held-out rows (Gini,
-  lift and double lift); a reserving tool; and a reinsurance pricing
-  tool.
+  including claims reported only above a threshold, with Q-Q plots and
+  Anderson-Darling tests, whose fits it saves as simulator settings; a
+  GLM fitting tool with a Tweedie family, a rating factor table,
+  variable selection (stepwise, lasso, elastic net, ridge) and
+  validation on held-out rows (Gini, lift and double lift); a reserving
+  tool; and a reinsurance pricing tool.
 
 ## Examples
 
@@ -123,9 +128,11 @@ run_shiny_reinsurance_pricing_tool()   # excess of loss pricing
 
 ## Vignettes
 
-Six vignettes set out the theory behind the functions and work through
+Seven vignettes set out the theory behind the functions and work through
 examples:
 
+- *From pricing to capital and reserves: a motor portfolio*, which
+  follows one portfolio through the package
 - *Capped means, exposure curves and increased limit factors*
 - *Sliced LogNormal-Pareto and Gamma-Pareto distributions*
 - *Pure IBNR exposure from a reporting delay distribution*
@@ -168,12 +175,15 @@ Applications that run the package’s models without writing code.
 
 ## Claims simulation and reinsurance
 
-Frequency-severity simulation with Pareto tails, caps and layers.
+Frequency-severity simulation with Pareto tails, caps and layers, and
+portfolios of lines joined by a copula.
 
 - [`simulate_claims()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
   : Simulate claims with a frequency-severity model
 - [`simulate_function()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
   : Simulate insurance claims with reinsurance structures
+- [`simulate_portfolio()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md)
+  : Simulate a portfolio of dependent lines
 - [`apply_deductible_limit()`](https://netsimanalytics.github.io/NetSimR/reference/apply_deductible_limit.md)
   : Apply a deductible and limit to claims
 - [`reinstatement_premium()`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md)
@@ -182,7 +192,8 @@ Frequency-severity simulation with Pareto tails, caps and layers.
 ## Claims reserving
 
 Chain ladder with Mack’s standard errors, methods with premiums, the
-bootstrap, the one-year view and the Munich chain ladder.
+bootstrap, the one-year view, the Munich chain ladder, Clark’s growth
+curves, inflation and actual vs expected.
 
 - [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
   : Chain ladder reserves with Mack's standard errors
@@ -197,6 +208,12 @@ bootstrap, the one-year view and the Munich chain ladder.
   development result
 - [`munich_chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md)
   : Munich chain ladder of paid and incurred claims
+- [`actual_vs_expected()`](https://netsimanalytics.github.io/NetSimR/reference/actual_vs_expected.md)
+  : Actual against expected development
+- [`clark_growth()`](https://netsimanalytics.github.io/NetSimR/reference/clark_growth.md)
+  : Clark's growth curve reserves
+- [`inflation_adjusted_chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/inflation_adjusted_chain_ladder.md)
+  : Chain ladder for claims inflation
 - [`as_triangle()`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
   : Build a claims triangle from a table
 
@@ -220,6 +237,13 @@ claim size distribution, and the technical premium.
   : Technical premium of an excess of loss layer
 - [`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
   : Credibility of the loss experience
+
+## Pricing models
+
+A Tweedie family for generalised linear models of the loss cost.
+
+- [`tweedie_family()`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md)
+  : Tweedie family for generalised linear models
 
 ## Capped means
 
@@ -353,6 +377,8 @@ LogNormal or Gamma bodies with a Pareto tail.
 
 ### Articles
 
+- [From pricing to capital and reserves: a motor
+  portfolio](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md):
 - [Simulating claims with
   simulate_claims()](https://netsimanalytics.github.io/NetSimR/articles/SimulateClaims.md):
 - [Claims reserving with the chain ladder and its

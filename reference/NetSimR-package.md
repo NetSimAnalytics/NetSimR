@@ -1,6 +1,6 @@
 # NetSimR: Actuarial Functions for Non-Life Insurance Modelling
 
-The NetSimR package provides seven categories of functions:
+The NetSimR package provides eight categories of functions:
 
 1.  Capped means, Exposure and ILF curves from various severity
     distributions, and the special functions behind them
@@ -9,16 +9,19 @@ The NetSimR package provides seven categories of functions:
 
 3.  Sliced distributions
 
-4.  Frequency-severity claims simulation, and applying a reinsurance
-    layer to simulated claims
+4.  Frequency-severity claims simulation, applying a reinsurance layer
+    to simulated claims, and portfolios of lines joined by a copula
 
 5.  Claims reserving: chain ladder with Mack's standard errors,
-    Bornhuetter-Ferguson, Benktander, Cape Cod and a bootstrap
+    Bornhuetter-Ferguson, Benktander, Cape Cod, a bootstrap, Clark's
+    growth curves and a chain ladder for claims inflation
 
-6.  Excess of loss pricing: burning cost, Pareto rating, exposure rating
+6.  Pricing models: a Tweedie family for generalised linear models
+
+7.  Excess of loss pricing: burning cost, Pareto rating, exposure rating
     with MBBEFD curves, and the technical premium
 
-7.  Shiny apps for simulating claims, fitting distributions, fitting
+8.  Shiny apps for simulating claims, fitting distributions, fitting
     GLMs, reserving and reinsurance pricing
 
 ## NetSimR special functions
@@ -74,6 +77,7 @@ The NetSimR package provides seven categories of functions:
 
 [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
 [`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
+[`simulate_portfolio`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md)
 [`apply_deductible_limit`](https://netsimanalytics.github.io/NetSimR/reference/apply_deductible_limit.md)
 
 ## NetSimR reserving functions
@@ -84,7 +88,14 @@ The NetSimR package provides seven categories of functions:
 [`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md)
 [`merz_wuthrich`](https://netsimanalytics.github.io/NetSimR/reference/merz_wuthrich.md)
 [`munich_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md)
+[`actual_vs_expected`](https://netsimanalytics.github.io/NetSimR/reference/actual_vs_expected.md)
+[`clark_growth`](https://netsimanalytics.github.io/NetSimR/reference/clark_growth.md)
+[`inflation_adjusted_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/inflation_adjusted_chain_ladder.md)
 [`as_triangle`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
+
+## NetSimR pricing model functions
+
+[`tweedie_family`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md)
 
 ## NetSimR reinsurance pricing functions
 

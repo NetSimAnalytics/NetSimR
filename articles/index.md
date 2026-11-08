@@ -2,6 +2,8 @@
 
 ### Articles
 
+- [From pricing to capital and reserves: a motor
+  portfolio](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md):
 - [Simulating claims with
   simulate_claims()](https://netsimanalytics.github.io/NetSimR/articles/SimulateClaims.md):
 - [Claims reserving with the chain ladder and its

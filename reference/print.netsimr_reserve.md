@@ -18,9 +18,12 @@ print(x, ...)
   [`bornhuetter_ferguson`](https://netsimanalytics.github.io/NetSimR/reference/bornhuetter_ferguson.md),
   [`cape_cod`](https://netsimanalytics.github.io/NetSimR/reference/cape_cod.md),
   [`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md),
-  [`merz_wuthrich`](https://netsimanalytics.github.io/NetSimR/reference/merz_wuthrich.md)
+  [`merz_wuthrich`](https://netsimanalytics.github.io/NetSimR/reference/merz_wuthrich.md),
+  [`munich_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md),
+  [`actual_vs_expected`](https://netsimanalytics.github.io/NetSimR/reference/actual_vs_expected.md),
+  [`clark_growth`](https://netsimanalytics.github.io/NetSimR/reference/clark_growth.md)
   or
-  [`munich_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md).
+  [`inflation_adjusted_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/inflation_adjusted_chain_ladder.md).
 
 - ...:
 

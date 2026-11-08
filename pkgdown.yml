@@ -3,13 +3,14 @@ pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   CappedMean: CappedMean.html
+  EndToEnd: EndToEnd.html
   PureIBNR: PureIBNR.html
   ReinsurancePricing: ReinsurancePricing.html
   Reserving: Reserving.html
   SimulateClaims: SimulateClaims.html
   SlicedDistributions: SlicedDistributions.html
   articles/try-online: try-online.html
-last_built: 2026-11-07T22:36Z
+last_built: 2026-11-08T06:29Z
 urls:
   reference: https://netsimanalytics.github.io/NetSimR/reference
   article: https://netsimanalytics.github.io/NetSimR/articles

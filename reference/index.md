@@ -17,12 +17,15 @@ Applications that run the package’s models without writing code.
 
 ## Claims simulation and reinsurance
 
-Frequency-severity simulation with Pareto tails, caps and layers.
+Frequency-severity simulation with Pareto tails, caps and layers, and
+portfolios of lines joined by a copula.
 
 - [`simulate_claims()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
   : Simulate claims with a frequency-severity model
 - [`simulate_function()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
   : Simulate insurance claims with reinsurance structures
+- [`simulate_portfolio()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md)
+  : Simulate a portfolio of dependent lines
 - [`apply_deductible_limit()`](https://netsimanalytics.github.io/NetSimR/reference/apply_deductible_limit.md)
   : Apply a deductible and limit to claims
 - [`reinstatement_premium()`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md)
@@ -31,7 +34,8 @@ Frequency-severity simulation with Pareto tails, caps and layers.
 ## Claims reserving
 
 Chain ladder with Mack’s standard errors, methods with premiums, the
-bootstrap, the one-year view and the Munich chain ladder.
+bootstrap, the one-year view, the Munich chain ladder, Clark’s growth
+curves, inflation and actual vs expected.
 
 - [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
   : Chain ladder reserves with Mack's standard errors
@@ -46,6 +50,12 @@ bootstrap, the one-year view and the Munich chain ladder.
   development result
 - [`munich_chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md)
   : Munich chain ladder of paid and incurred claims
+- [`actual_vs_expected()`](https://netsimanalytics.github.io/NetSimR/reference/actual_vs_expected.md)
+  : Actual against expected development
+- [`clark_growth()`](https://netsimanalytics.github.io/NetSimR/reference/clark_growth.md)
+  : Clark's growth curve reserves
+- [`inflation_adjusted_chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/inflation_adjusted_chain_ladder.md)
+  : Chain ladder for claims inflation
 - [`as_triangle()`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
   : Build a claims triangle from a table
 
@@ -69,6 +79,13 @@ claim size distribution, and the technical premium.
   : Technical premium of an excess of loss layer
 - [`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
   : Credibility of the loss experience
+
+## Pricing models
+
+A Tweedie family for generalised linear models of the loss cost.
+
+- [`tweedie_family()`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md)
+  : Tweedie family for generalised linear models
 
 ## Capped means
 
