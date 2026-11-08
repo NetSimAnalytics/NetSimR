@@ -15,7 +15,7 @@ The NetSimR package provides eight categories of functions:
 \item Claims reserving: chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Benktander, Cape Cod, a bootstrap, Clark's growth curves and a chain ladder for claims inflation
 \item Pricing models: a Tweedie family for generalised linear models
 \item Excess of loss pricing: burning cost, Pareto rating, exposure rating with MBBEFD curves, and the technical premium
-\item Shiny apps for simulating claims, fitting distributions, fitting GLMs, reserving and reinsurance pricing
+\item Shiny apps for simulating claims, fitting distributions, fitting GLMs, reserving, reinsurance pricing and portfolio capital
 }
 }
 \section{NetSimR special functions}{
@@ -126,6 +126,7 @@ snake_case name, the same function, as the newer functions are named
 \code{\link{run_shiny_glm_fitting_tool}}
 \code{\link{run_shiny_reserving_tool}}
 \code{\link{run_shiny_reinsurance_pricing_tool}}
+\code{\link{run_shiny_portfolio_tool}}
 }
 
 \seealso{

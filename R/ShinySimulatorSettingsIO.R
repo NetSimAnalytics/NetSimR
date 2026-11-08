@@ -82,9 +82,9 @@ sim_settings_read <- function(file) {
   tryCatch({
     settings <- read_settings_file(file, tool = sim_settings_tool)
     inputs <- settings$values
-    #files saved before 0.3.4 spelled the deductibles 'dedctible'
+    #files saved before 0.4.0 spelled the deductibles 'dedctible'
     names(inputs) <- sub("^(reinsurance_structure_(eel|al))_dedctible_amount$", "\\1_deductible_amount", names(inputs))
-    #files saved before 0.3.4 had a multiprocessing switch: on is Parallel, off is Auto,
+    #files saved before 0.4.0 had a multiprocessing switch: on is Parallel, off is Auto,
     #which gives the same results
     if (!is.null(inputs$multiprocessingBinary)) {
       if (is.null(inputs$processing)) inputs$processing <- if (isTRUE(as.logical(inputs$multiprocessingBinary))) "parallel" else "auto"

@@ -191,7 +191,7 @@ test_that("truncation at zero is ignored for non-Normal severities", {
   }
 })
 
-test_that("the deductibles' misspelled names before 0.3.4 still work, with a warning", {
+test_that("the deductibles' misspelled names before 0.4.0 still work, with a warning", {
   settings <- layered_settings(numOfSimulations = 300)
   expected <- do.call(simulate_function, settings)
   old <- settings

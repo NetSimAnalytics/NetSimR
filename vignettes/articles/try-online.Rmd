@@ -1,10 +1,10 @@
 ---
 title: "Try the tools in your browser"
 description: >
-  The package's five Shiny tools, running in your browser with webR: no R to install.
+  The package's six Shiny tools, running in your browser with webR: no R to install.
 ---
 
-The five Shiny tools of NetSimR run right here, in your browser, with
+The six Shiny tools of NetSimR run right here, in your browser, with
 [webR](https://docs.r-wasm.org/webr/latest/), R compiled to WebAssembly, and
 [shinylive](https://posit-dev.github.io/r-shinylive/). Nothing to install, and nothing
 leaves your computer: the data you upload and the models you fit stay in the page.
@@ -30,7 +30,7 @@ leaves your computer: the data you upload and the models you fit stay in the pag
   </div>
   <div class="netsimr-tool">
     <h3>GLM fitting</h3>
-    <p>Fit generalised linear models to a CSV file, let stepwise selection suggest the terms, test them on held-out rows and download the rating factors.</p>
+    <p>Fit generalised linear models to a CSV file, with splines and bands, let stepwise selection or the lasso suggest the terms, test them on held-out rows, and download the rate table.</p>
     <a class="btn btn-primary" href="../apps/glm/" target="_blank" rel="noopener">Open the GLM tool</a>
   </div>
   <div class="netsimr-tool">
@@ -42,6 +42,11 @@ leaves your computer: the data you upload and the models you fit stay in the pag
     <h3>Reinsurance pricing</h3>
     <p>Price an excess of loss layer with the burning cost, a Pareto model and exposure curves, and blend them.</p>
     <a class="btn btn-primary" href="../apps/reinsurance/" target="_blank" rel="noopener">Open the pricing tool</a>
+  </div>
+  <div class="netsimr-tool">
+    <h3>Portfolio capital</h3>
+    <p>Join several lines of business with a Gaussian or t copula: VaR, TVaR, diversification and each line's capital.</p>
+    <a class="btn btn-primary" href="../apps/portfolio/" target="_blank" rel="noopener">Open the capital tool</a>
   </div>
 </div>
 ```
@@ -70,4 +75,5 @@ run_shiny_distribution_fitting_tool()
 run_shiny_glm_fitting_tool()
 run_shiny_reserving_tool()
 run_shiny_reinsurance_pricing_tool()
+run_shiny_portfolio_tool()
 ```

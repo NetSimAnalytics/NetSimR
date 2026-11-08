@@ -1,7 +1,7 @@
 Package: NetSimR
 Type: Package
 Title: Actuarial Functions for Non-Life Insurance Modelling
-Version: 0.3.4
+Version: 0.4.0
 Authors@R: person("Yiannis", "Parizas", email = "yiannis.parizas@gmail.com", role = c("aut", "cre"),
                   comment = c(ORCID = "0009-0000-0523-0751"))
 Description: Assists actuaries and other insurance modellers in pricing,
@@ -33,10 +33,11 @@ Description: Assists actuaries and other insurance modellers in pricing,
     exposure curves of Bernegger (1997) <doi:10.2143/AST.27.1.563208>
     or a claim size distribution, and the
     technical premium with reinstatements.
-    Includes five 'shiny' tools: a claims simulator with reinsurance
-    structures, a generalised linear model fitting tool, a claims
-    frequency and severity distribution fitting tool, a claims
-    reserving tool and a reinsurance pricing tool.
+    Includes six 'shiny' tools: a claims simulator with reinsurance
+    structures, a generalised linear model fitting tool with rate tables,
+    a claims frequency and severity distribution fitting tool, a claims
+    reserving tool, a reinsurance pricing tool and a portfolio capital
+    tool.
     Methods used in the package refer to
     Free for All by Yiannis Parizas (2023) <https://www.theactuary.com/2023/03/02/free-all>;
     Escaping the triangle by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/06/2019/06/05/escaping-triangle>;

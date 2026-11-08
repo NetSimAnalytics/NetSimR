@@ -1,4 +1,36 @@
-Changes in Version 0.3.4
+Changes in Version 0.4.0
+
+  o New run_shiny_portfolio_tool(), NetCapital: the capital of a portfolio
+    of lines of business, each simulated from a claim count and a claim size
+    distribution or uploaded as simulated losses (such as the claims
+    simulator's), joined by a Gaussian or t copula with one correlation or a
+    matrix. It gives each line's and the total's VaR and TVaR, the
+    diversification benefit and each line's capital (co-TVaR), with charts of
+    the capital, the total losses and the dependence of two lines, downloads,
+    a settings file and an HTML report.
+  o GLM fitting tool: a new Rates tab gives the fitted model as a base rate
+    and a table of relativities for each rating factor, worked out from the
+    effect of each term, so splines, polynomials, bands and interactions are
+    covered: the base rate times a policy's relativities (and its exposure)
+    is its prediction. The table downloads as a CSV for a rating engine, and
+    a new file of policies can be scored with the model. Formulas can use
+    natural and B-splines, ns() and bs(), and bands, cut() with c() for the
+    breaks (the splines package, part of R, is now imported).
+  o Reserving tool: a report of the triangle, the development factors and
+    the tail, the ultimates of each method, Mack's and the one-year standard
+    errors, the More methods tab, the Munich chain ladder and the bootstrap,
+    with their charts, as one HTML file. The Tail curve tab compares the tail
+    factors of the exponential and inverse power curves and of Clark's growth
+    curves, with the IBNR each gives. chain_ladder() gains tail_periods, the
+    periods a tail curve is extrapolated over (100 as before), set in the tool.
+  o Distribution fitting tool: claims paid at their policy limit, one limit
+    for all or a column of limits, are fitted as censored (the loss was at
+    least the limit), so the fitted tail is not cut short; with a reporting
+    threshold too. The fits match those of the survival package's survreg(),
+    and the K-S distance and the charts use the Kaplan-Meier estimate.
+  o Each tool's About card has links to report a problem or suggest a feature,
+    which open the issue forms of the package's GitHub repository with the
+    tool and the version filled in.
 
   o Claims reserving. New chain_ladder(): the chain ladder with Mack's
     standard errors (process and parameter, by origin and in total), with

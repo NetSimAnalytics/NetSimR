@@ -103,7 +103,7 @@ simulate_function(
 
 \item{largest_claims}{True to add the column \code{largest_claim}: each simulation's largest single claim, for occurrence exceedance (OEP) as \code{total_claims} gives aggregate exceedance (AEP). Defaults to FALSE. Every claim is then drawn, so the one-step shortcut for totals (see \code{shortcuts}) is not used.}
 
-\item{reinsurance_structure_eel_dedctible_amount, reinsurance_structure_al_dedctible_amount}{Deprecated misspellings of \code{reinsurance_structure_eel_deductible_amount} and \code{reinsurance_structure_al_deductible_amount}, the names before version 0.3.4; they still work, with a warning.}
+\item{reinsurance_structure_eel_dedctible_amount, reinsurance_structure_al_dedctible_amount}{Deprecated misspellings of \code{reinsurance_structure_eel_deductible_amount} and \code{reinsurance_structure_al_deductible_amount}, the names before version 0.4.0; they still work, with a warning.}
 }
 \value{
 A data frame with one row per simulation, at full precision: \code{claim_counts},

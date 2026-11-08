@@ -177,8 +177,9 @@ The reserve rises by the extra inflation on the payments still to come, most of 
 
 Each step has a Shiny tool, which runs on the computer or in the browser on the package's website:
 
-- `run_shiny_glm_fitting_tool()`: the GLMs of section 3, with the Tweedie family, holdout validation, lift and double lift charts, and variable selection.
+- `run_shiny_glm_fitting_tool()`: the GLMs of section 3, with the Tweedie family, splines, holdout validation, lift and double lift charts, variable selection, and the rate table.
 - `run_shiny_distribution_fitting_tool()`: the claim size fits of section 4, sent on to the simulator.
 - `run_shiny_simulator()`: the simulation and the layer of section 4, with a report.
 - `run_shiny_reinsurance_pricing_tool()`: the price of the layer.
-- `run_shiny_reserving_tool()`: the chain ladder, actual vs expected, Clark's curves and the claims inflation of section 6.
+- `run_shiny_portfolio_tool()`: the portfolio of section 5, with a correlation matrix, charts and a report.
+- `run_shiny_reserving_tool()`: the chain ladder, actual vs expected, Clark's curves and the claims inflation of section 6, with a report.

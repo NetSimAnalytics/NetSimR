@@ -25,6 +25,7 @@ reference:
   - run_shiny_glm_fitting_tool
   - run_shiny_reserving_tool
   - run_shiny_reinsurance_pricing_tool
+  - run_shiny_portfolio_tool
 - title: Claims simulation and reinsurance
   desc: Frequency-severity simulation with Pareto tails, caps and layers, and portfolios of lines joined by a copula.
   contents:

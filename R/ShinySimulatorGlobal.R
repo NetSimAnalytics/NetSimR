@@ -867,7 +867,7 @@ find_missing_simulation_settings <- function(settings) {
 #' @param gross True (the default) to return the gross total claims before reinsurance. Set it to FALSE when only the totals after the structures are needed: with an each-and-every-loss layer this allows drawing only the claims that reach the layer, which is much faster.
 #' @param shortcuts True (the default) to use exact shortcuts where the settings allow: when no layer, cap, Pareto slice or truncation acts on individual claims, each simulation's total is drawn in one step for the Normal, Gamma, Exponential and fixed severities; with \code{gross = FALSE} and a layer, only the claims above the deductible are drawn. The results follow the same distribution as without shortcuts. Set it to FALSE to simulate every claim.
 #' @param progress An optional function called after each chunk of a sequential run with the fraction done and a short description, e.g. to update a progress bar.
-#' @param reinsurance_structure_eel_dedctible_amount,reinsurance_structure_al_dedctible_amount Deprecated misspellings of \code{reinsurance_structure_eel_deductible_amount} and \code{reinsurance_structure_al_deductible_amount}, the names before version 0.3.4; they still work, with a warning.
+#' @param reinsurance_structure_eel_dedctible_amount,reinsurance_structure_al_dedctible_amount Deprecated misspellings of \code{reinsurance_structure_eel_deductible_amount} and \code{reinsurance_structure_al_deductible_amount}, the names before version 0.4.0; they still work, with a warning.
 #' @param largest_claims True to add the column \code{largest_claim}: each simulation's largest single claim, for occurrence exceedance (OEP) as \code{total_claims} gives aggregate exceedance (AEP). Defaults to FALSE. Every claim is then drawn, so the one-step shortcut for totals (see \code{shortcuts}) is not used.
 #' @return A data frame with one row per simulation, at full precision: \code{claim_counts},
 #' the claim count; \code{total_claims}, the total claims after the reinsurance structures;
@@ -943,7 +943,7 @@ simulate_function <- function(
     reinsurance_structure_eel_dedctible_amount = NULL,
     reinsurance_structure_al_dedctible_amount = NULL
 ){
-  #the deductibles' names before 0.3.4, misspelled, still work
+  #the deductibles' names before 0.4.0, misspelled, still work
   for (layer in c("eel", "al")) {
     old_value <- get(paste0("reinsurance_structure_", layer, "_dedctible_amount"))
     if (!is.null(old_value)) {
