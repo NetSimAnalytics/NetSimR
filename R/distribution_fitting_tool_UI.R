@@ -709,12 +709,14 @@ distribution_fitting_tool_UI <- function(request) {
             "compare them against the data and splice Pareto tails onto the ",
             "severity fit, ready to use in the NetSimR simulator."
           ),
-          tags$button(
-            type = "button",
-            class = "btn btn-light",
-            onclick = "document.querySelector('.navbar a[data-value=\"data\"]').click();",
-            icon("upload"), " Upload data"
-          )
+          div(class = "d-flex flex-wrap gap-2",
+              tags$button(
+                type = "button",
+                class = "btn btn-light",
+                onclick = "document.querySelector('.navbar a[data-value=\"data\"]').click();",
+                icon("upload"), " Upload data"
+              ),
+              actionButton("try_example", "Try an example", icon = icon("wand-magic-sparkles"), class = "btn btn-outline-light"))
         ),
 
         bslib::card(
@@ -766,26 +768,34 @@ distribution_fitting_tool_UI <- function(request) {
       value = "data",
       icon = icon("table"),
 
-      dft_page_intro("Data", "Upload a CSV or text file. Every analysis tab reads its columns from this file."),
+      dft_page_intro("Data", "Upload a CSV, text or Excel file, or choose an example. Every analysis tab reads its columns from it."),
 
       dft_layout(
         dft_settings_card(
-          "file-arrow-up", "Data file", "Comma, semicolon or tab separated.",
-          fileInput("file1", "File", accept = c(
-            "text/csv",
-            "text/comma-separated-values,text/plain",
-            ".csv", ".txt", ".tsv"
-          ), placeholder = "No file selected"),
-          bslib::input_switch("data_includes_header", "First row holds column names", value = TRUE),
-          div(class = "sim-section-label mt-2", "Separator"),
+          "file-arrow-up", "Data file", "CSV or text (comma, semicolon or tab separated), or Excel.",
+          div(class = "sim-section-label", "Source"),
           div(class = "pill-radio",
-              radioButtons("sep", NULL, c(Comma = ",", Semicolon = ";", Tab = "\t"), ",", inline = TRUE)),
-          div(class = "sim-section-label mt-2", "Decimal mark"),
-          div(class = "pill-radio",
-              radioButtons("dec", NULL, c("Point (1.5)" = ".", "Comma (1,5)" = ","), ".", inline = TRUE)),
-          div(class = "sim-section-label mt-2", "Quote"),
-          div(class = "pill-radio",
-              radioButtons("quote", NULL, c("Double" = '"', "Single" = "'", "None" = ""), '"', inline = TRUE))
+              sim_hidden_label(radioButtons("data_source", "Source", c("Upload a file" = "upload", "Example" = "example"),
+                                            "upload", inline = TRUE))),
+          conditionalPanel(
+            condition = "input.data_source == 'example'",
+            selectInput("example", "Example", choices = dft_examples, selectize = FALSE),
+            dft_help("Simulated data sets of the package: motor_policies and liability_claims.")
+          ),
+          conditionalPanel(
+            condition = "input.data_source != 'example'",
+            fileInput("file1", "File", accept = netsimr_data_accept, placeholder = "No file selected"),
+            bslib::input_switch("data_includes_header", "First row holds column names", value = TRUE),
+            div(class = "sim-section-label mt-2", "Separator"),
+            div(class = "pill-radio",
+                radioButtons("sep", NULL, c(Comma = ",", Semicolon = ";", Tab = "\t"), ",", inline = TRUE)),
+            div(class = "sim-section-label mt-2", "Decimal mark"),
+            div(class = "pill-radio",
+                radioButtons("dec", NULL, c("Point (1.5)" = ".", "Comma (1,5)" = ","), ".", inline = TRUE)),
+            div(class = "sim-section-label mt-2", "Quote"),
+            div(class = "pill-radio",
+                radioButtons("quote", NULL, c("Double" = '"', "Single" = "'", "None" = ""), '"', inline = TRUE))
+          )
         ),
         uiOutput("data_overview"),
         bslib::card(

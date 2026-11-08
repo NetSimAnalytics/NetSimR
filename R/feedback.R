@@ -8,6 +8,12 @@ netsimr_website_url <- "https://netsimanalytics.github.io/NetSimR/"
 netsimr_github_url <- "https://github.com/NetSimAnalytics/NetSimR"
 netsimr_issues_url <- "https://github.com/NetSimAnalytics/NetSimR/issues/new"
 
+# The files the tools' uploads accept: text files of values separated by commas, semicolons
+# or tabs, and Excel workbooks (read with readxl, see dft_read_data()).
+netsimr_data_accept <- c("text/csv", "text/comma-separated-values,text/plain", ".csv", ".txt", ".tsv",
+                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                         "application/vnd.ms-excel", ".xlsx", ".xls")
+
 # The version of NetSimR running, "" when it cannot be found.
 netsimr_version <- function() {
   tryCatch(as.character(utils::packageVersion("NetSimR")), error = function(e) "")
@@ -70,6 +76,7 @@ netsimr_about_card <- function(tool, note = NULL) {
           netsimr_link_button("Website", netsimr_website_url, "book-open"),
           netsimr_link_button("All six tools online", paste0(netsimr_website_url, "articles/try-online.html"), "play"),
           netsimr_link_button("GitHub", netsimr_github_url, "github"),
+          netsimr_link_button("Custom tools", paste0(netsimr_website_url, "articles/custom-tools.html"), "handshake"),
           netsimr_feedback_links(tool)),
       p(class = "sim-muted mb-2",
         "If the tools help your work, a star on GitHub or a mention to a colleague helps others find them."),

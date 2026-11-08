@@ -195,5 +195,8 @@ xlp_settings_inputs <- c(
   profile_sep = "radio", profile_dec = "radio", band_col = "column", size_col = "column", premium_col = "column",
   loss_ratio_col = "column", loss_ratio = "numeric", curve = "select", curve_c = "numeric", curve_b = "numeric",
   curve_g = "numeric", severity = "select", severity_p1 = "numeric", severity_p2 = "numeric",
-  experience_method = "radio", experience_weight = "slider", full_credibility = "numeric"
+  experience_method = "radio", experience_weight = "slider", full_credibility = "numeric",
+  prog_frequency = "select", prog_severity = "select", prog_f1 = "numeric", prog_f2 = "numeric", prog_s1 = "numeric",
+  prog_s2 = "numeric", prog_n = "numeric", prog_level = "select", prog_loading = "numeric", prog_coc = "numeric",
+  prog_seed = "numeric"
 )

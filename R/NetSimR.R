@@ -4,8 +4,8 @@
 #' \item Pure IBNR and UPR earned periods
 #' \item Sliced distributions
 #' \item Frequency-severity claims simulation, applying a reinsurance layer to simulated claims, and portfolios of lines joined by a copula
-#' \item Claims reserving: chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Benktander, Cape Cod, a bootstrap, Clark's growth curves and a chain ladder for claims inflation
-#' \item Pricing models: a Tweedie family for generalised linear models
+#' \item Claims reserving: chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Benktander, Cape Cod, a bootstrap, Clark's growth curves and a chain ladder for claims inflation; IFRS 17 discounting and risk adjustment, and the Solvency II standard formula's premium and reserve risk
+#' \item Pricing models: a Tweedie family for generalised linear models, and rate reviews: on-level premiums, the indicated rate change and Buhlmann-Straub credibility
 #' \item Excess of loss pricing: burning cost, Pareto rating, exposure rating with MBBEFD curves, and the technical premium
 #' \item Shiny apps for simulating claims, fitting distributions, fitting GLMs, reserving, reinsurance pricing and portfolio capital
 #' }

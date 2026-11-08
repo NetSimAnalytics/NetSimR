@@ -33,7 +33,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   # message shown in place of an output until its analysis has run
   need_run <- function(button, what) {
     validate(
-      need(input$file1, "Upload a data file on the Data tab first."),
+      need(has_data(), "Upload a data file on the Data tab first, or choose an example."),
       need(isTruthy(input[[button]]), paste0("Choose the ", what, " column and click Run analysis."))
     )
   }
@@ -94,8 +94,18 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   #Data input
   ######################
 
+  # an example data set is chosen, or a file uploaded
+  using_example <- reactive(identical(input$data_source, "example"))
+  has_data <- function() using_example() || isTruthy(input$file1)
+  data_name <- reactive({
+    if (using_example()) names(dft_examples)[match(or_default(input$example, "motor"), dft_examples)] else input$file1$name
+  })
+
   data <- reactive({
-    validate(need(input$file1, "Upload a data file to see a preview here."))
+    if (using_example()) {
+      return(switch(or_default(input$example, "motor"), liability = NetSimR::liability_claims, NetSimR::motor_policies))
+    }
+    validate(need(input$file1, "Upload a data file to see a preview here, or choose an example."))
     read_error <- NULL
     df <- tryCatch(
       dft_read_data(
@@ -169,7 +179,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   preview_rows <- 100
 
   output$data_overview <- renderUI({
-    req(input$file1)
+    req(has_data())
     df <- data()
     truncated <- nrow(df) > preview_rows
     # a file without a header read with one: its first row became the column names
@@ -183,7 +193,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     }
     div(
       class = "dft-stats",
-      dft_stat_tile("File", div(class = "dft-file-name", input$file1$name), icon_name = "file-lines"),
+      dft_stat_tile(if (using_example()) "Example" else "File", div(class = "dft-file-name", data_name()), icon_name = "file-lines"),
       dft_stat_tile("Rows", format(nrow(df), big.mark = ","), icon_name = "bars",
                     note = if (truncated) paste("The preview shows the first", format(preview_rows, big.mark = ","))),
       dft_stat_tile("Columns", format(ncol(df), big.mark = ","), icon_name = "table-columns", note = columns_note)
@@ -191,6 +201,20 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   })
 
   output$data_table <- renderUI(dft_data_preview(data(), preview_rows))
+
+  # a file uploaded is the data, also after an example
+  observeEvent(input$file1, updateRadioButtons(session, "data_source", selected = "upload"))
+
+  # the example: the liability claims, fitted with their policy limits on the Severity tab
+  observeEvent(input$try_example, {
+    updateRadioButtons(session, "data_source", selected = "example")
+    updateSelectInput(session, "example", selected = "liability")
+    updateRadioButtons(session, "sev_limit_source", selected = "column")
+    bslib::nav_select("dft_navbar", "severity", session = session)
+    showNotification(paste("The example liability claims are loaded, with their policy limits: click Run analysis to fit them.",
+                           "The motor policies example, on the Data tab, has claim counts for the Frequency tab."),
+                     type = "message", duration = 10)
+  })
 
   ######################
   #Frequency analysis
@@ -874,7 +898,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   # the run of a model's tab, with a message naming the tab when it has not been run
   need_tab_run <- function(button, tab, model) {
     validate(
-      need(input$file1, "Upload a data file on the Data tab first."),
+      need(has_data(), "Upload a data file on the Data tab first, or choose an example."),
       need(isTruthy(input[[button]]), paste0("Run the analysis on the ", tab, " tab to send its ", model, " fit."))
     )
   }

@@ -1,5 +1,44 @@
 Changes in Version 0.4.0
 
+  o IFRS 17 and Solvency II. New discount_reserves(): the chain ladder's
+    future payments by calendar period, discounted with a yield curve (one
+    rate, or spot rates by term). New risk_adjustment(): IFRS 17's risk
+    adjustment, or Solvency II's risk margin, as a percentile of the
+    bootstrapped reserves or as the cost of the capital held over their
+    run-off, with the confidence level IFRS 17 asks to disclose. New
+    sii_premium_reserve_risk(): the standard formula's capital for non-life
+    premium and reserve risk, with the parameters of Delegated Regulation (EU)
+    2015/35 as amended in 2019 (sii_nonlife_segments, sii_nonlife_correlation),
+    the adjustment for non-proportional reinsurance and geographical
+    diversification. The reserving tool has an IFRS 17 & SII tab, in its report
+    too, and the portfolio tool a Standard formula tab for every segment.
+  o New compare_reinsurance(): the same simulated claims put through several
+    reinsurance programmes (a quota share, an excess of loss layer, a stop
+    loss, or a mix), with each one's expected recoveries, premium, margin, net
+    result, capital and capital relief, and its value at a cost of capital.
+    The reinsurance pricing tool compares up to four programmes on a new
+    Programmes tab.
+  o Rate reviews. New on_level_premium(), the parallelogram method worked out
+    exactly for any rate changes and policy term; indicated_rate_change(), the
+    loss ratio method with trend, expenses, profit and credibility; and
+    buhlmann_straub(), credibility between schemes, fleets or segments, which
+    matches the actuar package. New vignette "Rate reviews: on-level premiums,
+    the indicated rate change and credibility".
+  o The GLM fitting tool writes a report of the model: the data and choices,
+    the coefficients, the rate table with a chart per rating factor, and the
+    validation on the rows held out.
+  o Example data in the tools: new data sets motor_policies (10,000 simulated
+    policies) and liability_claims (claims at their policy limits). The GLM
+    tool's Try an example button imports the policies with a Poisson model set
+    up, and the distribution fitting tool's fits the claims with their limits.
+  o Excel files: every tool reads .xlsx and .xls uploads (with readxl, now
+    suggested), and the reserving, GLM, reinsurance pricing and portfolio
+    tools download their results as an Excel workbook (with writexl, now
+    suggested).
+  o The website has a gallery of the tools, on the Try online page, and a
+    page on custom tools for insurers and reinsurers; each tool's About card
+    links to it.
+
   o New run_shiny_portfolio_tool(), NetCapital: the capital of a portfolio
     of lines of business, each simulated from a claim count and a claim size
     distribution or uploaded as simulated losses (such as the claims

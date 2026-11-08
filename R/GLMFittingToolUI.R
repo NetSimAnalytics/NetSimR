@@ -365,12 +365,14 @@ GLMFittingToolUI <- function(request) {
             "compare formulas side by side and check actual against predicted ",
             "values across any explanatory variable."
           ),
-          tags$button(
-            type = "button",
-            class = "btn btn-light",
-            onclick = "document.querySelector('.navbar a[data-value=\"data\"]').click();",
-            icon("upload"), " Import data"
-          )
+          div(class = "d-flex flex-wrap gap-2",
+              tags$button(
+                type = "button",
+                class = "btn btn-light",
+                onclick = "document.querySelector('.navbar a[data-value=\"data\"]').click();",
+                icon("upload"), " Import data"
+              ),
+              actionButton("try_example", "Try an example", icon = icon("wand-magic-sparkles"), class = "btn btn-outline-light"))
         ),
 
         bslib::card(
@@ -425,7 +427,7 @@ GLMFittingToolUI <- function(request) {
       value = "data",
       icon = icon("table"),
 
-      dft_page_intro("Data", "Import a CSV file or the result of a database query."),
+      dft_page_intro("Data", "Import a CSV or Excel file, an example, or the result of a database query."),
 
       dft_layout(
         dft_settings_card(
@@ -434,14 +436,18 @@ GLMFittingToolUI <- function(request) {
           div(class = "pill-radio",
               #(a web browser cannot reach a database)
               radioButtons("data_source", NULL,
-                           if (netsimr_in_browser()) c("CSV file" = "CSV File") else c("CSV file" = "CSV File", "Database" = "Database"),
+                           c("CSV or Excel file" = "CSV File", if (!netsimr_in_browser()) c("Database" = "Database"),
+                             "Example" = "Example"),
                            "CSV File", inline = TRUE)),
+          conditionalPanel(
+            condition = "input.data_source == 'Example'",
+            dft_help("10,000 simulated motor policies (motor_policies): age, region, vehicle, its value, exposure, ",
+                     "and the year's claim count and cost.")
+          ),
 
           conditionalPanel(
             condition = "input.data_source == 'CSV File'",
-            fileInput("csv_file", "File", accept = c(
-              "text/csv", "text/comma-separated-values,text/plain", ".csv", ".txt", ".tsv"
-            ), placeholder = "No file selected"),
+            fileInput("csv_file", "File", accept = netsimr_data_accept, placeholder = "No file selected"),
             bslib::input_switch("csv_header", "First row holds column names", value = TRUE),
             div(class = "sim-section-label mt-2", "Separator"),
             div(class = "pill-radio",
@@ -674,15 +680,15 @@ GLMFittingToolUI <- function(request) {
           "sliders", "Rating table", "Of the model on the Model tab.",
           selectInput("rate_factor", "Rating factor", choices = NULL),
           numericInput("rate_values", "Values shown for a number", value = 100, min = 5, max = 500, step = 5),
-          downloadButton("download_rate_table", "Rate table (CSV)", class = "btn-outline-glm mt-1"),
+          div(class = "d-flex flex-wrap gap-2 mt-1",
+              downloadButton("download_rate_table", "Rate table (CSV)", class = "btn-outline-glm"),
+              netsimr_excel_button("download_rates_excel", "Rate table (Excel)", class = "btn-outline-glm")),
           dft_help("Each rating factor is a column of the data, or two for an interaction, with every term that uses it: ",
                    "age and ns(age, 4), say. Its base value, at relativity 1, is the most common level, or the value ",
                    "nearest the median. The CSV has the base rate and every rating factor, ready for a rating engine."),
           tags$hr(class = "sim-divider"),
           div(class = "sim-section-label", "Score new data"),
-          fileInput("score_file", "File of policies", accept = c(
-            "text/csv", "text/comma-separated-values,text/plain", ".csv", ".txt", ".tsv"
-          ), placeholder = "No file selected"),
+          fileInput("score_file", "File of policies", accept = netsimr_data_accept, placeholder = "No file selected"),
           uiOutput("score_result"),
           dft_help("Read with the file options of the Data tab.")
         ),

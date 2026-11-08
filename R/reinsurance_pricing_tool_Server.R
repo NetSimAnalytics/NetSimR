@@ -739,6 +739,25 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     }
   )
 
+  # every table of the tool in one workbook, those that can be found
+  output$download_excel <- downloadHandler(
+    filename = function() "reinsurance_pricing.xlsx",
+    content = function(file) {
+      quiet <- function(expr) tryCatch(expr, error = function(e) NULL)
+      lay <- layer()
+      p <- pricing()
+      p$deductible <- lay$deductible
+      p$limit <- lay$limit
+      p$rating_premium <- rating()$premium
+      netsimr_write_excel(list(
+        Pricing = p,
+        `Burning cost by year` = quiet(bc()$by_year),
+        `Indexed losses` = quiet(bc()$losses),
+        `Exposure rating` = quiet(exposure()$bands)
+      ), file)
+    }
+  )
+
   output$layer_stats <- renderUI({
     lay <- layer()
     r <- rating()
@@ -752,6 +771,187 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       dft_stat_tile("Rating year", format(r$year), icon_name = "calendar", note = paste("Premium", rsv_amount(r$premium)))
     )
   })
+
+  ######################
+  #Programmes
+  ######################
+
+  # the programmes of the grid: by default a quota share, the Layer tab's layer, a stop loss,
+  # and a quota share with the layer
+  prog_defaults <- data.frame(
+    name = c("Quota share 30%", "The layer", "Stop loss", "Quota share 20% and the layer"),
+    qs = c(30, NA, NA, 20), commission = c(25, NA, NA, 25),
+    xl_deductible = c(NA, 1e6, NA, 1e6), xl_limit = c(NA, 4e6, NA, 4e6), xl_reinstatements = c(NA, 1, NA, 1),
+    xl_premium = NA_real_, sl_attachment = c(NA, NA, 45e6, NA), sl_limit = c(NA, NA, 30e6, NA), sl_premium = NA_real_,
+    stringsAsFactors = FALSE
+  )
+  prog_fields <- names(prog_defaults)
+  prog_id <- function(field, i) paste0("prog_", field, "_", i)
+  loaded_programmes <- reactiveVal(NULL)
+  prog_value <- function(field, i) {
+    x <- input[[prog_id(field, i)]]
+    if (!is.null(x)) return(x)
+    saved <- loaded_programmes()
+    if (!is.null(saved) && !is.null(saved[[field]])) return(saved[[field]][i])
+    prog_defaults[[field]][i]
+  }
+
+  output$programme_inputs <- renderUI({
+    head <- function(x) div(class = "xlp-year-head", x)
+    cells <- isolate(lapply(1:4, function(i) {
+      amount <- function(field, label) sim_hidden_label(sim_amount_input(prog_id(field, i), paste(label, "of programme", i),
+                                                                         value = prog_value(field, i), min = 0))
+      number_in <- function(field, label, step) sim_hidden_label(numericInput(prog_id(field, i), paste(label, "of programme", i),
+                                                                              value = prog_value(field, i), min = 0, step = step,
+                                                                              width = "100%"))
+      tagList(
+        sim_hidden_label(textInput(prog_id("name", i), paste("Name of programme", i), value = prog_value("name", i), width = "100%")),
+        number_in("qs", "Quota share (%)", 5), number_in("commission", "Commission (%)", 1),
+        amount("xl_deductible", "Layer deductible"), amount("xl_limit", "Layer limit"),
+        number_in("xl_reinstatements", "Reinstatements", 1), amount("xl_premium", "Layer premium"),
+        amount("sl_attachment", "Stop loss attachment"), amount("sl_limit", "Stop loss limit"), amount("sl_premium", "Stop loss premium")
+      )
+    }))
+    tagList(
+      div(class = "xlp-year-wrap",
+          div(class = "xlp-year-grid", style = paste0("grid-template-columns: minmax(14rem, 1.8fr) repeat(2, minmax(4.5rem, 0.6fr)) ",
+                                                      "repeat(2, minmax(7rem, 1fr)) minmax(4.5rem, 0.6fr) repeat(4, minmax(7rem, 1fr));",
+                                                      " min-width: 1220px;"),
+              head("Programme"), head("QS %"), head("Comm. %"), head("Layer deductible"), head("Layer limit"),
+              head("Reinst."), head("Layer premium"), head("Stop loss attachment"), head("Stop loss limit"), head("Stop loss premium"),
+              cells)),
+      dft_help("Leave a programme's name empty to leave it out, and a part empty when the programme does not have it. Empty",
+               "premiums are priced at the loading; empty reinstatements are unlimited.")
+    )
+  })
+
+  # the programmes of compare_reinsurance() from the grid
+  programme_list <- reactive({
+    out <- list()
+    for (i in 1:4) {
+      name <- trimws(as.character(or_default(prog_value("name", i), "")))
+      if (!nzchar(name)) next
+      v <- function(field) number(prog_value(field, i))
+      p <- list()
+      if (is.finite(v("qs")) && v("qs") > 0) {
+        validate(need(v("qs") <= 100, paste0("The quota share of '", name, "' must be at most 100%.")))
+        p$quota_share <- v("qs") / 100
+        p$commission <- if (is.finite(v("commission"))) v("commission") / 100 else 0
+      }
+      if (is.finite(v("xl_limit")) && v("xl_limit") > 0) {
+        p$xl <- list(deductible = if (is.finite(v("xl_deductible"))) v("xl_deductible") else 0, limit = v("xl_limit"),
+                     reinstatements = if (is.finite(v("xl_reinstatements"))) v("xl_reinstatements") else Inf,
+                     reinstatement_rate = layer()$reinstatement_rate)
+        if (is.finite(v("xl_premium"))) p$xl$premium <- v("xl_premium")
+      }
+      if (is.finite(v("sl_limit")) && v("sl_limit") > 0) {
+        p$stop_loss <- list(attachment = if (is.finite(v("sl_attachment"))) v("sl_attachment") else 0, limit = v("sl_limit"))
+        if (is.finite(v("sl_premium"))) p$stop_loss$premium <- v("sl_premium")
+      }
+      validate(need(length(p) > 0, paste0("Give '", name, "' a quota share, a layer limit or a stop loss limit.")),
+               need(is.null(out[[name]]) && name != "No reinsurance", paste0("Give each programme its own name ('", name, "').")))
+      out[[name]] <- p
+    }
+    validate(need(length(out) > 0, "Name at least one programme."))
+    out
+  })
+
+  observeEvent(input$prog_frequency, {
+    if (identical(input$prog_frequency, "Poisson")) {
+      updateNumericInput(session, "prog_f1", label = "Mean (lambda)")
+    } else {
+      updateNumericInput(session, "prog_f1", label = "r (shape)")
+    }
+  }, ignoreInit = TRUE)
+  observeEvent(input$prog_severity, {
+    labels <- list(LogNormal = c("meanlog", "sdlog"), Gamma = c("shape", "scale"), Pareto = c("alpha", "x_m (minimum)"),
+                   Exponential = c("rate", ""))[[input$prog_severity]]
+    updateNumericInput(session, "prog_s1", label = labels[1])
+    if (nzchar(labels[2])) updateNumericInput(session, "prog_s2", label = labels[2])
+  }, ignoreInit = TRUE)
+
+  programmes_run <- eventReactive(input$run_programmes, {
+    frequency <- or_default(input$prog_frequency, "Poisson")
+    severity <- or_default(input$prog_severity, "LogNormal")
+    fp <- c(number(input$prog_f1), if (frequency != "Poisson") number(input$prog_f2))
+    sp <- c(number(input$prog_s1), if (severity != "Exponential") number(input$prog_s2))
+    validate(need(all(is.finite(fp)) && all(fp > 0), "Enter the claim count parameters, above 0."),
+             need(all(is.finite(sp)), "Enter the claim size parameters."))
+    n <- number(input$prog_n)
+    validate(need(is.finite(n) && n >= 1000 && n <= 2e5, "The simulated years must be from 1,000 to 200,000."))
+    loading <- number(input$prog_loading)
+    coc <- number(input$prog_coc)
+    seed <- number(input$prog_seed)
+    validate(need(is.finite(loading) && loading >= 0 && loading < 100, "The loading must be from 0% to below 100%."),
+             need(is.finite(coc) && coc >= 0, "Enter the cost of capital, at least 0%."))
+    withProgress(message = "Simulating the programmes", value = 0.3, {
+      checked(attempt(compare_reinsurance(frequency, fp, severity, sp, programme_list(), premium = rating()$premium, n = round(n),
+                                          level = as.numeric(or_default(input$prog_level, "0.995")), loading = loading / 100,
+                                          coc_rate = coc / 100, seed = if (is.finite(seed)) round(seed))))
+    })
+  })
+
+  current_programmes <- reactive({
+    validate(need(isTruthy(input$run_programmes), "Click Compare to simulate the programmes."))
+    programmes_run()
+  })
+
+  output$programme_stats <- renderUI({
+    cmp <- current_programmes()
+    s <- cmp$summary
+    best <- s[-1, ][which.max(s$value[-1]), ]
+    gross <- s[1, ]
+    label <- paste0(format(100 * cmp$level), "%")
+    div(class = "dft-stats",
+        dft_stat_tile("Capital without reinsurance", rsv_amount(gross$capital), icon_name = "triangle-exclamation",
+                      note = paste("Mean result", rsv_amount(gross$mean_result), "less its", label, "worst")),
+        dft_stat_tile("Best value", best$programme, icon_name = "trophy", accent = TRUE,
+                      note = paste0(if (best$value >= 0) "Saves " else "Costs ", rsv_amount(abs(best$value)), " a year net of its margin")),
+        dft_stat_tile("Its capital relief", rsv_amount(best$capital_relief), icon_name = "shield-halved",
+                      note = paste("For a margin of", rsv_amount(best$margin))),
+        dft_stat_tile("Subject premium", rsv_amount(cmp$premium), icon_name = "coins",
+                      note = paste(format(cmp$n, big.mark = ","), "simulated years")))
+  })
+
+  output$programme_table <- renderUI({
+    cmp <- current_programmes()
+    s <- cmp$summary
+    rows <- lapply(seq_len(nrow(s)), function(i) {
+      list(s$programme[i], rsv_amount(s$expected_ceded[i]), rsv_amount(s$reinsurance_premium[i]), rsv_amount(s$margin[i]),
+           rsv_amount(s$mean_result[i]), rsv_percent(s$p_loss[i]), rsv_amount(s$capital[i]), rsv_amount(s$capital_relief[i]),
+           rsv_amount(s$value[i]))
+    })
+    rsv_table(c("Programme", "Expected ceded", "Reinsurance premium", "Margin", "Mean result", "Loss-making years", "Capital",
+                "Capital relief", "Value"), rows,
+              note = paste0("Reinsurance premium: the premiums paid less any ceding commission, with the expected reinstatement premiums.",
+                            " Margin: that premium less the expected recoveries. Capital: the mean net result less its ",
+                            format(100 * (1 - cmp$level)), "% worst. Value: ", rsv_percent(cmp$coc_rate, 0),
+                            " of the capital relief less the margin, positive when the capital saved is worth more than the",
+                            " reinsurance costs."))
+  })
+
+  output$programme_plot <- chart(function() {
+    s <- current_programmes()$summary
+    dft_category_chart(s$programme, bars = list(name = "Capital", values = s$capital, colour = xlp_chart_colours(dark())$accent_soft),
+                       lines = list(list(name = "Margin paid to reinsurers", values = s$margin, colour = dft_model_palette[1])),
+                       x_title = "Programme", y_title = "Amount", dark = dark())
+  }, alt = "The capital each programme needs and the margin it pays to the reinsurers")
+
+  output$programme_return_plot <- chart(function() {
+    cmp <- current_programmes()
+    p <- exp(seq(log(0.5), log(1 - 10 / cmp$n), length.out = 200))
+    periods <- 1 / (1 - p)
+    series <- lapply(seq_len(ncol(cmp$results)), function(j) {
+      list(name = colnames(cmp$results)[j], x = periods, y = stats::quantile(cmp$results[, j], 1 - p, names = FALSE),
+           colour = c(xlp_chart_colours(dark())$accent, dft_model_palette)[j])
+    })
+    dft_line_chart(series, "Return period (years)", "Net result in the 1 in N bad year", dark(), x_log = TRUE)
+  }, alt = "The net result of each programme in a bad year of each return period")
+
+  output$download_programmes <- downloadHandler(
+    filename = function() "reinsurance_programmes.csv",
+    content = function(file) utils::write.csv(csv_safe(current_programmes()$summary), file, row.names = FALSE)
+  )
 
   ######################
   #Settings file
@@ -774,6 +974,14 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
         values$year_development <- v$development
         values$year_include <- v$include
       }
+      # the programmes' grid, a vector per column
+      for (field in prog_fields) {
+        values[[paste0("prog_", field, "s")]] <- if (field == "name") {
+          vapply(1:4, function(i) as.character(or_default(prog_value("name", i), "")), character(1))
+        } else {
+          vapply(1:4, function(i) number(prog_value(field, i)), numeric(1))
+        }
+      }
       write_settings_file(values, file, xlp_settings_tool, xlp_settings_version)
     }
   )
@@ -788,7 +996,9 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
                     weights = c("premium", "equal"), profile_source = c("example", "upload"),
                     profile_example = unname(xlp_profile_examples), profile_type = c("property", "casualty"),
                     profile_sep = c(",", ";", "\t"), profile_dec = c(".", ","), curve = unname(xlp_curves),
-                    severity = names(xlp_severities), experience_method = c("burning_cost", "pareto"))
+                    severity = names(xlp_severities), experience_method = c("burning_cost", "pareto"),
+                    prog_frequency = c("Poisson", "Negative Binomial"), prog_severity = c("LogNormal", "Gamma", "Pareto", "Exponential"),
+                    prog_level = c("0.995", "0.99", "0.9"))
     usable <- function(id) {
       x <- v[[id]]
       if (is.null(x) || length(x) != 1) return(FALSE)
@@ -839,6 +1049,19 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
         }
       }
     }
+    grid <- lapply(stats::setNames(prog_fields, prog_fields), function(field) {
+      x <- v[[paste0("prog_", field, "s")]]
+      if (length(x) != 4) return(NULL)
+      if (field == "name") as.character(x) else suppressWarnings(as.numeric(x))
+    })
+    grid <- grid[!vapply(grid, is.null, logical(1))]
+    if (length(grid) > 0) {
+      loaded_programmes(grid)
+      for (field in names(grid)) for (i in 1:4) {
+        if (field == "name") updateTextInput(session, prog_id(field, i), value = grid[[field]][i]) else
+          updateNumericInput(session, prog_id(field, i), value = grid[[field]][i])
+      }
+    }
     uploads <- c(if (identical(v$loss_source, "upload")) "the losses", if (identical(v$profile_source, "upload")) "the risk profile")
     showNotification(paste0("Loaded the settings of ", input$load_settings$name,
                             if (length(uploads) > 0) paste0(". Upload ", paste(uploads, collapse = " and "),
@@ -849,7 +1072,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   # the summary tiles are hidden while empty, and shiny does not render hidden outputs,
   # so they must render even when hidden or they would never appear; the profile type
   # drives the curve settings, shown on another tab
-  for (id in c("layer_stats", "experience_stats", "exposure_stats", "pricing_stats", "profile_type")) {
+  for (id in c("layer_stats", "experience_stats", "exposure_stats", "pricing_stats", "profile_type", "programme_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
 }

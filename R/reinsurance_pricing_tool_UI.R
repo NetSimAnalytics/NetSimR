@@ -189,7 +189,7 @@ reinsurance_pricing_tool_UI <- function(request) {
       pill(paste0(prefix, "_dec"), "Decimal mark", c("Point (1.5)" = ".", "Comma (1,5)" = ","), ".")
     )
   }
-  accept <- c("text/csv", "text/comma-separated-values,text/plain", ".csv", ".txt", ".tsv")
+  accept <- netsimr_data_accept
   bslib::page_navbar(
     title = div(
       class = "sim-brand",
@@ -536,12 +536,69 @@ reinsurance_pricing_tool_UI <- function(request) {
           sim_card_header("table-cells", "Methods", "Each method's rate, expected loss and technical premium."),
           bslib::card_body(
             uiOutput("pricing_table"),
-            div(class = "xlp-downloads", downloadButton("download_pricing", "Pricing (CSV)", class = "btn-outline-xlp"))
+            div(class = "xlp-downloads", downloadButton("download_pricing", "Pricing (CSV)", class = "btn-outline-xlp"),
+                netsimr_excel_button("download_excel", class = "btn-outline-xlp"))
           )
         ),
         dft_tabs(
           id = "pricing_tabs",
           bslib::nav_panel("Expected loss by method", dft_plot_output("method_plot"))
+        )
+      )
+    ),
+
+    # ------------------------------------------------------------- Programmes
+    bslib::nav_panel(
+      title = "Programmes",
+      value = "programmes",
+      icon = icon("code-compare"),
+
+      dft_page_intro("Programmes", "Compare reinsurance programmes by what they cost and the capital they save."),
+
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Gross portfolio", "The claims every programme sees.",
+          div(class = "param-grid-2",
+              selectInput("prog_frequency", "Claim count", c("Poisson", "Negative Binomial"), selectize = FALSE),
+              selectInput("prog_severity", "Claim size", c("LogNormal", "Gamma", "Pareto", "Exponential"), selectize = FALSE)),
+          div(class = "param-grid-2",
+              numericInput("prog_f1", "Mean (lambda)", value = 200, min = 0, step = 10),
+              conditionalPanel(condition = "input.prog_frequency == 'Negative Binomial'",
+                               numericInput("prog_f2", "beta (scale)", value = 2, min = 0, step = 0.5))),
+          div(class = "param-grid-2",
+              numericInput("prog_s1", "meanlog", value = 11, step = 0.1),
+              conditionalPanel(condition = "input.prog_severity != 'Exponential'",
+                               numericInput("prog_s2", "sdlog", value = 1.5, step = 0.1))),
+          dft_help("The subject premium is the rating year's, on the Layer tab: the expected gross claims should be",
+                   "below it."),
+          tags$hr(class = "sim-divider"),
+          sim_amount_input("prog_n", "Simulated years", value = 20000, min = 1000, max = 2e5),
+          selectInput("prog_level", "Capital at", c("99.5% (1 in 200)" = "0.995", "99% (1 in 100)" = "0.99",
+                                                     "90% (1 in 10)" = "0.9"), selectize = FALSE),
+          div(class = "param-grid-2",
+              numericInput("prog_loading", "Reinsurer's loading (%)", value = 25, min = 0, max = 95, step = 5),
+              numericInput("prog_coc", "Cost of capital (%)", value = 10, min = 0, step = 1)),
+          numericInput("prog_seed", "Seed (optional)", value = 1, min = 0, step = 1),
+          actionButton("run_programmes", "Compare", icon = icon("play"), class = "btn-run"),
+          dft_help("A layer or stop loss without a premium is priced at its expected loss, the loading being the share of",
+                   "the premium for the reinsurer's expenses and profit.")
+        ),
+        uiOutput("programme_stats"),
+        bslib::card(
+          sim_card_header("list-check", "Programmes", "Up to four, each a quota share, a layer, a stop loss or a mix."),
+          bslib::card_body(uiOutput("programme_inputs"))
+        ),
+        bslib::card(
+          sim_card_header("table-cells", "Comparison", "Each programme's cost, net result and capital."),
+          bslib::card_body(
+            uiOutput("programme_table"),
+            div(class = "xlp-downloads", downloadButton("download_programmes", "Comparison (CSV)", class = "btn-outline-xlp"))
+          )
+        ),
+        dft_tabs(
+          id = "programme_tabs",
+          bslib::nav_panel("Cost and capital", dft_plot_output("programme_plot")),
+          bslib::nav_panel("Net result by return period", dft_plot_output("programme_return_plot"))
         )
       )
     ),

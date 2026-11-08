@@ -173,6 +173,44 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
       title = "Munich chain ladder", note = "The ultimates of paid and incurred claims projected together."))
   }
 
+  # ---------- IFRS 17 and Solvency II ----------
+  ifrs <- if (ok(r$discounted)) {
+    d <- r$discounted
+    dt <- d$total
+    ra <- if (ok(r$risk_adjustment)) r$risk_adjustment
+    db <- d$by_origin
+    list(id = "ifrs17", title = "IFRS 17 and Solvency II", content = tagList(
+      netsimr_report_tiles(c(
+        list(`Best estimate` = list(value = amount(dt[["discounted"]]),
+                                    note = paste0("Discounted from ", amount(dt[["reserve"]]), "; mean term ",
+                                                  dft_fmt(dt[["mean_term"]], 3), " years"))),
+        if (!is.null(ra)) list(`Risk adjustment` = list(value = amount(ra$risk_adjustment),
+                                                         note = paste0(ra$method, if (is.finite(ra$confidence_level))
+                                                           paste0("; confidence level ", pct(ra$confidence_level)))),
+                               `Liability for incurred claims` = amount(dt[["discounted"]] + ra$risk_adjustment)),
+        if (ok(r$sii)) list(`Reserve risk (Solvency II)` = list(value = amount(r$sii$capital),
+                                                                 note = paste0("Segment ", r$sii$segment, ", standard deviation ",
+                                                                               pct(r$sii$sd))))
+      )),
+      div(class = "two-col",
+          netsimr_report_table(with_total(
+            frame(Origin = db$origin, Reserve = amount(db$reserve), Discounted = amount(db$discounted), Discount = amount(db$discount)),
+            list("Total", amount(dt[["reserve"]]), amount(dt[["discounted"]]), amount(dt[["discount"]]))),
+            title = "Discounted reserves",
+            note = paste0("Spot rates ", paste(formatC(100 * d$yield_curve, format = "f", digits = 2), collapse = ", "),
+                          "% for 1, 2, 3, ... years; payments ", c("0" = "at the start", "0.5" = "mid-period", "1" = "at the end")[[
+                            as.character(d$timing)]], " of each period of ", format(d$period), " years.")),
+          netsimr_report_chart(function(dark) {
+            cf <- d$cash_flows
+            dft_category_chart(as.character(cf$period),
+                               bars = list(name = "Payments", values = cf$payments, colour = rsv_method_colours[["Chain ladder"]]),
+                               lines = list(list(name = "Present value", values = cf$present_value,
+                                                 colour = rsv_method_colours[["Cape Cod"]])),
+                               x_title = "Future calendar period", y_title = "Amount", dark = dark)
+          }, "Future payments and their present value", title = "Cash flows", height = 4.2, width = 6.5))
+    ))
+  }
+
   guide <- list(id = "how-to-read", title = "How to read this report", content = div(class = "callout", tags$ul(
     tags$li("The IBNR is the ultimate less the latest claims: for paid claims it includes the case reserves."),
     tags$li("Mack's standard error measures the uncertainty of the chain ladder until the claims are all paid; the one-year standard error, the part that can emerge over the next year."),
@@ -181,7 +219,7 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
   )))
 
   netsimr_write_report(file, "Reserving Report", "NetReserve by NetSimR",
-                       list(key, settings, development, ultimates, uncertainty, more, munich, guide),
+                       list(key, settings, development, ultimates, uncertainty, ifrs, more, munich, guide),
                        accent = c(glow = "rgba(251, 146, 60, 0.35)", dark = "#431407", middle = "#7c2d12", bright = "#ea580c",
                                   eyebrow = "#fdba74"),
                        generated = generated)

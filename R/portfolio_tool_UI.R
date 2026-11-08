@@ -318,8 +318,7 @@ portfolio_tool_UI <- function(request) {
             ),
             conditionalPanel(
               condition = "input.line_source == 'upload'",
-              fileInput("upload_file", "File", accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv", ".txt",
-                                                          ".tsv"), placeholder = "No file selected"),
+              fileInput("upload_file", "File", accept = netsimr_data_accept, placeholder = "No file selected"),
               bslib::input_switch("upload_header", "First row holds column names", value = TRUE),
               div(class = "sim-section-label mt-2", "Separator"),
               pill("upload_sep", "Separator", c(Comma = ",", Semicolon = ";", Tab = "\t"), ","),
@@ -432,7 +431,8 @@ portfolio_tool_UI <- function(request) {
             div(class = "pfo-downloads",
                 downloadButton("download_summary", "Summary (CSV)", class = "btn-outline-pfo"),
                 downloadButton("download_losses", "Simulated losses (CSV)", class = "btn-outline-pfo"),
-                downloadButton("download_report", "Report (HTML)", class = "btn-outline-pfo"))
+                downloadButton("download_report", "Report (HTML)", class = "btn-outline-pfo"),
+                netsimr_excel_button("download_excel", class = "btn-outline-pfo"))
           )
         ),
         dft_tabs(
@@ -447,6 +447,45 @@ portfolio_tool_UI <- function(request) {
                            p(class = "dft-table-note",
                              "Each point is a simulated year, at the ranks of the two lines' losses. The square at the top",
                              "right holds the years in the worst 5% of both."))
+        )
+      )
+    ),
+
+    # -------------------------------------------------------- Standard formula
+    bslib::nav_panel(
+      title = "Standard formula",
+      value = "standard",
+      icon = icon("building-columns"),
+
+      dft_page_intro("Solvency II standard formula",
+                     "The capital for non-life premium and reserve risk, from each segment's volumes."),
+
+      dft_layout(
+        dft_settings_card(
+          "circle-info", "How it works", "Articles 115 to 117 of Delegated Regulation (EU) 2015/35.",
+          p(class = "mb-2",
+            "Each segment's premium and reserve risk are combined with a correlation of 50%, its standard deviations",
+            "those of Annex II (as amended in 2019). The segments are joined with the correlations of Annex IV, and the",
+            "capital is three times the standard deviation times the volume."),
+          dft_help("The premium volume is the larger of next year's and last year's earned premium, plus the premiums of",
+                   "existing and future contracts beyond next year; the reserve volume is the best estimate of the claims",
+                   "provision. Both net of reinsurance."),
+          dft_help("The 80% adjustment for non-proportional reinsurance applies to segments 1, 4 and 5 where the",
+                   "reinsurance qualifies. Geographical diversification is 1 for business in one region.")
+        ),
+        uiOutput("sf_stats"),
+        bslib::card(
+          sim_card_header("list-check", "Volumes by segment", "The segments written, with their premium and reserve volumes."),
+          bslib::card_body(uiOutput("sf_inputs"))
+        ),
+        bslib::card(
+          sim_card_header("table-cells", "Capital by segment", "Each segment on its own, and the total after diversification."),
+          bslib::card_body(uiOutput("sf_table"),
+                           div(class = "pfo-downloads", downloadButton("download_sf", "Standard formula (CSV)", class = "btn-outline-pfo")))
+        ),
+        dft_tabs(
+          id = "sf_tabs",
+          bslib::nav_panel("Capital by segment", dft_plot_output("sf_plot"))
         )
       )
     ),

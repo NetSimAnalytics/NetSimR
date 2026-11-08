@@ -517,8 +517,37 @@ reserving_tool_Server <- function(input, output, session) {
       write_reserving_report(file, list(
         source = data_input()$source, settings = report_settings(), cl = cl(), results = results(),
         one_year = quiet(one_year()), ave = quiet(ave()), clark = quiet(clark()), inflation = quiet(inflation()),
-        munich = quiet(munich()), boot = quiet(current_boot()), tails = quiet(tail_options())
+        munich = quiet(munich()), boot = quiet(current_boot()), tails = quiet(tail_options()),
+        discounted = quiet(discounted()), risk_adjustment = quiet(ra()), sii = quiet(sii_reserve())
       ))
+    }
+  )
+
+  # every table of the tool in one workbook: the ultimates, the factors, the projected
+  # triangle, Mack's standard errors and, when they can be found, the other methods
+  output$download_excel <- downloadHandler(
+    filename = function() "reserving_results.xlsx",
+    content = function(file) {
+      quiet <- function(expr) tryCatch(expr, error = function(e) NULL)
+      fit <- cl()
+      r <- results()
+      full <- fit$full_triangle
+      boot <- quiet(current_boot())
+      netsimr_write_excel(list(
+        Ultimates = r,
+        `Development factors` = data.frame(factor = c(names(fit$factors), "tail"), selected = c(fit$factors, fit$tail),
+                                           to_ultimate = fit$cdf, check.names = FALSE),
+        `Projected triangle` = data.frame(origin = rownames(full), full, check.names = FALSE),
+        `Mack standard errors` = fit$by_origin,
+        `Actual vs expected` = quiet(ave()$by_origin),
+        Clark = quiet(clark()$by_origin),
+        `Claims inflation` = quiet(inflation()$by_origin),
+        `Tail factors` = quiet(tail_options()),
+        `One-year view` = quiet(one_year()$by_origin),
+        Bootstrap = if (!is.null(boot)) boot$by_origin,
+        `Discounted reserves` = quiet(discounted()$by_origin),
+        `Cash flows` = quiet(discounted()$cash_flows)
+      ), file)
     }
   )
 
@@ -759,6 +788,128 @@ reserving_tool_Server <- function(input, output, session) {
   })
 
   ######################
+  #IFRS 17 and Solvency II
+  ######################
+
+  # the spot rates typed, as shares
+  yield_curve <- reactive({
+    text <- or_default(input$yield_curve, "0")
+    rates <- suppressWarnings(as.numeric(trimws(strsplit(gsub(";", ",", text), ",")[[1]])))
+    rates <- rates[!is.na(rates) | FALSE]
+    validate(need(length(rates) > 0 && all(is.finite(rates)) && all(rates > -100),
+                  "Enter the spot rates in %, separated by commas, such as 3.0, 3.2, 3.4."))
+    rates / 100
+  })
+
+  discounted <- reactive({
+    period <- suppressWarnings(as.numeric(or_default(input$period_length, "1")))
+    timing <- suppressWarnings(as.numeric(or_default(input$payment_timing, "0.5")))
+    checked(discount_reserves(cl(), yield_curve = yield_curve(), period = period, timing = timing))
+  })
+
+  # the standard formula's reserve risk of the reserves, on their own in the chosen segment
+  sii_reserve <- reactive({
+    segment <- as.integer(or_default(input$sii_segment, "1"))
+    be <- discounted()$total[["discounted"]]
+    sii <- sii_premium_reserve_risk(data.frame(segment = segment, premium = 0, reserve = max(be, 0)))
+    list(capital = sii$total[["capital"]], sd = sii$by_segment$reserve_sd, segment = segment)
+  })
+
+  ra <- reactive({
+    method <- or_default(input$ra_method, "percentile")
+    b <- tryCatch(current_boot(), error = function(e) NULL)
+    if (method == "percentile") {
+      validate(need(!is.null(b), "The percentile risk adjustment needs the bootstrap: run it on the Uncertainty tab."))
+      level <- input$ra_level
+      validate(need(is.numeric(level) && isTRUE(level > 0 && level < 100), "Enter a confidence level between 0% and 100%."))
+      return(checked(risk_adjustment("percentile", boot = b, level = level / 100, discounted = discounted())))
+    }
+    rate <- input$coc_rate
+    validate(need(is.numeric(rate) && isTRUE(rate >= 0), "Enter the cost of capital, at least 0%."))
+    capital <- if (identical(input$ra_capital, "bootstrap")) {
+      validate(need(!is.null(b), "Capital at the bootstrap's 99.5% needs the bootstrap: run it on the Uncertainty tab."))
+      (b$total[["p99.5"]] - b$total[["ibnr"]]) * discounted()$total[["discounted"]] / discounted()$total[["reserve"]]
+    } else {
+      sii_reserve()$capital
+    }
+    checked(risk_adjustment("cost of capital", boot = b, discounted = discounted(), capital = capital, coc_rate = rate / 100))
+  })
+
+  output$ifrs_stats <- renderUI({
+    d <- discounted()
+    t <- d$total
+    r <- tryCatch(ra(), error = function(e) NULL)
+    s <- sii_reserve()
+    div(
+      class = "dft-stats",
+      dft_stat_tile("Reserve", rsv_amount(t[["reserve"]]), icon_name = "hourglass-half", note = "Undiscounted"),
+      dft_stat_tile("Best estimate", rsv_amount(t[["discounted"]]), icon_name = "percent", accent = TRUE,
+                    note = paste0("Discounted; mean term ", dft_fmt(t[["mean_term"]], 3), " years")),
+      dft_stat_tile("Risk adjustment", if (is.null(r)) dft_dash else rsv_amount(r$risk_adjustment), icon_name = "scale-balanced",
+                    note = if (is.null(r)) "See the Risk adjustment tab" else if (is.finite(r$confidence_level)) {
+                      paste0(r$method, "; confidence level ", rsv_percent(r$confidence_level))
+                    } else r$method),
+      dft_stat_tile("Liability for incurred claims", if (is.null(r)) dft_dash else rsv_amount(t[["discounted"]] + r$risk_adjustment),
+                    icon_name = "building-columns", note = "Best estimate plus risk adjustment"),
+      dft_stat_tile("Reserve risk (SII)", rsv_amount(s$capital), icon_name = "shield-halved",
+                    note = paste0("Segment ", s$segment, ", standard deviation ", rsv_percent(s$sd)))
+    )
+  })
+
+  output$ifrs_table <- renderUI({
+    d <- discounted()
+    b <- d$by_origin
+    rows <- lapply(seq_len(nrow(b)), function(i) {
+      list(b$origin[i], rsv_amount(b$reserve[i]), rsv_amount(b$discounted[i]), rsv_amount(b$discount[i]), dft_fmt(b$mean_term[i], 3))
+    })
+    t <- d$total
+    rsv_table(c("Origin", "Reserve", "Discounted", "Discount", "Mean term (years)"), rows,
+              list("Total", rsv_amount(t[["reserve"]]), rsv_amount(t[["discounted"]]), rsv_amount(t[["discount"]]),
+                   dft_fmt(t[["mean_term"]], 3)),
+              note = paste("The chain ladder's future payments of each origin, with the tail of the Development tab, discounted",
+                           "with the spot rate of the term of each payment."))
+  })
+
+  output$cash_flow_plot <- chart(function() {
+    cf <- discounted()$cash_flows
+    dft_category_chart(as.character(cf$period),
+                       bars = list(name = "Payments", values = cf$payments, colour = rsv_method_colours[["Chain ladder"]]),
+                       lines = list(list(name = "Present value", values = cf$present_value, colour = rsv_method_colours[["Cape Cod"]])),
+                       x_title = "Future calendar period", y_title = "Amount", dark = dark())
+  }, alt = "The chain ladder's future payments by calendar period, and their present value")
+
+  output$cash_flow_table <- renderUI({
+    cf <- discounted()$cash_flows
+    rows <- lapply(seq_len(nrow(cf)), function(i) {
+      list(format(cf$period[i]), rsv_amount(cf$payments[i]), dft_fmt(cf$term[i], 3), rsv_percent(cf$spot_rate[i], 2),
+           rsv_ratio(cf$discount_factor[i], 4), rsv_amount(cf$present_value[i]))
+    })
+    rsv_table(c("Period", "Payments", "Term (years)", "Spot rate", "Discount factor", "Present value"), rows)
+  })
+
+  output$ra_table <- renderUI({
+    r <- ra()
+    if (identical(r$method, "Percentile")) {
+      return(rsv_table(c("Measure", "Value"),
+                       list(list("Method", "Percentile of the bootstrap's total reserves"),
+                            list("Confidence level", rsv_percent(r$confidence_level)),
+                            list("Risk adjustment", rsv_amount(r$risk_adjustment)),
+                            list("Scaled for discounting by", rsv_ratio(r$scale, 4))),
+                       note = "The bootstrap's quantile at the level less its mean, scaled by the discounted over the undiscounted reserve."))
+    }
+    ro <- r$run_off
+    rows <- lapply(seq_len(nrow(ro)), function(i) {
+      list(format(ro$period[i]), rsv_amount(ro$capital[i]), rsv_ratio(ro$discount_factor[i], 4), rsv_amount(ro$cost[i]))
+    })
+    rsv_table(c("Period", "Capital", "Discount factor", "Cost of capital"), rows,
+              list("Total", "", "", rsv_amount(r$risk_adjustment)),
+              note = paste0("The capital of ", rsv_amount(r$capital), " now runs off with the reserve still to pay; each period's ",
+                            "capital costs ", rsv_percent(r$coc_rate), " a year, discounted.",
+                            if (is.finite(r$confidence_level)) paste0(" The best estimate plus this risk adjustment is the ",
+                                                                       rsv_percent(r$confidence_level), " quantile of the bootstrap.")))
+  })
+
+  ######################
   #Paid and incurred
   ######################
 
@@ -868,7 +1019,10 @@ reserving_tool_Server <- function(input, output, session) {
                     cumulative = c("cumulative", "incremental"), average = c("volume", "simple", "regression"),
                     tail_method = c("none", "exponential", "inverse power", "factor"), sigma = c("log-linear", "Mack"),
                     method_all = unname(rsv_methods), boot_process = c("gamma", "odp"),
-                    clark_curve = c("loglogistic", "weibull"), clark_method = c("ldf", "cape cod"))
+                    clark_curve = c("loglogistic", "weibull"), clark_method = c("ldf", "cape cod"),
+                    period_length = c("1", "0.5", "0.25", "0.0833333333333333"), payment_timing = c("0.5", "0", "1"),
+                    ra_method = c("percentile", "cost of capital"), ra_capital = c("sii", "bootstrap"),
+                    sii_segment = as.character(sii_nonlife_segments$segment))
     usable <- function(id) {
       x <- v[[id]]
       if (is.null(x) || length(x) != 1) return(FALSE)
@@ -898,6 +1052,7 @@ reserving_tool_Server <- function(input, output, session) {
         switch = bslib::update_switch(id, value = x, session = session),
         numeric = updateNumericInput(session, id, value = if (is.logical(x)) NA else x),
         slider = updateSliderInput(session, id, value = x),
+        text = updateTextInput(session, id, value = x),
         column = NULL
       )
     }
@@ -936,7 +1091,8 @@ reserving_tool_Server <- function(input, output, session) {
 
   # the summary tiles are hidden while empty, and shiny does not render hidden outputs,
   # so they must render even when hidden or they would never appear
-  for (id in c("data_overview", "development_stats", "ultimate_stats", "uncertainty_stats", "munich_stats", "more_stats")) {
+  for (id in c("data_overview", "development_stats", "ultimate_stats", "uncertainty_stats", "munich_stats", "more_stats",
+              "ifrs_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
 

@@ -28,6 +28,11 @@ run_shiny_distribution_fitting_tool <- function(){
 # background, so they sit on the card colour of either theme (#ffffff in the
 # light theme, #111a2b in the dark one), and are redrawn when the theme changes.
 
+# The example data sets of the Data tab: motor policies with claim counts and exposure
+# (for the Frequency tab) and liability claims at their policy limits (for the Severity tab).
+dft_examples <- c("Motor policies: claim counts and exposure" = "motor",
+                  "Liability claims: amounts and policy limits" = "liability")
+
 # Chart colours for the light or dark app theme. Eight hex digits are a
 # translucent colour.
 dft_plot_colours <- function(dark = FALSE) {
@@ -527,6 +532,31 @@ dft_numeric_columns <- function(df, dec = ".") {
   names(df)[is_numeric]
 }
 
+# The first sheet of an Excel workbook (.xlsx or .xls) as a data frame, with readxl, a
+# suggested package: its column names as in the file (blanks get a V name, duplicates are
+# made unique, as for a text file), dates as dates and empty cells as NA. Without
+# readxl, the message says how to read the file.
+dft_read_excel <- function(path, header = TRUE) {
+  if (!requireNamespace("readxl", quietly = TRUE)) {
+    stop("an Excel file needs the readxl package: install.packages(\"readxl\"), or save the sheet as a CSV file",
+         call. = FALSE)
+  }
+  df <- as.data.frame(readxl::read_excel(path, sheet = 1, col_names = isTRUE(header), .name_repair = "minimal"),
+                      stringsAsFactors = FALSE)
+  column_names <- names(df)
+  blank <- is.na(column_names) | column_names == ""
+  column_names[blank] <- paste0("V", which(blank))
+  names(df) <- make.unique(column_names, sep = "_")
+  # date-times without a time of day are dates
+  for (column in names(df)) {
+    x <- df[[column]]
+    if (inherits(x, "POSIXct") && all(is.na(x) | format(x, "%H:%M:%S", tz = "UTC") == "00:00:00")) {
+      df[[column]] <- as.Date(x, tz = "UTC")
+    }
+  }
+  df
+}
+
 # Reads an uploaded delimited text file. A UTF-8 byte order mark is skipped, so
 # it does not end up in the first column name, and a file that is not UTF-8 is
 # read as Latin-1 (Excel on a German or French Windows writes CSV files in the
@@ -541,6 +571,11 @@ dft_numeric_columns <- function(df, dec = ".") {
 # field then keeps it in its own column, where its surplus started a new row
 # in the first column, a claim that was never in the file.
 dft_read_data <- function(path, header = TRUE, sep = ",", quote = "\"", dec = ".") {
+  # an Excel workbook (an .xlsx file is a zip file; an .xls file an OLE2 compound file)
+  magic <- readBin(path, "raw", 4L)
+  if (identical(magic, as.raw(c(0x50, 0x4b, 0x03, 0x04))) || identical(magic, as.raw(c(0xd0, 0xcf, 0x11, 0xe0)))) {
+    return(dft_read_excel(path, header))
+  }
   has_bom <- identical(readBin(path, "raw", 3L), as.raw(c(0xef, 0xbb, 0xbf)))
   lines <- readLines(path, warn = FALSE)
   encoding <- if (has_bom) "UTF-8-BOM" else if (all(validUTF8(lines))) "" else "latin1"

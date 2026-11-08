@@ -1,0 +1,61 @@
+---
+title: "Rate reviews: on-level premiums, the indicated rate change and credibility"
+author: "Yiannis Parizas"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Rate reviews: on-level premiums, the indicated rate change and credibility}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A rate review asks whether the current rates will pay for next year's claims. This vignette works through the loss ratio method with NetSimR: the past premiums brought to today's rates, the past losses brought to next year's cost, and the indicated change, with credibility for the segments that have little data of their own.
+
+```{r library}
+library("NetSimR")
+```
+
+## Premiums at today's rates
+
+The premium a year earned was charged at the rates of its policies. Rates rose 5% in July 2021, fell 2% in January 2023 and rose 8% in April 2024; with annual policies written evenly through the year, the premium of each calendar year mixes the rates of two years of writing. `on_level_premium()` works out each year's average rate level, the parallelogram method, and the factor that brings its premium to today's rates:
+
+```{r onlevel}
+changes <- data.frame(date = as.Date(c("2021-07-01", "2023-01-01", "2024-04-01")),
+                      change = c(0.05, -0.02, 0.08))
+onl <- on_level_premium(premium = c(9.2e6, 9.8e6, 10.4e6, 11.1e6), years = 2021:2024, changes)
+onl
+```
+
+## The indicated rate change
+
+The ultimate losses of each year, from a reserving method such as the chain ladder, are trended at 4% a year to the claims of the policies the new rates will price: rates taking effect in January 2026 for a year, on annual policies, whose average claim date is the start of 2027. The experience loss ratio is compared with the permissible loss ratio, which leaves 27% of the premium for expenses and 5% for profit:
+
+```{r indication}
+rate <- indicated_rate_change(losses = c(6.3e6, 6.6e6, 7.4e6, 7.6e6), premium = onl$on_level_premium,
+                              years = 2021:2024, trend = 0.04, effective = as.Date("2026-01-01"),
+                              expense_ratio = 0.27, profit = 0.05)
+rate$by_year
+c(experience = rate$experience_loss_ratio, permissible = rate$permissible_loss_ratio,
+  indicated_change = rate$indicated_change)
+```
+
+A small portfolio's experience is not fully credible: with `credibility` below 1, its loss ratio is blended with a complement, such as the loss ratio the current rates assume (`credibility_weight()` gives the limited fluctuation credibility of a number of claims).
+
+## Credibility between segments
+
+Schemes, fleets or regions each have their own experience, more or less of it. Buhlmann-Straub credibility gives each one's estimate as its own mean shrunk towards the collective, the more so the less premium it has and the less the segments differ:
+
+```{r credibility}
+set.seed(1)
+schemes <- data.frame(scheme = rep(c("A", "B", "C", "D", "E"), each = 4),
+                      premium = round(runif(20, 1e5, 1.5e6)))
+true <- c(A = 0.55, B = 0.62, C = 0.66, D = 0.75, E = 0.60)[schemes$scheme]
+schemes$loss_ratio <- rgamma(20, shape = schemes$premium / 1e4, rate = schemes$premium / 1e4 / true)
+bs <- buhlmann_straub(schemes$loss_ratio, schemes$premium, schemes$scheme)
+bs$by_group
+```
+
+The scheme with the least premium gets the least credibility, and its estimate moves furthest towards the collective loss ratio of `r round(100 * bs$collective_mean, 1)`%. The results match those of the actuar package's `cm()`.

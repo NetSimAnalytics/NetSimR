@@ -73,7 +73,7 @@ glm_settings_version <- 1L
 
 # Allowed values of the inputs with a fixed set of choices.
 glm_settings_choices <- list(
-  data_source = c("CSV File", "Database"),
+  data_source = c("CSV File", "Database", "Example"),
   csv_sep = c(",", ";", "\t"),
   csv_dec = c(".", ","),
   csv_quote = c("\"", "'", ""),

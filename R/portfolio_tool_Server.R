@@ -413,11 +413,143 @@ portfolio_tool_Server <- function(input, output, session) {
                        row.names = FALSE)
     }
   )
+  output$download_excel <- downloadHandler(
+    filename = function() "portfolio_capital.xlsx",
+    content = function(file) {
+      p <- current()$portfolio
+      summary <- p$summary
+      summary$level <- p$level
+      R <- p$correlation
+      netsimr_write_excel(list(
+        Summary = summary,
+        Diversification = data.frame(measure = names(p$diversification), value = unname(p$diversification)),
+        Correlation = data.frame(line = rownames(R), R, check.names = FALSE),
+        `Simulated losses` = data.frame(simulation = seq_len(nrow(p$losses)), p$losses, check.names = FALSE)
+      ), file)
+    }
+  )
   output$download_report <- downloadHandler(
     filename = function() "portfolio_report.html",
     content = function(file) {
       r <- current()
       write_portfolio_report(file, r$portfolio, r$spec)
+    }
+  )
+
+  ######################
+  #Standard formula
+  ######################
+
+  # the inputs of each segment; by default the example's: a motor and property insurer
+  sf_defaults <- data.frame(segment = 1:12, premium = c(40e6, 25e6, 0, 30e6, 10e6, rep(0, 7)),
+                            reserve = c(60e6, 10e6, 0, 20e6, 15e6, rep(0, 7)))
+  sf_id <- function(kind, s) paste0("sf_", kind, "_", s)
+  loaded_sf <- reactiveVal(NULL)
+  sf_value <- function(kind, s) {
+    x <- input[[sf_id(kind, s)]]
+    if (!is.null(x)) return(x)
+    saved <- loaded_sf()
+    if (!is.null(saved) && !is.null(saved[[kind]])) return(saved[[kind]][s])
+    switch(kind, premium = sf_defaults$premium[s], reserve = sf_defaults$reserve[s], np = FALSE, div = 1)
+  }
+
+  output$sf_inputs <- renderUI({
+    head <- function(x) div(class = "pfo-head", x)
+    cells <- isolate(lapply(1:12, function(s) {
+      name <- paste0(s, ". ", sii_nonlife_segments$name[s])
+      tagList(
+        div(class = "pfo-corr-name", name),
+        sim_hidden_label(sim_amount_input(sf_id("premium", s), paste("Premium volume of", name), value = sf_value("premium", s), min = 0)),
+        sim_hidden_label(sim_amount_input(sf_id("reserve", s), paste("Reserve volume of", name), value = sf_value("reserve", s), min = 0)),
+        sim_hidden_label(numericInput(sf_id("div", s), paste("Geographical diversification of", name), value = sf_value("div", s),
+                                      min = 0, max = 1, step = 0.05, width = "100%")),
+        if (s %in% c(1, 4, 5)) {
+          checkboxInput(sf_id("np", s), span(class = "visually-hidden", paste("Non-proportional reinsurance adjustment for", name)),
+                        value = isTRUE(sf_value("np", s)))
+        } else div()
+      )
+    }))
+    tagList(
+      div(class = "pfo-grid-wrap",
+          div(class = "pfo-corr-grid", style = "grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(8rem, 1fr)) minmax(6rem, 0.7fr) minmax(4rem, auto); min-width: 760px;",
+              head("Segment"), head("Premium volume"), head("Reserve volume"), head("Diversification"), head("NP 80%"), cells)),
+      dft_help("Leave a segment's volumes at 0 if it is not written.")
+    )
+  })
+
+  sf_result <- reactive({
+    rows <- lapply(1:12, function(s) {
+      p <- number(sf_value("premium", s))
+      r <- number(sf_value("reserve", s))
+      d <- number(sf_value("div", s))
+      data.frame(segment = s, premium = if (is.finite(p)) p else 0, reserve = if (is.finite(r)) r else 0,
+                 diversification = if (is.finite(d)) d else 1, np = isTRUE(sf_value("np", s)))
+    })
+    v <- do.call(rbind, rows)
+    validate(need(all(v$premium >= 0 & v$reserve >= 0), "The volumes must be at least 0."),
+             need(all(v$diversification >= 0 & v$diversification <= 1), "The geographical diversification must be from 0 to 1."))
+    used <- v[v$premium + v$reserve > 0, ]
+    validate(need(nrow(used) > 0, "Enter the premium or reserve volume of at least one segment."))
+    np <- used$segment[used$np]
+    checked(sii_premium_reserve_risk(used[c("segment", "premium", "reserve", "diversification")],
+                                     np_adjustment = if (length(np)) np))
+  })
+
+  output$sf_stats <- renderUI({
+    s <- sf_result()
+    t <- s$total
+    simulated <- tryCatch({
+      p <- current()$portfolio
+      total <- p$summary[p$summary$line == "total", ]
+      list(value = total$var - total$mean, level = p$level)
+    }, error = function(e) NULL)
+    div(class = "dft-stats",
+        dft_stat_tile("Capital requirement", rsv_amount(t[["capital"]]), icon_name = "building-columns", accent = TRUE,
+                      note = paste0("3 ", intToUtf8(215), " ", rsv_percent(t[["sd"]], 2), " ", intToUtf8(215), " ", rsv_amount(t[["volume"]]))),
+        dft_stat_tile("Premium risk alone", rsv_amount(s$premium_risk), icon_name = "file-invoice-dollar"),
+        dft_stat_tile("Reserve risk alone", rsv_amount(s$reserve_risk), icon_name = "hourglass-half"),
+        dft_stat_tile("Diversification", rsv_amount(t[["diversification"]]), icon_name = "scale-balanced",
+                      note = paste("Of", rsv_amount(t[["standalone"]]), "for the segments on their own")),
+        dft_stat_tile("Simulated capital", if (is.null(simulated)) dft_dash else rsv_amount(simulated$value), icon_name = "cubes",
+                      note = if (is.null(simulated)) "Run the Capital tab to compare" else
+                        paste0("VaR ", format(100 * simulated$level), "% less the mean, from the Capital tab")))
+  })
+
+  output$sf_table <- renderUI({
+    s <- sf_result()
+    b <- s$by_segment
+    rows <- lapply(seq_len(nrow(b)), function(i) {
+      list(paste0(b$segment[i], ". ", b$name[i]), rsv_amount(b$premium[i]), rsv_amount(b$reserve[i]), rsv_percent(b$premium_sd[i], 1),
+           rsv_percent(b$reserve_sd[i], 1), rsv_percent(b$sd[i], 2), rsv_amount(b$capital[i]))
+    })
+    t <- s$total
+    rsv_table(c("Segment", "Premium volume", "Reserve volume", "Premium SD", "Reserve SD", "Combined SD", "Capital alone"), rows,
+              list("Total", rsv_amount(sum(b$premium)), rsv_amount(sum(b$reserve)), "", "", rsv_percent(t[["sd"]], 2),
+                   rsv_amount(t[["capital"]])),
+              note = paste("Capital alone: three times the segment's combined standard deviation times its volume. The total",
+                           "joins the segments with the correlations of Annex IV."))
+  })
+
+  output$sf_plot <- chart(function() {
+    s <- sf_result()
+    b <- s$by_segment
+    labels <- c(paste0(b$segment, ". ", substr(b$name, 1, 18)), "Total")
+    dft_category_chart(labels, bars = list(name = "Capital", values = c(b$capital, s$total[["capital"]]),
+                                           colour = pfo_chart_colours(dark())$accent_soft),
+                       lines = list(list(name = "Sum of the segments", values = c(rep(NA, nrow(b)), s$total[["standalone"]]),
+                                         colour = dft_model_palette[1])),
+                       x_title = "Segment", y_title = "Capital", dark = dark())
+  }, alt = "The standard formula's capital of each segment on its own and of the total")
+
+  output$download_sf <- downloadHandler(
+    filename = function() "standard_formula.csv",
+    content = function(file) {
+      s <- sf_result()
+      b <- s$by_segment
+      t <- s$total
+      total <- data.frame(segment = NA, name = "Total", premium = sum(b$premium), reserve = sum(b$reserve), premium_sd = NA,
+                          reserve_sd = NA, sd = t[["sd"]], volume = t[["volume"]], capital = t[["capital"]])
+      utils::write.csv(csv_safe(rbind(b, total)), file, row.names = FALSE)
     }
   )
 
@@ -447,6 +579,11 @@ portfolio_tool_Server <- function(input, output, session) {
         values$corr_matrix <- unlist(lapply(seq_len(k - 1), function(i) vapply((i + 1):k, function(j) number(corr_value(i, j)), numeric(1))))
       }
       if (length(input$upload_columns) > 0) values$upload_columns <- input$upload_columns
+      # the standard formula's volumes of the 12 segments
+      values$sf_premium <- vapply(1:12, function(s) number(sf_value("premium", s)), numeric(1))
+      values$sf_reserve <- vapply(1:12, function(s) number(sf_value("reserve", s)), numeric(1))
+      values$sf_div <- vapply(1:12, function(s) number(sf_value("div", s)), numeric(1))
+      values$sf_np <- vapply(1:12, function(s) isTRUE(sf_value("np", s)), logical(1))
       write_settings_file(values, file, pfo_settings_tool, pfo_settings_version)
     }
   )
@@ -523,6 +660,20 @@ portfolio_tool_Server <- function(input, output, session) {
         }
       }
     }
+    take12 <- function(x, logical = FALSE) {
+      if (length(x) != 12) return(NULL)
+      if (logical) as.logical(x) %in% TRUE else suppressWarnings(as.numeric(x))
+    }
+    sf <- list(premium = take12(v$sf_premium), reserve = take12(v$sf_reserve), div = take12(v$sf_div),
+               np = take12(v$sf_np, logical = TRUE))
+    sf <- sf[!vapply(sf, is.null, logical(1))]
+    if (length(sf) > 0) {
+      loaded_sf(sf)
+      for (s in 1:12) {
+        for (kind in intersect(c("premium", "reserve", "div"), names(sf))) updateNumericInput(session, sf_id(kind, s), value = sf[[kind]][s])
+        if (!is.null(sf$np) && s %in% c(1, 4, 5)) updateCheckboxInput(session, sf_id("np", s), value = sf$np[s])
+      }
+    }
     showNotification(paste0("Loaded the settings of ", input$load_settings$name,
                             if (identical(v$line_source, "upload")) ". Upload the losses to apply their columns." else "."),
                      type = "message", duration = 6)
@@ -530,7 +681,7 @@ portfolio_tool_Server <- function(input, output, session) {
 
   # the summary tiles are hidden while empty, and shiny does not render hidden outputs,
   # so they must render even when hidden or they would never appear
-  for (id in c("lines_stats", "dependence_stats", "capital_stats")) {
+  for (id in c("lines_stats", "dependence_stats", "capital_stats", "sf_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
 }

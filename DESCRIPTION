@@ -24,10 +24,14 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Merz and Wuthrich, the Munich chain ladder of paid and incurred
     claims, the growth curves of Clark (2003), a chain ladder for claims
     inflation, and actual against expected development.
-    Includes a Tweedie family for generalised linear models of the loss
-    cost, and the simulation of portfolios of several lines joined by a
-    Gaussian or t copula, with value at risk, tail value at risk and
-    capital allocation.
+    Includes the discounting of reserves and a risk adjustment for
+    'IFRS' 17, and the 'Solvency II' standard formula's non-life premium
+    and reserve risk. Includes a Tweedie family for generalised linear
+    models of the loss cost, rate reviews with on-level premiums and
+    Buhlmann-Straub credibility, the simulation of portfolios of several
+    lines joined by a Gaussian or t copula, with value at risk, tail value
+    at risk and capital allocation, and the comparison of reinsurance
+    programmes.
     Includes excess of loss reinsurance pricing: the burning cost, a
     Pareto model of the large losses, exposure rating with the MBBEFD
     exposure curves of Bernegger (1997) <doi:10.2143/AST.27.1.563208>
@@ -49,7 +53,7 @@ Encoding: UTF-8
 Language: en-GB
 Depends: R (>= 2.10)
 Imports: shiny (>= 1.8.1), base64enc, bslib (>= 0.9.0), parallel, methods, splines, stats, utils, graphics, grDevices
-Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote, pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite, glmnet
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote, pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite, glmnet, readxl, writexl
 VignetteBuilder: knitr
 LazyData: true
 Config/testthat/edition: 3

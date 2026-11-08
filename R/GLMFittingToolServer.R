@@ -59,7 +59,9 @@ GLMFittingToolServer <- function(input, output, session) {
   # the data of the file or query chosen on the Data tab, or NULL (with a message) when it cannot be read
   read_import <- function() {
     tryCatch({
-      if (identical(input$data_source, "Database")) {
+      if (identical(input$data_source, "Example")) {
+        df_input <- NetSimR::motor_policies
+      } else if (identical(input$data_source, "Database")) {
         # The database driver packages are optional (Suggests): check the one
         # needed for the selected database type before trying to connect
         if (!glm_tool_db_package_available(input$db_type)) {
@@ -130,7 +132,8 @@ GLMFittingToolServer <- function(input, output, session) {
     df_input <- read_import()
     import_failed(is.null(df_input) && !is.null(imported()))
     if (!is.null(df_input)) {
-      source <- if (identical(input$data_source, "Database")) input$db_type else input$csv_file$name
+      source <- switch(or_default(input$data_source, "CSV File"), Database = input$db_type,
+                       Example = "Example: motor policies", input$csv_file$name)
       imports <<- imports + 1L
       imported(list(data = df_input, source = or_default(source, ""), id = imports))
     }
@@ -707,6 +710,7 @@ GLMFittingToolServer <- function(input, output, session) {
       downloadButton("download_summary", "Model summary (text)", class = "btn-outline-glm"),
       downloadButton("download_data_with_predictions", "Data with predictions (CSV)", class = "btn-outline-glm"),
       downloadButton("download_relativities", "Rating factors (CSV)", class = "btn-outline-glm"),
+      downloadButton("download_glm_report", "Report (HTML)", class = "btn-outline-glm"),
       dft_help("The model refers to its data as model_data: to update() it in R, assign the data to ",
                "model_data first, or pass it to update() as data =. The predictions are added to the data ",
                "as the column prediction (model_prediction when the data has a column of that name). ",
@@ -858,34 +862,28 @@ GLMFittingToolServer <- function(input, output, session) {
 
   output$rate_plot <- netsimr_render_plot({
     chosen <- chosen_rate_factor()
-    f <- chosen$table
-    rates <- chosen$rates
-    vars <- setdiff(names(f), c("effect", "relativity", "base", "rows"))
-    y <- if (is.na(rates$relativity)) f$effect else f$relativity
-    y_title <- rate_label(rates)
-    if (length(vars) == 1 && is.numeric(f[[vars]])) {
-      dft_line_chart(list(list(x = f[[vars]], y = y, name = y_title, colour = dft_model_palette[1])), vars, y_title, dark())
-    } else if (length(vars) == 1) {
-      dft_category_chart(as.character(f[[vars]]), bars = list(name = y_title, values = y, colour = dft_model_palette[1]),
-                         x_title = vars, y_title = y_title, dark = dark())
-    } else {
-      # an interaction: a line per value of its second variable, at most eight
-      second <- unique(f[[vars[2]]])
-      second <- second[seq_len(min(length(second), 8))]
-      first <- unique(f[[vars[1]]])
-      lines <- lapply(seq_along(second), function(k) {
-        rows <- f[[vars[2]]] == second[k]
-        list(name = paste(vars[2], "=", format(second[k])), values = y[rows][match(first, f[[vars[1]]][rows])],
-             colour = dft_model_palette[(k - 1) %% length(dft_model_palette) + 1])
-      })
-      dft_category_chart(if (is.numeric(first)) dft_fmt(first, 4) else as.character(first), lines = lines,
-                         x_title = vars[1], y_title = y_title, dark = dark())
-    }
+    glm_rate_chart(chosen$table, chosen$rates, dark())
   }, bg = "transparent", res = 96, alt = "The relativity of each value of the chosen rating factor")
 
   output$download_rate_table <- downloadHandler(
     filename = function() "glm_rate_table.csv",
     content = function(file) utils::write.csv(csv_safe(glm_rate_table_long(rate_table())), file, row.names = FALSE)
+  )
+
+  # the rate table in a workbook: the base rate and every factor on one sheet, a sheet per
+  # rating factor, and the coefficients
+  output$download_rates_excel <- downloadHandler(
+    filename = function() "glm_rate_table.xlsx",
+    content = function(file) {
+      rates <- rate_table()
+      factors <- lapply(rates$factors, function(f) {
+        out <- as.data.frame(f)
+        if (is.na(rates$relativity)) out$relativity <- NULL
+        out
+      })
+      netsimr_write_excel(c(list(`Rate table` = glm_rate_table_long(rates)), factors,
+                            list(Coefficients = glm_relativity_table(fitted_model()))), file)
+    }
   )
 
   # a file of policies scored with the shown model, read with the Data tab's file options
@@ -936,6 +934,28 @@ GLMFittingToolServer <- function(input, output, session) {
       s <- scored()
       validate(need(!is.null(s), "Upload a file to score first."))
       utils::write.csv(csv_safe(s$data), file, row.names = FALSE)
+    }
+  )
+
+  # the report of the model: its data, choices, coefficients, rate table and validation
+  output$download_glm_report <- downloadHandler(
+    filename = function() "glm_report.html",
+    content = function(file) {
+      model <- downloadable_model()
+      result <- fit_result()
+      v <- validation_rows()
+      training <- validation_measures(v, !v$test)
+      test <- if (any(v$test)) validation_measures(v, v$test)
+      rows <- if (any(v$test)) v$test else !v$test
+      lift <- glm_lift_table(v$actual[rows], v$predicted[rows], v$predicted[rows] / v$exposure[rows], v$exposure[rows],
+                             v$weight[rows], bands = 10L)
+      write_glm_report(file, list(
+        source = result$import$source, rows = nrow(result$data), spec = result$spec, model = model,
+        rates = tryCatch(rate_table(), error = function(e) e), training = training, test = test, lift = lift,
+        lorenz = glm_gini_curve(v$actual[rows], v$predicted[rows], v$exposure[rows], v$weight[rows]),
+        used = if (any(v$test)) "test rows" else "training rows", y_title = validation_y_title(v),
+        bar_name = validation_bar_name(v), response = result$spec$response
+      ))
     }
   )
 
@@ -1373,6 +1393,18 @@ GLMFittingToolServer <- function(input, output, session) {
                        type = "error", duration = 10)
       return(invisible(NULL))
     }
+    applied <- apply_settings(values)
+    showNotification(
+      paste0("Settings loaded from '", file_info$name, "'.", applied$link_note,
+             if (applied$pending > 0) " The column choices are applied when the data is imported." else ""),
+      type = "message", duration = 6
+    )
+  })
+
+  # applies the usable values of a settings file (glm_settings_values()); column choices
+  # that the data does not have yet wait for the next import. Returns a note on the link
+  # and the number of choices waiting
+  apply_settings <- function(values) {
     kinds <- stats::setNames(glm_settings_inputs$kind, glm_settings_inputs$id)
     # before the first import there are no columns yet (data_columns() stops silently)
     columns <- tryCatch(data_columns(), error = function(e) NULL)
@@ -1435,11 +1467,21 @@ GLMFittingToolServer <- function(input, output, session) {
       )
     }
     pending_columns(pending)
-    showNotification(
-      paste0("Settings loaded from '", file_info$name, "'.", link_note,
-             if (length(pending) > 0) " The column choices are applied when the data is imported." else ""),
-      type = "message", duration = 6
-    )
+    list(link_note = link_note, pending = length(pending))
+  }
+
+  # the example: the motor policies imported, with a Poisson model of the claim counts set up,
+  # its exposure the offset, ready to fit
+  observeEvent(input$try_example, {
+    apply_settings(list(data_source = "Example", glm_distribution = "poisson", link_function = "log",
+                        response_variable = "claim_count", offset = "exposure", offset_log = TRUE, weights = "None",
+                        formula = "ns(age, df = 4) + region + vehicle + log(vehicle_value)", visualize_variable = "age"))
+    imports <<- imports + 1L
+    import_failed(FALSE)
+    imported(list(data = NetSimR::motor_policies, source = "Example: motor policies", id = imports))
+    bslib::nav_select("main_navbar", "model", session = session)
+    showNotification("The example motor policies are imported, with a Poisson model of their claim counts: click Fit model.",
+                     type = "message", duration = 8)
   })
 
   # the tiles and the formula helpers are hidden while empty, and shiny does not render
