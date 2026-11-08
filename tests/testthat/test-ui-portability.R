@@ -33,7 +33,7 @@ test_that("each tool builds its page when it runs, with the bslib of the running
   skip_if_not_installed("htmltools")
   bslib_dir <- normalizePath(system.file(package = "bslib"), winslash = "/")
   for (ui in list(shiny_simulator_ui, distribution_fitting_tool_UI, GLMFittingToolUI, reserving_tool_UI,
-                  reinsurance_pricing_tool_UI)) {
+                  reinsurance_pricing_tool_UI, portfolio_tool_UI)) {
     expect_true(is.function(ui))
     page <- ui(NULL)
     #the theme's SCSS paths are those of the bslib this session uses

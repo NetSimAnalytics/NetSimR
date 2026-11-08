@@ -53,7 +53,8 @@ app_test_dir <- function(tool) {
     distribution = "run_shiny_distribution_fitting_tool",
     glm = "run_shiny_glm_fitting_tool",
     reserving = "run_shiny_reserving_tool",
-    reinsurance = "run_shiny_reinsurance_pricing_tool"
+    reinsurance = "run_shiny_reinsurance_pricing_tool",
+    portfolio = "run_shiny_portfolio_tool"
   )[[tool]]
   root <- app_test_source_root()
   load <- if (is.null(root)) {
@@ -68,7 +69,7 @@ app_test_dir <- function(tool) {
   dir
 }
 
-#starts one of the tools ("simulator", "distribution", "glm", "reserving" or "reinsurance") in headless Chrome; the caller
+#starts one of the tools ("simulator", "distribution", "glm", "reserving", "reinsurance" or "portfolio") in headless Chrome; the caller
 #stops it with on.exit(app$stop(), add = TRUE)
 start_netsimr_app <- function(tool, name, width = 1300, height = 900) {
   shinytest2::AppDriver$new(

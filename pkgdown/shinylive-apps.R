@@ -1,4 +1,4 @@
-# Exports the package's five Shiny tools as shinylive apps, which run in the browser with
+# Exports the package's six Shiny tools as shinylive apps, which run in the browser with
 # webR: no R or server needed. Each app installs NetSimR from the website's WebAssembly
 # repository (built by r-wasm/actions/build-rwasm in .github/workflows/pkgdown.yaml) and its
 # dependencies from webR's, then starts its tool.
@@ -15,14 +15,16 @@ tools <- c(
   distribution = "run_shiny_distribution_fitting_tool",
   glm = "run_shiny_glm_fitting_tool",
   reserving = "run_shiny_reserving_tool",
-  reinsurance = "run_shiny_reinsurance_pricing_tool"
+  reinsurance = "run_shiny_reinsurance_pricing_tool",
+  portfolio = "run_shiny_portfolio_tool"
 )
 titles <- c(
   simulator = "NetSim claims simulator",
   distribution = "NetSim distribution fitting tool",
   glm = "NetSim GLM fitting tool",
   reserving = "NetSim reserving tool",
-  reinsurance = "NetSim reinsurance pricing tool"
+  reinsurance = "NetSim reinsurance pricing tool",
+  portfolio = "NetSim portfolio capital tool"
 )
 
 source_dir <- file.path(tempdir(), "netsimr-shinylive")
