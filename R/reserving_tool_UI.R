@@ -571,6 +571,43 @@ reserving_tool_UI <- function(request) {
       )
     ),
 
+    # --------------------------------------------------------- More methods
+    bslib::nav_panel(
+      title = "More methods",
+      value = "more",
+      icon = icon("layer-group"),
+
+      dft_page_intro("More methods",
+                     "Check the chain ladder against the latest period, fit Clark's growth curves, and allow for claims inflation."),
+
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Settings", "For the growth curve and the claims inflation.",
+          div(class = "sim-section-label", "Clark's growth curve"),
+          selectInput("clark_curve", "Curve", c("Log-logistic" = "loglogistic", "Weibull" = "weibull"), selectize = FALSE),
+          div(class = "pill-radio",
+              radioButtons("clark_method", NULL, c("LDF" = "ldf", "Cape Cod" = "cape cod"), "ldf", inline = TRUE)),
+          numericInput("clark_truncation", "Truncate at development period (empty for none)", value = NA, min = 1, step = 1),
+          dft_help("The LDF method fits an ultimate to each origin, the Cape Cod method one loss ratio to the premiums.",
+                   "The curves can have long tails: a truncation counts the claims as fully developed at that age."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Claims inflation"),
+          div(class = "param-grid-2",
+              numericInput("inflation_past", "Past (% a period)", value = 0, step = 0.5),
+              numericInput("inflation_future", "Future (% a period)", value = 0, step = 0.5)),
+          dft_help("Past payments are restated in today's money by the past inflation, developed by the chain ladder,",
+                   "and the future payments inflated by the future inflation.")
+        ),
+        uiOutput("more_stats"),
+        dft_tabs(
+          id = "more_tabs",
+          bslib::nav_panel("Actual vs expected", uiOutput("ave_table"), dft_plot_output("ave_plot")),
+          bslib::nav_panel("Clark", uiOutput("clark_table"), dft_plot_output("clark_plot")),
+          bslib::nav_panel("Claims inflation", uiOutput("inflation_table"))
+        )
+      )
+    ),
+
     # -------------------------------------------------------- Paid & incurred
     bslib::nav_panel(
       title = "Paid & incurred",

@@ -431,6 +431,128 @@ reserving_tool_Server <- function(input, output, session) {
   )
 
   ######################
+  #More methods
+  ######################
+
+  # the latest calendar period against the chain ladder of the triangle before it, with the
+  # averaging and periods of the Development tab
+  ave <- reactive(checked(actual_vs_expected(triangle(), average = or_default(input$average, "volume"),
+                                             periods = periods_used())))
+
+  clark <- reactive({
+    method <- or_default(input$clark_method, "ldf")
+    premium <- origin_values()$premium
+    has_premium <- all(is.finite(premium)) && all(premium > 0)
+    validate(need(method == "ldf" || has_premium,
+                  "The Cape Cod method needs every origin's premium: enter them on the Ultimates tab, or use the LDF method."))
+    truncation <- input$clark_truncation
+    truncation <- if (is.numeric(truncation) && length(truncation) == 1 && is.finite(truncation)) truncation else Inf
+    checked(clark_growth(triangle(), curve = or_default(input$clark_curve, "loglogistic"),
+                         premium = if (has_premium) premium, method = method, truncation = truncation))
+  })
+
+  inflation <- reactive({
+    rate <- function(x) if (is.numeric(x) && length(x) == 1 && is.finite(x)) x / 100 else 0
+    tail <- cl()$tail
+    checked(inflation_adjusted_chain_ladder(triangle(), past = rate(input$inflation_past), future = rate(input$inflation_future),
+                                            average = or_default(input$average, "volume"), periods = periods_used(), tail = tail))
+  })
+
+  output$more_stats <- renderUI({
+    a <- tryCatch(ave(), error = function(e) NULL)
+    k <- tryCatch(clark(), error = function(e) NULL)
+    f <- tryCatch(inflation(), error = function(e) NULL)
+    chain <- cl()$total[["ibnr"]]
+    div(
+      class = "dft-stats",
+      dft_stat_tile("Actual vs expected", if (is.null(a)) dft_dash else rsv_percent(a$total[["actual_to_expected"]], 0),
+                    icon_name = "scale-balanced",
+                    note = if (!is.null(a) && is.finite(a$total[["z"]])) {
+                      paste0(dft_fmt(a$total[["z"]], 2), " standard errors from the expected",
+                             if (abs(a$total[["z"]]) > 2) ": worth a look" else "")
+                    }),
+      dft_stat_tile("Clark IBNR", if (is.null(k)) dft_dash else rsv_amount(k$total[["ibnr"]]), icon_name = "chart-line",
+                    accent = TRUE, note = if (!is.null(k)) paste0("Standard error ", rsv_amount(k$total[["se"]]),
+                                                                  "; chain ladder ", rsv_amount(chain))),
+      dft_stat_tile("IBNR with inflation", if (is.null(f)) dft_dash else rsv_amount(f$total[["ibnr"]]), icon_name = "arrow-trend-up",
+                    note = if (!is.null(f)) paste0(rsv_amount(f$total[["future_inflation"]]), " of future inflation"))
+    )
+  })
+
+  output$ave_table <- renderUI({
+    a <- ave()
+    b <- a$by_origin
+    rows <- lapply(seq_len(nrow(b)), function(i) {
+      list(b$origin[i], rsv_amount(b$previous[i]), rsv_amount(b$expected[i]), rsv_amount(b$actual[i]),
+           rsv_amount(b$difference[i]), rsv_percent(b$actual_to_expected[i], 0), rsv_amount(b$se[i]), dft_fmt(b$z[i], 2))
+    })
+    t <- a$total
+    total <- list("Total", rsv_amount(t[["previous"]]), rsv_amount(t[["expected"]]), rsv_amount(t[["actual"]]),
+                  rsv_amount(t[["difference"]]), rsv_percent(t[["actual_to_expected"]], 0), rsv_amount(t[["se"]]),
+                  dft_fmt(t[["z"]], 2))
+    rsv_table(c("Origin", "Previous", "Expected", "Actual", "Difference", "Actual / expected", "Std. error", "z"),
+              rows, total,
+              c("The chain ladder of the triangle without its latest diagonal predicts each origin's development in the latest period.",
+                "z is the difference over its standard error (Mack's process and parameter error): beyond about 2 either way is worth a look.",
+                "The oldest origin has no factor for its last step, and the newest a single value, so neither has an expected development."))
+  })
+
+  output$ave_plot <- chart(function() {
+    b <- ave()$by_origin
+    dft_category_chart(b$origin, lines = list(list(name = "Expected", values = b$expected, colour = rsv_method_colours[["Chain ladder"]]),
+                                              list(name = "Actual", values = b$actual, colour = "empirical")),
+                       x_title = "Origin", y_title = "Development in the latest period", dark = dark())
+  }, alt = "Expected and actual development of each origin in the latest calendar period")
+
+  output$clark_table <- renderUI({
+    k <- clark()
+    b <- k$by_origin
+    rows <- lapply(seq_len(nrow(b)), function(i) {
+      list(b$origin[i], rsv_amount(b$latest[i]), rsv_percent(b$developed[i]), rsv_amount(b$ultimate[i]), rsv_amount(b$ibnr[i]),
+           rsv_amount(b$se[i]), rsv_percent(b$cv[i]))
+    })
+    t <- k$total
+    total <- list("Total", rsv_amount(t[["latest"]]), rsv_percent(t[["developed"]]), rsv_amount(t[["ultimate"]]),
+                  rsv_amount(t[["ibnr"]]), rsv_amount(t[["se"]]), rsv_percent(t[["cv"]]))
+    p <- k$parameters
+    rsv_table(c("Origin", "Latest", "Developed", "Ultimate", "IBNR", "Std. error", "CV"), rows, total,
+              c(paste0(k$method, ": omega ", dft_fmt(p[["omega"]], 4), ", theta ", dft_fmt(p[["theta"]], 4),
+                       if ("loss_ratio" %in% names(p)) paste0(", loss ratio ", rsv_percent(p[["loss_ratio"]])),
+                       ", scale sigma^2 ", dft_fmt(p[["sigma2"]], 4), "."),
+                "The standard error has a process part (over-dispersed Poisson) and a parameter part (the curve and the ultimates)."))
+  })
+
+  output$clark_plot <- chart(function() {
+    k <- clark()
+    chain <- cl()
+    n <- ncol(chain$triangle)
+    ages <- seq(0.5, n + 5, by = 0.25)
+    dft_line_chart(
+      list(list(x = ages, y = k$growth(ages), name = "Clark growth curve", colour = rsv_method_colours[["Cape Cod"]]),
+           list(x = seq_len(n), y = unname(1 / chain$cdf), name = "Chain ladder (1 / CDF)", colour = rsv_method_colours[["Chain ladder"]])),
+      x_title = "Development period", y_title = "Share developed", dark = dark(), ylim = c(0, 1.02), vlines = n
+    )
+  }, alt = "Share of the ultimate developed by age: Clark's growth curve and the chain ladder")
+
+  output$inflation_table <- renderUI({
+    f <- inflation()
+    chain <- cl()$by_origin
+    b <- f$by_origin
+    rows <- lapply(seq_len(nrow(b)), function(i) {
+      list(b$origin[i], rsv_amount(b$latest[i]), rsv_amount(chain$ibnr[i]), rsv_amount(b$ibnr_today[i]),
+           rsv_amount(b$future_inflation[i]), rsv_amount(b$ibnr[i]), rsv_amount(b$ultimate[i]))
+    })
+    t <- f$total
+    total <- list("Total", rsv_amount(t[["latest"]]), rsv_amount(sum(chain$ibnr)), rsv_amount(t[["ibnr_today"]]),
+                  rsv_amount(t[["future_inflation"]]), rsv_amount(t[["ibnr"]]), rsv_amount(t[["ultimate"]]))
+    rsv_table(c("Origin", "Latest", "Chain ladder IBNR", "IBNR in today's money", "Future inflation", "IBNR", "Ultimate"),
+              rows, total,
+              c("The chain ladder of nominal claims carries the past's average inflation into the future;",
+                "here the past is restated in today's money and the future inflated at the rate you expect.",
+                "With the same rate for both, the result is close to the chain ladder's."))
+  })
+
+  ######################
   #Uncertainty
   ######################
 
@@ -653,7 +775,8 @@ reserving_tool_Server <- function(input, output, session) {
                     dec = c(".", ","), quote = c("\"", "'", ""), layout = c("long", "wide"),
                     cumulative = c("cumulative", "incremental"), average = c("volume", "simple", "regression"),
                     tail_method = c("none", "exponential", "inverse power", "factor"), sigma = c("log-linear", "Mack"),
-                    method_all = unname(rsv_methods), boot_process = c("gamma", "odp"))
+                    method_all = unname(rsv_methods), boot_process = c("gamma", "odp"),
+                    clark_curve = c("loglogistic", "weibull"), clark_method = c("ldf", "cape cod"))
     usable <- function(id) {
       x <- v[[id]]
       if (is.null(x) || length(x) != 1) return(FALSE)
@@ -721,7 +844,7 @@ reserving_tool_Server <- function(input, output, session) {
 
   # the summary tiles are hidden while empty, and shiny does not render hidden outputs,
   # so they must render even when hidden or they would never appear
-  for (id in c("data_overview", "development_stats", "ultimate_stats", "uncertainty_stats", "munich_stats")) {
+  for (id in c("data_overview", "development_stats", "ultimate_stats", "uncertainty_stats", "munich_stats", "more_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
 

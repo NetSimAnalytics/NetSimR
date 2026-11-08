@@ -21,8 +21,13 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Includes claims reserving: the chain ladder with Mack's standard
     errors and tail factors, Bornhuetter-Ferguson, Benktander and Cape
     Cod methods, a bootstrap of the reserves, the one-year view of
-    Merz and Wuthrich, and the Munich chain ladder of paid and incurred
-    claims.
+    Merz and Wuthrich, the Munich chain ladder of paid and incurred
+    claims, the growth curves of Clark (2003), a chain ladder for claims
+    inflation, and actual against expected development.
+    Includes a Tweedie family for generalised linear models of the loss
+    cost, and the simulation of portfolios of several lines joined by a
+    Gaussian or t copula, with value at risk, tail value at risk and
+    capital allocation.
     Includes excess of loss reinsurance pricing: the burning cost, a
     Pareto model of the large losses, exposure rating with the MBBEFD
     exposure curves of Bernegger (1997) <doi:10.2143/AST.27.1.563208>

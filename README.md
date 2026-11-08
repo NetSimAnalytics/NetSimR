@@ -33,22 +33,26 @@ remotes::install_github("NetSimAnalytics/NetSimR")
 - **Pure IBNR exposure** from a LogNormal or Gamma reporting delay.
 - **Claims simulation** with a frequency-severity model, Pareto tail slices,
   a severity cap, each-and-every-loss layers with reinstatements and their
-  premiums, aggregate layers, and each period's largest claim (OEP).
+  premiums, aggregate layers, and each period's largest claim (OEP), run in
+  parallel when that is faster; portfolios of several lines joined by a
+  Gaussian or t copula, with VaR, TVaR, diversification and capital allocation.
 - **Claims reserving**: the chain ladder with Mack's standard errors and tail
   factors, Bornhuetter-Ferguson, Benktander and Cape Cod, a bootstrap of the
-  reserves' distribution, the one-year view (Merz-Wuthrich) and the Munich
-  chain ladder of paid and incurred claims.
+  reserves' distribution, the one-year view (Merz-Wuthrich), the Munich
+  chain ladder of paid and incurred claims, Clark's growth curves, a chain
+  ladder for claims inflation, and actual against expected development.
+- **Pricing models**: a Tweedie family for GLMs of the loss cost.
 - **Excess of loss pricing**: the burning cost with indexation, development
   and aggregate terms, a Pareto model of the large losses, exposure rating
   with the Swiss Re and Lloyd's (MBBEFD) curves or a claim size distribution,
   credibility blending and the technical premium with reinstatements.
 - **Five Shiny tools**: a claims simulator with reports and run comparison; a
   distribution fitting tool for claim counts and sizes, including claims
-  reported only above a threshold, whose fits it saves as simulator settings;
-  a GLM fitting tool with a rating factor table, stepwise variable selection
-  and validation on held-out rows (Gini, lift and double lift); a reserving
-  tool; and a
-  reinsurance pricing tool.
+  reported only above a threshold, with Q-Q plots and Anderson-Darling tests,
+  whose fits it saves as simulator settings; a GLM fitting tool with a Tweedie
+  family, a rating factor table, variable selection (stepwise, lasso, elastic
+  net, ridge) and validation on held-out rows (Gini, lift and double lift); a
+  reserving tool; and a reinsurance pricing tool.
 
 ## Examples
 
@@ -113,9 +117,11 @@ run_shiny_reinsurance_pricing_tool()   # excess of loss pricing
 
 ## Vignettes
 
-Six vignettes set out the theory behind the functions and work through
+Seven vignettes set out the theory behind the functions and work through
 examples:
 
+- *From pricing to capital and reserves: a motor portfolio*, which follows one
+  portfolio through the package
 - *Capped means, exposure curves and increased limit factors*
 - *Sliced LogNormal-Pareto and Gamma-Pareto distributions*
 - *Pure IBNR exposure from a reporting delay distribution*

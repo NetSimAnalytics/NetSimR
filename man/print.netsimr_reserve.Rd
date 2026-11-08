@@ -8,8 +8,9 @@
 }
 \arguments{
 \item{x}{The result of \code{\link{chain_ladder}}, \code{\link{bornhuetter_ferguson}},
-\code{\link{cape_cod}}, \code{\link{bootstrap_chain_ladder}}, \code{\link{merz_wuthrich}}
-or \code{\link{munich_chain_ladder}}.}
+\code{\link{cape_cod}}, \code{\link{bootstrap_chain_ladder}}, \code{\link{merz_wuthrich}},
+\code{\link{munich_chain_ladder}}, \code{\link{actual_vs_expected}}, \code{\link{clark_growth}}
+or \code{\link{inflation_adjusted_chain_ladder}}.}
 
 \item{...}{Not used.}
 }

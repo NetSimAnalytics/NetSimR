@@ -487,7 +487,9 @@ rsv_settings_inputs <- c(
   incurred_col = "column", premium_col = "column", cumulative = "radio",
   average = "radio", periods = "select", tail_method = "select", tail_from = "select", tail_factor = "numeric",
   sigma = "radio", prior_loss_ratio = "numeric", decay = "slider", method_all = "select",
-  boot_n = "numeric", boot_process = "radio", boot_tail = "switch", boot_seed = "numeric"
+  boot_n = "numeric", boot_process = "radio", boot_tail = "switch", boot_seed = "numeric",
+  clark_curve = "select", clark_method = "radio", clark_truncation = "numeric",
+  inflation_past = "numeric", inflation_future = "numeric"
 )
 
 # The link ratios left out, as "origin | factor" labels, and back.

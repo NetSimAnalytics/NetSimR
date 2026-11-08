@@ -6,13 +6,14 @@
 \alias{NetSimR-package}
 \title{NetSimR: Actuarial Functions for Non-Life Insurance Modelling}
 \description{
-The NetSimR package provides seven categories of functions:
+The NetSimR package provides eight categories of functions:
 \enumerate{
 \item Capped means, Exposure and ILF curves from various severity distributions, and the special functions behind them
 \item Pure IBNR and UPR earned periods
 \item Sliced distributions
-\item Frequency-severity claims simulation, and applying a reinsurance layer to simulated claims
-\item Claims reserving: chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Benktander, Cape Cod and a bootstrap
+\item Frequency-severity claims simulation, applying a reinsurance layer to simulated claims, and portfolios of lines joined by a copula
+\item Claims reserving: chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Benktander, Cape Cod, a bootstrap, Clark's growth curves and a chain ladder for claims inflation
+\item Pricing models: a Tweedie family for generalised linear models
 \item Excess of loss pricing: burning cost, Pareto rating, exposure rating with MBBEFD curves, and the technical premium
 \item Shiny apps for simulating claims, fitting distributions, fitting GLMs, reserving and reinsurance pricing
 }
@@ -77,6 +78,7 @@ The NetSimR package provides seven categories of functions:
 
 \code{\link{simulate_claims}}
 \code{\link{simulate_function}}
+\code{\link{simulate_portfolio}}
 \code{\link{apply_deductible_limit}}
 }
 
@@ -88,7 +90,15 @@ The NetSimR package provides seven categories of functions:
 \code{\link{bootstrap_chain_ladder}}
 \code{\link{merz_wuthrich}}
 \code{\link{munich_chain_ladder}}
+\code{\link{actual_vs_expected}}
+\code{\link{clark_growth}}
+\code{\link{inflation_adjusted_chain_ladder}}
 \code{\link{as_triangle}}
+}
+
+\section{NetSimR pricing model functions}{
+
+\code{\link{tweedie_family}}
 }
 
 \section{NetSimR reinsurance pricing functions}{

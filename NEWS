@@ -80,9 +80,11 @@ Changes in Version 0.3.4
   o Parallel runs can choose themselves: multiprocessing = "auto" in
     simulate_function() (parallel = "auto" in simulate_claims()) runs the
     chunks on workers only when that is expected to be at least a quarter
-    faster, from the expected number of claims, the simulations, the chunks,
-    the cores and whether the workers are already running, and chooses how
-    many to start. The claims simulator's Multiprocessing switch is now a
+    faster, and chooses how many to start. It times the run's second chunk in
+    the session (a run of two chunks is judged from the expected number of
+    claims and simulations), and weighs the rest against the chunks, the
+    cores and whether the workers are already running; the results are the
+    same however the chunks run. The claims simulator's Multiprocessing switch is now a
     Processing choice of Auto (the default), Single and Parallel: Auto starts
     the workers on the first run they make faster and keeps them, and the
     report says how many workers a run used. Settings files with the old
@@ -95,7 +97,39 @@ Changes in Version 0.3.4
     models with a few lines of optim() instead of the crch package, which is
     no longer suggested.
   o Claims simulator: finding each simulation's largest claim, for the
-    occurrence exceedance probability, is faster.
+    occurrence exceedance probability, is faster (about 4 times with ten
+    claims per simulation), the report of a large run builds in half the time
+    (each result is sorted once, and the claim counts are tabulated), and the
+    message listing the settings to fix before a run follows the fields as
+    they are filled in.
+  o New simulate_portfolio(): several lines of business, each simulated with
+    simulate_claims() or given as simulated losses, joined by a Gaussian or t
+    copula (each line's losses reordered by the copula's ranks, so each keeps
+    its distribution), with the VaR and TVaR of each line and of the total,
+    the diversification benefit, and each line's capital by co-TVaR (the
+    Euler allocation, which adds up to the total's TVaR).
+  o More reserving methods. actual_vs_expected() checks the chain ladder
+    against the latest calendar period: the chain ladder of the triangle
+    without its latest diagonal predicts each origin's development, compared
+    with what was reported, with Mack's standard error and a standardised
+    difference. clark_growth() fits Clark's (2003) log-logistic or Weibull
+    growth curve by over-dispersed Poisson maximum likelihood, by the LDF or
+    the Cape Cod method, with process and parameter standard errors and an
+    optional truncation; its results agree with the ChainLadder package's.
+    inflation_adjusted_chain_ladder() restates past payments in today's money,
+    develops them, and inflates the future payments at the expected rate. The
+    reserving tool shows all three on a new More methods tab.
+  o Distribution fitting tool: the Severity tab fits a Weibull distribution
+    too (from zero, and above a reporting threshold), gives each fit's
+    Anderson-Darling statistic, which weighs the tails more than the
+    Kolmogorov-Smirnov distance, and draws a Q-Q plot of each fit's quantiles
+    against the claims'.
+  o New tweedie_family(): a Tweedie family for glm(), a compound
+    Poisson-Gamma model of the loss cost (zero for most policies) with
+    variance phi * mu^p for a power between 1 and 2. It is quasi-likelihood,
+    with no AIC; its fits match the statmod package's. The GLM fitting tool
+    offers it, with the variance power, and compares Tweedie models by their
+    deviance on the rows held out.
   o GLM fitting tool: validation and variable selection. The Model tab can
     hold out 10%, 20% or 30% of the rows for testing (with a seed): the model
     is fitted to the others, and every row is predicted. A new Validation tab
@@ -103,8 +137,11 @@ Changes in Version 0.3.4
     the test rows, a lift chart, the Lorenz curve, and a double lift chart
     against a stored model. A Variable selection card suggests terms by
     stepwise AIC or BIC from the fitted model, adding candidate columns or
-    dropping terms, with each step's deviance on the rows held out, and puts
-    them in the formula. The actual vs predicted chart can show the training
+    dropping terms, with each step's deviance on the rows held out, or by a
+    penalised fit (the lasso, the elastic net or ridge regression, with the
+    glmnet package, now suggested), its penalty chosen by cross-validation and
+    each choice's deviance on the rows held out; it puts the terms in the
+    formula, to fit as an ordinary GLM. The actual vs predicted chart can show the training
     or the test rows alone, the predictions download marks each row's sample,
     and the settings file keeps the rows held out, the seed and the criterion.
   o GLM fitting tool: PostgreSQL databases are read with RPostgres, the

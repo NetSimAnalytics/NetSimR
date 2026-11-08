@@ -26,14 +26,15 @@ reference:
   - run_shiny_reserving_tool
   - run_shiny_reinsurance_pricing_tool
 - title: Claims simulation and reinsurance
-  desc: Frequency-severity simulation with Pareto tails, caps and layers.
+  desc: Frequency-severity simulation with Pareto tails, caps and layers, and portfolios of lines joined by a copula.
   contents:
   - simulate_claims
   - simulate_function
+  - simulate_portfolio
   - apply_deductible_limit
   - reinstatement_premium
 - title: Claims reserving
-  desc: Chain ladder with Mack's standard errors, methods with premiums, the bootstrap, the one-year view and the Munich chain ladder.
+  desc: Chain ladder with Mack's standard errors, methods with premiums, the bootstrap, the one-year view, the Munich chain ladder, Clark's growth curves, inflation and actual vs expected.
   contents:
   - chain_ladder
   - bornhuetter_ferguson
@@ -41,6 +42,9 @@ reference:
   - bootstrap_chain_ladder
   - merz_wuthrich
   - munich_chain_ladder
+  - actual_vs_expected
+  - clark_growth
+  - inflation_adjusted_chain_ladder
   - as_triangle
 - title: Excess of loss pricing
   desc: Burning cost, Pareto rating, exposure rating with MBBEFD curves or a claim size distribution, and the technical premium.
@@ -51,6 +55,10 @@ reference:
   - mbbefd_curve
   - technical_premium
   - credibility_weight
+- title: Pricing models
+  desc: A Tweedie family for generalised linear models of the loss cost.
+  contents:
+  - tweedie_family
 - title: Capped means
   contents:
   - GammaCappedMean
@@ -97,6 +105,7 @@ articles:
 - title: Articles
   navbar: ~
   contents:
+  - EndToEnd
   - SimulateClaims
   - Reserving
   - ReinsurancePricing

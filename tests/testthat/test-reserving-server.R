@@ -292,3 +292,33 @@ test_that("the charts of the reserving tool render", {
     expect_error(output$tail_plot, "Choose an exponential or inverse power tail curve")
   })
 })
+
+test_that("the More methods tab gives the actual vs expected, Clark's curve and the chain ladder for inflation", {
+  shiny::testServer(reserving_tool_Server, {
+    session$setInputs(data_source = "example", example = "raa")
+    expect_equal(ave()$total, actual_vs_expected(raa_triangle)$total)
+    expect_match(ui_text(output$ave_table), "Actual / expected")
+    expect_match(output$ave_plot$src, "^data:image/png;base64,")
+    #Clark's LDF method, then the Cape Cod method, which needs premiums the RAA example lacks
+    expect_equal(clark()$total, clark_growth(raa_triangle)$total)
+    expect_match(ui_text(output$clark_table), "omega")
+    expect_match(output$clark_plot$src, "^data:image/png;base64,")
+    session$setInputs(clark_curve = "weibull", clark_truncation = 20)
+    expect_equal(clark()$total, clark_growth(raa_triangle, "weibull", truncation = 20)$total)
+    session$setInputs(clark_method = "cape cod")
+    expect_error(clark(), "needs every origin's premium")
+    #inflation of 5% in the past and 8% in the future
+    session$setInputs(inflation_past = 5, inflation_future = 8)
+    expect_equal(inflation()$total, inflation_adjusted_chain_ladder(raa_triangle, 0.05, 0.08)$total)
+    expect_match(ui_text(output$inflation_table), "today's money")
+    stats <- ui_text(output$more_stats)
+    expect_match(stats, "Actual vs expected")
+    expect_match(stats, "of future inflation")
+  })
+  #the motor example has premiums, so the Cape Cod method runs
+  shiny::testServer(reserving_tool_Server, {
+    session$setInputs(data_source = "example", example = "motor", clark_method = "cape cod")
+    expect_match(clark()$method, "Cape Cod")
+    expect_equal(clark()$total[["ibnr"]], clark_growth(triangle(), premium = motor_premium(), method = "cape cod")$total[["ibnr"]])
+  })
+})

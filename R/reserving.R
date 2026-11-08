@@ -667,8 +667,9 @@ bootstrap_chain_ladder <- function(triangle, n = 1000, process = c("gamma", "odp
 #' Print a reserving result
 #'
 #' @param x The result of \code{\link{chain_ladder}}, \code{\link{bornhuetter_ferguson}},
-#'   \code{\link{cape_cod}}, \code{\link{bootstrap_chain_ladder}}, \code{\link{merz_wuthrich}}
-#'   or \code{\link{munich_chain_ladder}}.
+#'   \code{\link{cape_cod}}, \code{\link{bootstrap_chain_ladder}}, \code{\link{merz_wuthrich}},
+#'   \code{\link{munich_chain_ladder}}, \code{\link{actual_vs_expected}}, \code{\link{clark_growth}}
+#'   or \code{\link{inflation_adjusted_chain_ladder}}.
 #' @param ... Not used.
 #' @return \code{x}, invisibly.
 #' @export
@@ -681,7 +682,8 @@ print.netsimr_reserve <- function(x, ...) {
   })
   names(total) <- names(table)
   table <- rbind(table, as.data.frame(total, stringsAsFactors = FALSE, check.names = FALSE))
-  ratios <- names(table) %in% c("developed", "cv", "loss_ratio", "ultimate_loss_ratio", "latest_ratio", "ultimate_ratio")
+  ratios <- names(table) %in% c("developed", "cv", "loss_ratio", "ultimate_loss_ratio", "latest_ratio", "ultimate_ratio",
+                                "actual_to_expected", "z")
   shown <- table
   for (j in which(names(table) != "origin")) {
     shown[[j]] <- if (ratios[j]) formatC(table[[j]], format = "f", digits = 3) else
