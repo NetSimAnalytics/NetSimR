@@ -87,7 +87,6 @@ netsimr_write_report <- function(file, title, eyebrow, sections, accent = NULL, 
     tags$ul(lapply(sections, function(s) tags$li(tags$a(href = paste0("#", s$id), s$title))))
   )
   generated_text <- format(generated, "%d %B %Y, %H:%M")
-  version_text <- tryCatch(paste0(" ", utils::packageVersion("NetSimR")), error = function(e) "")
   body <- tags$body(div(
     class = "report-layout",
     nav,
@@ -99,7 +98,7 @@ netsimr_write_report <- function(file, title, eyebrow, sections, accent = NULL, 
         tags$p(class = "report-date", paste("Generated", generated_text))
       ),
       lapply(sections, function(s) tags$section(id = s$id, tags$h2(s$title), s$content)),
-      tags$footer(class = "report-footer", paste0("Generated with NetSimR", version_text, " ", intToUtf8(183), " ", generated_text))
+      netsimr_report_footer(generated_text)
     )
   ))
   accent_css <- if (!is.null(accent)) {

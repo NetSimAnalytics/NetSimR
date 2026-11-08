@@ -365,6 +365,12 @@ h3 {
   margin: 32px 0 8px 0;
 }
 
+.report-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ---------- Responsive and print ---------- */
 @media (max-width: 900px) {
   .report-layout {
@@ -1516,7 +1522,6 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   )
 
   generated_text <- format(generated, "%d %B %Y, %H:%M")
-  version_text <- tryCatch(paste0(" ", utils::packageVersion("NetSimR")), error = function(e) "")
 
   body <- tags$body(
     div(
@@ -1541,8 +1546,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         frequency_section,
         charts,
         reading_guide,
-        tags$footer(class = "report-footer",
-                    paste0("Generated with NetSimR", version_text, " ", middot, " ", generated_text))
+        netsimr_report_footer(generated_text)
       )
     )
   )

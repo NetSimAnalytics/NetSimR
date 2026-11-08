@@ -292,21 +292,8 @@ portfolio_tool_UI <- function(request) {
             div(class = "sim-stat-value", paste(c("VaR", "TVaR", "Diversification", "Co-TVaR allocation"), collapse = dot)))
       ),
 
-      bslib::card(
-        sim_card_header("user", "About", "Feedback and bug reports are very welcome."),
-        bslib::card_body(
-          p(
-            "Created by Yiannis Parizas. For more information, visit my ",
-            a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/", target = "_blank", rel = "noopener noreferrer"),
-            ". You can also reach me by email at ",
-            a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
-            "."
-          ),
-          netsimr_feedback_links("Portfolio capital tool"),
-          p(class = "sim-muted mb-0",
-            "The function behind the tool, ", tags$code("simulate_portfolio()"), ", can also be used from R.")
-        )
-      )
+      netsimr_about_card("Portfolio capital tool", tagList(
+        "The function behind the tool, ", tags$code("simulate_portfolio()"), ", can also be used from R."))
     ),
 
     # ------------------------------------------------------------------ Lines

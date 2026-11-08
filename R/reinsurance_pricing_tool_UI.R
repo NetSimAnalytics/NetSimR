@@ -312,23 +312,9 @@ reinsurance_pricing_tool_UI <- function(request) {
         )
       ),
 
-      bslib::card(
-        sim_card_header("user", "About", "Feedback and bug reports are very welcome."),
-        bslib::card_body(
-          p(
-            "Created by Yiannis Parizas. For more information, visit my ",
-            a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/",
-              target = "_blank", rel = "noopener noreferrer"),
-            ". You can also reach me by email at ",
-            a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
-            "."
-          ),
-          netsimr_feedback_links("Reinsurance pricing tool"),
-          p(class = "sim-muted mb-0",
-            "The functions behind the tool, such as ", tags$code("burning_cost()"), ", ",
-            tags$code("property_exposure_rating()"), " and ", tags$code("technical_premium()"), ", can also be used from R.")
-        )
-      )
+      netsimr_about_card("Reinsurance pricing tool", tagList(
+        "The functions behind the tool, such as ", tags$code("burning_cost()"), ", ",
+            tags$code("property_exposure_rating()"), " and ", tags$code("technical_premium()"), ", can also be used from R."))
     ),
 
     # ------------------------------------------------------------------ Layer

@@ -28,9 +28,12 @@ Changes in Version 0.4.0
     least the limit), so the fitted tail is not cut short; with a reporting
     threshold too. The fits match those of the survival package's survreg(),
     and the K-S distance and the charts use the Kaplan-Meier estimate.
-  o Each tool's About card has links to report a problem or suggest a feature,
-    which open the issue forms of the package's GitHub repository with the
-    tool and the version filled in.
+  o Each tool's About card shows the version and links to the website, the
+    tools online, the GitHub repository and its issue forms (to report a
+    problem or suggest a feature, with the tool and the version filled in),
+    with how to cite the package; citation("NetSimR") gives the same
+    reference (new inst/CITATION). The reports link to the website in their
+    footer.
 
   o Claims reserving. New chain_ladder(): the chain ladder with Mack's
     standard errors (process and parameter, by origin and in total), with

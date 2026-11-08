@@ -14,8 +14,13 @@ expect_self_contained <- function(html) {
   expect_true(grepl("<title>Simulation Report</title>", html, fixed = TRUE))
   expect_true(grepl("<style", html, fixed = TRUE))
   expect_true(grepl("data:image/png;base64,", html, fixed = TRUE))
-  expect_false(grepl("https?://", html))
+  #nothing is loaded from elsewhere (the footer's link to the website loads nothing)
+  expect_false(grepl("src=\"https?://", html))
+  expect_false(grepl("<link[^>]+href=", html))
+  expect_false(grepl("url\\(['\"]?https?://", html))
   expect_false(grepl("<script[^>]+src=", html))
+  links <- regmatches(html, gregexpr("href=\"https?://[^\"]*\"", html))[[1]]
+  expect_identical(links, "href=\"https://netsimanalytics.github.io/NetSimR/\"")
   for (id in c("key-results", "model-settings", "statistics", "charts", "how-to-read")) {
     expect_true(has_section(html, id), label = paste("section", id))
   }

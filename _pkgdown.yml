@@ -2,6 +2,12 @@ url: https://netsimanalytics.github.io/NetSimR/
 
 template:
   bootstrap: 5
+  # page views, counted by GoatCounter without cookies or personal data
+  # (https://netsimanalytics.goatcounter.com); the browser tools get the same script from
+  # pkgdown/shinylive-apps.R
+  includes:
+    in_header: |
+      <script data-goatcounter="https://netsimanalytics.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 
 home:
   title: Actuarial functions for non-life insurance

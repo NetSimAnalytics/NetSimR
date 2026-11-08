@@ -44,4 +44,18 @@ for (tool in names(tools)) {
   shinylive::export(dir, out, subdir = tool, quiet = TRUE, wasm_packages = FALSE,
                     template_params = list(title = titles[[tool]]))
 }
+# each tool's page counts its visits with GoatCounter, as the rest of the website does
+# (_pkgdown.yml): without cookies or personal data, and never the data uploaded to a tool,
+# which stays in the browser. The installed package counts nothing.
+goatcounter <- paste0("<script data-goatcounter=\"https://netsimanalytics.goatcounter.com/count\" ",
+                      "async src=\"https://gc.zgo.at/count.js\"></script>")
+for (tool in names(tools)) {
+  page <- file.path(out, tool, "index.html")
+  html <- readLines(page, warn = FALSE)
+  head_end <- grep("</head>", html, fixed = TRUE)[1]
+  if (is.na(head_end)) stop("no </head> in ", page)
+  html <- append(html, goatcounter, after = head_end - 1)
+  writeLines(html, page)
+}
+
 cat("Exported", length(tools), "tools to", out, "\n")

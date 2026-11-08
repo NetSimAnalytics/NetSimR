@@ -1315,22 +1315,8 @@ shiny_simulator_ui <- function(request) {
         )
       ),
 
-      bslib::card(
-        sim_card_header("user", "About", "Feedback and bug reports are very welcome."),
-        bslib::card_body(
-          p(
-            "Created by Yiannis Parizas. For more information, visit my ",
-            a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/",
-              target = "_blank", rel = "noopener noreferrer"),
-            ". You can also reach me by email at ",
-            a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
-            "."
-          ),
-          netsimr_feedback_links("Claims simulator"),
-          p(class = "sim-muted mb-0",
-            "Please reach out if you have any feedback or encounter any bugs.")
-        )
-      )
+      netsimr_about_card("Claims simulator", tagList(
+        "The model behind the tool, ", tags$code("simulate_claims()"), ", can also be used from R."))
     ),
 
     # ------------------------------------------------------- Claims simulator
