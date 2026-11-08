@@ -3,6 +3,8 @@
 [![R-CMD-check](https://github.com/NetSimAnalytics/NetSimR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/NetSimAnalytics/NetSimR/actions/workflows/R-CMD-check.yaml)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/NetSimR)](https://CRAN.R-project.org/package=NetSimR)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/NetSimR)](https://cranlogs.r-pkg.org/badges/NetSimR)
 [![Codecov test
 coverage](https://codecov.io/gh/NetSimAnalytics/NetSimR/graph/badge.svg)](https://app.codecov.io/gh/NetSimAnalytics/NetSimR)
 
@@ -162,3 +164,15 @@ triangle](https://www.theactuary.com/features/2019/06/2019/06/05/escaping-triang
 (2019) and [Taken to
 excess](https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess)
 (2019).
+
+## How to cite
+
+If NetSimR helps your work, please cite it; `citation("NetSimR")` gives
+the reference for the version installed, and a BibTeX entry:
+
+> Parizas, Y. (2026). NetSimR: Actuarial Functions for Non-Life
+> Insurance Modelling. R package version 0.4.0.
+> <https://netsimanalytics.github.io/NetSimR/>
+
+A star on [GitHub](https://github.com/NetSimAnalytics/NetSimR) or a
+mention to a colleague also helps others find it.

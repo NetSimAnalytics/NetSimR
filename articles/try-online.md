@@ -1,5 +1,10 @@
 # Try the tools in your browser
 
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/NetSimR)](https://cran.r-project.org/package=NetSimR)
+[![Total
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/NetSimR)](https://cran.r-project.org/package=NetSimR)
+
 The six Shiny tools of NetSimR run right here, in your browser, with
 [webR](https://docs.r-wasm.org/webr/latest/), R compiled to WebAssembly,
 and [shinylive](https://posit-dev.github.io/r-shinylive/). Nothing to
@@ -62,6 +67,10 @@ tool](https://netsimanalytics.github.io/NetSimR/apps/portfolio/)
 - **It runs on your computer.** Uploaded files are read by the R running
   in the page and are not sent anywhere. Closing the tab ends the
   session; save the settings of a tool to come back to it.
+- **Visits are counted, not people.** The website, the tools’ pages
+  included, counts page visits with
+  [GoatCounter](https://www.goatcounter.com/), which sets no cookies and
+  keeps no personal data. The tools installed from CRAN count nothing.
 - **Some things need R on your computer**: the simulator’s parallel
   workers, and the GLM tool’s database connections, are not available in
   the browser. Large simulations also run faster in R.
