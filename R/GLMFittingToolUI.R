@@ -387,7 +387,7 @@ GLMFittingToolUI <- function(request) {
               tags$li(div(div(class = "sim-step-title", "Validate"),
                           div(class = "sim-step-text", "Hold out rows for testing: deviance, Gini, lift and double lift charts."))),
               tags$li(div(div(class = "sim-step-title", "Check and export"),
-                          div(class = "sim-step-text", "Actual against predicted, then download the model and predictions.")))
+                          div(class = "sim-step-text", "Actual against predicted, the rate table, and scores for a new file.")))
             )
           )
         )
@@ -410,7 +410,7 @@ GLMFittingToolUI <- function(request) {
         div(
           class = "sim-stat",
           div(class = "sim-stat-label", icon("file-export"), "Exports"),
-          div(class = "sim-stat-value", paste(c("Model (RDS)", "Summary", "Predictions (CSV)"),
+          div(class = "sim-stat-value", paste(c("Model (RDS)", "Rate table (CSV)", "Scored data (CSV)"),
                                               collapse = paste0(" ", intToUtf8(183), " ")))
         )
       ),
@@ -426,6 +426,7 @@ GLMFittingToolUI <- function(request) {
             a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
             "."
           ),
+          netsimr_feedback_links("GLM fitting tool"),
           p(class = "sim-muted mb-0",
             "Please reach out if you have any feedback or encounter any bugs.")
         )
@@ -545,8 +546,10 @@ GLMFittingToolUI <- function(request) {
                           placeholder = "e.g. age + region + log(sum_insured)"),
             uiOutput("formula_lhs"),
             uiOutput("formula_columns", class = "glm-chips"),
-            dft_help("Click a column to add it. Use + between terms, * for interactions, ",
-                     "and 1 for an intercept-only model. The terms may only use the data's columns, numbers, ",
+            dft_help("Click a column to add it. Use + between terms, * for interactions (age * region), ",
+                     "and 1 for an intercept-only model. A smooth curve: ns(age, df = 4); bands with breaks you choose: ",
+                     "cut(age, c(17, 25, 35, 50, 65, 100)), which predicts new data in the same bands. ",
+                     "The terms may only use the data's columns, numbers, ",
                      "+ - * : / ^ and ", glm_formula_functions_text(), "; nothing else is run."),
             div(class = "sim-section-label mt-2", "Hold out for testing"),
             div(class = "pill-radio", radioButtons("holdout_share", NULL, glm_holdout_choices, "0", inline = TRUE)),
@@ -667,6 +670,44 @@ GLMFittingToolUI <- function(request) {
           bslib::nav_panel("Lift", dft_plot_output("lift_plot", height = "460px"), uiOutput("lift_note")),
           bslib::nav_panel("Lorenz curve", dft_plot_output("lorenz_plot", height = "460px")),
           bslib::nav_panel("Double lift", dft_plot_output("double_lift_plot", height = "460px"), uiOutput("double_lift_note"))
+        )
+      )
+    ),
+
+    # ---------------------------------------------------------------- Rates
+    bslib::nav_panel(
+      title = "Rates",
+      value = "rates",
+      icon = icon("tags"),
+
+      dft_page_intro("Rates",
+                     "The fitted model as a base rate and a table of relativities, and its predictions for a new file."),
+
+      dft_layout(
+        dft_settings_card(
+          "sliders", "Rating table", "Of the model on the Model tab.",
+          selectInput("rate_factor", "Rating factor", choices = NULL),
+          numericInput("rate_values", "Values shown for a number", value = 100, min = 5, max = 500, step = 5),
+          downloadButton("download_rate_table", "Rate table (CSV)", class = "btn-outline-glm mt-1"),
+          dft_help("Each rating factor is a column of the data, or two for an interaction, with every term that uses it: ",
+                   "age and ns(age, 4), say. Its base value, at relativity 1, is the most common level, or the value ",
+                   "nearest the median. The CSV has the base rate and every rating factor, ready for a rating engine."),
+          tags$hr(class = "sim-divider"),
+          div(class = "sim-section-label", "Score new data"),
+          fileInput("score_file", "File of policies", accept = c(
+            "text/csv", "text/comma-separated-values,text/plain", ".csv", ".txt", ".tsv"
+          ), placeholder = "No file selected"),
+          uiOutput("score_result"),
+          dft_help("Read with the file options of the Data tab.")
+        ),
+        uiOutput("rate_stats"),
+        bslib::card(
+          sim_card_header("table-cells", "Relativities", "The chosen rating factor, at each of its values."),
+          bslib::card_body(uiOutput("rate_table_ui"))
+        ),
+        bslib::card(
+          sim_card_header("chart-column", "Chart", "The relativity of each value of the rating factor."),
+          bslib::card_body(dft_plot_output("rate_plot", height = "420px"))
         )
       )
     ),

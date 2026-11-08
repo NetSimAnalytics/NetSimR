@@ -302,7 +302,7 @@ GLMFittingToolServer <- function(input, output, session) {
     terms_text <- if (spec$formula == "") "1" else spec$formula
     rhs <- paste(c(offset_term(spec$offset, spec$offset_log), terms_text), collapse = " + ")
     model_formula <- tryCatch(
-      stats::as.formula(paste(term(spec$response), "~", rhs), env = globalenv()),
+      stats::as.formula(paste(term(spec$response), "~", rhs), env = glm_formula_env()),
       error = function(e) {
         # the parser's message starts with "<text>:2:0:" and repeats the text on more lines
         stop("the formula could not be read: ", sub("^<text>:[0-9]+:[0-9]+: ", "", strsplit(conditionMessage(e), "\n")[[1]][1]),
@@ -335,7 +335,7 @@ GLMFittingToolServer <- function(input, output, session) {
       left_out <- left_out[!names(left_out) %in% all.vars(model_formula)]
       allowed <- setdiff(columns, c(spec$offset, spec$weights, names(left_out)))
       model_formula <- stats::formula(stats::terms(model_formula, data = model_data[allowed]))
-      environment(model_formula) <- globalenv()
+      environment(model_formula) <- glm_formula_env()
     }
     # text columns named in the formula are used, however many values they have
     labels <- attr(stats::terms(model_formula), "term.labels")
@@ -407,7 +407,8 @@ GLMFittingToolServer <- function(input, output, session) {
     }
     # nothing of the server may be reachable from the model, which is saved to a file with
     # everything it refers to: the call is evaluated where only the data and the family (built
-    # apart, see glm_family_object()) are, and the formula's environment is the global one
+    # apart, see glm_family_object()) are, and the formula's environment is the global one with
+    # the spline bases (glm_formula_env())
     fit_env <- new.env(parent = globalenv())
     fit_env$model_data <- model_data[!test, , drop = FALSE]
     fit_env$family_object <- glm_family_object(spec$family, link, spec$power)
@@ -766,6 +767,175 @@ GLMFittingToolServer <- function(input, output, session) {
       #the levels are values of the uploaded data, so they are written as text where a
       #spreadsheet would read them as a formula
       utils::write.csv(csv_safe(glm_relativity_table(downloadable_model())), file, row.names = FALSE)
+    }
+  )
+
+  ######################
+  #rates and scoring
+  ######################
+
+  # the rating table of the shown model (see glm_rate_table()), from the rows it was fitted to
+  rate_table <- reactive({
+    model <- fitted_model()
+    validate(need(!is.null(model), "Fit a model on the Model tab to see its rating table."),
+             need(!model_outdated(), "This model was fitted to data imported before: fit it again to see its rating table."))
+    result <- fit_result()
+    values <- suppressWarnings(as.numeric(or_default(input$rate_values, 100)))
+    values <- if (length(values) == 1 && is.finite(values)) min(max(round(values), 5), 500) else 100
+    rates <- tryCatch(glm_rate_table(model, result$data[!result$test, , drop = FALSE], values), error = function(e) e)
+    validate(need(!inherits(rates, "error"), if (inherits(rates, "error")) paste("No rating table:", conditionMessage(rates))))
+    rates
+  })
+
+  observeEvent(rate_table(), {
+    choices <- names(rate_table()$factors)
+    current <- isolate(input$rate_factor)
+    updateSelectInput(session, "rate_factor", choices = choices,
+                      selected = if (!is.null(current) && current %in% choices) current else choices[1])
+  })
+
+  # the rating factor chosen, NULL for a model with none (an intercept only)
+  chosen_rate_factor <- reactive({
+    rates <- rate_table()
+    validate(need(length(rates$factors) > 0, "The model has no rating factors: its prediction is the base rate."))
+    name <- input$rate_factor
+    if (is.null(name) || !name %in% names(rates$factors)) name <- names(rates$factors)[1]
+    list(name = name, table = rates$factors[[name]], rates = rates)
+  })
+
+  rate_label <- function(rates) {
+    if (is.na(rates$relativity)) "Effect on the link scale" else tools_title(rates$relativity)
+  }
+  tools_title <- function(x) paste0(toupper(substring(x, 1, 1)), substring(x, 2))
+
+  output$rate_stats <- renderUI({
+    rates <- rate_table()
+    result <- fit_result()
+    score <- scored()
+    exposure <- model_exposure(result)$name
+    div(
+      class = "dft-stats",
+      dft_stat_tile(if (is.na(rates$relativity)) "Base prediction" else "Base rate", dft_fmt(rates$base_rate, 5),
+                    icon_name = "tag", accent = TRUE,
+                    note = paste0(if (!is.null(exposure) && rates$link == "log") paste0("Per unit of ", exposure, "; ") else "",
+                                  "at the base value of every factor")),
+      dft_stat_tile("Rating factors", length(rates$factors), icon_name = "table-list",
+                    note = if (rates$exact) "Every prediction is the base rate times the relativities" else
+                      "Numbers with many values are shown at quantiles"),
+      dft_stat_tile("Scored", if (is.null(score)) dft_dash else format(score$predicted, big.mark = ","), icon_name = "file-import",
+                    note = if (is.null(score)) "Upload a file of policies to score it" else
+                      paste("of", format(score$total, big.mark = ","), "rows of", score$name))
+    )
+  })
+
+  output$rate_table_ui <- renderUI({
+    chosen <- chosen_rate_factor()
+    f <- chosen$table
+    rates <- chosen$rates
+    vars <- setdiff(names(f), c("effect", "relativity", "base", "rows"))
+    has_relativity <- !is.na(rates$relativity)
+    rows <- lapply(seq_len(nrow(f)), function(i) {
+      c(lapply(vars, function(v) if (is.numeric(f[[v]])) dft_fmt(f[[v]][i], 6) else as.character(f[[v]][i])),
+        list(if (is.na(f$rows[i])) dft_dash else format(f$rows[i], big.mark = ","), dft_fmt(f$effect[i], 4)),
+        if (has_relativity) list(dft_fmt(f$relativity[i], 4)))
+    })
+    base <- which(f$base)
+    note <- c(
+      paste0("Terms: ", paste(attr(f, "terms"), collapse = ", "), ". The base is ",
+             paste(vapply(vars, function(v) paste0(v, " = ", format(rates$base[[v]])), character(1)), collapse = ", "), "."),
+      if (has_relativity && rates$relativity == "relativity") {
+        "A policy's prediction is the base rate times its relativity in every rating factor (times its exposure)."
+      } else if (has_relativity) {
+        "The odds of a policy are the base odds times its odds ratio in every rating factor."
+      } else {
+        "With this link the effects add up: the prediction is the inverse link of the base linear predictor plus every effect."
+      },
+      if (!isTRUE(attr(f, "exact"))) "The numbers are shown at quantiles: a value between two rows has a relativity between theirs."
+    )
+    dft_html_table(c(vars, "Rows", "Effect", if (has_relativity) rate_label(rates)), rows,
+                   best = if (length(base)) base[1], best_label = "Base", note = paste(note, collapse = " "))
+  })
+
+  output$rate_plot <- netsimr_render_plot({
+    chosen <- chosen_rate_factor()
+    f <- chosen$table
+    rates <- chosen$rates
+    vars <- setdiff(names(f), c("effect", "relativity", "base", "rows"))
+    y <- if (is.na(rates$relativity)) f$effect else f$relativity
+    y_title <- rate_label(rates)
+    if (length(vars) == 1 && is.numeric(f[[vars]])) {
+      dft_line_chart(list(list(x = f[[vars]], y = y, name = y_title, colour = dft_model_palette[1])), vars, y_title, dark())
+    } else if (length(vars) == 1) {
+      dft_category_chart(as.character(f[[vars]]), bars = list(name = y_title, values = y, colour = dft_model_palette[1]),
+                         x_title = vars, y_title = y_title, dark = dark())
+    } else {
+      # an interaction: a line per value of its second variable, at most eight
+      second <- unique(f[[vars[2]]])
+      second <- second[seq_len(min(length(second), 8))]
+      first <- unique(f[[vars[1]]])
+      lines <- lapply(seq_along(second), function(k) {
+        rows <- f[[vars[2]]] == second[k]
+        list(name = paste(vars[2], "=", format(second[k])), values = y[rows][match(first, f[[vars[1]]][rows])],
+             colour = dft_model_palette[(k - 1) %% length(dft_model_palette) + 1])
+      })
+      dft_category_chart(if (is.numeric(first)) dft_fmt(first, 4) else as.character(first), lines = lines,
+                         x_title = vars[1], y_title = y_title, dark = dark())
+    }
+  }, bg = "transparent", res = 96, alt = "The relativity of each value of the chosen rating factor")
+
+  output$download_rate_table <- downloadHandler(
+    filename = function() "glm_rate_table.csv",
+    content = function(file) utils::write.csv(csv_safe(glm_rate_table_long(rate_table())), file, row.names = FALSE)
+  )
+
+  # a file of policies scored with the shown model, read with the Data tab's file options
+  scored <- reactiveVal(NULL)
+  observeEvent(fit_result(), scored(NULL))
+  observeEvent(input$score_file, {
+    file <- input$score_file
+    model <- tryCatch(downloadable_model(), error = function(e) NULL)
+    fail <- function(message) {
+      scored(NULL)
+      showNotification(paste("The file could not be scored:", message), type = "error", duration = 10)
+    }
+    if (is.null(model)) return(fail("fit a model on the Model tab first."))
+    result <- tryCatch({
+      dec <- or_default(input$csv_dec, ".")
+      df <- dft_read_data(file$datapath, header = !isFALSE(input$csv_header), sep = or_default(input$csv_sep, ","),
+                          quote = or_default(input$csv_quote, "\""), dec = dec)
+      text_columns <- names(df)[vapply(df, is.character, logical(1))]
+      for (column in dft_numeric_columns(df[text_columns], dec)) df[[column]] <- dft_as_numeric(df[[column]], dec)
+      if (nrow(df) == 0) stop("it has no rows")
+      glm_score(model, df, response = fit_result()$spec$response)
+    }, error = function(e) e)
+    if (inherits(result, "error")) return(fail(conditionMessage(result)))
+    result$name <- file$name
+    scored(result)
+    left <- result$total - result$predicted
+    showNotification(paste0("Scored ", format(result$predicted, big.mark = ","), " of ", format(result$total, big.mark = ","),
+                            " rows", if (left > 0) paste0("; ", format(left, big.mark = ","), " have a missing value or a level ",
+                                                          "the model has not seen, and no prediction") else "", "."),
+                     type = if (left > 0) "warning" else "message", duration = 8)
+  })
+
+  output$score_result <- renderUI({
+    s <- scored()
+    if (is.null(s)) return(dft_help("The file needs the columns of the model's terms (and its offset); its other columns are kept."))
+    tagList(
+      downloadButton("download_scored", "Scored data (CSV)", class = "btn-outline-glm"),
+      dft_help(paste0(format(s$predicted, big.mark = ","), " of ", format(s$total, big.mark = ","), " rows of ", s$name,
+                      " scored, in the column ", s$column, ".",
+                      if (s$unseen > 0) paste0(" ", format(s$unseen, big.mark = ","), " with a level the model has not seen.") else "",
+                      if (s$incomplete > 0) paste0(" ", format(s$incomplete, big.mark = ","), " with a missing value.") else ""))
+    )
+  })
+
+  output$download_scored <- downloadHandler(
+    filename = function() "scored_data.csv",
+    content = function(file) {
+      s <- scored()
+      validate(need(!is.null(s), "Upload a file to score first."))
+      utils::write.csv(csv_safe(s$data), file, row.names = FALSE)
     }
   )
 
@@ -1274,7 +1444,7 @@ GLMFittingToolServer <- function(input, output, session) {
 
   # the tiles and the formula helpers are hidden while empty, and shiny does not render
   # hidden outputs, so they must render even when hidden or they would never appear
-  for (id in c("data_overview", "model_stats", "formula_columns", "formula_lhs", "validation_stats")) {
+  for (id in c("data_overview", "model_stats", "formula_columns", "formula_lhs", "validation_stats", "rate_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
 }

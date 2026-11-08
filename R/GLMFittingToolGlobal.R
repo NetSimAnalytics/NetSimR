@@ -11,9 +11,10 @@
 #'   settings files, is restricted to the columns of the imported data, numbers,
 #'   the formula operators and a small set of formula functions: \code{I()},
 #'   \code{log()}, \code{exp()}, \code{sqrt()}, \code{pmin()}, \code{pmax()},
-#'   \code{poly()}, \code{factor()}, \code{as.factor()}, \code{interaction()}
-#'   and \code{offset()}. Any other call is refused, so a settings file shared
-#'   between colleagues cannot run code.
+#'   \code{poly()}, the splines \code{ns()} and \code{bs()}, \code{cut()} with
+#'   \code{c()} for its breaks, \code{factor()}, \code{as.factor()},
+#'   \code{interaction()} and \code{offset()}. Any other call is refused, so a
+#'   settings file shared between colleagues cannot run code.
 #' @return A shiny app object. Printing it, as happens when the function is
 #'   called at the console, opens the application; it can also be passed to
 #'   \code{shiny::runApp()}.
@@ -118,7 +119,20 @@ glm_settings_values <- function(inputs) {
 # code on the machine the tool runs on (a settings file is plain text, and Shiny
 # apps are deployed on servers). These transform a column or mark a term and
 # reach nothing beyond their arguments.
-glm_formula_functions <- c("I", "log", "exp", "sqrt", "pmin", "pmax", "poly", "factor", "as.factor", "interaction", "offset")
+glm_formula_functions <- c("I", "log", "exp", "sqrt", "pmin", "pmax", "poly", "ns", "bs", "cut", "c", "factor", "as.factor",
+                           "interaction", "offset")
+
+# The environment of the tool's formulas: the global environment, with the spline bases of
+# the splines package, ns() (natural cubic splines) and bs() (B-splines), so a formula finds
+# them without the package attached. A model keeps its formula's environment, and with it
+# these two functions, so a downloaded model predicts on new data in any R session (the
+# splines' knots are kept in the model's terms, as for any spline term).
+glm_formula_env <- function() {
+  env <- new.env(parent = globalenv())
+  env$ns <- splines::ns
+  env$bs <- splines::bs
+  env
+}
 
 # The functions written for a message: "I(), log(), ... and offset()".
 glm_formula_functions_text <- function() {

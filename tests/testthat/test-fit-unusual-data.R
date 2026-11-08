@@ -22,6 +22,7 @@ fit_import <- function(session, path) {
 }
 
 test_that("distribution fitting tool fits the exact Gamma MLE to claims of 1e12", {
+  skip_server_on_cran()
   set.seed(9)
   base <- rgamma(300, shape = 2)
   shiny::testServer(distribution_fitting_tool_Server, {
@@ -34,6 +35,7 @@ test_that("distribution fitting tool fits the exact Gamma MLE to claims of 1e12"
 })
 
 test_that("distribution fitting tool reads points as thousands separators with a decimal comma", {
+  skip_server_on_cran()
   path <- fit_lines(c("sev;n", "1.234;2", "2.500;3", "15.000,5;1", "800;4", "0,5;2"))
   shiny::testServer(distribution_fitting_tool_Server, {
     fit_upload(session, path, sep = ";", dec = ",")
@@ -44,6 +46,7 @@ test_that("distribution fitting tool reads points as thousands separators with a
 })
 
 test_that("distribution fitting tool guesses the columns again once the separator and decimal mark are fixed", {
+  skip_server_on_cran()
   path <- fit_lines(c("policy_id;exposure;claim_count;claim_amount", "P1;0,837;1;2.452,94", "P2;0,964;0;",
                       "P3;0,931;2;4.203,29", "P4;0,512;1;812,5"))
   shiny::testServer(distribution_fitting_tool_Server, {
@@ -76,6 +79,7 @@ test_that("distribution fitting tool guesses the columns again once the separato
 })
 
 test_that("both tools read a file with a separator at the end of each row", {
+  skip_server_on_cran()
   #read.csv() took the first column as row names, so sev showed the counts; repeated values failed
   path <- fit_lines(c("sev,n", "100,1,", "250,2,", "250,3,", "80,4,"))
   shiny::testServer(distribution_fitting_tool_Server, {
@@ -102,6 +106,7 @@ test_that("both tools read a file with a separator at the end of each row", {
 })
 
 test_that("GLM fitting tool leaves the offset and weights columns out of every formula with a dot", {
+  skip_server_on_cran()
   set.seed(8)
   d <- data.frame(y = rpois(200, 2), x1 = rnorm(200), grp = sample(c("a", "b"), 200, TRUE),
                   expo = runif(200, 0.2, 2), w = sample(1:3, 200, TRUE))
@@ -115,11 +120,15 @@ test_that("GLM fitting tool leaves the offset and weights columns out of every f
     }
     session$setInputs(formula = ". - x1", fit_model = 10)
     expect_equal(coef(fitted_model()), coef(glm(y ~ offset(log(expo)) + grp, family = poisson, weights = w, data = d)))
-    expect_identical(environment(formula(fitted_model())), globalenv())
+    #the model's formula carries nothing of the Shiny session (and its inputs, such as a password):
+    #its environment is a child of the global one with the spline bases only (glm_formula_env())
+    expect_identical(parent.env(environment(formula(fitted_model()))), globalenv())
+    expect_setequal(ls(environment(formula(fitted_model()))), c("bs", "ns"))
   })
 })
 
 test_that("GLM fitting tool leaves text IDs out of a dot and warns when one is named", {
+  skip_server_on_cran()
   set.seed(4)
   n <- 300
   d <- data.frame(y = rpois(n, 2), x1 = rnorm(n), id = sprintf("P%05d", seq_len(n)), region = sample(letters[1:5], n, TRUE))
@@ -146,6 +155,7 @@ test_that("GLM fitting tool leaves text IDs out of a dot and warns when one is n
 })
 
 test_that("GLM fitting tool explains formulas and columns it cannot fit", {
+  skip_server_on_cran()
   set.seed(5)
   d <- data.frame(y = rpois(50, 2), x1 = rnorm(50), grp = sample(c("a", "b"), 50, TRUE), one_level = "only", all_na = NA)
   shiny::testServer(GLMFittingToolServer, {
@@ -173,6 +183,7 @@ test_that("GLM fitting tool explains formulas and columns it cannot fit", {
 })
 
 test_that("GLM fitting tool reads numbers with thousands separators as numbers", {
+  skip_server_on_cran()
   path <- fit_lines(c("y,amount,x,flag", "1,\"1,200\",0.5,TRUE", "0,\"15,000\",1.2,FALSE", "2,\"3,400\",0.1,TRUE",
                       "1,999,0.3,FALSE", "3,\"2,500\",0.9,TRUE"))
   shiny::testServer(GLMFittingToolServer, {
@@ -186,6 +197,7 @@ test_that("GLM fitting tool reads numbers with thousands separators as numbers",
 })
 
 test_that("GLM fitting tool labels the chart by whether the offset is an exposure", {
+  skip_server_on_cran()
   set.seed(6)
   d <- data.frame(y = rpois(100, 2), x1 = rnorm(100), grp = sample(c("a", "b"), 100, TRUE), e = runif(100, 0.5, 2))
   shiny::testServer(GLMFittingToolServer, {
@@ -216,6 +228,7 @@ test_that("GLM fitting tool labels the chart by whether the offset is an exposur
 })
 
 test_that("distribution fitting tool explains all-zero counts and shows large totals in full", {
+  skip_server_on_cran()
   shiny::testServer(distribution_fitting_tool_Server, {
     fit_upload(session, fit_csv(data.frame(n = rep(0, 20))))
     session$setInputs(counts_var = "n", counts_weighted_var = FALSE, execute_freq_analysis = 1)
@@ -229,6 +242,7 @@ test_that("distribution fitting tool explains all-zero counts and shows large to
 })
 
 test_that("distribution fitting tool suggests the model that the fits support", {
+  skip_server_on_cran()
   shiny::testServer(distribution_fitting_tool_Server, {
     suggestion <- function(counts, k) {
       fit_upload(session, fit_csv(data.frame(n = counts)))
@@ -247,6 +261,7 @@ test_that("distribution fitting tool suggests the model that the fits support", 
 })
 
 test_that("the mean excess chart explains that it needs three different claim sizes", {
+  skip_server_on_cran()
   shiny::testServer(distribution_fitting_tool_Server, {
     #the largest claim has no mean excess, so two different claims left a single point and an empty chart
     fit_upload(session, fit_csv(data.frame(s = c(1, 2, 2))))
@@ -259,6 +274,7 @@ test_that("the mean excess chart explains that it needs three different claim si
 })
 
 test_that("GLM fitting tool labels bands readably and refuses text with too many values", {
+  skip_server_on_cran()
   set.seed(7)
   n <- 600
   d <- data.frame(y = rpois(n, 2), id = sprintf("policy_%04d", sample(1:300, n, TRUE)), age = round(runif(n, 18, 80), 4),
@@ -288,6 +304,7 @@ test_that("GLM fitting tool labels bands readably and refuses text with too many
 })
 
 test_that("the slicing points can be placed in the body of heavy-tailed claims, or typed beyond the sliders", {
+  skip_server_on_cran()
   set.seed(3)
   x <- c(exp(rnorm(3000, 7, 1)), 5e6)
   shiny::testServer(distribution_fitting_tool_Server, {
@@ -363,6 +380,7 @@ test_that("the slicing points can be placed in the body of heavy-tailed claims, 
 })
 
 test_that("the Pareto alpha of a layer needs three claims in it, and a failed fit is reported", {
+  skip_server_on_cran()
   set.seed(2)
   #(distinct claims, so that the points hold exactly the claims counted below)
   x <- unique(round(exp(rnorm(300, 7, 1.2))))
@@ -401,6 +419,7 @@ test_that("the Pareto alpha of a layer needs three claims in it, and a failed fi
 })
 
 test_that("the Data tile asks whether the first row is a header when the column names are numbers", {
+  skip_server_on_cran()
   shiny::testServer(distribution_fitting_tool_Server, {
     tile <- function() gsub("\\s+", " ", gsub("<[^>]+>", " ", output$data_overview$html))
     #a file without a header, read with one: the columns were named "100" and "1" and a row was lost, silently
@@ -423,6 +442,7 @@ test_that("the Data tile asks whether the first row is a header when the column 
 })
 
 test_that("piecewise Pareto layer 1 includes the smallest claim", {
+  skip_server_on_cran()
   x <- c(100, 100, 150, 200, 300, 400, 800, 1600, 5000, 12000)
   shiny::testServer(distribution_fitting_tool_Server, {
     fit_upload(session, fit_csv(data.frame(sev = x)))

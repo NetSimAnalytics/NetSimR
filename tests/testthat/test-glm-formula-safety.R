@@ -41,12 +41,15 @@ test_that("glm_formula_problem() accepts the formulas a model needs and names wh
             "age/region", "I(age^2)", "I(age * 2 + 1)", "log(age)", "log(age, 10)", "exp(age)", "sqrt(age)",
             "poly(age, 2)", "poly(age, degree = 2, raw = TRUE)", "factor(region)", "as.factor(`NA`)",
             "interaction(region, `NA`)", "offset(log(exposure))", "I(pmin(age, 50)) + I(pmax(age, 50))",
-            "`claim count` + `a+b` + `1st` + `NA` + `T`", ". - age", "age + -1")
+            "`claim count` + `a+b` + `1st` + `NA` + `T`", ". - age", "age + -1", "ns(age, df = 3)",
+            "bs(age, degree = 2, knots = c(30, 50))", "cut(age, c(17, 30, 50, 81), right = FALSE) * region",
+            "ns(age, 3):region")
   for (text in fine) {
     expect_null(glm_formula_problem(text, columns), label = text)
     expect_null(glm_formula_problem(stats::as.formula(paste("y ~", text), env = globalenv()), columns), label = text)
   }
-  allowed <- "it may only use the data's columns with + - * : / ^ and I(), log(), exp(), sqrt(), pmin(), pmax(), poly(), factor(), as.factor(), interaction() and offset()"
+  allowed <- paste("it may only use the data's columns with + - * : / ^ and I(), log(), exp(), sqrt(), pmin(), pmax(), poly(),",
+                   "ns(), bs(), cut(), c(), factor(), as.factor(), interaction() and offset()")
   expect_identical(glm_formula_problem("age + system('echo hi', intern = TRUE)", columns),
                    paste0("the formula may not call system(); ", allowed))
   #the contents of I() are checked: that is where an expression is evaluated as it is
@@ -81,6 +84,7 @@ test_that("glm_formula_problem() accepts the formulas a model needs and names wh
 })
 
 test_that("GLM fitting tool still fits every legitimate formula, with column names that need backticks", {
+  skip_server_on_cran()
   d <- glm_formula_data()
   path <- glm_formula_csv(d)
   reference <- function(text) {
@@ -112,6 +116,7 @@ test_that("GLM fitting tool still fits every legitimate formula, with column nam
 })
 
 test_that("GLM fitting tool refuses a formula that calls anything but the formula functions", {
+  skip_server_on_cran()
   d <- glm_formula_data()
   path <- glm_formula_csv(d)
   #the marker is named in the formula, so its name must not depend on the machine: a temporary
@@ -163,6 +168,7 @@ test_that("GLM fitting tool refuses a formula that calls anything but the formul
 })
 
 test_that("GLM fitting tool refuses a settings file whose formula would run code, at load", {
+  skip_server_on_cran()
   d <- glm_formula_data()
   path <- glm_formula_csv(d)
   marker <- tempfile(fileext = ".txt")
@@ -197,6 +203,8 @@ test_that("GLM fitting tool refuses a settings file whose formula would run code
     expect_identical(fitted_model()$family$family, "gaussian")
     expect_false(file.exists(marker))
     log$notes <- list()
+    #(the fit offers its rating factors on the Rates tab)
+    sent <- list()
     session$setInputs(load_config = list(datapath = by_colon, name = "colon.txt"))
     expect_match(as.character(log$notes[[1]]$html), "may not call base::system()", fixed = TRUE)
     expect_length(sent, 0)

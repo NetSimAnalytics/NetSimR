@@ -167,7 +167,7 @@ glm_stepwise <- function(model, data, candidates, criterion = c("AIC", "BIC"), t
   used <- intersect(unique(c(all.vars(start_formula), candidates, weights)), names(data))
   complete <- stats::complete.cases(data[used])
   if (sum(complete) < 2) stop("no rows have every candidate column present")
-  env <- new.env(parent = globalenv())
+  env <- glm_formula_env()
   env$model_data <- data[complete, , drop = FALSE]
   env$family_object <- glm_family_object(model$family$family, model$family$link)
   warnings <- character(0)
@@ -261,7 +261,7 @@ glm_penalised <- function(model, data, candidates, penalty = c("lasso", "elastic
            function(e) paste(deparse(e), collapse = ""), character(1))
   }
   full <- stats::as.formula(paste(paste(deparse(formula[[2]]), collapse = ""), "~",
-                                  paste(c(offset_text, all_terms), collapse = " + ")), env = globalenv())
+                                  paste(c(offset_text, all_terms), collapse = " + ")), env = glm_formula_env())
   used <- intersect(unique(c(all.vars(full), weights)), names(data))
   rows <- data[stats::complete.cases(data[used]), , drop = FALSE]
   if (nrow(rows) < 10 * folds) stop("too few rows with every column present for ", folds, "-fold cross-validation")

@@ -23,6 +23,7 @@ upload <- function(session, path) {
 }
 
 test_that("distribution fitting tool fits frequency and severity distributions", {
+  skip_server_on_cran()
   csv <- write_claims_csv()
   shiny::testServer(distribution_fitting_tool_Server, {
     upload(session, csv$path)
@@ -75,6 +76,7 @@ test_that("distribution fitting tool fits frequency and severity distributions",
 })
 
 test_that("distribution fitting tool pairs each count with the weight of its own row", {
+  skip_server_on_cran()
   d <- data.frame(counts = c(1, NA, 3, 4, 2, 5), w = c(2, 5, NA, 1, 3, -1))
   shiny::testServer(distribution_fitting_tool_Server, {
     upload(session, write_csv(d))
@@ -93,6 +95,7 @@ test_that("distribution fitting tool pairs each count with the weight of its own
 })
 
 test_that("distribution fitting tool explains unusable columns instead of failing", {
+  skip_server_on_cran()
   d <- data.frame(frac = c(0.5, 1.5, 2, 3), txt = c("a", "b", "c", "d"), same = 7, small = c(0.02, 0.4, 0.13, 0.9))
   shiny::testServer(distribution_fitting_tool_Server, {
     upload(session, write_csv(d))
@@ -110,6 +113,7 @@ test_that("distribution fitting tool explains unusable columns instead of failin
 })
 
 test_that("distribution fitting tool sliced and piecewise Pareto analyses run", {
+  skip_server_on_cran()
   csv <- write_claims_csv()
   shiny::testServer(distribution_fitting_tool_Server, {
     upload(session, csv$path)
@@ -162,6 +166,7 @@ test_that("distribution fitting tool sliced and piecewise Pareto analyses run", 
 })
 
 test_that("distribution fitting tool fits a lognormal body to claims below 1", {
+  skip_server_on_cran()
   set.seed(3)
   d <- data.frame(sev = exp(rnorm(500, -1, 0.8)))
   shiny::testServer(distribution_fitting_tool_Server, {
@@ -182,6 +187,7 @@ write_glm_csv <- function() {
 }
 
 test_that("GLM fitting tool fits the same model as glm()", {
+  skip_server_on_cran()
   csv <- write_glm_csv()
   shiny::testServer(GLMFittingToolServer, {
     session$setInputs(data_source = "CSV File", csv_file = list(datapath = csv$path, name = "glm.csv"), submit = 1)
@@ -228,6 +234,7 @@ test_that("GLM fitting tool fits the same model as glm()", {
 })
 
 test_that("GLM fitting tool checks the formula, reads text binomial responses and predicts every row", {
+  skip_server_on_cran()
   set.seed(7)
   d <- data.frame(claim = sample(c("no", "yes"), 150, TRUE, prob = c(0.7, 0.3)), age = rnorm(150, 40, 10),
                   grp = sample(c("a", "b"), 150, TRUE), y = rpois(150, 2))
@@ -258,8 +265,10 @@ test_that("GLM fitting tool checks the formula, reads text binomial responses an
     expect_equal(coef(update(fitted_model(), . ~ . - grp, data = d, na.action = na.omit)),
                  coef(glm(y ~ claim + age, data = d, family = poisson)))
     #the model does not carry the Shiny session (and its inputs, such as a password) in its environment
-    expect_identical(environment(formula(fitted_model())), globalenv())
-    expect_identical(environment(fitted_model()$terms), globalenv())
+    #(its environment is a child of the global one with the spline bases only, glm_formula_env())
+    expect_identical(parent.env(environment(formula(fitted_model()))), globalenv())
+    expect_setequal(ls(environment(formula(fitted_model()))), c("bs", "ns"))
+    expect_identical(environment(fitted_model()$terms), environment(formula(fitted_model())))
     #warnings of the fit are kept and shown, not swallowed
     session$setInputs(response_variable = "age", glm_distribution = "binomial", link_function = "logit", formula = "y", fit_model = 4)
     expect_true(length(fit_result()$warnings) > 0 || is.null(fitted_model()))
@@ -267,6 +276,7 @@ test_that("GLM fitting tool checks the formula, reads text binomial responses an
 })
 
 test_that("GLM fitting tool charts a text binomial response with more than two values as glm() codes it", {
+  skip_server_on_cran()
   set.seed(11)
   d <- data.frame(outcome = sample(c("none", "small", "large"), 240, TRUE), age = rnorm(240, 40, 10),
                   grp = sample(c("a", "b", "c"), 240, TRUE))
@@ -292,6 +302,7 @@ test_that("GLM fitting tool charts a text binomial response with more than two v
 })
 
 test_that("GLM fitting tool leaves a logical binomial response as it is, TRUE being success", {
+  skip_server_on_cran()
   #every response TRUE: made a factor, TRUE would be the first level, that is failure
   d <- data.frame(hit = TRUE, x = 1:20)
   shiny::testServer(GLMFittingToolServer, {
@@ -330,6 +341,7 @@ glm_settings_session <- function(session, query, password, include_db) {
 }
 
 test_that("GLM fitting tool settings round trip through a text file with the connection details when asked", {
+  skip_server_on_cran()
   query <- "SELECT \"policy id\", 'a''b' AS x\nFROM claims\n  WHERE region = 'North' -- \\ comment\n;"
   password <- "S3cret-settings-pw"
   path <- tempfile(fileext = ".txt")
@@ -370,6 +382,7 @@ test_that("GLM fitting tool settings round trip through a text file with the con
 })
 
 test_that("GLM fitting tool settings leave out the connection details unless the box is ticked", {
+  skip_server_on_cran()
   password <- "S3cret-settings-pw"
   for (include_db in list(FALSE, NULL)) {
     path <- tempfile(fileext = ".txt")
@@ -397,6 +410,7 @@ test_that("GLM fitting tool settings leave out the connection details unless the
 })
 
 test_that("GLM fitting tool refuses files that are not its settings, with a notification", {
+  skip_server_on_cran()
   rds <- tempfile(fileext = ".rds")
   saveRDS(list(version = 2, inputs = list()), rds)
   #a settings file of earlier versions, which saved them with saveRDS()
@@ -437,6 +451,7 @@ test_that("GLM fitting tool refuses files that are not its settings, with a noti
 })
 
 test_that("GLM fitting tool applies column choices from a settings file once the data is imported", {
+  skip_server_on_cran()
   csv <- write_glm_csv()
   path <- tempfile(fileext = ".txt")
   write_settings_file(list(response_variable = "y", weights = "w", formula = "x1"), path, glm_settings_tool, 1)
@@ -451,6 +466,7 @@ test_that("GLM fitting tool applies column choices from a settings file once the
 })
 
 test_that("GLM fitting tool database import checks for the driver package and reports errors", {
+  skip_server_on_cran()
   shiny::testServer(GLMFittingToolServer, {
     expect_false(glm_tool_db_package_available("Not a database"))
     #a connection that cannot be opened gives no data instead of an error
@@ -468,6 +484,7 @@ test_that("GLM fitting tool database import checks for the driver package and re
 })
 
 test_that("GLM fitting tool imports a table from SQLite through the DBI helper", {
+  skip_server_on_cran()
   skip_if_not_installed("RSQLite")
   skip_if_not_installed("DBI")
   db <- tempfile(fileext = ".sqlite")

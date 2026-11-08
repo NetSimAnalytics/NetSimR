@@ -24,9 +24,10 @@ The formula typed in the application, or read from one of its
   settings files, is restricted to the columns of the imported data, numbers,
   the formula operators and a small set of formula functions: \code{I()},
   \code{log()}, \code{exp()}, \code{sqrt()}, \code{pmin()}, \code{pmax()},
-  \code{poly()}, \code{factor()}, \code{as.factor()}, \code{interaction()}
-  and \code{offset()}. Any other call is refused, so a settings file shared
-  between colleagues cannot run code.
+  \code{poly()}, the splines \code{ns()} and \code{bs()}, \code{cut()} with
+  \code{c()} for its breaks, \code{factor()}, \code{as.factor()},
+  \code{interaction()} and \code{offset()}. Any other call is refused, so a
+  settings file shared between colleagues cannot run code.
 }
 \examples{
 if (interactive()) {
