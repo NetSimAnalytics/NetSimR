@@ -14,13 +14,17 @@ home:
 
 navbar:
   structure:
-    left: [intro, tryonline, reference, articles, news]
+    left: [intro, tryonline, reference, articles, news, customtools]
     right: [search, github]
   components:
     tryonline:
       text: Try online
       icon: fa-play
       href: articles/try-online.html
+    customtools:
+      text: Custom tools
+      icon: fa-handshake
+      href: articles/custom-tools.html
 
 reference:
 - title: Shiny tools
@@ -40,6 +44,7 @@ reference:
   - simulate_portfolio
   - apply_deductible_limit
   - reinstatement_premium
+  - compare_reinsurance
 - title: Claims reserving
   desc: Chain ladder with Mack's standard errors, methods with premiums, the bootstrap, the one-year view, the Munich chain ladder, Clark's growth curves, inflation and actual vs expected.
   contents:
@@ -53,6 +58,13 @@ reference:
   - clark_growth
   - inflation_adjusted_chain_ladder
   - as_triangle
+- title: IFRS 17 and Solvency II
+  desc: Discounted reserves, the risk adjustment, and the standard formula's non-life premium and reserve risk.
+  contents:
+  - discount_reserves
+  - risk_adjustment
+  - sii_premium_reserve_risk
+  - sii_nonlife_segments
 - title: Excess of loss pricing
   desc: Burning cost, Pareto rating, exposure rating with MBBEFD curves or a claim size distribution, and the technical premium.
   contents:
@@ -62,10 +74,13 @@ reference:
   - mbbefd_curve
   - technical_premium
   - credibility_weight
-- title: Pricing models
-  desc: A Tweedie family for generalised linear models of the loss cost.
+- title: Pricing models and rate reviews
+  desc: A Tweedie family for generalised linear models of the loss cost, on-level premiums, the indicated rate change and Buhlmann-Straub credibility.
   contents:
   - tweedie_family
+  - on_level_premium
+  - indicated_rate_change
+  - buhlmann_straub
 - title: Capped means
   contents:
   - GammaCappedMean
@@ -107,12 +122,15 @@ reference:
   - xl_premium
   - xl_property_profile
   - xl_casualty_profile
+  - motor_policies
+  - liability_claims
 
 articles:
 - title: Articles
   navbar: ~
   contents:
   - EndToEnd
+  - PricingMonitoring
   - SimulateClaims
   - Reserving
   - ReinsurancePricing
@@ -123,3 +141,4 @@ articles:
   navbar: ~
   contents:
   - articles/try-online
+  - articles/custom-tools

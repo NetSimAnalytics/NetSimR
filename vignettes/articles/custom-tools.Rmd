@@ -1,0 +1,62 @@
+---
+title: "Custom tools for insurers and reinsurers"
+description: >
+  Pricing, reserving, reinsurance and capital tools built around your data, methods and governance.
+---
+
+NetSimR and its six tools are free. The same approach — actuarial methods validated against
+established packages, in tools that people who do not write R can use — can be built around
+your own data, assumptions and processes.
+
+```{=html}
+<style>
+.netsimr-offer { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.netsimr-offer > div { border: 1px solid var(--bs-border-color); border-radius: 0.75rem; padding: 1rem 1.1rem; }
+.netsimr-offer h3 { font-size: 1.05rem; margin: 0 0 0.4rem 0; }
+.netsimr-offer p { margin: 0; }
+.netsimr-contact { border-left: 4px solid var(--bs-primary); padding: 0.9rem 1.1rem; background: var(--bs-tertiary-bg); border-radius: 0.5rem; margin: 1.5rem 0; }
+</style>
+<div class="netsimr-offer">
+  <div>
+    <h3>Pricing</h3>
+    <p>GLM rating models, rate tables ready for a rating engine, scoring of new business, and rate reviews with on-levelling, trend and credibility.</p>
+  </div>
+  <div>
+    <h3>Reserving, IFRS 17 and Solvency II</h3>
+    <p>Reserving tools on your triangles, with discounting, the risk adjustment, the standard formula's reserve risk, and reports for the reserving committee.</p>
+  </div>
+  <div>
+    <h3>Reinsurance</h3>
+    <p>Experience and exposure rating of treaties, and the comparison of programmes by their cost and the capital they save.</p>
+  </div>
+  <div>
+    <h3>Capital</h3>
+    <p>Simulation of the portfolio's lines with their dependence, capital by line, and the comparison with the standard formula.</p>
+  </div>
+</div>
+```
+
+## How the work is done
+
+- **Your data, where it lives**: databases, Excel workbooks or files, read as they are.
+- **Your methods and assumptions**: the tool does what your actuaries do today, faster and the
+  same way every time, with the choices they make in it recorded.
+- **Validated**: results checked against established packages and hand calculations, with
+  automated tests, as NetSimR's are.
+- **Documented**: reports that explain the figures to a committee, an auditor or a regulator.
+- **Delivered the way you work**: a tool in the browser, on your own servers or on each
+  actuary's computer, or an R package for your team, with training and a handover.
+
+## See the tools
+
+The [Try online](try-online.html) page runs NetSimR's six tools in your browser, and its gallery
+shows them at work. The vignette
+[From pricing to capital and reserves](EndToEnd.html) follows one portfolio through all of them.
+
+```{=html}
+<div class="netsimr-contact">
+  <strong>Get in touch.</strong> Yiannis Parizas, the author of NetSimR:
+  <a href="mailto:yiannis.parizas@gmail.com">yiannis.parizas@gmail.com</a> or
+  <a href="https://www.linkedin.com/in/yiannisparizas/" target="_blank" rel="noopener">LinkedIn</a>.
+</div>
+```
