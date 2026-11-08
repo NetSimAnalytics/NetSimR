@@ -339,14 +339,18 @@ Each step has a Shiny tool, which runs on the computer or in the browser
 on the package’s website:
 
 - [`run_shiny_glm_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md):
-  the GLMs of section 3, with the Tweedie family, holdout validation,
-  lift and double lift charts, and variable selection.
+  the GLMs of section 3, with the Tweedie family, splines, holdout
+  validation, lift and double lift charts, variable selection, and the
+  rate table.
 - [`run_shiny_distribution_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md):
   the claim size fits of section 4, sent on to the simulator.
 - [`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md):
   the simulation and the layer of section 4, with a report.
 - [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md):
   the price of the layer.
+- [`run_shiny_portfolio_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md):
+  the portfolio of section 5, with a correlation matrix, charts and a
+  report.
 - [`run_shiny_reserving_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md):
   the chain ladder, actual vs expected, Clark’s curves and the claims
-  inflation of section 6.
+  inflation of section 6, with a report.

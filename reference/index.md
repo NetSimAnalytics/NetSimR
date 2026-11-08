@@ -14,6 +14,8 @@ Applications that run the package’s models without writing code.
   : Run the claims reserving application
 - [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
   : Run the reinsurance pricing application
+- [`run_shiny_portfolio_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md)
+  : Run the portfolio capital application
 
 ## Claims simulation and reinsurance
 

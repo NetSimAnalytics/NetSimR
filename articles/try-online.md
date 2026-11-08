@@ -1,6 +1,6 @@
 # Try the tools in your browser
 
-The five Shiny tools of NetSimR run right here, in your browser, with
+The six Shiny tools of NetSimR run right here, in your browser, with
 [webR](https://docs.r-wasm.org/webr/latest/), R compiled to WebAssembly,
 and [shinylive](https://posit-dev.github.io/r-shinylive/). Nothing to
 install, and nothing leaves your computer: the data you upload and the
@@ -24,9 +24,9 @@ tool](https://netsimanalytics.github.io/NetSimR/apps/distribution/)
 
 ### GLM fitting
 
-Fit generalised linear models to a CSV file, let stepwise selection
-suggest the terms, test them on held-out rows and download the rating
-factors.
+Fit generalised linear models to a CSV file, with splines and bands, let
+stepwise selection or the lasso suggest the terms, test them on held-out
+rows, and download the rate table.
 
 [Open the GLM tool](https://netsimanalytics.github.io/NetSimR/apps/glm/)
 
@@ -45,6 +45,14 @@ exposure curves, and blend them.
 
 [Open the pricing
 tool](https://netsimanalytics.github.io/NetSimR/apps/reinsurance/)
+
+### Portfolio capital
+
+Join several lines of business with a Gaussian or t copula: VaR, TVaR,
+diversification and each line's capital.
+
+[Open the capital
+tool](https://netsimanalytics.github.io/NetSimR/apps/portfolio/)
 
 ## Good to know
 
@@ -74,4 +82,5 @@ run_shiny_distribution_fitting_tool()
 run_shiny_glm_fitting_tool()
 run_shiny_reserving_tool()
 run_shiny_reinsurance_pricing_tool()
+run_shiny_portfolio_tool()
 ```

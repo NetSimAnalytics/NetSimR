@@ -22,7 +22,7 @@ The NetSimR package provides eight categories of functions:
     with MBBEFD curves, and the technical premium
 
 8.  Shiny apps for simulating claims, fitting distributions, fitting
-    GLMs, reserving and reinsurance pricing
+    GLMs, reserving, reinsurance pricing and portfolio capital
 
 ## NetSimR special functions
 
@@ -120,6 +120,7 @@ named (`pareto_capped_mean`). Both work.
 [`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md)
 [`run_shiny_reserving_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md)
 [`run_shiny_reinsurance_pricing_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
+[`run_shiny_portfolio_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md)
 
 ## See also
 

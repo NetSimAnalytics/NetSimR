@@ -30,7 +30,9 @@ formula operators and a small set of formula functions:
 [`sqrt()`](https://rdrr.io/r/base/MathFun.html),
 [`pmin()`](https://rdrr.io/r/base/Extremes.html),
 [`pmax()`](https://rdrr.io/r/base/Extremes.html),
-[`poly()`](https://rdrr.io/r/stats/poly.html),
+[`poly()`](https://rdrr.io/r/stats/poly.html), the splines `ns()` and
+`bs()`, [`cut()`](https://rdrr.io/r/base/cut.html) with
+[`c()`](https://rdrr.io/r/base/c.html) for its breaks,
 [`factor()`](https://rdrr.io/r/base/factor.html),
 [`as.factor()`](https://rdrr.io/r/base/factor.html),
 [`interaction()`](https://rdrr.io/r/base/interaction.html) and

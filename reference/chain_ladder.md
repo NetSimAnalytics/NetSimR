@@ -14,7 +14,8 @@ chain_ladder(
   exclude = NULL,
   tail = 1,
   tail_from = 1,
-  sigma = c("log-linear", "Mack")
+  sigma = c("log-linear", "Mack"),
+  tail_periods = 100
 )
 ```
 
@@ -51,7 +52,7 @@ chain_ladder(
   The tail factor from the last development period to ultimate: a
   positive number (1, the default, for none), or `"exponential"` or
   `"inverse power"` for a curve fitted to the development factors above
-  1 and extrapolated over 100 periods.
+  1 and extrapolated over `tail_periods` periods.
 
 - tail_from:
 
@@ -61,6 +62,13 @@ chain_ladder(
 
   How \\\sigma\\ is found for a period with a single link ratio:
   `"log-linear"` or `"Mack"`.
+
+- tail_periods:
+
+  The number of periods beyond the triangle over which a tail curve is
+  extrapolated (100, the default). An inverse power curve falls slowly,
+  so its tail grows with this; an exponential one has nearly all of its
+  tail in the first few periods.
 
 ## Value
 

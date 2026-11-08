@@ -22,5 +22,5 @@
 - [Try the tools in your
   browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.md):
 
-  The package’s five Shiny tools, running in your browser with webR: no
-  R to install.
+  The package’s six Shiny tools, running in your browser with webR: no R
+  to install.

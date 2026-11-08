@@ -62,6 +62,8 @@
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/pSlicedGammaPareto.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/pSlicedLNormPareto.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.html</loc></url>
+<url><loc>https://netsimanalytics.github.io/NetSimR/reference/portfolio_tool_Server.html</loc></url>
+<url><loc>https://netsimanalytics.github.io/NetSimR/reference/portfolio_tool_UI.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/print.netsimr_portfolio.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/print.netsimr_reserve.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.html</loc></url>
@@ -77,6 +79,7 @@
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/reserving_tool_UI.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.html</loc></url>
+<url><loc>https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.html</loc></url>
 <url><loc>https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.html</loc></url>

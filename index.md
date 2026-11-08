@@ -7,10 +7,10 @@ status](https://www.r-pkg.org/badges/version/NetSimR)](https://CRAN.R-project.or
 coverage](https://codecov.io/gh/NetSimAnalytics/NetSimR/graph/badge.svg)](https://app.codecov.io/gh/NetSimAnalytics/NetSimR)
 
 NetSimR is an R package of actuarial functions for non-life insurance
-and reinsurance pricing, reserving and capital modelling, with five
-Shiny tools for simulating claims, fitting distributions and GLMs,
-reserving and pricing excess of loss reinsurance. Its website, with
-every help page and the vignettes, is
+and reinsurance pricing, reserving and capital modelling, with six Shiny
+tools for simulating claims, fitting distributions and GLMs, reserving,
+pricing excess of loss reinsurance and the capital of a portfolio. Its
+website, with every help page and the vignettes, is
 <https://netsimanalytics.github.io/NetSimR/>, where the tools can also
 be [tried in the
 browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.html),
@@ -54,14 +54,16 @@ remotes::install_github("NetSimAnalytics/NetSimR")
   exposure rating with the Swiss Re and Lloyd’s (MBBEFD) curves or a
   claim size distribution, credibility blending and the technical
   premium with reinstatements.
-- **Five Shiny tools**: a claims simulator with reports and run
+- **Six Shiny tools**: a claims simulator with reports and run
   comparison; a distribution fitting tool for claim counts and sizes,
-  including claims reported only above a threshold, with Q-Q plots and
-  Anderson-Darling tests, whose fits it saves as simulator settings; a
-  GLM fitting tool with a Tweedie family, a rating factor table,
-  variable selection (stepwise, lasso, elastic net, ridge) and
-  validation on held-out rows (Gini, lift and double lift); a reserving
-  tool; and a reinsurance pricing tool.
+  including claims reported only above a threshold or capped at policy
+  limits, with Q-Q plots and Anderson-Darling tests, whose fits it saves
+  as simulator settings; a GLM fitting tool with a Tweedie family,
+  splines and bands, variable selection (stepwise, lasso, elastic net,
+  ridge), validation on held-out rows (Gini, lift and double lift), a
+  rate table and scoring of new data; a reserving tool with a report; a
+  reinsurance pricing tool; and a portfolio capital tool with copulas
+  and capital allocation.
 
 ## Examples
 
@@ -124,7 +126,12 @@ run_shiny_distribution_fitting_tool()  # frequency and severity fits
 run_shiny_glm_fitting_tool()           # generalised linear models
 run_shiny_reserving_tool()             # claims reserving
 run_shiny_reinsurance_pricing_tool()   # excess of loss pricing
+run_shiny_portfolio_tool()             # portfolio capital
 ```
+
+Problems and ideas are welcome as [GitHub
+issues](https://github.com/NetSimAnalytics/NetSimR/issues/new/choose);
+each tool’s About card links to them.
 
 ## Vignettes
 

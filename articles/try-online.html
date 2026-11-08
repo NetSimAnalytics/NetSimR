@@ -10,8 +10,8 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Try the tools in your browser">
-<meta name="description" content="The package's five Shiny tools, running in your browser with webR: no R to install.">
-<meta property="og:description" content="The package's five Shiny tools, running in your browser with webR: no R to install.">
+<meta name="description" content="The package's six Shiny tools, running in your browser with webR: no R to install.">
+<meta property="og:description" content="The package's six Shiny tools, running in your browser with webR: no R to install.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -21,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">NetSimR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@
 
     
     
-<p>The five Shiny tools of NetSimR run right here, in your browser, with
+<p>The six Shiny tools of NetSimR run right here, in your browser, with
 <a href="https://docs.r-wasm.org/webr/latest/" class="external-link">webR</a>, R compiled to
 WebAssembly, and <a href="https://posit-dev.github.io/r-shinylive/" class="external-link">shinylive</a>. Nothing
 to install, and nothing leaves your computer: the data you upload and
@@ -98,7 +98,7 @@ the models you fit stay in the page.</p>
   </div>
   <div class="netsimr-tool">
     <h3>GLM fitting</h3>
-    <p>Fit generalised linear models to a CSV file, let stepwise selection suggest the terms, test them on held-out rows and download the rating factors.</p>
+    <p>Fit generalised linear models to a CSV file, with splines and bands, let stepwise selection or the lasso suggest the terms, test them on held-out rows, and download the rate table.</p>
     <a class="btn btn-primary" href="../apps/glm/" target="_blank" rel="noopener">Open the GLM tool</a>
   </div>
   <div class="netsimr-tool">
@@ -110,6 +110,11 @@ the models you fit stay in the page.</p>
     <h3>Reinsurance pricing</h3>
     <p>Price an excess of loss layer with the burning cost, a Pareto model and exposure curves, and blend them.</p>
     <a class="btn btn-primary" href="../apps/reinsurance/" target="_blank" rel="noopener">Open the pricing tool</a>
+  </div>
+  <div class="netsimr-tool">
+    <h3>Portfolio capital</h3>
+    <p>Join several lines of business with a Gaussian or t copula: VaR, TVaR, diversification and each line's capital.</p>
+    <a class="btn btn-primary" href="../apps/portfolio/" target="_blank" rel="noopener">Open the capital tool</a>
   </div>
 </div>
 <div class="section level2">
@@ -145,7 +150,8 @@ for the newest version, from GitHub:</p>
 <span><span class="fu"><a href="../reference/run_shiny_distribution_fitting_tool.html">run_shiny_distribution_fitting_tool</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/run_shiny_glm_fitting_tool.html">run_shiny_glm_fitting_tool</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/run_shiny_reserving_tool.html">run_shiny_reserving_tool</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/run_shiny_reinsurance_pricing_tool.html">run_shiny_reinsurance_pricing_tool</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/run_shiny_reinsurance_pricing_tool.html">run_shiny_reinsurance_pricing_tool</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/run_shiny_portfolio_tool.html">run_shiny_portfolio_tool</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -239,7 +239,7 @@ simulate_function(
   Deprecated misspellings of
   `reinsurance_structure_eel_deductible_amount` and
   `reinsurance_structure_al_deductible_amount`, the names before version
-  0.3.4; they still work, with a warning.
+  0.4.0; they still work, with a warning.
 
 ## Value
 
