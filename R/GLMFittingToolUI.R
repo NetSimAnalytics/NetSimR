@@ -269,7 +269,8 @@ glm_family_links <- list(
   poisson = c("log", "identity", "sqrt"),
   binomial = c("logit", "probit", "cloglog", "cauchit", "log"),
   Gamma = c("inverse", "log", "identity"),
-  inverse.gaussian = c("1/mu^2", "inverse", "log", "identity")
+  inverse.gaussian = c("1/mu^2", "inverse", "log", "identity"),
+  tweedie = c("log", "identity", "sqrt", "inverse")
 )
 
 #' User interface of the Shiny GLM fitting tool
@@ -403,7 +404,7 @@ GLMFittingToolUI <- function(request) {
         div(
           class = "sim-stat",
           div(class = "sim-stat-label", icon("sitemap"), "Model families"),
-          div(class = "sim-stat-value", paste(c("Gaussian", "Poisson", "Binomial", "Gamma", "Inverse Gaussian"),
+          div(class = "sim-stat-value", paste(c("Gaussian", "Poisson", "Binomial", "Gamma", "Inverse Gaussian", "Tweedie"),
                                               collapse = paste0(" ", intToUtf8(183), " ")))
         ),
         div(
@@ -518,9 +519,16 @@ GLMFittingToolUI <- function(request) {
               class = "param-grid-2",
               selectInput("glm_distribution", "Family",
                           c("Gaussian" = "gaussian", "Poisson" = "poisson", "Binomial" = "binomial",
-                            "Gamma" = "Gamma", "Inverse Gaussian" = "inverse.gaussian"),
+                            "Gamma" = "Gamma", "Inverse Gaussian" = "inverse.gaussian", "Tweedie" = "tweedie"),
                           selected = "gaussian"),
               selectInput("link_function", "Link", glm_family_links$gaussian, selected = "identity")
+            ),
+            conditionalPanel(
+              condition = "input.glm_distribution == 'tweedie'",
+              numericInput("tweedie_power", "Variance power", value = 1.5, min = 1.05, max = 1.95, step = 0.05),
+              dft_help("Between 1 and 2: a compound Poisson-Gamma model of the loss cost, zero for most rows. ",
+                       "Near 1 it behaves like a model of the claim count, near 2 like a model of the amount. ",
+                       "Tweedie models have no AIC: compare them by their test deviance on the Validation tab.")
             ),
             div(
               class = "param-grid-2",
@@ -583,11 +591,14 @@ GLMFittingToolUI <- function(request) {
           )
         ),
         bslib::card(
-          sim_card_header("wand-magic-sparkles", "Variable selection", "Stepwise from the fitted model, by AIC or BIC."),
+          sim_card_header("wand-magic-sparkles", "Variable selection",
+                          "Stepwise by AIC or BIC, or penalised: the lasso, the elastic net or ridge."),
           bslib::card_body(
-            div(class = "sim-section-label", "Criterion"),
+            div(class = "sim-section-label", "Method"),
             div(class = "pill-radio",
-                radioButtons("select_criterion", NULL, c("AIC" = "AIC", "BIC (fewer terms)" = "BIC"), "AIC", inline = TRUE)),
+                radioButtons("select_criterion", NULL,
+                             c("Stepwise AIC" = "AIC", "Stepwise BIC" = "BIC", "Lasso" = "lasso",
+                               "Elastic net" = "elastic", "Ridge" = "ridge"), "AIC", inline = TRUE)),
             selectizeInput("select_candidates", "Columns it may add", choices = NULL, multiple = TRUE,
                            options = list(placeholder = "Every column that can be a predictor")),
             actionButton("run_selection", "Suggest terms", icon = icon("wand-magic-sparkles"), class = "btn-outline-glm"),

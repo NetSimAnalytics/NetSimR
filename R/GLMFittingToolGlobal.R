@@ -51,12 +51,12 @@ glm_settings_inputs <- data.frame(
          "db_type", "db_host", "db_name", "db_port", "windows_auth", "db_user", "sql_query",
          "glm_distribution", "link_function", "offset_log", "formula", "number_of_bands_input", "band_method",
          "response_variable", "offset", "weights", "visualize_variable",
-         "holdout_share", "holdout_seed", "select_criterion"),
+         "holdout_share", "holdout_seed", "select_criterion", "tweedie_power"),
   kind = c("radio", "switch", "radio", "radio", "radio",
            "select", "text", "text", "text", "switch", "text", "textarea",
            "select", "select", "switch", "textarea", "slider", "radio",
            "column", "column", "column", "column",
-           "radio", "numeric", "radio"),
+           "radio", "numeric", "radio", "numeric"),
   stringsAsFactors = FALSE
 )
 
@@ -77,11 +77,11 @@ glm_settings_choices <- list(
   csv_dec = c(".", ","),
   csv_quote = c("\"", "'", ""),
   db_type = c("SQLite", "SQL Server", "PostgreSQL"),
-  glm_distribution = c("gaussian", "poisson", "binomial", "Gamma", "inverse.gaussian"),
+  glm_distribution = c("gaussian", "poisson", "binomial", "Gamma", "inverse.gaussian", "tweedie"),
   link_function = c("identity", "log", "inverse", "sqrt", "logit", "probit", "cloglog", "cauchit", "1/mu^2"),
   band_method = c("quantile", "width"),
   holdout_share = c("0", "0.1", "0.2", "0.3"),
-  select_criterion = c("AIC", "BIC")
+  select_criterion = c("AIC", "BIC", "lasso", "elastic", "ridge")
 )
 
 # The usable values of a settings file (the values of read_settings_file()): a named
@@ -106,6 +106,7 @@ glm_settings_values <- function(inputs) {
     # a hand-edited file may hold any number of bands; the slider only offers its range
     if (id == "number_of_bands_input") value <- glm_band_count(value)
     if (id == "holdout_seed") value <- glm_holdout_seed(value)
+    if (id == "tweedie_power" && (value <= 1 || value >= 2)) next
     values[[id]] <- value
   }
   if (length(values) == 0) NULL else values
@@ -192,9 +193,21 @@ glm_many_values <- function(x) {
 # built it (poisson() and the other families leave their link argument
 # unevaluated), so a family built by glm() inside the server kept the server, and
 # the Shiny session with its inputs, such as a database password, in every model
-# saved to a file.
-glm_family_object <- function(family, link) {
+# saved to a file. The Tweedie family (tweedie_family()) keeps only its power and link.
+glm_family_object <- function(family, link, power = 1.5) {
+  if (identical(family, "tweedie")) return(tweedie_family(glm_tweedie_power(power), link))
   do.call(getExportedValue("stats", family), list(link = link), envir = baseenv())
+}
+
+# The variance power of a Tweedie model: a number between 1 and 2, 1.5 when there is none.
+glm_tweedie_power <- function(power) {
+  power <- suppressWarnings(as.numeric(power))
+  if (length(power) != 1 || !is.finite(power) || power <= 1 || power >= 2) 1.5 else power
+}
+
+# The family as the tool writes it: "poisson", or "Tweedie, power 1.5".
+glm_family_label <- function(spec) {
+  if (identical(spec$family, "tweedie")) paste0("Tweedie, power ", format(glm_tweedie_power(spec$power))) else spec$family
 }
 
 # Whether a column looks like an identifier, of no use as a response or as the
@@ -235,7 +248,7 @@ glm_default_response <- function(df, family = "gaussian") {
   words <- lapply(usable, function(column) {
     tolower(strsplit(gsub("([a-z])([A-Z])", "\\1 \\2", column), "[^A-Za-z]+")[[1]])
   })
-  tiers <- if (family %in% c("Gamma", "inverse.gaussian")) {
+  tiers <- if (family %in% c("Gamma", "inverse.gaussian", "tweedie")) {
     glm_response_words[c("amount", "count", "other")]
   } else {
     glm_response_words[c("count", "amount", "other")]

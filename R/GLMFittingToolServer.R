@@ -211,7 +211,8 @@ GLMFittingToolServer <- function(input, output, session) {
   # with the previous count response, which fails). A value the server sets is held here until
   # the browser reports it; a value the server sets to what is already shown is not held, as
   # the browser reports nothing for it.
-  spec_inputs <- c("response_variable", "offset", "offset_log", "weights", "formula", "holdout_share", "holdout_seed")
+  spec_inputs <- c("response_variable", "offset", "offset_log", "weights", "formula", "holdout_share", "holdout_seed",
+                   "tweedie_power")
   unreported <- reactiveValues()
   for (id in spec_inputs) local({
     input_id <- id
@@ -272,7 +273,9 @@ GLMFittingToolServer <- function(input, output, session) {
       formula = trimws(or_default(spec_value("formula"), "")),
       # the share of the rows held out for testing ("0" for none) and the seed that picks them
       holdout = or_default(as.character(spec_value("holdout_share")), "0"),
-      seed = glm_holdout_seed(spec_value("holdout_seed"))
+      seed = glm_holdout_seed(spec_value("holdout_seed")),
+      # the variance power of a Tweedie model (kept for the others, which ignore it)
+      power = glm_tweedie_power(spec_value("tweedie_power"))
     )
   }
 
@@ -344,6 +347,9 @@ GLMFittingToolServer <- function(input, output, session) {
       }
     }
     response_values <- model_data[[spec$response]]
+    if (spec$family == "tweedie" && is.numeric(response_values) && any(response_values < 0, na.rm = TRUE)) {
+      stop("the Tweedie family needs zero or positive responses; '", spec$response, "' has negative values")
+    }
     if (spec$family != "binomial" && !is.numeric(response_values) && !is.logical(response_values)) {
       stop("the response '", spec$response, "' has text values, such as '", stats::na.omit(response_values)[1],
            "'; the ", spec$family, " family needs numbers (only a binomial response can be text)")
@@ -383,7 +389,12 @@ GLMFittingToolServer <- function(input, output, session) {
     # refers to the data as model_data, so update() on a downloaded model needs the data assigned to
     # model_data or passed as data =. The weights are a column of the data, so the rows left out
     # for missing values leave out their weight too
-    family_call <- call(spec$family, link = link)
+    family_call <- if (spec$family == "tweedie") {
+      # NetSimR's own family, so that update() on a downloaded model finds it
+      as.call(list(quote(NetSimR::tweedie_family), power = glm_tweedie_power(spec$power), link = link))
+    } else {
+      call(spec$family, link = link)
+    }
     weights_arg <- if (spec$weights != "None") as.name(spec$weights) else NULL
     fit_call <- if (is.null(weights_arg)) {
       bquote(stats::glm(.(model_formula), family = family_object, data = model_data, na.action = stats::na.exclude))
@@ -399,7 +410,7 @@ GLMFittingToolServer <- function(input, output, session) {
     # apart, see glm_family_object()) are, and the formula's environment is the global one
     fit_env <- new.env(parent = globalenv())
     fit_env$model_data <- model_data[!test, , drop = FALSE]
-    fit_env$family_object <- glm_family_object(spec$family, link)
+    fit_env$family_object <- glm_family_object(spec$family, link, spec$power)
     model <- withCallingHandlers(
       eval(fit_call, fit_env),
       warning = function(w) {
@@ -533,7 +544,10 @@ GLMFittingToolServer <- function(input, output, session) {
                         if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ","), "rows with missing values left out")
                       ), collapse = "; ")),
         dft_stat_tile("Parameters", facts$parameters, icon_name = "list-ol"),
-        dft_stat_tile("AIC", dft_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE),
+        dft_stat_tile("AIC", dft_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE,
+                      note = if (!is.finite(facts$aic) && identical(model$family$family, "Tweedie")) {
+                        "None for a Tweedie model: compare the test deviance on the Validation tab"
+                      }),
         dft_stat_tile("Deviance explained", if (is.finite(facts$deviance_explained)) paste0(dft_fmt(100 * facts$deviance_explained, 3), "%") else dft_dash,
                       icon_name = "chart-pie"),
         dft_stat_tile(if (fixed) "Pearson dispersion" else "Dispersion", dft_fmt(if (fixed) pearson else dispersion, 4),
@@ -633,6 +647,11 @@ GLMFittingToolServer <- function(input, output, session) {
     seed <- or_default(spec$seed, 1L)
     hold_spec_input("holdout_seed", seed)
     updateNumericInput(session, "holdout_seed", value = seed)
+    if (identical(spec$family, "tweedie")) {
+      power <- glm_tweedie_power(spec$power)
+      hold_spec_input("tweedie_power", power)
+      updateNumericInput(session, "tweedie_power", value = power)
+    }
   }
 
   observeEvent(input$save_formula_1, store_model(1))
@@ -656,14 +675,14 @@ GLMFittingToolServer <- function(input, output, session) {
     lhs <- paste(c(paste(term(spec$response), "~"), offset_term(spec$offset, spec$offset_log)), collapse = " ")
     tagList(
       div(class = "glm-slot-formula", paste(lhs, if (!is.null(offset_term(spec$offset, spec$offset_log))) "+", if (spec$formula == "") "1" else spec$formula)),
-      div(class = "sim-muted", paste0(spec$family, " (", spec$link, " link)",
+      div(class = "sim-muted", paste0(glm_family_label(spec), " (", spec$link, " link)",
                                       if (spec$weights != "None") paste0(", weights ", spec$weights), ", ",
                                       format(stored$n, big.mark = ","), " observations",
                                       if (!identical(or_default(spec$holdout, "0"), "0")) {
                                         paste0(", ", names(glm_holdout_choices)[glm_holdout_choices == spec$holdout], " held out (seed ", spec$seed, ")")
                                       })),
       div(class = "glm-slot-aic", paste("AIC", dft_fmt(stored$aic, 7)),
-          if (comparable && stored$aic < other$aic) tags$span(class = "glm-better", " lower")),
+          if (comparable && isTRUE(stored$aic < other$aic)) tags$span(class = "glm-better", " lower")),
       if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different data, response, observations, weights or rows held out.")
     )
   }
@@ -1053,17 +1072,39 @@ GLMFittingToolServer <- function(input, output, session) {
     chosen <- input$select_candidates
     candidates <- if (length(chosen) > 0) intersect(chosen, pool) else pool
     test <- if (has_holdout(result)) result$data[result$test, , drop = FALSE]
-    criterion <- if (identical(input$select_criterion, "BIC")) "BIC" else "AIC"
+    method <- or_default(input$select_criterion, "AIC")
+    if (!method %in% c("AIC", "BIC", names(glm_penalty_alpha))) method <- "AIC"
+    training <- result$data[!result$test, , drop = FALSE]
     tryCatch(
-      shiny::withProgress(message = "Selecting terms", value = 0.3,
-                          glm_stepwise(result$model, result$data[!result$test, , drop = FALSE], candidates, criterion, test)),
+      shiny::withProgress(message = "Selecting terms", value = 0.3, {
+        if (method %in% c("AIC", "BIC")) {
+          c(glm_stepwise(result$model, training, candidates, method, test), kind = "stepwise")
+        } else {
+          c(glm_penalised(result$model, training, candidates, method, test, seed = spec$seed), kind = "penalised")
+        }
+      }),
       error = function(e) list(error = paste("The selection failed:", conditionMessage(e)))
     )
   })
 
+  # the cross-validated deviance of a penalised fit along its penalties
+  output$selection_plot <- netsimr_render_plot({
+    s <- selection()
+    req(identical(s$kind, "penalised"))
+    path <- s$path
+    dft_line_chart(
+      list(list(x = path$log_lambda, y = path$cv_deviance, name = "Cross-validated deviance", colour = dft_model_palette[2]),
+           list(x = path$log_lambda, y = path$upper, name = "One standard error", colour = "muted", lwd = 1),
+           list(x = path$log_lambda, y = path$lower, name = "One standard error", colour = "muted", lwd = 1)),
+      x_title = "log(lambda), the penalty: weaker to the left", y_title = "Deviance per row", dark = dark(),
+      ylim = range(c(path$lower, path$upper), finite = TRUE), vlines = log(unname(s$lambda))
+    )
+  }, bg = "transparent", res = 96, alt = "Cross-validated deviance of the penalised fit by the size of its penalty")
+
   output$selection_result <- renderUI({
     s <- selection()
     if (!is.null(s$error)) return(dft_help(s$error))
+    if (identical(s$kind, "penalised")) return(penalised_result(s))
     with_test <- any(is.finite(s$path$test_deviance))
     best_test <- if (with_test) which.min(s$path$test_deviance)
     rows <- lapply(seq_len(nrow(s$path)), function(i) {
@@ -1086,6 +1127,34 @@ GLMFittingToolServer <- function(input, output, session) {
       if (length(s$warnings) > 0) dft_help(paste("The fits warned:", paste(s$warnings, collapse = "; ")))
     )
   })
+
+  penalised_result <- function(s) {
+    with_test <- any(is.finite(s$summary$test_deviance))
+    rows <- lapply(seq_len(nrow(s$summary)), function(i) {
+      cells <- list(s$summary$choice[i], dft_fmt(s$summary$lambda[i], 4), as.character(s$summary$terms[i]),
+                    dft_fmt(s$summary$cv_deviance[i], 5))
+      if (with_test) cells <- c(cells, list(dft_fmt(s$summary$test_deviance[i], 5)))
+      cells
+    })
+    name <- c(lasso = "lasso", elastic = "elastic net", ridge = "ridge regression")[[s$penalty]]
+    tagList(
+      dft_html_table(c("Penalty", "lambda", "Terms", "CV deviance per row", if (with_test) "Test deviance per row"), rows,
+                     align = c("left", "right", "right", "right", "right")),
+      dft_plot_output("selection_plot", height = "320px"),
+      div(class = "sim-section-label mt-2", "Suggested terms (within one standard error)"),
+      div(class = "glm-slot-formula", s$terms),
+      if (length(s$dropped) > 0) div(class = "sim-muted", paste("Dropped:", paste(s$dropped, collapse = ", "))),
+      actionButton("use_selection", "Use these terms", icon = icon("arrow-up"), class = "btn-outline-glm mt-1"),
+      dft_help(paste0(
+        "The ", name, " shrinks the coefficients towards zero by a penalty chosen by 5-fold cross-validation on the training rows",
+        if (s$penalty != "ridge") ", and drops the terms whose coefficients reach zero" else "; ridge shrinks every term but drops none",
+        ". The larger penalty within one standard error of the lowest cross-validated deviance keeps fewer terms. ",
+        if (s$left_out > 0) paste0(format(s$left_out, big.mark = ","), " rows with a column missing were left out. "),
+        "Use the terms to fit an ordinary GLM, whose relativities and standard errors the Coefficients table gives."
+      )),
+      if (length(s$warnings) > 0) dft_help(paste("The fit warned:", paste(unique(s$warnings), collapse = "; ")))
+    )
+  }
 
   observeEvent(input$use_selection, {
     s <- selection()

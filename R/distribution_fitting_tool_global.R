@@ -263,7 +263,9 @@ dft_line_chart <- function(series, x_title, y_title, dark = FALSE, x_log = FALSE
   xs <- c(unlist(lapply(series, function(s) s$x)), vlines)
   xlim <- range(xs[usable(xs)])
   if (is.null(ylim)) ylim <- dft_zero_range(unlist(lapply(series, function(s) s$y)))
-  legend <- if (length(series) > 1) lapply(series, function(s) list(label = s$name, colour = s$colour, type = "line"))
+  # a name given to several series (the two bounds of a band) is in the legend once
+  legend <- if (length(series) > 1) lapply(series[!duplicated(vapply(series, function(s) s$name, character(1)))],
+                                           function(s) list(label = s$name, colour = s$colour, type = "line"))
   colours <- dft_plot_frame(xlim, ylim, x_title, y_title, dark, x_log, legend)
   if (length(vlines) > 0) graphics::abline(v = vlines[usable(vlines)], col = colours$muted, lty = 2, lwd = 1.2)
   for (s in series) {
@@ -1156,8 +1158,98 @@ dft_truncated_severity_models <- function(x, d) {
                   function(q) log(alpha) + alpha * log(d) - (alpha + 1) * log(q),
                   if (alpha > 1) alpha * d / (alpha - 1) else Inf, optimised = FALSE)
 
-  structure(list(normal, lnorm, exponential, gamma, pareto), failed = failed)
+  weibull <- tryCatch(local({
+    start <- dft_fit_weibull(x)$estimate
+    # log S(q) = -(q / scale)^shape
+    p <- optimise(function(p) -(sum(stats::dweibull(x, shape = exp(p[1]), scale = exp(p[2]), log = TRUE)) +
+                                  n * (d / exp(p[2]))^exp(p[1])),
+                  log(c(start[["shape"]], start[["scale"]])), c(1, 1))
+    shape <- exp(p[1])
+    scale <- exp(p[2])
+    z <- (d / scale)^shape
+    model("Weibull", c(Scale = scale, Shape = shape),
+          function(q) -(q / scale)^shape,
+          function(q) stats::dweibull(q, shape = shape, scale = scale, log = TRUE),
+          # E[X | X > d] = scale Gamma(1 + 1/shape, z) e^z, with the upper incomplete gamma
+          scale * exp(z + lgamma(1 + 1 / shape) + stats::pgamma(z, 1 + 1 / shape, lower.tail = FALSE, log.p = TRUE)))
+  }), error = function(e) failed_model("Weibull", c(Scale = NA_real_, Shape = NA_real_), e))
+
+  structure(list(normal, lnorm, exponential, gamma, pareto, weibull), failed = failed)
 }
+# Maximum likelihood fit of a Weibull distribution to positive claims, as
+# fitdistrplus::fitdist(x, "weibull") gives it: for a shape k the likelihood is
+# highest at the scale mean(x^k)^(1/k), so only the shape is searched, on the log
+# scale. The claims are divided by their median first, so that x^k stays finite.
+dft_fit_weibull <- function(x) {
+  if (length(x) < 2 || any(!is.finite(x)) || any(x <= 0)) stop("a Weibull fit needs at least two positive claims")
+  if (length(unique(x)) < 2) stop("a Weibull fit needs claims of more than one size")
+  unit <- stats::median(x)
+  z <- x / unit
+  scale_for <- function(k) mean(z^k)^(1 / k)
+  nll <- function(log_k) {
+    k <- exp(log_k)
+    v <- -sum(stats::dweibull(z, shape = k, scale = scale_for(k), log = TRUE))
+    if (is.finite(v)) v else 1e300
+  }
+  log_k <- stats::optimize(nll, c(log(0.02), log(100)), tol = 1e-10)$minimum
+  shape <- exp(log_k)
+  list(estimate = c(shape = shape, scale = scale_for(shape) * unit))
+}
+
+# The Anderson-Darling statistic of claims against a fitted cdf: like the
+# Kolmogorov-Smirnov distance it measures how far the empirical cdf is from the
+# fitted one, but it weighs the differences in the tails, where an excess of loss
+# layer lies, far more. The lower, the closer. sorted = TRUE says the claims are
+# already sorted.
+ad_statistic <- function(claims, cdf_fun, sorted = FALSE) {
+  x <- if (sorted) claims else sort(claims)
+  n <- length(x)
+  if (n == 0) return(NA_real_)
+  fitted <- cdf_fun(x)
+  if (anyNA(fitted)) return(NA_real_)
+  # a claim where the fitted cdf is 0 or 1 is impossible under the fit: the statistic is
+  # then very large rather than infinite
+  fitted <- pmin(pmax(fitted, 1e-300), 1 - 1e-16)
+  i <- seq_len(n)
+  -n - sum((2 * i - 1) * (log(fitted) + log1p(-rev(fitted)))) / n
+}
+
+# The quantiles of a fitted cdf at the probabilities p, found by bisection on all
+# of them at once (the models have a cdf but not a quantile function). The search
+# starts from the range of the claims and widens until it holds every quantile.
+dft_model_quantiles <- function(cdf, p, claims) {
+  span <- diff(range(claims))
+  if (!is.finite(span) || span <= 0) span <- max(abs(claims), 1)
+  lo <- min(claims) - span
+  hi <- max(claims)
+  for (i in 1:200) if (cdf(lo) <= min(p)) break else lo <- lo - span * 2^i
+  for (i in 1:200) if (cdf(hi) >= max(p)) break else hi <- hi + span * 2^i
+  lower <- rep(lo, length(p))
+  upper <- rep(hi, length(p))
+  for (i in 1:100) {
+    middle <- (lower + upper) / 2
+    below <- cdf(middle) < p
+    lower[below] <- middle[below]
+    upper[!below] <- middle[!below]
+  }
+  (lower + upper) / 2
+}
+
+# The points of a Q-Q plot: the empirical quantiles of the claims at `points`
+# probabilities between 0.5% and 99.5% and further into the tail (up to the
+# (n - 0.5)/n quantile, beside the largest claim), with each model's quantiles
+# at the same probabilities. A point on the diagonal is a quantile the model
+# gets right.
+dft_qq_data <- function(claims, cdfs, points = 200) {
+  n <- length(claims)
+  p <- sort(unique(c(seq(0.005, 0.995, length.out = points),
+                     if (n >= 200) c(0.999, 1 - 0.5 / n))))
+  p <- p[p > 0.5 / n & p < 1 - 0.5 / n | p == 1 - 0.5 / n]
+  empirical <- stats::quantile(claims, p, names = FALSE, type = 7)
+  list(p = p, empirical = empirical,
+       fitted = lapply(cdfs, function(cdf) dft_model_quantiles(cdf, p, claims)))
+}
+
 
 # The note under the Severity tab's table on the fits above a threshold that
 # failed (the `failed` messages of dft_truncated_severity_models()): those that

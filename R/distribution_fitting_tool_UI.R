@@ -862,7 +862,7 @@ distribution_fitting_tool_UI <- function(request) {
       value = "severity",
       icon = icon("chart-line"),
 
-      dft_page_intro("Severity analysis", "Fit Normal, LogNormal, Exponential, Gamma and Pareto distributions to claim sizes."),
+      dft_page_intro("Severity analysis", "Fit Normal, LogNormal, Exponential, Gamma, Pareto and Weibull distributions to claim sizes."),
 
       dft_layout(
         dft_settings_card(
@@ -882,12 +882,13 @@ distribution_fitting_tool_UI <- function(request) {
         uiOutput("sev_stats"),
         bslib::card(
           sim_card_header("table-cells", "Fitted distributions",
-                          "The lower the Kolmogorov-Smirnov distance, the closer the fit."),
+                          "The lower the Kolmogorov-Smirnov distance or the Anderson-Darling statistic, the closer the fit."),
           bslib::card_body(uiOutput("sev_param_summary"))
         ),
         dft_tabs(
           id = "sev_results_tabs",
           bslib::nav_panel("CDF fit", dft_plot_output("sev_fit_plot")),
+          bslib::nav_panel("Q-Q plot", dft_plot_output("sev_qq_plot")),
           bslib::nav_panel("Histogram", dft_plot_output("sev_hist")),
           bslib::nav_panel("Data summary", verbatimTextOutput("sev_summary"))
         )

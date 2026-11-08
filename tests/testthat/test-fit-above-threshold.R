@@ -78,7 +78,8 @@ test_that("each fit above a threshold has its own cdf", {
     ground <- switch(m$name,
       Normal = function(q) stats::pnorm(q, p[1], p[2]), LogNormal = function(q) stats::plnorm(q, p[1], p[2]),
       Exponential = function(q) stats::pexp(q, 1 / p[1]), Gamma = function(q) stats::pgamma(q, shape = p[2], scale = p[1]),
-      Pareto = function(q) ifelse(q < p[1], 0, 1 - (p[1] / q)^p[2]))
+      Pareto = function(q) ifelse(q < p[1], 0, 1 - (p[1] / q)^p[2]),
+      Weibull = function(q) stats::pweibull(q, shape = p[2], scale = p[1]))
     q <- c(4500, 6000, 9000)
     expect_equal(m$cdf(q), (ground(q) - ground(d)) / (1 - ground(d)), tolerance = 1e-9, label = m$name)
   }
@@ -106,7 +107,7 @@ test_that("a fit above a threshold refuses claims at or below it, and reports a 
   expect_error(dft_truncated_severity_models(c(10, 20, 30), 0), "positive number")
   #two claims: the two-parameter fits may fail, but the result keeps its form
   models <- dft_truncated_severity_models(c(10.5, 11), 10)
-  expect_length(models, 5)
+  expect_length(models, 6)
   for (m in models) expect_true(is.null(m$cdf) || is.function(m$cdf))
 })
 
@@ -136,4 +137,54 @@ test_that("the note on failed fits above a threshold names them together", {
                          "whose fit runs to the edge of its parameters."))
   expect_identical(dft_failed_fits_note("LogNormal fit above the threshold failed: the optimisation did not converge"),
                    " LogNormal fit above the threshold failed: the optimisation did not converge.")
+})
+
+test_that("the Weibull fit is the maximum likelihood fit, from zero and above a threshold", {
+  set.seed(12)
+  x <- stats::rweibull(4000, shape = 0.8, scale = 5000)
+  fit <- dft_fit_weibull(x)$estimate
+  #the likelihood is at its highest: no small step in either parameter raises it
+  loglik <- function(shape, scale) sum(stats::dweibull(x, shape = shape, scale = scale, log = TRUE))
+  best <- loglik(fit[["shape"]], fit[["scale"]])
+  for (step in c(0.999, 1.001)) {
+    expect_lt(loglik(fit[["shape"]] * step, fit[["scale"]]), best)
+    expect_lt(loglik(fit[["shape"]], fit[["scale"]] * step), best)
+  }
+  expect_equal(fit[["shape"]], 0.8, tolerance = 0.05)
+  expect_error(dft_fit_weibull(c(1, -1)), "positive")
+  #above a threshold: the ground-up parameters, and the mean of the claims above it
+  d <- 3000
+  above <- x[x > d]
+  models <- dft_truncated_severity_models(above, d)
+  weibull <- fit_named(models, "Weibull")
+  expect_equal(weibull$params[["Shape"]], 0.8, tolerance = 0.1)
+  s <- function(q) 1 - weibull$cdf(q)
+  integral <- stats::integrate(s, d, d + 50 * (mean(above) - d), rel.tol = 1e-9)$value +
+    stats::integrate(s, d + 50 * (mean(above) - d), Inf, rel.tol = 1e-9, stop.on.error = FALSE)$value
+  expect_equal(weibull$mean, d + integral, tolerance = 1e-6)
+})
+
+test_that("the Anderson-Darling statistic and the Q-Q points measure a fit", {
+  #a hand computation: three claims against a uniform cdf
+  u <- c(0.2, 0.5, 0.9)
+  by_hand <- -3 - ((1 * (log(0.2) + log(1 - 0.9))) + (3 * (log(0.5) + log(1 - 0.5))) + (5 * (log(0.9) + log(1 - 0.2)))) / 3
+  expect_equal(ad_statistic(u, stats::punif), by_hand)
+  expect_true(is.na(ad_statistic(numeric(0), stats::punif)))
+  #the true distribution is closer than a wrong one, more clearly in the tail
+  set.seed(3)
+  x <- stats::rlnorm(3000, 8, 1.2)
+  right <- function(q) stats::plnorm(q, 8, 1.2)
+  wrong <- function(q) stats::pgamma(q, shape = 1, scale = mean(x))
+  expect_lt(ad_statistic(x, right), ad_statistic(x, wrong))
+  expect_lt(ad_statistic(x, right), 3)
+  #a cdf that gives a claim no chance gives a large, finite statistic
+  expect_true(is.finite(ad_statistic(c(1, 2, 3), function(q) ifelse(q < 2, 0, 1))))
+  #the Q-Q points: the model's quantiles are those of its cdf
+  q <- dft_qq_data(x, list(LogNormal = right))
+  expect_equal(q$fitted$LogNormal, stats::qlnorm(q$p, 8, 1.2), tolerance = 1e-9)
+  expect_equal(q$empirical, stats::quantile(x, q$p, names = FALSE))
+  expect_true(max(q$p) > 0.999)
+  #a Normal's quantiles below zero are found too
+  normal <- dft_model_quantiles(function(v) stats::pnorm(v, 0, 1), c(0.01, 0.5, 0.99), c(0.5, 1, 2))
+  expect_equal(normal, stats::qnorm(c(0.01, 0.5, 0.99)), tolerance = 1e-9)
 })

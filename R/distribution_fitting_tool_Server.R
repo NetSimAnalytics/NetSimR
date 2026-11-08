@@ -365,6 +365,9 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   sev_gamma_fit <- reactive({
     tryCatch(fit_gamma_mle(severity_data()), error = function(e) failed_fit("Gamma fit", e))
   })
+  sev_weibull_fit <- reactive({
+    tryCatch(dft_fit_weibull(severity_data()), error = function(e) failed_fit("Weibull fit", e))
+  })
   sev_pareto_xm <- reactive(min(severity_data()))
   sev_pareto_alpha <- reactive(length(severity_data()) / sum(log(severity_data() / sev_pareto_xm())))
 
@@ -379,6 +382,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     norm <- unname(sev_norm_fit()$estimate)
     lnorm <- unname(sev_lnorm_fit()$estimate)
     gamma <- if (is.null(sev_gamma_fit())) c(NA_real_, NA_real_) else unname(sev_gamma_fit()$estimate)
+    weibull <- if (is.null(sev_weibull_fit())) c(shape = NA_real_, scale = NA_real_) else sev_weibull_fit()$estimate
     xm <- sev_pareto_xm()
     alpha <- sev_pareto_alpha()
     rate <- 1 / mean(x)
@@ -394,7 +398,11 @@ distribution_fitting_tool_Server <- function(input, output, session) {
            cdf = if (anyNA(gamma)) NULL else function(q) pgamma(q, scale = gamma[1], shape = gamma[2]),
            loglik = sum(dgamma(x, scale = gamma[1], shape = gamma[2], log = TRUE)), k = 2),
       list(name = "Pareto", params = c(xm = xm, alpha = alpha), mean = if (alpha > 1) alpha * xm / (alpha - 1) else Inf,
-           cdf = pareto_cdf, loglik = length(x) * (log(alpha) + alpha * log(xm)) - (alpha + 1) * sum(log(x)), k = 2)
+           cdf = pareto_cdf, loglik = length(x) * (log(alpha) + alpha * log(xm)) - (alpha + 1) * sum(log(x)), k = 2),
+      list(name = "Weibull", params = c(Scale = weibull[["scale"]], Shape = weibull[["shape"]]),
+           mean = weibull[["scale"]] * gamma(1 + 1 / weibull[["shape"]]),
+           cdf = if (anyNA(weibull)) NULL else function(q) pweibull(q, shape = weibull[["shape"]], scale = weibull[["scale"]]),
+           loglik = sum(dweibull(x, shape = weibull[["shape"]], scale = weibull[["scale"]], log = TRUE)), k = 2)
     )
   })
 
@@ -420,6 +428,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     models <- sev_models()
     sorted <- sort(x)
     ks <- vapply(models, function(m) if (is.null(m$cdf)) NA_real_ else ks_distance(sorted, m$cdf, sorted = TRUE), numeric(1))
+    ad <- vapply(models, function(m) if (is.null(m$cdf)) NA_real_ else ad_statistic(sorted, m$cdf, sorted = TRUE), numeric(1))
     rows <- lapply(seq_along(models), function(i) {
       m <- models[[i]]
       params <- names(m$params)
@@ -429,19 +438,22 @@ distribution_fitting_tool_Server <- function(input, output, session) {
         if (length(params) > 1) dft_param_cell(params[2], m$params[[2]]) else dft_param_cell("", NA),
         if (is.infinite(m$mean)) "Infinite" else dft_fmt(m$mean),
         dft_fmt(ks[i], 3),
+        dft_fmt(ad[i], 4),
         dft_fmt(2 * m$k - 2 * m$loglik, 6)
       )
     })
     d <- sev_threshold()
     dft_html_table(
-      c("Distribution", "Parameter 1", "Parameter 2", if (d > 0) "Mean above threshold" else "Mean", "K-S distance", "AIC"), rows,
+      c("Distribution", "Parameter 1", "Parameter 2", if (d > 0) "Mean above threshold" else "Mean", "K-S distance",
+        "A-D statistic", "AIC"), rows,
       best = if (any(is.finite(ks))) which.min(ks), best_label = "Closest",
       note = if (d > 0) {
         paste0("Fitted to the claims above the reporting threshold of ", dft_fmt(d), " as claims from zero: the parameters ",
                "are of all claims, the means and the K-S distances of the claims above the threshold. Empirical mean ",
                dft_fmt(mean(x)), ". The Pareto starts at the threshold.", dft_failed_fits_note(attr(models, "failed")))
       } else {
-        paste0("Empirical mean ", dft_fmt(mean(x)), ". The Pareto starts at the smallest claim.")
+        paste0("Empirical mean ", dft_fmt(mean(x)), ". The Pareto starts at the smallest claim. ",
+               "The Anderson-Darling statistic weighs the tails more than the K-S distance; for both, lower is closer.")
       }
     )
   })
@@ -459,6 +471,28 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     cat("\nPercentiles\n")
     print(quantile(x, c(0.75, 0.9, 0.95, 0.99, 0.995)))
   })
+
+  # the quantiles of each fitted distribution against those of the claims
+  output$sev_qq_plot <- chart(function() {
+    need_run("execute_sev_analysis", "claim size")
+    log_scale <- isTRUE(input$sev_fit_log_scale)
+    models <- model_cdfs(sev_models())
+    q <- dft_qq_data(severity_data(), models$cdfs)
+    axis <- if (log_scale) function(v) log10(pmax(v, .Machine$double.xmin)) else identity
+    keep <- if (log_scale) q$empirical > 0 else rep(TRUE, length(q$empirical))
+    x <- axis(q$empirical[keep])
+    series <- c(
+      list(list(x = range(x), y = range(x), name = "Perfect fit", colour = "muted", lwd = 1.4)),
+      lapply(seq_along(q$fitted), function(i) {
+        list(x = x, y = axis(q$fitted[[i]][keep]), name = names(q$fitted)[i], colour = models$colours[i])
+      })
+    )
+    # the axes follow the claims: a model whose quantiles run far beyond them would hide the rest
+    span <- diff(range(x))
+    dft_line_chart(series, if (log_scale) "Claim size quantile (log10)" else "Claim size quantile",
+                   if (log_scale) "Fitted quantile (log10)" else "Fitted quantile", dark(),
+                   ylim = c(min(x) - 0.1 * span, max(x) + 0.25 * span))
+  }, alt = "Q-Q plot: the quantiles of each fitted distribution against those of the claim sizes")
 
   output$sev_fit_plot <- chart(function() {
     need_run("execute_sev_analysis", "claim size")

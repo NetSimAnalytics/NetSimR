@@ -43,7 +43,7 @@ Encoding: UTF-8
 Language: en-GB
 Depends: R (>= 2.10)
 Imports: shiny (>= 1.8.1), base64enc, bslib (>= 0.9.0), parallel, methods, stats, utils, graphics, grDevices
-Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote, pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote, pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite, glmnet
 VignetteBuilder: knitr
 LazyData: true
 Config/testthat/edition: 3

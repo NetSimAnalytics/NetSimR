@@ -154,6 +154,11 @@ glm_term <- function(column) if (identical(make.names(column), column)) column e
 # terms, the number of rows left out and the warnings of the fits.
 glm_stepwise <- function(model, data, candidates, criterion = c("AIC", "BIC"), test = NULL) {
   criterion <- match.arg(criterion)
+  if (!is.finite(stats::AIC(model))) {
+    stop("stepwise selection compares the ", criterion, ", which a ", model$family$family,
+         " model does not have (its likelihood has no closed form); compare models by their deviance ",
+         "on the rows held out, on the Validation tab")
+  }
   call <- model$call
   # the call refers to the data and the family as model_data and family_object (see fit_glm())
   call$family <- quote(family_object)
@@ -223,4 +228,134 @@ glm_candidate_columns <- function(data, exclude = character(0)) {
     present <- x[!is.na(x)]
     length(present) > 0 && length(unique(present)) > 1 && !glm_many_values(x) && !glm_id_like(x)
   }, logical(1))]
+}
+
+# The penalties a selection can use, as the elastic net mixing parameter of glmnet: 1 is
+# the lasso, 0 ridge regression.
+glm_penalty_alpha <- c(lasso = 1, elastic = 0.5, ridge = 0)
+
+# A penalised fit of a model's terms and candidate columns: the lasso, the elastic net or
+# ridge regression (glmnet::cv.glmnet(), a suggested package), its penalty chosen by
+# cross-validation on the rows the model was fitted to. Each factor has a column for every
+# level, so the penalty does not depend on the base level. Two penalties are reported: the
+# one with the lowest cross-validated deviance (lambda.min) and the largest within a
+# standard error of it (lambda.1se, fewer terms), each with the terms it keeps (a factor is
+# kept when any of its levels is) and, given test rows, its deviance per row on them. The
+# fold of each row is drawn with seed, without touching the caller's random numbers.
+glm_penalised <- function(model, data, candidates, penalty = c("lasso", "elastic", "ridge"), test = NULL,
+                          folds = 5, seed = 1) {
+  penalty <- match.arg(penalty)
+  if (!requireNamespace("glmnet", quietly = TRUE)) {
+    stop("the lasso, the elastic net and ridge regression need the glmnet package: install.packages(\"glmnet\")")
+  }
+  formula <- stats::formula(model)
+  model_terms <- stats::terms(model)
+  weights <- if (!is.null(model$call$weights)) as.character(model$call$weights)
+  labels <- attr(model_terms, "term.labels")
+  added <- setdiff(vapply(candidates, glm_term, character(1)), labels)
+  all_terms <- c(labels, added)
+  if (length(all_terms) < 2) stop("a penalised fit needs at least two terms or candidate columns")
+  offset_positions <- attr(model_terms, "offset")
+  offset_text <- if (length(offset_positions)) {
+    vapply(as.list(attr(model_terms, "variables"))[-1][offset_positions],
+           function(e) paste(deparse(e), collapse = ""), character(1))
+  }
+  full <- stats::as.formula(paste(paste(deparse(formula[[2]]), collapse = ""), "~",
+                                  paste(c(offset_text, all_terms), collapse = " + ")), env = globalenv())
+  used <- intersect(unique(c(all.vars(full), weights)), names(data))
+  rows <- data[stats::complete.cases(data[used]), , drop = FALSE]
+  if (nrow(rows) < 10 * folds) stop("too few rows with every column present for ", folds, "-fold cross-validation")
+  frame <- stats::model.frame(full, rows, drop.unused.levels = TRUE)
+  factors <- names(frame)[-1][vapply(frame[-1], function(x) is.character(x) || is.factor(x) || is.logical(x), logical(1))]
+  for (f in factors) frame[[f]] <- factor(frame[[f]])
+  every_level <- stats::setNames(lapply(factors, function(f) stats::contrasts(frame[[f]], contrasts = FALSE)), factors)
+  matrix_terms <- stats::delete.response(stats::terms(frame))
+  design <- function(f) {
+    x <- stats::model.matrix(matrix_terms, f, contrasts.arg = if (length(every_level)) every_level)
+    structure(x[, -1, drop = FALSE], assign = attr(x, "assign")[-1])
+  }
+  x <- design(frame)
+  assign <- attr(x, "assign")
+  y <- glm_response_coded(stats::model.response(frame))
+  offset <- stats::model.offset(frame)
+  weight <- if (!is.null(weights)) rows[[weights]] else rep(1, nrow(rows))
+  family <- model$family
+  canonical <- c(gaussian = "identity", poisson = "log", binomial = "logit")
+  glmnet_family <- if (family$family %in% names(canonical) && identical(family$link, canonical[[family$family]])) {
+    family$family
+  } else {
+    glm_family_object(if (identical(family$family, "Tweedie")) "tweedie" else family$family, family$link,
+                      if (is.null(family$variance_power)) 1.5 else family$variance_power)
+  }
+  fold <- glm_fold_ids(nrow(x), folds, seed)
+  warnings <- character(0)
+  fit <- withCallingHandlers(
+    glmnet::cv.glmnet(x, y, family = glmnet_family, weights = weight, offset = offset,
+                      alpha = glm_penalty_alpha[[penalty]], foldid = fold, type.measure = "deviance"),
+    warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  )
+  term_names <- attr(matrix_terms, "term.labels")
+  kept_terms <- function(s) {
+    beta <- as.numeric(stats::coef(fit, s = s))[-1]
+    term_names[sort(unique(assign[beta != 0]))]
+  }
+  test_deviance <- function(s) {
+    if (is.null(test) || nrow(test) == 0) return(NA_real_)
+    test_rows <- test[stats::complete.cases(test[used]), , drop = FALSE]
+    if (nrow(test_rows) == 0) return(NA_real_)
+    test_frame <- stats::model.frame(full, test_rows)
+    # a level the training rows did not have has no column: those rows are left out
+    for (f in factors) test_frame[[f]] <- factor(test_frame[[f]], levels = levels(frame[[f]]))
+    seen <- stats::complete.cases(test_frame)
+    test_frame <- test_frame[seen, , drop = FALSE]
+    if (nrow(test_frame) == 0) return(NA_real_)
+    newx <- design(test_frame)
+    newoffset <- stats::model.offset(test_frame)
+    predicted <- as.numeric(stats::predict(fit, newx = newx, s = s, type = "response",
+                                           newoffset = if (is.null(newoffset)) rep(0, nrow(newx)) else newoffset))
+    test_weight <- if (!is.null(weights)) test_rows[[weights]][seen] else 1
+    glm_unit_deviance(family, glm_response_coded(stats::model.response(test_frame)), predicted, test_weight)
+  }
+  choices <- c("lambda.min", "lambda.1se")
+  summary <- data.frame(
+    choice = c("Lowest CV deviance", "Within one standard error"),
+    lambda = c(fit$lambda.min, fit$lambda.1se),
+    terms = vapply(choices, function(s) length(kept_terms(s)), integer(1)),
+    cv_deviance = fit$cvm[match(c(fit$lambda.min, fit$lambda.1se), fit$lambda)],
+    test_deviance = vapply(choices, test_deviance, numeric(1)),
+    stringsAsFactors = FALSE, row.names = NULL
+  )
+  kept <- kept_terms("lambda.1se")
+  list(
+    summary = summary,
+    terms = if (length(kept)) paste(kept, collapse = " + ") else "1",
+    dropped = setdiff(term_names, kept),
+    path = data.frame(log_lambda = log(fit$lambda), cv_deviance = fit$cvm, upper = fit$cvup, lower = fit$cvlo),
+    lambda = c(min = fit$lambda.min, `1se` = fit$lambda.1se),
+    penalty = penalty,
+    rows = nrow(rows),
+    left_out = nrow(data) - nrow(rows),
+    warnings = unique(warnings)
+  )
+}
+
+# The cross-validation fold of each of n rows: as even as can be, in a random order that is
+# the same for the same seed, without touching the caller's random numbers.
+glm_fold_ids <- function(n, folds, seed = 1) {
+  global <- globalenv()
+  saved <- if (exists(".Random.seed", envir = global, inherits = FALSE)) get(".Random.seed", envir = global)
+  kind <- RNGkind()
+  on.exit({
+    suppressWarnings(RNGkind(kind[1], kind[2], kind[3]))
+    if (is.null(saved)) {
+      if (exists(".Random.seed", envir = global, inherits = FALSE)) rm(".Random.seed", envir = global)
+    } else {
+      assign(".Random.seed", saved, envir = global)
+    }
+  }, add = TRUE)
+  set.seed(glm_holdout_seed(seed), kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
+  sample(rep_len(seq_len(folds), n))
 }

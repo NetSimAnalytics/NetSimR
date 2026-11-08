@@ -60,8 +60,14 @@ test_that("distribution fitting tool fits frequency and severity distributions",
     expect_match(output$sev_param_summary$html, "Gamma")
     expect_chart(output$sev_fit_plot)
     expect_chart(output$sev_hist)
+    #the Weibull fit, the Anderson-Darling statistic and the Q-Q plot
+    expect_match(output$sev_param_summary$html, "Weibull")
+    expect_match(output$sev_param_summary$html, "A-D statistic")
+    expect_equal(sev_weibull_fit()$estimate, dft_fit_weibull(cleaned)$estimate)
+    expect_chart(output$sev_qq_plot)
     session$setInputs(sev_fit_log_scale = TRUE)
     expect_chart(output$sev_fit_plot)
+    expect_chart(output$sev_qq_plot)
     #the fitted Pareto cdf is zero below the smallest claim, never negative
     pareto <- sev_models()[[5]]
     expect_equal(pareto$cdf(c(0, min(cleaned) / 2)), c(0, 0))

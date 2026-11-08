@@ -229,3 +229,54 @@ test_that("the settings file keeps the rows held out, the seed and the criterion
                  list(holdout_share = "0.2", holdout_seed = 5, select_criterion = "BIC"))
   })
 })
+
+test_that("the lasso keeps the factors that matter, and ridge shrinks every term", {
+  skip_if_not_installed("glmnet")
+  d <- glm_selection_data()
+  test <- glm_holdout_rows(nrow(d), 0.2, 1)
+  start <- glm_tool_style_fit("claim_count ~ offset(log(exposure)) + age", d[!test, ])
+  set.seed(3)
+  before <- .Random.seed
+  lasso <- glm_penalised(start, d[!test, ], c("region", "vehicle", "noise", "colour"), "lasso", test = d[test, ])
+  expect_identical(.Random.seed, before)
+  expect_setequal(strsplit(lasso$terms, " + ", fixed = TRUE)[[1]], c("age", "region", "vehicle"))
+  expect_true(all(c("noise", "colour") %in% lasso$dropped))
+  expect_identical(lasso$summary$choice, c("Lowest CV deviance", "Within one standard error"))
+  expect_true(lasso$lambda[["1se"]] >= lasso$lambda[["min"]])
+  expect_true(all(lasso$summary$terms[2] <= lasso$summary$terms[1]))
+  expect_true(all(is.finite(lasso$summary$test_deviance)))
+  #the same seed draws the same folds
+  again <- glm_penalised(start, d[!test, ], c("region", "vehicle", "noise", "colour"), "lasso", test = d[test, ])
+  expect_identical(again$summary, lasso$summary)
+  ridge <- glm_penalised(start, d[!test, ], c("region", "vehicle", "noise", "colour"), "ridge")
+  expect_setequal(strsplit(ridge$terms, " + ", fixed = TRUE)[[1]], c("age", "region", "vehicle", "noise", "colour"))
+  expect_true(all(is.na(ridge$summary$test_deviance)))
+  #a Tweedie model is fitted through its family object
+  d$loss <- d$claim_count * 1000
+  tweedie <- glm_tool_style_fit("loss ~ offset(log(exposure)) + age", d[!test, ], tweedie_family(1.5))
+  expect_true(nzchar(glm_penalised(tweedie, d[!test, ], c("region", "vehicle"), "elastic")$terms))
+  expect_error(glm_penalised(glm_tool_style_fit("claim_count ~ 1", d), d, character(0)), "at least two terms")
+})
+
+test_that("the tool's selection card runs the lasso and puts its terms in the formula", {
+  skip_if_not_installed("glmnet")
+  d <- glm_selection_data(2500)
+  path <- tempfile(fileext = ".csv")
+  write.csv(d, path, row.names = FALSE)
+  shiny::testServer(GLMFittingToolServer, {
+    session$setInputs(data_source = "CSV File", csv_file = list(datapath = path, name = "claims.csv"), submit = 1)
+    session$setInputs(response_variable = "claim_count", glm_distribution = "poisson", link_function = "log",
+                      offset = "exposure", offset_log = TRUE, weights = "None", formula = "age",
+                      holdout_share = "0.2", holdout_seed = 2, fit_model = 1)
+    session$setInputs(select_criterion = "lasso", select_candidates = c("region", "vehicle", "noise"), run_selection = 1)
+    s <- selection()
+    expect_null(s$error)
+    expect_identical(s$kind, "penalised")
+    html <- output$selection_result$html
+    expect_match(html, "Within one standard error", fixed = TRUE)
+    expect_match(html, "selection_plot", fixed = TRUE)
+    expect_match(output$selection_plot$src, "^data:image/png;base64,")
+    session$setInputs(use_selection = 1)
+    expect_identical(spec_value("formula"), s$terms)
+  })
+})
