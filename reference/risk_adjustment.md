@@ -1,0 +1,106 @@
+# Risk adjustment for non-financial risk
+
+The compensation for bearing the uncertainty of the claims, the risk
+adjustment of IFRS 17 or the risk margin of Solvency II, by one of two
+methods: a percentile of the distribution of the reserves, or the cost
+of the capital held until the claims are paid.
+
+## Usage
+
+``` r
+risk_adjustment(
+  method = c("percentile", "cost of capital"),
+  boot = NULL,
+  level = 0.75,
+  discounted = NULL,
+  capital = NULL,
+  coc_rate = 0.06
+)
+```
+
+## Arguments
+
+- method:
+
+  `"percentile"` or `"cost of capital"`.
+
+- boot:
+
+  The
+  [`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md)
+  of the reserves: needed for the percentile method, and for the
+  confidence level of the cost of capital method.
+
+- level:
+
+  The confidence level of the percentile method, such as 0.75.
+
+- discounted:
+
+  The
+  [`discount_reserves`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)
+  of the reserves: its payments give the run-off of the cost of capital
+  method, its yield curve the discounting, and its ratio of discounted
+  to undiscounted reserve scales the percentile method. Needed for the
+  cost of capital method.
+
+- capital:
+
+  The capital held now for the reserves, such as their Solvency II
+  reserve risk
+  ([`sii_premium_reserve_risk`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md))
+  or the bootstrap's 99.5% quantile less its mean. Needed for the cost
+  of capital method.
+
+- coc_rate:
+
+  The cost of capital rate a year: 6% under Solvency II before 2027.
+
+## Value
+
+A list with the method, the risk adjustment, the confidence level (NA
+without the bootstrap for the cost of capital method), and for the cost
+of capital method the projected capital and its discounted cost by
+period.
+
+## Details
+
+The percentile method takes the bootstrap's total reserves: the risk
+adjustment is their `level` quantile less their mean, and the confidence
+level is `level`.
+
+The cost of capital method projects the capital `capital` held now over
+the run-off of the reserves, in proportion to the reserve still to be
+paid at the start of each period, and charges `coc_rate` of it for each
+period, discounted to now: \\RA = \code{coc\\rate} \sum_t C_t (1 +
+r_t)^{-t}\\, as the Solvency II risk margin is found. With the bootstrap
+given too, the confidence level that IFRS 17 asks to disclose is the
+share of the simulated reserves at or below the mean plus the risk
+adjustment.
+
+The discounting of the reserves applies to the risk adjustment too: with
+a discounted best estimate
+([`discount_reserves`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)),
+the percentile risk adjustment is scaled by the ratio of the discounted
+to the undiscounted reserve.
+
+## See also
+
+[`discount_reserves`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md),
+[`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md).
+
+## Examples
+
+``` r
+paid <- as_triangle(simulated_motor_claims, "accident_year", "development_year", "paid",
+                    cumulative = FALSE)
+boot <- bootstrap_chain_ladder(paid, n = 2000, seed = 1)
+be <- discount_reserves(paid, yield_curve = 0.03)
+risk_adjustment("percentile", boot = boot, level = 0.75, discounted = be)$risk_adjustment
+#> [1] 610284.9
+# the cost of 6% a year of the capital at 99.5%, over the run-off
+capital <- boot$total[["p99.5"]] - boot$total[["ibnr"]]
+ra <- risk_adjustment("cost of capital", boot = boot, discounted = be, capital = capital)
+c(ra$risk_adjustment, ra$confidence_level)
+#> [1] 360810.7193      0.6615
+```

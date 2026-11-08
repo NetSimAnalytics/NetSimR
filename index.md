@@ -50,7 +50,14 @@ remotes::install_github("NetSimAnalytics/NetSimR")
   (Merz-Wuthrich), the Munich chain ladder of paid and incurred claims,
   Clark’s growth curves, a chain ladder for claims inflation, and actual
   against expected development.
-- **Pricing models**: a Tweedie family for GLMs of the loss cost.
+- **IFRS 17 and Solvency II**: reserves discounted with a yield curve,
+  the risk adjustment by percentile or cost of capital, and the standard
+  formula’s non-life premium and reserve risk.
+- **Pricing models and rate reviews**: a Tweedie family for GLMs of the
+  loss cost, on-level premiums by the parallelogram method, the
+  indicated rate change, and Buhlmann-Straub credibility.
+- **Reinsurance programmes** compared by their cost and the capital they
+  save.
 - **Excess of loss pricing**: the burning cost with indexation,
   development and aggregate terms, a Pareto model of the large losses,
   exposure rating with the Swiss Re and Lloyd’s (MBBEFD) curves or a
@@ -137,11 +144,13 @@ each tool’s About card links to them.
 
 ## Vignettes
 
-Seven vignettes set out the theory behind the functions and work through
+Eight vignettes set out the theory behind the functions and work through
 examples:
 
 - *From pricing to capital and reserves: a motor portfolio*, which
   follows one portfolio through the package
+- *Rate reviews: on-level premiums, the indicated rate change and
+  credibility*
 - *Capped means, exposure curves and increased limit factors*
 - *Sliced LogNormal-Pareto and Gamma-Pareto distributions*
 - *Pure IBNR exposure from a reporting delay distribution*

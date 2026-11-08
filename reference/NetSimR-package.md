@@ -14,9 +14,13 @@ The NetSimR package provides eight categories of functions:
 
 5.  Claims reserving: chain ladder with Mack's standard errors,
     Bornhuetter-Ferguson, Benktander, Cape Cod, a bootstrap, Clark's
-    growth curves and a chain ladder for claims inflation
+    growth curves and a chain ladder for claims inflation; IFRS 17
+    discounting and risk adjustment, and the Solvency II standard
+    formula's premium and reserve risk
 
-6.  Pricing models: a Tweedie family for generalised linear models
+6.  Pricing models: a Tweedie family for generalised linear models, and
+    rate reviews: on-level premiums, the indicated rate change and
+    Buhlmann-Straub credibility
 
 7.  Excess of loss pricing: burning cost, Pareto rating, exposure rating
     with MBBEFD curves, and the technical premium

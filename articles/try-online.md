@@ -59,6 +59,57 @@ diversification and each line's capital.
 [Open the capital
 tool](https://netsimanalytics.github.io/NetSimR/apps/portfolio/)
 
+## Gallery
+
+[![The claims simulator's report of a run with an excess of loss
+layer](../screenshots/simulator.png)](https://netsimanalytics.github.io/NetSimR/screenshots/simulator.png)
+
+Claims simulator: the report of a run with an excess of loss layer.
+
+[![Severity fits of claims at their policy
+limits](../screenshots/distribution.png)](https://netsimanalytics.github.io/NetSimR/screenshots/distribution.png)
+
+Distribution fitting: claim sizes fitted with their policy limits.
+
+[![The rate table of a GLM with a spline of
+age](../screenshots/glm-rates.png)](https://netsimanalytics.github.io/NetSimR/screenshots/glm-rates.png)
+
+GLM fitting: the rate table of a model with a spline of age.
+
+[![Ultimates of each reserving method by
+origin](../screenshots/reserving.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reserving.png)
+
+Reserving: the ultimates of each method, origin by origin.
+
+[![Discounted reserves and cash flows for IFRS
+17](../screenshots/reserving-ifrs17.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reserving-ifrs17.png)
+
+Reserving: discounted reserves and the risk adjustment for IFRS 17.
+
+[![The technical premium of an excess of loss layer by
+method](../screenshots/reinsurance.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reinsurance.png)
+
+Reinsurance pricing: the layer priced by experience and exposure.
+
+[![Reinsurance programmes compared by cost and
+capital](../screenshots/reinsurance-programmes.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reinsurance-programmes.png)
+
+Reinsurance pricing: programmes compared by cost and capital saved.
+
+[![The capital of a portfolio of three lines joined by a
+copula](../screenshots/portfolio.png)](https://netsimanalytics.github.io/NetSimR/screenshots/portfolio.png)
+
+Portfolio capital: VaR, TVaR and each line's capital.
+
+[![The Solvency II standard formula by
+segment](../screenshots/portfolio-standard-formula.png)](https://netsimanalytics.github.io/NetSimR/screenshots/portfolio-standard-formula.png)
+
+Portfolio capital: the Solvency II standard formula by segment.
+
+Need a tool like these built around your own data and methods? See
+[Custom
+tools](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md).
+
 ## Good to know
 
 - **The first start takes a little while**: the browser downloads R and

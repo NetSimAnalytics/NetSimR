@@ -35,6 +35,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/EndToEnd.html">From pricing to capital and reserves: a motor portfolio</a></li>
+    <li><a class="dropdown-item" href="../articles/PricingMonitoring.html">Rate reviews: on-level premiums, the indicated rate change and credibility</a></li>
     <li><a class="dropdown-item" href="../articles/SimulateClaims.html">Simulating claims with simulate_claims()</a></li>
     <li><a class="dropdown-item" href="../articles/Reserving.html">Claims reserving with the chain ladder and its relatives</a></li>
     <li><a class="dropdown-item" href="../articles/ReinsurancePricing.html">Pricing an excess of loss layer</a></li>
@@ -42,8 +43,10 @@
     <li><a class="dropdown-item" href="../articles/SlicedDistributions.html">Sliced LogNormal-Pareto and Gamma-Pareto distributions</a></li>
     <li><a class="dropdown-item" href="../articles/PureIBNR.html">Pure IBNR exposure from a reporting delay distribution</a></li>
     <li><a class="dropdown-item" href="../articles/try-online.html">Try the tools in your browser</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-tools.html">Custom tools for insurers and reinsurers</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="../articles/custom-tools.html"><span class="fa fa-handshake"></span> Custom tools</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -80,9 +83,10 @@ Parizas</h4>
 <p>This vignette follows one motor portfolio through the work of a
 non-life actuary: pricing its policies with generalised linear models,
 modelling its annual claims and an excess of loss treaty that protects
-it, measuring the capital it needs alongside a property line, and
-reserving its claims. Each step uses the package’s functions, and each
-has a Shiny tool that does the same without code (section 7).</p>
+it, measuring the capital it needs alongside a property line, reserving
+its claims, and its IFRS 17 and Solvency II figures. Each step uses the
+package’s functions, and each has a Shiny tool that does the same
+without code (section 8).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="st"><a href="https://netsimanalytics.github.io/NetSimR/">"NetSimR"</a></span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -234,6 +238,28 @@ price: the reinsurance pricing tool and the vignette “Pricing an excess
 of loss layer” price a layer from the cedant’s large losses and
 exposure, and <code><a href="../reference/technical_premium.html">technical_premium()</a></code> loads the expected loss
 for the reinstatements, expenses and profit.</p>
+<p>Is the layer worth buying? <code><a href="../reference/compare_reinsurance.html">compare_reinsurance()</a></code> puts
+the same simulated claims through several programmes and sets what each
+costs, the margin paid to the reinsurers above the expected recoveries,
+against the capital it saves, the drop in the 1 in 200 bad year’s
+shortfall from an average year. Here the layer and a 25% quota share, on
+a premium that expects a 70% loss ratio:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gross_premium</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">claim_count</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">meanlog</span> <span class="op">+</span> <span class="va">sdlog</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="fl">0.7</span>, <span class="op">-</span><span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">options</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>`Layer 100k xs 50k` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>xl <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>deductible <span class="op">=</span> <span class="fl">50000</span>, limit <span class="op">=</span> <span class="fl">100000</span>, reinstatements <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                `Quota share 25%` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>quota_share <span class="op">=</span> <span class="fl">0.25</span>, commission <span class="op">=</span> <span class="fl">0.30</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/compare_reinsurance.html">compare_reinsurance</a></span><span class="op">(</span><span class="st">"Poisson"</span>, <span class="va">claim_count</span>, <span class="st">"LogNormal"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">meanlog</span>, <span class="va">sdlog</span><span class="op">)</span>, <span class="va">options</span>,</span>
+<span>                    premium <span class="op">=</span> <span class="va">gross_premium</span>, n <span class="op">=</span> <span class="fl">5000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Reinsurance programmes, 5,000 simulated years, capital at 99.5%</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">##          programme     ceded margin mean_result capital  relief  value</span></span>
+<span><span class="co">##     No reinsurance         0      0   3,787,185 723,053       0      0</span></span>
+<span><span class="co">##  Layer 100k xs 50k    18,506  6,169   3,781,016 715,154   7,899 -5,379</span></span>
+<span><span class="co">##    Quota share 25% 2,213,204 -1,204   3,788,389 542,290 180,763 19,280</span></span></code></pre>
+<p>The value column sets 10% a year of the capital saved against the
+margin: positive when the capital relief is worth more than the
+reinsurance costs. The reinsurance pricing tool compares up to four
+programmes on its Programmes tab.</p>
 </div>
 <div class="section level2">
 <h2 id="capital-with-a-property-line">5. Capital with a property line<a class="anchor" aria-label="anchor" href="#capital-with-a-property-line"></a>
@@ -246,7 +272,7 @@ its own and joins them with a copula, here a rank correlation of about
 0.3. With a Gaussian copula the lines rarely have their worst years
 together; a t copula with few degrees of freedom makes that more
 likely:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lines</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  motor <span class="op">=</span> <span class="va">years</span><span class="op">$</span><span class="va">retained</span>,</span>
 <span>  property <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>frequency <span class="op">=</span> <span class="st">"Poisson"</span>, frequency_params <span class="op">=</span> <span class="fl">8</span>,</span>
@@ -262,7 +288,7 @@ likely:</p>
 <span><span class="co">##     total 9,672,379 655,486 12,215,362 14,135,089 14,135,089 1.000</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Diversification benefit: 433,679 (3.4% of the lines' VaR of 12,649,041)</span></span></code></pre>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">t_copula</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_portfolio.html">simulate_portfolio</a></span><span class="op">(</span><span class="va">lines</span>, correlation <span class="op">=</span> <span class="fl">0.3</span>, copula <span class="op">=</span> <span class="st">"t"</span>, df <span class="op">=</span> <span class="fl">3</span>, n <span class="op">=</span> <span class="fl">5000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>gaussian <span class="op">=</span> <span class="va">gaussian</span><span class="op">$</span><span class="va">diversification</span>, t <span class="op">=</span> <span class="va">t_copula</span><span class="op">$</span><span class="va">diversification</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##          stand_alone_var total_var  benefit benefit_share</span></span>
@@ -280,7 +306,7 @@ copula, with its joint extremes, leaves less diversification.</p>
 claims of a motor portfolio by accident year and development year, with
 its earned premiums. The chain ladder of the paid claims, with Mack’s
 standard errors:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">paid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_triangle.html">as_triangle</a></span><span class="op">(</span><span class="va">simulated_motor_claims</span>, <span class="st">"accident_year"</span>, <span class="st">"development_year"</span>, <span class="st">"paid"</span>, cumulative <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">premium</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">simulated_motor_claims</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"accident_year"</span>, <span class="st">"earned_premium"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">$</span><span class="va">earned_premium</span></span>
 <span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/chain_ladder.html">chain_ladder</a></span><span class="op">(</span><span class="va">paid</span><span class="op">)</span></span>
@@ -295,7 +321,7 @@ diagonal predicts each accident year’s development in that period, which
 is compared with what was paid. A standardised difference beyond about 2
 either way is worth a look, as for 2019 here, which paid almost twice
 what was expected:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ave</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/actual_vs_expected.html">actual_vs_expected</a></span><span class="op">(</span><span class="va">paid</span><span class="op">)</span></span>
 <span><span class="va">ave</span><span class="op">$</span><span class="va">by_origin</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"origin"</span>, <span class="st">"expected"</span>, <span class="st">"actual"</span>, <span class="st">"actual_to_expected"</span>, <span class="st">"z"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
 <pre><code><span><span class="co">##    origin   expected  actual actual_to_expected            z</span></span>
@@ -319,7 +345,7 @@ its standard error is lower. Both reserve more than the chain ladder
 here: the curve keeps developing after the triangle’s last development
 year, up to the truncation at 20 years, while the chain ladder has no
 tail:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ldf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clark_growth.html">clark_growth</a></span><span class="op">(</span><span class="va">paid</span>, truncation <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
 <span><span class="va">cape_cod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clark_growth.html">clark_growth</a></span><span class="op">(</span><span class="va">paid</span>, premium <span class="op">=</span> <span class="va">premium</span>, method <span class="op">=</span> <span class="st">"cape cod"</span>, truncation <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>chain_ladder <span class="op">=</span> <span class="va">cl</span><span class="op">$</span><span class="va">total</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ibnr"</span>, <span class="st">"se"</span><span class="op">)</span><span class="op">]</span>, clark_ldf <span class="op">=</span> <span class="va">ldf</span><span class="op">$</span><span class="va">total</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ibnr"</span>, <span class="st">"se"</span><span class="op">)</span><span class="op">]</span>,</span>
@@ -332,7 +358,7 @@ tail:</p>
 the past’s. If claims inflation was 3% a year but is expected to be 6%,
 the past payments are restated in today’s money, developed, and the
 future payments inflated at 6%:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">inflated</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inflation_adjusted_chain_ladder.html">inflation_adjusted_chain_ladder</a></span><span class="op">(</span><span class="va">paid</span>, past <span class="op">=</span> <span class="fl">0.03</span>, future <span class="op">=</span> <span class="fl">0.06</span><span class="op">)</span></span>
 <span><span class="va">inflated</span><span class="op">$</span><span class="va">total</span></span></code></pre></div>
 <pre><code><span><span class="co">##           latest         ultimate             ibnr       ibnr_today </span></span>
@@ -343,7 +369,54 @@ future payments inflated at 6%:</p>
 come, most of all for the recent accident years.</p>
 </div>
 <div class="section level2">
-<h2 id="the-same-in-the-tools">7. The same in the tools<a class="anchor" aria-label="anchor" href="#the-same-in-the-tools"></a>
+<h2 id="ifrs-17-and-solvency-ii">7. IFRS 17 and Solvency II<a class="anchor" aria-label="anchor" href="#ifrs-17-and-solvency-ii"></a>
+</h2>
+<p>Under IFRS 17 the liability for incurred claims is the best estimate
+of the future payments, discounted, plus a risk adjustment for their
+uncertainty. <code><a href="../reference/discount_reserves.html">discount_reserves()</a></code> takes the chain ladder’s
+payments by future calendar year and discounts them with a yield curve,
+here rising from 3% to 3.8% over five years:</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">be</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/discount_reserves.html">discount_reserves</a></span><span class="op">(</span><span class="va">cl</span>, yield_curve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.030</span>, <span class="fl">0.032</span>, <span class="fl">0.034</span>, <span class="fl">0.036</span>, <span class="fl">0.038</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">be</span></span></code></pre></div>
+<pre><code><span><span class="co">## Reserve 15,018,544, discounted 14,035,937 (a discount of 982,607, mean term 2.06 years)</span></span></code></pre>
+<p>The risk adjustment can be a percentile of the bootstrapped reserves,
+scaled for the discounting, or the cost of the capital held until the
+claims are paid, as Solvency II’s risk margin is found; with the
+bootstrap, the cost of capital method also gives the confidence level
+IFRS 17 asks to disclose:</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/bootstrap_chain_ladder.html">bootstrap_chain_ladder</a></span><span class="op">(</span><span class="va">paid</span>, n <span class="op">=</span> <span class="fl">2000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">percentile</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/risk_adjustment.html">risk_adjustment</a></span><span class="op">(</span><span class="st">"percentile"</span>, boot <span class="op">=</span> <span class="va">boot</span>, level <span class="op">=</span> <span class="fl">0.75</span>, discounted <span class="op">=</span> <span class="va">be</span><span class="op">)</span></span>
+<span><span class="va">coc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/risk_adjustment.html">risk_adjustment</a></span><span class="op">(</span><span class="st">"cost of capital"</span>, boot <span class="op">=</span> <span class="va">boot</span>, discounted <span class="op">=</span> <span class="va">be</span>,</span>
+<span>                       capital <span class="op">=</span> <span class="fl">3</span> <span class="op">*</span> <span class="fl">0.09</span> <span class="op">*</span> <span class="va">be</span><span class="op">$</span><span class="va">total</span><span class="op">[[</span><span class="st">"discounted"</span><span class="op">]</span><span class="op">]</span>, coc_rate <span class="op">=</span> <span class="fl">0.06</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>percentile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">percentile</span><span class="op">$</span><span class="va">risk_adjustment</span>, <span class="va">percentile</span><span class="op">$</span><span class="va">confidence_level</span><span class="op">)</span>,</span>
+<span>      cost_of_capital <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">coc</span><span class="op">$</span><span class="va">risk_adjustment</span>, <span class="va">coc</span><span class="op">$</span><span class="va">confidence_level</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##                     [,1]  [,2]</span></span>
+<span><span class="co">## percentile      605291.1 0.750</span></span>
+<span><span class="co">## cost_of_capital 537018.9 0.729</span></span></code></pre>
+<p>The capital of the cost of capital method was the reserve risk of
+Solvency II’s standard formula: three times the 9% standard deviation of
+motor vehicle liability (segment 1) times the best estimate.
+<code><a href="../reference/sii_premium_reserve_risk.html">sii_premium_reserve_risk()</a></code> gives the standard formula’s
+premium and reserve risk of several segments together, with their
+correlations; here the motor reserves with next year’s motor premium,
+and a property segment:</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">volumes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">4</span><span class="op">)</span>, premium <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">gross_premium</span>, <span class="fl">1.2e6</span><span class="op">)</span>,</span>
+<span>                      reserve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">be</span><span class="op">$</span><span class="va">total</span><span class="op">[[</span><span class="st">"discounted"</span><span class="op">]</span><span class="op">]</span>, <span class="fl">0.4e6</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sii</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sii_premium_reserve_risk.html">sii_premium_reserve_risk</a></span><span class="op">(</span><span class="va">volumes</span><span class="op">)</span></span>
+<span><span class="va">sii</span><span class="op">$</span><span class="va">total</span></span></code></pre></div>
+<pre><code><span><span class="co">##          volume              sd         capital      standalone diversification </span></span>
+<span><span class="co">##    2.827594e+07    7.858302e-02    6.666026e+06    6.929133e+06    2.631076e+05</span></span></code></pre>
+<p>The parameters are those of the Delegated Regulation (EU) 2015/35 as
+amended in 2019, in <code>sii_nonlife_segments</code>. The reserving
+tool shows the discounting, the risk adjustment and the reserve risk on
+its IFRS 17 &amp; Solvency II tab, and the portfolio tool the standard
+formula of every segment.</p>
+</div>
+<div class="section level2">
+<h2 id="the-same-in-the-tools">8. The same in the tools<a class="anchor" aria-label="anchor" href="#the-same-in-the-tools"></a>
 </h2>
 <p>Each step has a Shiny tool, which runs on the computer or in the
 browser on the package’s website:</p>
@@ -360,14 +433,15 @@ fits of section 4, sent on to the simulator.</li>
 section 4, with a report.</li>
 <li>
 <code><a href="../reference/run_shiny_reinsurance_pricing_tool.html">run_shiny_reinsurance_pricing_tool()</a></code>: the price of the
-layer.</li>
+layer, and the comparison of programmes.</li>
 <li>
 <code><a href="../reference/run_shiny_portfolio_tool.html">run_shiny_portfolio_tool()</a></code>: the portfolio of section 5,
-with a correlation matrix, charts and a report.</li>
+with a correlation matrix, charts and a report, and the standard formula
+of section 7.</li>
 <li>
 <code><a href="../reference/run_shiny_reserving_tool.html">run_shiny_reserving_tool()</a></code>: the chain ladder, actual vs
-expected, Clark’s curves and the claims inflation of section 6, with a
-report.</li>
+expected, Clark’s curves and the claims inflation of section 6, and the
+discounting and risk adjustment of section 7, with a report.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

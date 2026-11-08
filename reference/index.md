@@ -32,6 +32,8 @@ portfolios of lines joined by a copula.
   : Apply a deductible and limit to claims
 - [`reinstatement_premium()`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md)
   : Reinstatement premiums of an excess of loss layer
+- [`compare_reinsurance()`](https://netsimanalytics.github.io/NetSimR/reference/compare_reinsurance.md)
+  : Compare reinsurance programmes
 
 ## Claims reserving
 
@@ -61,6 +63,21 @@ curves, inflation and actual vs expected.
 - [`as_triangle()`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
   : Build a claims triangle from a table
 
+## IFRS 17 and Solvency II
+
+Discounted reserves, the risk adjustment, and the standard formula’s
+non-life premium and reserve risk.
+
+- [`discount_reserves()`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)
+  : Discounted reserves from the chain ladder's payment pattern
+- [`risk_adjustment()`](https://netsimanalytics.github.io/NetSimR/reference/risk_adjustment.md)
+  : Risk adjustment for non-financial risk
+- [`sii_premium_reserve_risk()`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md)
+  : Solvency II standard formula: non-life premium and reserve risk
+- [`sii_nonlife_segments`](https://netsimanalytics.github.io/NetSimR/reference/sii_nonlife_segments.md)
+  [`sii_nonlife_correlation`](https://netsimanalytics.github.io/NetSimR/reference/sii_nonlife_segments.md)
+  : The Solvency II standard formula's non-life segments
+
 ## Excess of loss pricing
 
 Burning cost, Pareto rating, exposure rating with MBBEFD curves or a
@@ -82,12 +99,20 @@ claim size distribution, and the technical premium.
 - [`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
   : Credibility of the loss experience
 
-## Pricing models
+## Pricing models and rate reviews
 
-A Tweedie family for generalised linear models of the loss cost.
+A Tweedie family for generalised linear models of the loss cost,
+on-level premiums, the indicated rate change and Buhlmann-Straub
+credibility.
 
 - [`tweedie_family()`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md)
   : Tweedie family for generalised linear models
+- [`on_level_premium()`](https://netsimanalytics.github.io/NetSimR/reference/on_level_premium.md)
+  : Premiums at today's rates: the parallelogram method
+- [`indicated_rate_change()`](https://netsimanalytics.github.io/NetSimR/reference/indicated_rate_change.md)
+  : The indicated rate change: the loss ratio method
+- [`buhlmann_straub()`](https://netsimanalytics.github.io/NetSimR/reference/buhlmann_straub.md)
+  : Buhlmann-Straub credibility
 
 ## Capped means
 
@@ -216,3 +241,7 @@ LogNormal or Gamma bodies with a Pareto tail.
   : Risk profile of a property portfolio
 - [`xl_casualty_profile`](https://netsimanalytics.github.io/NetSimR/reference/xl_casualty_profile.md)
   : Risk profile of a casualty portfolio
+- [`motor_policies`](https://netsimanalytics.github.io/NetSimR/reference/motor_policies.md)
+  : Simulated motor policies
+- [`liability_claims`](https://netsimanalytics.github.io/NetSimR/reference/liability_claims.md)
+  : Simulated liability claims at their policy limits

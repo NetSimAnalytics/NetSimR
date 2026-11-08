@@ -4,6 +4,8 @@
 
 - [From pricing to capital and reserves: a motor
   portfolio](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md):
+- [Rate reviews: on-level premiums, the indicated rate change and
+  credibility](https://netsimanalytics.github.io/NetSimR/articles/PricingMonitoring.md):
 - [Simulating claims with
   simulate_claims()](https://netsimanalytics.github.io/NetSimR/articles/SimulateClaims.md):
 - [Claims reserving with the chain ladder and its
@@ -24,3 +26,9 @@
 
   The package’s six Shiny tools, running in your browser with webR: no R
   to install.
+
+- [Custom tools for insurers and
+  reinsurers](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md):
+
+  Pricing, reserving, reinsurance and capital tools built around your
+  data, methods and governance.

@@ -20,6 +20,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/EndToEnd.html">From pricing to capital and reserves: a motor portfolio</a></li>
+    <li><a class="dropdown-item" href="../articles/PricingMonitoring.html">Rate reviews: on-level premiums, the indicated rate change and credibility</a></li>
     <li><a class="dropdown-item" href="../articles/SimulateClaims.html">Simulating claims with simulate_claims()</a></li>
     <li><a class="dropdown-item" href="../articles/Reserving.html">Claims reserving with the chain ladder and its relatives</a></li>
     <li><a class="dropdown-item" href="../articles/ReinsurancePricing.html">Pricing an excess of loss layer</a></li>
@@ -27,7 +28,9 @@
     <li><a class="dropdown-item" href="../articles/SlicedDistributions.html">Sliced LogNormal-Pareto and Gamma-Pareto distributions</a></li>
     <li><a class="dropdown-item" href="../articles/PureIBNR.html">Pure IBNR exposure from a reporting delay distribution</a></li>
     <li><a class="dropdown-item" href="../articles/try-online.html">Try the tools in your browser</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-tools.html">Custom tools for insurers and reinsurers</a></li>
   </ul></li>
+<li class="nav-item"><a class="nav-link" href="../articles/custom-tools.html"><span class="fa fa-handshake"></span> Custom tools</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/NetSimAnalytics/NetSimR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -137,6 +140,13 @@
 
         </dt>
         <dd>Reinstatement premiums of an excess of loss layer</dd>
+
+        <dt>
+
+          <code><a href="compare_reinsurance.html">compare_reinsurance()</a></code>
+
+        </dt>
+        <dd>Compare reinsurance programmes</dd>
       </dl></div><div class="section level2">
       <h2 id="claims-reserving">Claims reserving<a class="anchor" aria-label="anchor" href="#claims-reserving"></a></h2>
 
@@ -217,6 +227,43 @@
         </dt>
         <dd>Build a claims triangle from a table</dd>
       </dl></div><div class="section level2">
+      <h2 id="ifrs-and-solvency-ii">IFRS 17 and Solvency II<a class="anchor" aria-label="anchor" href="#ifrs-and-solvency-ii"></a></h2>
+
+      <div class="section-desc"><p>Discounted reserves, the risk adjustment, and the standard formula’s non-life premium and reserve risk.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="discount_reserves.html">discount_reserves()</a></code>
+
+        </dt>
+        <dd>Discounted reserves from the chain ladder's payment pattern</dd>
+
+        <dt>
+
+          <code><a href="risk_adjustment.html">risk_adjustment()</a></code>
+
+        </dt>
+        <dd>Risk adjustment for non-financial risk</dd>
+
+        <dt>
+
+          <code><a href="sii_premium_reserve_risk.html">sii_premium_reserve_risk()</a></code>
+
+        </dt>
+        <dd>Solvency II standard formula: non-life premium and reserve risk</dd>
+
+        <dt>
+
+          <code><a href="sii_nonlife_segments.html">sii_nonlife_segments</a></code> <code><a href="sii_nonlife_segments.html">sii_nonlife_correlation</a></code>
+
+        </dt>
+        <dd>The Solvency II standard formula's non-life segments</dd>
+      </dl></div><div class="section level2">
       <h2 id="excess-of-loss-pricing">Excess of loss pricing<a class="anchor" aria-label="anchor" href="#excess-of-loss-pricing"></a></h2>
 
       <div class="section-desc"><p>Burning cost, Pareto rating, exposure rating with MBBEFD curves or a claim size distribution, and the technical premium.</p></div>
@@ -268,9 +315,9 @@
         </dt>
         <dd>Credibility of the loss experience</dd>
       </dl></div><div class="section level2">
-      <h2 id="pricing-models">Pricing models<a class="anchor" aria-label="anchor" href="#pricing-models"></a></h2>
+      <h2 id="pricing-models-and-rate-reviews">Pricing models and rate reviews<a class="anchor" aria-label="anchor" href="#pricing-models-and-rate-reviews"></a></h2>
 
-      <div class="section-desc"><p>A Tweedie family for generalised linear models of the loss cost.</p></div>
+      <div class="section-desc"><p>A Tweedie family for generalised linear models of the loss cost, on-level premiums, the indicated rate change and Buhlmann-Straub credibility.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -283,6 +330,27 @@
 
         </dt>
         <dd>Tweedie family for generalised linear models</dd>
+
+        <dt>
+
+          <code><a href="on_level_premium.html">on_level_premium()</a></code>
+
+        </dt>
+        <dd>Premiums at today's rates: the parallelogram method</dd>
+
+        <dt>
+
+          <code><a href="indicated_rate_change.html">indicated_rate_change()</a></code>
+
+        </dt>
+        <dd>The indicated rate change: the loss ratio method</dd>
+
+        <dt>
+
+          <code><a href="buhlmann_straub.html">buhlmann_straub()</a></code>
+
+        </dt>
+        <dd>Buhlmann-Straub credibility</dd>
       </dl></div><div class="section level2">
       <h2 id="capped-means">Capped means<a class="anchor" aria-label="anchor" href="#capped-means"></a></h2>
 
@@ -589,6 +657,20 @@
 
         </dt>
         <dd>Risk profile of a casualty portfolio</dd>
+
+        <dt>
+
+          <code><a href="motor_policies.html">motor_policies</a></code>
+
+        </dt>
+        <dd>Simulated motor policies</dd>
+
+        <dt>
+
+          <code><a href="liability_claims.html">liability_claims</a></code>
+
+        </dt>
+        <dd>Simulated liability claims at their policy limits</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

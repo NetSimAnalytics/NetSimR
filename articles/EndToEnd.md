@@ -5,9 +5,10 @@
 This vignette follows one motor portfolio through the work of a non-life
 actuary: pricing its policies with generalised linear models, modelling
 its annual claims and an excess of loss treaty that protects it,
-measuring the capital it needs alongside a property line, and reserving
-its claims. Each step uses the package’s functions, and each has a Shiny
-tool that does the same without code (section 7).
+measuring the capital it needs alongside a property line, reserving its
+claims, and its IFRS 17 and Solvency II figures. Each step uses the
+package’s functions, and each has a Shiny tool that does the same
+without code (section 8).
 
 ``` r
 
@@ -198,6 +199,35 @@ layer” price a layer from the cedant’s large losses and exposure, and
 [`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
 loads the expected loss for the reinstatements, expenses and profit.
 
+Is the layer worth buying?
+[`compare_reinsurance()`](https://netsimanalytics.github.io/NetSimR/reference/compare_reinsurance.md)
+puts the same simulated claims through several programmes and sets what
+each costs, the margin paid to the reinsurers above the expected
+recoveries, against the capital it saves, the drop in the 1 in 200 bad
+year’s shortfall from an average year. Here the layer and a 25% quota
+share, on a premium that expects a 70% loss ratio:
+
+``` r
+
+gross_premium <- round(claim_count * exp(meanlog + sdlog^2 / 2) / 0.7, -4)
+options <- list(`Layer 100k xs 50k` = list(xl = list(deductible = 50000, limit = 100000, reinstatements = 2)),
+                `Quota share 25%` = list(quota_share = 0.25, commission = 0.30))
+compare_reinsurance("Poisson", claim_count, "LogNormal", c(meanlog, sdlog), options,
+                    premium = gross_premium, n = 5000, seed = 1)
+```
+
+    ## Reinsurance programmes, 5,000 simulated years, capital at 99.5%
+    ## 
+    ##          programme     ceded margin mean_result capital  relief  value
+    ##     No reinsurance         0      0   3,787,185 723,053       0      0
+    ##  Layer 100k xs 50k    18,506  6,169   3,781,016 715,154   7,899 -5,379
+    ##    Quota share 25% 2,213,204 -1,204   3,788,389 542,290 180,763 19,280
+
+The value column sets 10% a year of the capital saved against the
+margin: positive when the capital relief is worth more than the
+reinsurance costs. The reinsurance pricing tool compares up to four
+programmes on its Programmes tab.
+
 ## 5. Capital with a property line
 
 The insurer also writes property, whose annual losses come from a few
@@ -333,7 +363,69 @@ inflated$total
 The reserve rises by the extra inflation on the payments still to come,
 most of all for the recent accident years.
 
-## 7. The same in the tools
+## 7. IFRS 17 and Solvency II
+
+Under IFRS 17 the liability for incurred claims is the best estimate of
+the future payments, discounted, plus a risk adjustment for their
+uncertainty.
+[`discount_reserves()`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)
+takes the chain ladder’s payments by future calendar year and discounts
+them with a yield curve, here rising from 3% to 3.8% over five years:
+
+``` r
+
+be <- discount_reserves(cl, yield_curve = c(0.030, 0.032, 0.034, 0.036, 0.038))
+be
+```
+
+    ## Reserve 15,018,544, discounted 14,035,937 (a discount of 982,607, mean term 2.06 years)
+
+The risk adjustment can be a percentile of the bootstrapped reserves,
+scaled for the discounting, or the cost of the capital held until the
+claims are paid, as Solvency II’s risk margin is found; with the
+bootstrap, the cost of capital method also gives the confidence level
+IFRS 17 asks to disclose:
+
+``` r
+
+boot <- bootstrap_chain_ladder(paid, n = 2000, seed = 1)
+percentile <- risk_adjustment("percentile", boot = boot, level = 0.75, discounted = be)
+coc <- risk_adjustment("cost of capital", boot = boot, discounted = be,
+                       capital = 3 * 0.09 * be$total[["discounted"]], coc_rate = 0.06)
+rbind(percentile = c(percentile$risk_adjustment, percentile$confidence_level),
+      cost_of_capital = c(coc$risk_adjustment, coc$confidence_level))
+```
+
+    ##                     [,1]  [,2]
+    ## percentile      605291.1 0.750
+    ## cost_of_capital 537018.9 0.729
+
+The capital of the cost of capital method was the reserve risk of
+Solvency II’s standard formula: three times the 9% standard deviation of
+motor vehicle liability (segment 1) times the best estimate.
+[`sii_premium_reserve_risk()`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md)
+gives the standard formula’s premium and reserve risk of several
+segments together, with their correlations; here the motor reserves with
+next year’s motor premium, and a property segment:
+
+``` r
+
+volumes <- data.frame(segment = c(1, 4), premium = c(gross_premium, 1.2e6),
+                      reserve = c(be$total[["discounted"]], 0.4e6))
+sii <- sii_premium_reserve_risk(volumes)
+sii$total
+```
+
+    ##          volume              sd         capital      standalone diversification 
+    ##    2.827594e+07    7.858302e-02    6.666026e+06    6.929133e+06    2.631076e+05
+
+The parameters are those of the Delegated Regulation (EU) 2015/35 as
+amended in 2019, in `sii_nonlife_segments`. The reserving tool shows the
+discounting, the risk adjustment and the reserve risk on its IFRS 17 &
+Solvency II tab, and the portfolio tool the standard formula of every
+segment.
+
+## 8. The same in the tools
 
 Each step has a Shiny tool, which runs on the computer or in the browser
 on the package’s website:
@@ -347,10 +439,11 @@ on the package’s website:
 - [`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md):
   the simulation and the layer of section 4, with a report.
 - [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md):
-  the price of the layer.
+  the price of the layer, and the comparison of programmes.
 - [`run_shiny_portfolio_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md):
   the portfolio of section 5, with a correlation matrix, charts and a
-  report.
+  report, and the standard formula of section 7.
 - [`run_shiny_reserving_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md):
   the chain ladder, actual vs expected, Clark’s curves and the claims
-  inflation of section 6, with a report.
+  inflation of section 6, and the discounting and risk adjustment of
+  section 7, with a report.
