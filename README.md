@@ -13,6 +13,10 @@ vignettes, is <https://netsimanalytics.github.io/NetSimR/>, where the tools
 can also be [tried in the browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.html),
 with nothing to install.
 
+<p align="center">
+<a class="netsimr-try" href="https://netsimanalytics.github.io/NetSimR/articles/try-online.html" aria-label="Try the Shiny apps in your browser, nothing to install"><img src="https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge" alt="Try the Shiny apps in your browser, nothing to install" height="40"></a>
+</p>
+
 ## Installation
 
 ```r

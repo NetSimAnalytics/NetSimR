@@ -1,5 +1,5 @@
 ---
-title: "Try the tools in your browser"
+title: "Try the Shiny tools in your browser"
 description: >
   The package's six Shiny tools, running in your browser with webR: no R to install.
 ---
@@ -11,6 +11,8 @@ The six Shiny tools of NetSimR run right here, in your browser, with
 [webR](https://docs.r-wasm.org/webr/latest/), R compiled to WebAssembly, and
 [shinylive](https://posit-dev.github.io/r-shinylive/). Nothing to install, and nothing
 leaves your computer: the data you upload and the models you fit stay in the page.
+
+## The six Shiny tools
 
 ```{=html}
 <style>

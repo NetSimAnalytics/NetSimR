@@ -11,6 +11,11 @@ template:
 
 home:
   title: Actuarial functions for non-life insurance
+  links:
+  - text: Try the Shiny apps in your browser
+    href: https://netsimanalytics.github.io/NetSimR/articles/try-online.html
+  - text: Custom tools for insurers and reinsurers
+    href: https://netsimanalytics.github.io/NetSimR/articles/custom-tools.html
 
 navbar:
   structure:
@@ -137,8 +142,11 @@ articles:
   - CappedMean
   - SlicedDistributions
   - PureIBNR
-- title: Online
-  navbar: ~
+- title: Shiny tools
+  navbar: Shiny tools
   contents:
   - articles/try-online
+- title: Custom tools
+  navbar: Custom tools
+  contents:
   - articles/custom-tools
