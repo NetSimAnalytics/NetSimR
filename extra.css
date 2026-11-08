@@ -1,0 +1,51 @@
+/* The "Try the Shiny apps" button of the home page. In README.md it is a link holding a
+   badge image, which is how GitHub and CRAN show it; on the website the image gives way to
+   a button in the site's colours. */
+.netsimr-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.75rem 0 0.5rem 0;
+  padding: 0.9rem 1.8rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.32);
+  color: #ffffff !important;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.netsimr-try img {
+  display: none;
+}
+
+.netsimr-try::before {
+  content: "\25B6\FE0E";
+  font-size: 0.95rem;
+}
+
+.netsimr-try::after {
+  content: "Try the Shiny apps in your browser";
+}
+
+.netsimr-try:hover,
+.netsimr-try:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.42);
+  color: #ffffff !important;
+}
+
+.netsimr-try:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+@media (max-width: 575.98px) {
+  .netsimr-try {
+    font-size: 1.05rem;
+    padding: 0.8rem 1.2rem;
+  }
+}

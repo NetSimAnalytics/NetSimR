@@ -18,6 +18,9 @@ be [tried in the
 browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.html),
 with nothing to install.
 
+[![Try the Shiny apps in your browser, nothing to
+install](https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge)](https://netsimanalytics.github.io/NetSimR/articles/try-online.html)
+
 ## Installation
 
 ``` r

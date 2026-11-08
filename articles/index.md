@@ -19,13 +19,15 @@
 - [Pure IBNR exposure from a reporting delay
   distribution](https://netsimanalytics.github.io/NetSimR/articles/PureIBNR.md):
 
-### Online
+### Shiny tools
 
-- [Try the tools in your
+- [Try the Shiny tools in your
   browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.md):
 
   The package’s six Shiny tools, running in your browser with webR: no R
   to install.
+
+### Custom tools
 
 - [Custom tools for insurers and
   reinsurers](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md):

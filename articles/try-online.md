@@ -1,4 +1,4 @@
-# Try the tools in your browser
+# Try the Shiny tools in your browser
 
 [![CRAN
 downloads](https://cranlogs.r-pkg.org/badges/NetSimR)](https://cran.r-project.org/package=NetSimR)
@@ -10,6 +10,8 @@ The six Shiny tools of NetSimR run right here, in your browser, with
 and [shinylive](https://posit-dev.github.io/r-shinylive/). Nothing to
 install, and nothing leaves your computer: the data you upload and the
 models you fit stay in the page.
+
+## The six Shiny tools
 
 ### Claims simulator
 
