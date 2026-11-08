@@ -195,7 +195,55 @@ reserving_tool_Server <- function(input, output, session) {
     from <- suppressWarnings(as.integer(or_default(input$tail_from, 1)))
     checked(chain_ladder(tri, average = or_default(input$average, "volume"), periods = periods_used(), exclude = ex,
                          tail = tail_setting(), tail_from = if (is.na(from)) 1 else from,
-                         sigma = or_default(input$sigma, "log-linear")))
+                         sigma = or_default(input$sigma, "log-linear"), tail_periods = tail_periods()))
+  })
+
+  # the periods a tail curve is extrapolated over
+  tail_periods <- reactive({
+    periods <- input$tail_periods
+    if (!is.numeric(periods) || length(periods) != 1 || !is.finite(periods)) return(100)
+    min(max(round(periods), 1), 1000)
+  })
+
+  # the tail factor of each curve, fitted to the factors of the Development tab, and of Clark's
+  # growth curves (LDF method, with the truncation of the More methods tab), with the IBNR each
+  # gives the chain ladder: so the choice of a tail can be weighed against the others
+  tail_options <- reactive({
+    fit <- cl()
+    from <- suppressWarnings(as.integer(or_default(input$tail_from, 1)))
+    if (is.na(from)) from <- 1
+    n <- ncol(fit$triangle)
+    truncation <- input$clark_truncation
+    truncation <- if (is.numeric(truncation) && length(truncation) == 1 && is.finite(truncation)) truncation else Inf
+    untailed <- fit$by_origin$ultimate / fit$tail
+    option <- function(name, expr) {
+      value <- tryCatch(expr, error = function(e) e)
+      if (inherits(value, "error")) return(data.frame(method = name, tail = NA_real_, ibnr = NA_real_, note = conditionMessage(value)))
+      data.frame(method = name, tail = value, ibnr = sum(untailed * value) - fit$total[["latest"]], note = "")
+    }
+    rbind(
+      option("No tail", 1),
+      option(paste0("Exponential curve, from factor ", from), reserving_tail_curve(fit$factors, "exponential", from, tail_periods())$tail),
+      option(paste0("Inverse power curve, from factor ", from),
+             reserving_tail_curve(fit$factors, "inverse power", from, tail_periods())$tail),
+      option(paste0("Clark log-logistic", if (is.finite(truncation)) paste0(", truncated at ", truncation)),
+             1 / clark_growth(triangle(), "loglogistic", truncation = truncation)$growth(n)),
+      option(paste0("Clark Weibull", if (is.finite(truncation)) paste0(", truncated at ", truncation)),
+             1 / clark_growth(triangle(), "weibull", truncation = truncation)$growth(n))
+    )
+  })
+
+  output$tail_comparison <- renderUI({
+    o <- tail_options()
+    fit <- cl()
+    rows <- lapply(seq_len(nrow(o)), function(i) {
+      list(o$method[i], if (is.finite(o$tail[i])) rsv_ratio(o$tail[i], 4) else dft_dash,
+           if (is.finite(o$ibnr[i])) rsv_amount(o$ibnr[i]) else dft_dash, o$note[i])
+    })
+    rsv_table(c("Tail", "Tail factor", "Chain ladder IBNR", "Note"), rows,
+              note = paste0("Each curve's tail beyond the last development period, the curves extrapolated over ",
+                            tail_periods(), " periods; Clark's is the growth curve's share still to develop at the end ",
+                            "of the triangle. The tail used now is ", rsv_ratio(fit$tail, 4), "."))
   })
 
   output$development_stats <- renderUI({
@@ -427,6 +475,50 @@ reserving_tool_Server <- function(input, output, session) {
       full <- cl()$full_triangle
       utils::write.csv(csv_safe(data.frame(origin = rownames(full), full, check.names = FALSE, stringsAsFactors = FALSE)),
                        file, row.names = FALSE)
+    }
+  )
+
+  ######################
+  #Report
+  ######################
+
+  # the choices behind the figures, for the report
+  report_settings <- function() {
+    fit <- cl()
+    tri <- fit$triangle
+    r <- results()
+    periods <- periods_used()
+    tail_text <- if (!is.null(fit$tail_curve)) {
+      paste0(if (fit$tail_curve$curve == "exponential") "Exponential" else "Inverse power", " curve from factor ",
+             fit$tail_curve$from, ", ", rsv_ratio(fit$tail, 4))
+    } else if (fit$tail == 1) "None" else paste("Entered,", rsv_ratio(fit$tail, 4))
+    counts <- table(factor(r$method, levels = names(rsv_methods)))
+    counts <- counts[counts > 0]
+    list(
+      Data = list(Source = data_input()$source, Origins = paste(rownames(tri)[1], "to", rownames(tri)[nrow(tri)]),
+                  `Development periods` = format(ncol(tri)),
+                  Premiums = if (all(is.na(r$premium))) "None" else rsv_amount(sum(r$premium, na.rm = TRUE)),
+                  `Incurred claims` = if (is.null(data_input()$incurred)) "No" else "Yes"),
+      Development = list(Average = c(volume = "Volume-weighted", simple = "Simple", regression = "Regression")[[fit$average]],
+                         `Calendar periods` = if (is.null(periods)) "All" else paste("Latest", periods),
+                         `Link ratios left out` = format(sum(!is.na(fit$link_ratios) & !fit$used)),
+                         Tail = tail_text,
+                         `Single link ratio sigma` = if (identical(input$sigma, "Mack")) "Mack's rule" else "Log-linear"),
+      Ultimates = list(Methods = paste(paste(counts, names(counts)), collapse = ", "),
+                       `Cape Cod decay` = format(or_default(input$decay, 1)),
+                       `Cape Cod loss ratio` = rsv_percent(attr(r, "cape_cod_loss_ratio")))
+    )
+  }
+
+  output$download_report <- downloadHandler(
+    filename = function() "reserving_report.html",
+    content = function(file) {
+      quiet <- function(expr) tryCatch(expr, error = function(e) NULL)
+      write_reserving_report(file, list(
+        source = data_input()$source, settings = report_settings(), cl = cl(), results = results(),
+        one_year = quiet(one_year()), ave = quiet(ave()), clark = quiet(clark()), inflation = quiet(inflation()),
+        munich = quiet(munich()), boot = quiet(current_boot()), tails = quiet(tail_options())
+      ))
     }
   )
 

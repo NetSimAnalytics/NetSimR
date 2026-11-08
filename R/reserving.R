@@ -61,9 +61,12 @@ reserving_recent_ratios <- function(ratios, latest, periods) {
 # The tail factor of a curve fitted to the development factors of periods from
 # `from` onwards that are above 1: an exponential decay of log(f - 1) with the
 # period, or an inverse power (log(f - 1) linear in the log of the period),
-# extrapolated over the next 100 periods.
-reserving_tail_curve <- function(factors, curve = c("exponential", "inverse power"), from = 1) {
+# extrapolated over the next `periods` periods (100 by default).
+reserving_tail_curve <- function(factors, curve = c("exponential", "inverse power"), from = 1, periods = 100) {
   curve <- match.arg(curve)
+  if (!is.numeric(periods) || length(periods) != 1 || !is.finite(periods) || periods < 1 || periods != round(periods)) {
+    stop("tail_periods must be a whole number of periods, at least 1.", call. = FALSE)
+  }
   n <- length(factors)
   j <- seq_len(n)
   use <- j >= from & is.finite(factors) & factors > 1
@@ -78,14 +81,14 @@ reserving_tail_curve <- function(factors, curve = c("exponential", "inverse powe
     stop("The development factors do not fall towards 1, so no tail curve can be fitted to them: enter a tail ",
          "factor instead.", call. = FALSE)
   }
-  later <- (n + 1):(n + 100)
+  later <- (n + 1):(n + periods)
   excess <- if (curve == "exponential") exp(a + b * later) else exp(a) * later^b
   tail <- prod(1 + excess)
   if (!is.finite(tail) || tail > 2) {
     stop("The fitted tail factor is over 2, which would more than double the claims: fit the curve from a later ",
          "period, or enter a tail factor.", call. = FALSE)
   }
-  list(tail = tail, curve = curve, from = from, intercept = a, slope = b, used = which(use),
+  list(tail = tail, curve = curve, from = from, periods = periods, intercept = a, slope = b, used = which(use),
        fitted = function(period) 1 + if (curve == "exponential") exp(a + b * period) else exp(a) * period^b)
 }
 
@@ -133,8 +136,12 @@ reserving_tail_curve <- function(factors, curve = c("exponential", "inverse powe
 #' @param tail The tail factor from the last development period to ultimate: a
 #'   positive number (1, the default, for none), or \code{"exponential"} or
 #'   \code{"inverse power"} for a curve fitted to the development factors above 1
-#'   and extrapolated over 100 periods.
+#'   and extrapolated over \code{tail_periods} periods.
 #' @param tail_from The first development factor the tail curve is fitted to.
+#' @param tail_periods The number of periods beyond the triangle over which a tail
+#'   curve is extrapolated (100, the default). An inverse power curve falls slowly,
+#'   so its tail grows with this; an exponential one has nearly all of its tail in
+#'   the first few periods.
 #' @param sigma How \eqn{\sigma} is found for a period with a single link ratio:
 #'   \code{"log-linear"} or \code{"Mack"}.
 #' @return An object of class \code{netsimr_chain_ladder}, a list with:
@@ -170,7 +177,7 @@ reserving_tail_curve <- function(factors, curve = c("exponential", "inverse powe
 #' # simple averages of the latest five years, with a fitted tail
 #' chain_ladder(raa_triangle, average = "simple", periods = 5, tail = "exponential")$total
 chain_ladder <- function(triangle, average = c("volume", "simple", "regression"), periods = NULL, exclude = NULL,
-                         tail = 1, tail_from = 1, sigma = c("log-linear", "Mack")) {
+                         tail = 1, tail_from = 1, sigma = c("log-linear", "Mack"), tail_periods = 100) {
   average <- match.arg(average)
   sigma_method <- match.arg(sigma)
   checked <- reserving_check_triangle(triangle)
@@ -255,7 +262,7 @@ chain_ladder <- function(triangle, average = c("volume", "simple", "regression")
     if (length(tail) != 1 || !(tail %in% c("exponential", "inverse power"))) {
       stop("tail must be a positive number, \"exponential\" or \"inverse power\".", call. = FALSE)
     }
-    tail_curve <- reserving_tail_curve(factors, tail, tail_from)
+    tail_curve <- reserving_tail_curve(factors, tail, tail_from, tail_periods)
     tail_factor <- tail_curve$tail
   } else {
     if (!is.numeric(tail) || length(tail) != 1 || !is.finite(tail) || tail <= 0) {

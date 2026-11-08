@@ -11,7 +11,8 @@ chain_ladder(
   exclude = NULL,
   tail = 1,
   tail_from = 1,
-  sigma = c("log-linear", "Mack")
+  sigma = c("log-linear", "Mack"),
+  tail_periods = 100
 )
 }
 \arguments{
@@ -34,12 +35,17 @@ and a column per development factor (\code{TRUE} to leave out), or
 \item{tail}{The tail factor from the last development period to ultimate: a
 positive number (1, the default, for none), or \code{"exponential"} or
 \code{"inverse power"} for a curve fitted to the development factors above 1
-and extrapolated over 100 periods.}
+and extrapolated over \code{tail_periods} periods.}
 
 \item{tail_from}{The first development factor the tail curve is fitted to.}
 
 \item{sigma}{How \eqn{\sigma} is found for a period with a single link ratio:
 \code{"log-linear"} or \code{"Mack"}.}
+
+\item{tail_periods}{The number of periods beyond the triangle over which a tail
+curve is extrapolated (100, the default). An inverse power curve falls slowly,
+so its tail grows with this; an exponential one has nearly all of its tail in
+the first few periods.}
 }
 \value{
 An object of class \code{netsimr_chain_ladder}, a list with:

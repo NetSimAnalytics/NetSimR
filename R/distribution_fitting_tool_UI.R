@@ -767,6 +767,7 @@ distribution_fitting_tool_UI <- function(request) {
             a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
             "."
           ),
+          netsimr_feedback_links("Distribution fitting tool"),
           p(class = "sim-muted mb-0",
             "Please reach out if you have any feedback or encounter any bugs.")
         )
@@ -869,11 +870,26 @@ distribution_fitting_tool_UI <- function(request) {
           "sliders", "Settings", "Choose the claim sizes and run the fit.",
           dft_column_select("severity_var", "Claim size column"),
           sim_amount_input("sev_threshold", "Reporting threshold (optional)", min = 0),
+          div(class = "sim-section-label mt-2", "Policy limits"),
+          div(class = "pill-radio",
+              sim_hidden_label(radioButtons("sev_limit_source", "Policy limits",
+                                            c("None" = "none", "One limit" = "value", "A column" = "column"),
+                                            "none", inline = TRUE))),
+          conditionalPanel(
+            condition = "input.sev_limit_source == 'value'",
+            sim_amount_input("sev_limit", "Policy limit", min = 0)
+          ),
+          conditionalPanel(
+            condition = "input.sev_limit_source == 'column'",
+            dft_column_select("sev_limit_col", "Policy limit column")
+          ),
           dft_run_button("execute_sev_analysis"),
           dft_help("Missing, negative, zero and non-numeric values are left out."),
           dft_help("For claims that are only reported above a threshold, enter it: the claims at or below it are left out,",
                    "and each distribution is fitted to the claims above it as the claims from zero, of which the data",
                    "holds only those above the threshold."),
+          dft_help("A claim paid at its policy limit hides how large the loss was: with the limits, such claims count as",
+                   "losses of at least the limit (censored), so the fitted tail is not cut short at the limits."),
           tags$hr(class = "sim-divider"),
           div(class = "sim-section-label", "Chart options"),
           dft_log_switch("sev_fit_log_scale"),

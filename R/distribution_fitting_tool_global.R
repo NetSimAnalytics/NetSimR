@@ -1051,7 +1051,10 @@ dft_simulator_settings_rows <- function(values) {
 # that are known only above a reporting threshold `d` > 0 (left truncated
 # data): each claim's density is divided by the fitted probability of
 # exceeding d, f(x) / S(d), so the fit is of the claims from zero (ground up)
-# without the claims below d that the data cannot hold.
+# without the claims below d that the data cannot hold. Claims capped at their
+# policy limit are `censored` (right censored): the loss was at least the claim,
+# so each adds the probability of exceeding it, S(x) / S(d), instead of its
+# density. With censoring the threshold can be 0, for no threshold.
 #
 # Returns the models in the form of the Severity tab: `name`, `params` (of the
 # ground-up distribution, named as the untruncated fits name them), `mean` (the
@@ -1060,10 +1063,22 @@ dft_simulator_settings_rows <- function(values) {
 # `loglik` (of the truncated likelihood), `k` and `survival_at_threshold`
 # (S(d), the share of all claims that exceed d). A fit that fails has NA
 # parameters and no cdf, and its message is in the `failed` attribute.
-dft_truncated_severity_models <- function(x, d) {
+dft_truncated_severity_models <- function(x, d, censored = NULL) {
   n <- length(x)
-  if (!(is.numeric(d) && length(d) == 1 && is.finite(d) && d > 0)) stop("the threshold must be a positive number")
+  if (is.null(censored)) censored <- rep(FALSE, n)
+  if (length(censored) != n || anyNA(censored)) stop("censored must say for each claim whether it is censored")
+  censoring <- any(censored)
+  if (!(is.numeric(d) && length(d) == 1 && is.finite(d) && (d > 0 || (censoring && d == 0)))) {
+    stop("the threshold must be a positive number")
+  }
+  truncated <- d > 0
   if (n < 2 || any(x <= d)) stop("the claims must all be above the threshold")
+  xu <- x[!censored]
+  xc <- x[censored]
+  nu <- length(xu)
+  if (nu < 2 || length(unique(xu)) < 2) stop("at least two different claims must be below their policy limits")
+  # what the fits are of: claims above the threshold, censored at their limits, or both
+  what <- if (truncated) "fit above the threshold" else "fit with the policy limits"
   failed <- character()
   # the fit from minus the log-likelihood over unconstrained parameters: Nelder-Mead from the
   # starting point, then BFGS from where it stops
@@ -1080,31 +1095,39 @@ dft_truncated_severity_models <- function(x, d) {
     if (fit$convergence != 0 || fit$value >= 1e300) stop("the optimisation did not converge")
     fit$par
   }
+  # the log-likelihood of a distribution from its log density and log survival function: the
+  # density of each claim below its limit, the survival at its limit of each claim at it, both
+  # over the survival at the threshold
+  loglik_of <- function(log_density, log_survival) {
+    sum(log_density(xu)) + (if (length(xc)) sum(log_survival(xc)) else 0) - (if (truncated) n * log_survival(d) else 0)
+  }
   # a model from its log survival function, density and ground-up parameters. (Each fit is
   # made in local(): tryCatch() evaluates in this function's frame, where the closures of one
   # fit would see the parameters of the next.) A fit that leaves almost no claims above the
   # threshold has run to the edge of its parameters: the claims above the threshold have a
   # heavier tail than any of its distributions, and the claims below it are not fitted at all
   model <- function(name, params, log_survival, log_density, mean_above, k = 2, optimised = TRUE) {
-    log_s_d <- log_survival(d)
-    if (optimised && (!is.finite(log_s_d) || log_s_d < log(1e-9))) {
+    log_s_d <- if (truncated) log_survival(d) else 0
+    if (truncated && optimised && (!is.finite(log_s_d) || log_s_d < log(1e-9))) {
       stop("the claims above the threshold have a heavier tail than any ", name, ", and the fit runs to the edge of ",
            "its parameters, leaving almost no claims above the threshold", call. = FALSE)
     }
     list(name = name, params = params, mean = mean_above, k = k,
-         cdf = function(q) ifelse(q <= d, 0, -expm1(log_survival(pmax(q, d)) - log_s_d)),
-         loglik = sum(log_density(x)) - n * log_s_d, survival_at_threshold = exp(log_s_d))
+         # (claim sizes are positive: below zero the cdf of every distribution but the Normal is 0)
+         cdf = if (truncated) function(q) ifelse(q <= d, 0, -expm1(log_survival(pmax(q, d)) - log_s_d)) else
+           function(q) -expm1(log_survival(if (name == "Normal") q else pmax(q, 0))),
+         loglik = loglik_of(log_density, log_survival), survival_at_threshold = exp(log_s_d))
   }
   failed_model <- function(name, params, e) {
-    failed <<- c(failed, paste0(name, " fit above the threshold failed: ", conditionMessage(e)))
+    failed <<- c(failed, paste0(name, " ", what, " failed: ", conditionMessage(e)))
     list(name = name, params = params, mean = NA_real_, k = 2, cdf = NULL, loglik = NA_real_,
          survival_at_threshold = NA_real_)
   }
 
   normal <- tryCatch(local({
     s0 <- stats::sd(x)
-    p <- optimise(function(p) -(sum(stats::dnorm(x, p[1], exp(p[2]), log = TRUE)) -
-                                  n * stats::pnorm(d, p[1], exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
+    p <- optimise(function(p) -loglik_of(function(q) stats::dnorm(q, p[1], exp(p[2]), log = TRUE),
+                                         function(q) stats::pnorm(q, p[1], exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
                   c(mean(x), log(s0)), c(s0, 1))
     mu <- p[1]
     sigma <- exp(p[2])
@@ -1113,13 +1136,13 @@ dft_truncated_severity_models <- function(x, d) {
     model("Normal", c(Mean = mu, `Std. dev.` = sigma),
           function(q) stats::pnorm(q, mu, sigma, lower.tail = FALSE, log.p = TRUE),
           function(q) stats::dnorm(q, mu, sigma, log = TRUE),
-          mu + sigma * exp(stats::dnorm(a, log = TRUE) - stats::pnorm(a, lower.tail = FALSE, log.p = TRUE)))
+          if (truncated) mu + sigma * exp(stats::dnorm(a, log = TRUE) - stats::pnorm(a, lower.tail = FALSE, log.p = TRUE)) else mu)
   }), error = function(e) failed_model("Normal", c(Mean = NA_real_, `Std. dev.` = NA_real_), e))
 
   lnorm <- tryCatch(local({
     lx <- log(x)
-    p <- optimise(function(p) -(sum(stats::dlnorm(x, p[1], exp(p[2]), log = TRUE)) -
-                                  n * stats::plnorm(d, p[1], exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
+    p <- optimise(function(p) -loglik_of(function(q) stats::dlnorm(q, p[1], exp(p[2]), log = TRUE),
+                                         function(q) stats::plnorm(q, p[1], exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
                   c(mean(lx), log(stats::sd(lx))), c(1, 1))
     mu <- p[1]
     sigma <- exp(p[2])
@@ -1130,16 +1153,18 @@ dft_truncated_severity_models <- function(x, d) {
                 stats::pnorm((log(d) - mu) / sigma, lower.tail = FALSE, log.p = TRUE)))
   }), error = function(e) failed_model("LogNormal", c(mu = NA_real_, sigma = NA_real_), e))
 
-  # (memoryless: the excess over the threshold is Exponential with the same rate)
-  rate <- 1 / (mean(x) - d)
+  # (memoryless: the excess over the threshold is Exponential with the same rate; each claim
+  # at its limit adds its excess over the threshold to the exposure, but no event)
+  rate <- nu / sum(x - d)
   exponential <- model("Exponential", c(Mean = 1 / rate),
                        function(q) stats::pexp(q, rate, lower.tail = FALSE, log.p = TRUE),
-                       function(q) stats::dexp(q, rate, log = TRUE), mean(x), k = 1, optimised = FALSE)
+                       function(q) stats::dexp(q, rate, log = TRUE), d + 1 / rate, k = 1, optimised = FALSE)
 
   gamma <- tryCatch(local({
     start <- fit_gamma_profile(x)$estimate
-    p <- optimise(function(p) -(sum(stats::dgamma(x, shape = exp(p[1]), scale = exp(p[2]), log = TRUE)) -
-                                  n * stats::pgamma(d, shape = exp(p[1]), scale = exp(p[2]), lower.tail = FALSE, log.p = TRUE)),
+    p <- optimise(function(p) -loglik_of(function(q) stats::dgamma(q, shape = exp(p[1]), scale = exp(p[2]), log = TRUE),
+                                         function(q) stats::pgamma(q, shape = exp(p[1]), scale = exp(p[2]), lower.tail = FALSE,
+                                                                   log.p = TRUE)),
                   log(c(start[["shape"]], start[["scale"]])), c(1, 1))
     shape <- exp(p[1])
     scale <- exp(p[2])
@@ -1151,18 +1176,20 @@ dft_truncated_severity_models <- function(x, d) {
                                 stats::pgamma(d, shape = shape, scale = scale, lower.tail = FALSE, log.p = TRUE)))
   }), error = function(e) failed_model("Gamma", c(Scale = NA_real_, Shape = NA_real_), e))
 
-  # a Pareto from the threshold, whose claims all exceed it
-  alpha <- n / sum(log(x / d))
-  pareto <- model("Pareto", c(xm = d, alpha = alpha),
-                  function(q) ifelse(q <= d, 0, alpha * (log(d) - log(q))),
-                  function(q) log(alpha) + alpha * log(d) - (alpha + 1) * log(q),
-                  if (alpha > 1) alpha * d / (alpha - 1) else Inf, optimised = FALSE)
+  # a Pareto from the threshold (or from the smallest claim without one), whose claims all
+  # exceed it; each claim at its limit adds to the sum of logs, but no event
+  xm <- if (truncated) d else min(x)
+  alpha <- nu / sum(log(x / xm))
+  pareto <- model("Pareto", c(xm = xm, alpha = alpha),
+                  function(q) ifelse(q <= xm, 0, alpha * (log(xm) - log(q))),
+                  function(q) log(alpha) + alpha * log(xm) - (alpha + 1) * log(q),
+                  if (alpha > 1) alpha * xm / (alpha - 1) else Inf, optimised = FALSE)
 
   weibull <- tryCatch(local({
     start <- dft_fit_weibull(x)$estimate
     # log S(q) = -(q / scale)^shape
-    p <- optimise(function(p) -(sum(stats::dweibull(x, shape = exp(p[1]), scale = exp(p[2]), log = TRUE)) +
-                                  n * (d / exp(p[2]))^exp(p[1])),
+    p <- optimise(function(p) -loglik_of(function(q) stats::dweibull(q, shape = exp(p[1]), scale = exp(p[2]), log = TRUE),
+                                         function(q) -(q / exp(p[2]))^exp(p[1])),
                   log(c(start[["shape"]], start[["scale"]])), c(1, 1))
     shape <- exp(p[1])
     scale <- exp(p[2])
@@ -1175,6 +1202,35 @@ dft_truncated_severity_models <- function(x, d) {
   }), error = function(e) failed_model("Weibull", c(Scale = NA_real_, Shape = NA_real_), e))
 
   structure(list(normal, lnorm, exponential, gamma, pareto, weibull), failed = failed)
+}
+
+# The Kaplan-Meier (product-limit) estimate of the cdf of claims, some censored at their
+# policy limits (a censored claim is at least as large as its value) and all above a
+# threshold: at each claim size that is not censored, the share of the claims still open
+# that close there. Returns the claim sizes and the estimated cdf just after each; without
+# censoring it is the empirical cdf.
+dft_kaplan_meier <- function(x, censored) {
+  events <- sort(unique(x[!censored]))
+  closed <- as.numeric(table(factor(x[!censored], levels = events)))
+  # the claims still open at each size: those at least as large, censored or not
+  open <- length(x) - findInterval(events, sort(x), left.open = TRUE)
+  survival <- cumprod(1 - closed / open)
+  list(x = events, cdf = 1 - survival)
+}
+
+# The Kolmogorov-Smirnov distance between a fitted cdf and the Kaplan-Meier estimate, at the
+# claim sizes below the limits (each step, from both sides), where the estimate is known.
+dft_km_distance <- function(km, cdf_fun) {
+  fitted <- cdf_fun(km$x)
+  before <- c(0, km$cdf[-length(km$cdf)])
+  max(abs(km$cdf - fitted), abs(before - fitted))
+}
+
+# The quantiles of the Kaplan-Meier estimate at the probabilities p it reaches: the smallest
+# claim size whose estimated cdf is at least p, NA beyond its largest value.
+dft_km_quantiles <- function(km, p) {
+  at <- findInterval(p, km$cdf, left.open = TRUE) + 1
+  ifelse(at <= length(km$x), km$x[pmin(at, length(km$x))], NA_real_)
 }
 # Maximum likelihood fit of a Weibull distribution to positive claims, as
 # fitdistrplus::fitdist(x, "weibull") gives it: for a shape k the likelihood is
@@ -1256,7 +1312,7 @@ dft_qq_data <- function(claims, cdfs, points = 200) {
 # run to the edge of their parameters together, any other failure as it is.
 dft_failed_fits_note <- function(failed) {
   if (length(failed) == 0) return("")
-  names <- sub(" fit above the threshold failed: .*$", "", failed)
+  names <- sub(" fit (above the threshold|with the policy limits) failed: .*$", "", failed)
   edge <- grepl("heavier tail than any", failed, fixed = TRUE)
   either <- function(x) if (length(x) == 1) x else paste(paste(x[-length(x)], collapse = ", "), "or", x[length(x)])
   paste0(

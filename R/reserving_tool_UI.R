@@ -387,6 +387,7 @@ reserving_tool_UI <- function(request) {
             a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
             "."
           ),
+          netsimr_feedback_links("Reserving tool"),
           p(class = "sim-muted mb-0",
             "The functions behind the tool, such as ", tags$code("chain_ladder()"), " and ",
             tags$code("bootstrap_chain_ladder()"), ", can also be used from R.")
@@ -498,7 +499,9 @@ reserving_tool_UI <- function(request) {
           conditionalPanel(
             condition = "input.tail_method == 'exponential' || input.tail_method == 'inverse power'",
             selectInput("tail_from", "Fit the curve from factor", choices = c("1" = 1), selectize = FALSE),
-            dft_help("The curve is fitted to the factors above 1 from this one on, and extrapolated over 100 periods.")
+            numericInput("tail_periods", "Extrapolate over (periods)", value = 100, min = 1, max = 1000, step = 10),
+            dft_help("The curve is fitted to the factors above 1 from this one on, and extrapolated over these periods.",
+                     "The Tail curve tab compares the tail of each curve.")
           ),
           conditionalPanel(
             condition = "input.tail_method == 'factor'",
@@ -522,7 +525,7 @@ reserving_tool_UI <- function(request) {
           bslib::nav_panel("Development", dft_plot_output("development_plot"),
                            p(class = "dft-table-note", "Each line is an origin, from the oldest (lightest) to the latest (darkest).")),
           bslib::nav_panel("Link ratios", dft_plot_output("link_ratio_plot")),
-          bslib::nav_panel("Tail curve", dft_plot_output("tail_plot")),
+          bslib::nav_panel("Tail curve", dft_plot_output("tail_plot"), uiOutput("tail_comparison")),
           bslib::nav_panel("Projected triangle", uiOutput("projected_table"))
         )
       )
@@ -560,7 +563,8 @@ reserving_tool_UI <- function(request) {
             uiOutput("ultimate_table"),
             div(class = "rsv-downloads",
                 downloadButton("download_results", "Results (CSV)", class = "btn-outline-rsv"),
-                downloadButton("download_triangle", "Projected triangle (CSV)", class = "btn-outline-rsv"))
+                downloadButton("download_triangle", "Projected triangle (CSV)", class = "btn-outline-rsv"),
+                downloadButton("download_report", "Report (HTML)", class = "btn-outline-rsv"))
           )
         ),
         dft_tabs(

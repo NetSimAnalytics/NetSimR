@@ -49,7 +49,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
       need(length(claims) >= 2, "The column needs at least two positive claim sizes."),
       need(length(unique(claims)) >= 2, "All the claim sizes are the same, so no distribution can be fitted.")
     )
-    list(claims = claims, dropped = sum(!keep))
+    list(claims = claims, dropped = sum(!keep), rows = keep)
   }
 
   rows_left_out_note <- function(dropped) {
@@ -159,6 +159,10 @@ distribution_fitting_tool_Server <- function(input, output, session) {
       updateSelectizeInput(session, id, choices = columns, selected = selected[[id]])
     }
     column_choices(list(layout = layout, guesses = guesses, selected = selected))
+    # the policy limit column: the one chosen while the file has it, else one named like a limit
+    limit <- input$sev_limit_col
+    if (is.null(limit) || !(limit %in% columns)) limit <- or_default(by_name("limit|cap|maximum|max_|sum_insured"), first)
+    updateSelectizeInput(session, "sev_limit_col", choices = columns, selected = limit)
   })
 
   # the preview shows the first rows; the analyses use every row
@@ -342,19 +346,50 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   #Severity analysis
   ######################
 
-  # the claim sizes, and the reporting threshold (0 for none): with one, only the claims above it
+  # the policy limit of each claim of the rows kept: one for all, a column (a row without a
+  # positive limit has none), or none (Inf)
+  severity_limits <- function(rows) {
+    source <- or_default(input$sev_limit_source, "none")
+    if (identical(source, "value")) {
+      limit <- input$sev_limit
+      validate(need(is.numeric(limit) && length(limit) == 1 && is.finite(limit) && limit > 0,
+                    "Enter the policy limit, a positive amount."))
+      return(rep(limit, sum(rows)))
+    }
+    if (identical(source, "column")) {
+      df <- data()
+      column <- input$sev_limit_col
+      validate(need(!is.null(column) && column %in% names(df), "Choose the policy limit column."),
+               need(!identical(column, input$severity_var), "Choose a policy limit column other than the claim sizes."))
+      limits <- dft_as_numeric(df[[column]], or_default(input$dec, "."))[rows]
+      return(ifelse(is.finite(limits) & limits > 0, limits, Inf))
+    }
+    rep(Inf, sum(rows))
+  }
+
+  # the claim sizes, the reporting threshold (0 for none): with one, only the claims above it;
+  # and which claims are censored, at or above their policy limit (the loss was at least that)
   sev_input <- eventReactive(input$execute_sev_analysis, {
     sizes <- claim_sizes(input$severity_var)
+    censored <- sizes$claims >= severity_limits(sizes$rows)
     d <- input$sev_threshold
-    if (is.null(d) || length(d) != 1 || is.na(d) || d == 0) return(c(sizes, list(threshold = 0, below = 0)))
-    validate(need(is.finite(d) && d > 0, "The reporting threshold must be a positive amount, or empty."))
+    if (is.null(d) || length(d) != 1 || is.na(d) || d == 0) {
+      d <- 0
+    } else {
+      validate(need(is.finite(d) && d > 0, "The reporting threshold must be a positive amount, or empty."))
+    }
     above <- sizes$claims > d
-    validate(need(length(unique(sizes$claims[above])) >= 2,
-                  "At least two different claim sizes must lie above the reporting threshold."))
-    list(claims = sizes$claims[above], dropped = sizes$dropped, threshold = d, below = sum(!above))
+    validate(need(length(unique(sizes$claims[above & !censored])) >= 2,
+                  if (d > 0) "At least two different claim sizes below their limits must lie above the reporting threshold." else
+                    "At least two different claim sizes must be below their policy limits."))
+    list(claims = sizes$claims[above], censored = censored[above], dropped = sizes$dropped, threshold = d, below = sum(!above))
   })
   severity_data <- reactive(sev_input()$claims)
   sev_threshold <- reactive(sev_input()$threshold)
+  sev_censored <- reactive(sev_input()$censored)
+  sev_has_censoring <- reactive(any(sev_censored()))
+  # the empirical cdf of the claims: with censoring, the Kaplan-Meier estimate
+  sev_km <- reactive(dft_kaplan_meier(severity_data(), sev_censored()))
 
   # maximum likelihood fits
   sev_norm_fit <- reactive({
@@ -372,12 +407,12 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   sev_pareto_alpha <- reactive(length(severity_data()) / sum(log(severity_data() / sev_pareto_xm())))
 
   # the fits to claims above a reporting threshold (a fit that fails is explained under the table)
-  sev_truncated_models <- reactive(dft_truncated_severity_models(severity_data(), sev_threshold()))
+  sev_truncated_models <- reactive(dft_truncated_severity_models(severity_data(), sev_threshold(), sev_censored()))
 
   # the fitted models, each with its parameters, mean, cdf and log-likelihood; above a reporting
   # threshold, the mean and cdf are of the claims above it
   sev_models <- reactive({
-    if (sev_threshold() > 0) return(sev_truncated_models())
+    if (sev_threshold() > 0 || sev_has_censoring()) return(sev_truncated_models())
     x <- severity_data()
     norm <- unname(sev_norm_fit()$estimate)
     lnorm <- unname(sev_lnorm_fit()$estimate)
@@ -413,7 +448,9 @@ distribution_fitting_tool_Server <- function(input, output, session) {
       dft_stat_tile("Claims", format(length(x), big.mark = ","), icon_name = "hashtag",
                     note = paste(c(rows_left_out_note(sev_input()$dropped),
                                    if (sev_input()$below > 0) paste(format(sev_input()$below, big.mark = ","), "at or below",
-                                                                    dft_fmt(sev_threshold()), "left out")),
+                                                                    dft_fmt(sev_threshold()), "left out"),
+                                   if (sev_has_censoring()) paste(format(sum(sev_censored()), big.mark = ","),
+                                                                  "at their policy limits")),
                                  collapse = "; ")),
       dft_stat_tile("Mean", dft_fmt(mean(x)), icon_name = "bullseye"),
       dft_stat_tile("Median", dft_fmt(median(x)), icon_name = "arrows-left-right"),
@@ -427,8 +464,13 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     x <- severity_data()
     models <- sev_models()
     sorted <- sort(x)
-    ks <- vapply(models, function(m) if (is.null(m$cdf)) NA_real_ else ks_distance(sorted, m$cdf, sorted = TRUE), numeric(1))
-    ad <- vapply(models, function(m) if (is.null(m$cdf)) NA_real_ else ad_statistic(sorted, m$cdf, sorted = TRUE), numeric(1))
+    censoring <- sev_has_censoring()
+    # with censoring, the distances are to the Kaplan-Meier estimate, and there is no A-D statistic
+    ks <- vapply(models, function(m) {
+      if (is.null(m$cdf)) NA_real_ else if (censoring) dft_km_distance(sev_km(), m$cdf) else ks_distance(sorted, m$cdf, sorted = TRUE)
+    }, numeric(1))
+    ad <- vapply(models, function(m) if (is.null(m$cdf) || censoring) NA_real_ else ad_statistic(sorted, m$cdf, sorted = TRUE),
+                 numeric(1))
     rows <- lapply(seq_along(models), function(i) {
       m <- models[[i]]
       params <- names(m$params)
@@ -447,7 +489,17 @@ distribution_fitting_tool_Server <- function(input, output, session) {
       c("Distribution", "Parameter 1", "Parameter 2", if (d > 0) "Mean above threshold" else "Mean", "K-S distance",
         "A-D statistic", "AIC"), rows,
       best = if (any(is.finite(ks))) which.min(ks), best_label = "Closest",
-      note = if (d > 0) {
+      note = if (censoring) {
+        k <- sum(sev_censored())
+        paste0(format(k, big.mark = ","), if (k == 1) " claim is" else " claims are", " at or above the policy limit, so the ",
+               "loss was at least the claim: each counts as the probability of exceeding it (censored), not as a claim of ",
+               "that size. ", if (d > 0) paste0("Fitted to the claims above the reporting threshold of ", dft_fmt(d),
+                                                 " as claims from zero; the means are of the claims above the threshold. ") else "",
+               "The parameters are of all claims, before the limits. The K-S distance is to the Kaplan-Meier estimate of the ",
+               "claim sizes, which allows for the limits; the A-D statistic needs every claim's size, so it is not given. ",
+               "The Pareto starts at ", if (d > 0) "the threshold." else "the smallest claim.",
+               dft_failed_fits_note(attr(models, "failed")))
+      } else if (d > 0) {
         paste0("Fitted to the claims above the reporting threshold of ", dft_fmt(d), " as claims from zero: the parameters ",
                "are of all claims, the means and the K-S distances of the claims above the threshold. Empirical mean ",
                dft_fmt(mean(x)), ". The Pareto starts at the threshold.", dft_failed_fits_note(attr(models, "failed")))
@@ -478,6 +530,16 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     log_scale <- isTRUE(input$sev_fit_log_scale)
     models <- model_cdfs(sev_models())
     q <- dft_qq_data(severity_data(), models$cdfs)
+    if (sev_has_censoring()) {
+      # the quantiles of the Kaplan-Meier estimate, as far as it reaches below the limits
+      km <- sev_km()
+      q$empirical <- dft_km_quantiles(km, q$p)
+      known <- is.finite(q$empirical)
+      validate(need(sum(known) >= 2, "Too few claims below their limits for a Q-Q plot."))
+      q$p <- q$p[known]
+      q$empirical <- q$empirical[known]
+      q$fitted <- lapply(q$fitted, function(f) f[known])
+    }
     axis <- if (log_scale) function(v) log10(pmax(v, .Machine$double.xmin)) else identity
     keep <- if (log_scale) q$empirical > 0 else rep(TRUE, length(q$empirical))
     x <- axis(q$empirical[keep])
@@ -499,6 +561,13 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     log_scale <- isTRUE(input$sev_fit_log_scale)
     models <- model_cdfs(sev_models())
     d <- dft_severity_cdf_data(severity_data(), models$cdfs, log_scale)
+    if (sev_has_censoring()) {
+      # the Kaplan-Meier estimate in place of the empirical cdf, which would count each claim at
+      # its limit as a claim of that size
+      km <- sev_km()
+      d$x <- km$x
+      d$empirical <- km$cdf
+    }
     dft_line_chart(dft_cdf_series(d, models$colours), "Claim size", "Cumulative probability", dark(),
                    x_log = log_scale, ylim = c(0, 1.02))
   }, alt = "Empirical and fitted cumulative distributions of the claim sizes")

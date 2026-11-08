@@ -485,7 +485,7 @@ rsv_settings_inputs <- c(
   data_source = "radio", example = "select", data_includes_header = "switch", sep = "radio", dec = "radio",
   quote = "radio", layout = "radio", origin_col = "column", development_col = "column", value_col = "column",
   incurred_col = "column", premium_col = "column", cumulative = "radio",
-  average = "radio", periods = "select", tail_method = "select", tail_from = "select", tail_factor = "numeric",
+  average = "radio", periods = "select", tail_method = "select", tail_from = "select", tail_factor = "numeric", tail_periods = "numeric",
   sigma = "radio", prior_loss_ratio = "numeric", decay = "slider", method_all = "select",
   boot_n = "numeric", boot_process = "radio", boot_tail = "switch", boot_seed = "numeric",
   clark_curve = "select", clark_method = "radio", clark_truncation = "numeric",
