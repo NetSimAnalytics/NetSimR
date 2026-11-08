@@ -20,6 +20,7 @@ test_that("csv_safe() keeps formula-like text and column names as text and leave
 })
 
 test_that("the GLM tool's data-with-predictions download writes formula-like cells as text", {
+  skip_server_on_cran()
   set.seed(3)
   n <- 200
   d <- data.frame(policy_note = rep(c("=HYPERLINK(\"http://example.com\",\"open\")", "ordinary"), n / 2),

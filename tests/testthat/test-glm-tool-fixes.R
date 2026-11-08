@@ -33,6 +33,7 @@ rds_bytes <- function(path) {
 }
 
 test_that("GLM fitting tool downloads a model without the Shiny session or the password", {
+  skip_server_on_cran()
   d <- glm_claims_data()
   path <- glm_write_csv(d)
   password <- "S3cretPW-glm-test"
@@ -93,6 +94,7 @@ test_that("GLM fitting tool downloads a model without the Shiny session or the p
 })
 
 test_that("GLM fitting tool keeps the data it has when an import fails", {
+  skip_server_on_cran()
   d <- glm_claims_data(200)
   shiny::testServer(GLMFittingToolServer, {
     session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
@@ -124,6 +126,7 @@ test_that("GLM fitting tool keeps the data it has when an import fails", {
 })
 
 test_that("GLM fitting tool compares the AIC of stored models only with the same weights", {
+  skip_server_on_cran()
   d <- glm_claims_data(500)
   shiny::testServer(GLMFittingToolServer, {
     session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
@@ -143,6 +146,7 @@ test_that("GLM fitting tool compares the AIC of stored models only with the same
 })
 
 test_that("GLM fitting tool says when the shown model was fitted to data imported before", {
+  skip_server_on_cran()
   d <- glm_claims_data(300)
   shiny::testServer(GLMFittingToolServer, {
     session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "a.csv"), submit = 1)
@@ -197,6 +201,7 @@ test_that("GLM fitting tool says when the shown model was fitted to data importe
 })
 
 test_that("GLM fitting tool compares the AIC of stored models only when they are of the same rows of the same import", {
+  skip_server_on_cran()
   d <- glm_claims_data(300)
   set.seed(22)
   other <- data.frame(age = sample(18:80, 300, TRUE), region = sample(c("North", "South"), 300, TRUE),
@@ -229,6 +234,7 @@ test_that("GLM fitting tool compares the AIC of stored models only when they are
 })
 
 test_that("GLM fitting tool keeps every warning of a binomial fit with more than two response values", {
+  skip_server_on_cran()
   set.seed(23)
   n <- 400
   d <- data.frame(y = sample(c("a", "b", "c"), n, TRUE), id = sprintf("P%03d", rep(1:135, length.out = n)),
@@ -244,6 +250,7 @@ test_that("GLM fitting tool keeps every warning of a binomial fit with more than
 })
 
 test_that("GLM fitting tool's predictions download keeps a prediction column of the data apart from the model's", {
+  skip_server_on_cran()
   d <- glm_claims_data(100)
   d$prediction <- round(runif(100), 3)
   shiny::testServer(GLMFittingToolServer, {
@@ -263,6 +270,7 @@ test_that("GLM fitting tool's predictions download keeps a prediction column of 
 })
 
 test_that("GLM fitting tool fits with the link of the family chosen, not the link the browser has yet to echo", {
+  skip_server_on_cran()
   d <- glm_claims_data(200)
   shiny::testServer(GLMFittingToolServer, {
     session$setInputs(data_source = "CSV File", csv_file = list(datapath = glm_write_csv(d), name = "claims.csv"), submit = 1)
@@ -292,6 +300,7 @@ test_that("GLM fitting tool fits with the link of the family chosen, not the lin
 })
 
 test_that("GLM fitting tool fits with the family a load selects, not the one the browser has yet to echo", {
+  skip_server_on_cran()
   d <- glm_claims_data(200)
   settings <- tempfile(fileext = ".txt")
   write_settings_file(list(glm_distribution = "poisson"), settings, glm_settings_tool, glm_settings_version)
@@ -327,6 +336,7 @@ test_that("GLM fitting tool fits with the family a load selects, not the one the
 })
 
 test_that("GLM fitting tool fits a loaded model whole, not with the response and formula shown before", {
+  skip_server_on_cran()
   d <- glm_claims_data(300)
   d$has_claim <- as.integer(d$claim_count > 0)
   file_path <- tempfile(fileext = ".txt")
@@ -370,6 +380,7 @@ test_that("GLM fitting tool fits a loaded model whole, not with the response and
 })
 
 test_that("GLM fitting tool's settings loads keep the family and link fitted and shown in step", {
+  skip_server_on_cran()
   d <- glm_claims_data(200)
   settings <- function(...) {
     path <- tempfile(fileext = ".txt")
@@ -419,6 +430,7 @@ test_that("GLM fitting tool's settings loads keep the family and link fitted and
 })
 
 test_that("GLM fitting tool keeps the number of bands within the slider's range", {
+  skip_server_on_cran()
   expect_equal(glm_band_count(1e9), 50)
   expect_equal(glm_band_count(-3), 2)
   expect_equal(glm_band_count(7.4), 7)
@@ -441,6 +453,7 @@ test_that("GLM fitting tool keeps the number of bands within the slider's range"
 })
 
 test_that("GLM fitting tool chooses a response and a chart variable that suit the data", {
+  skip_server_on_cran()
   d <- glm_claims_data(300)
   #the counts for the default families, the amounts for the Gamma family; never the ID or the age
   expect_equal(glm_default_response(d, "gaussian"), "claim_count")
@@ -486,6 +499,7 @@ test_that("GLM fitting tool chooses a response and a chart variable that suit th
 })
 
 test_that("GLM fitting tool draws its chart with the tools' plot device and redraws it on resize", {
+  skip_server_on_cran()
   expect_false(any(grepl("(^|[^_[:alnum:]])renderPlot\\(", deparse(GLMFittingToolServer))))
   d <- glm_claims_data(300)
   shiny::testServer(GLMFittingToolServer, {
@@ -505,6 +519,7 @@ test_that("GLM fitting tool draws its chart with the tools' plot device and redr
 })
 
 test_that("GLM fitting tool's rating factors give each level's relativity, its base level at 1", {
+  skip_server_on_cran()
   d <- glm_claims_data(1500)
   d$`vehicle group` <- rep(c("A", "B", "C"), length.out = nrow(d))
   fit <- glm(claim_count ~ offset(log(exposure)) + age + region + `vehicle group`, family = poisson, data = d)

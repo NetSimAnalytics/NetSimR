@@ -50,6 +50,7 @@ test_that("only the slices in use are restored, and the later slice fields are c
 })
 
 test_that("the truncation switch is restored once, and switched off by settings without it", {
+  skip_server_on_cran()
   entries <- sim_settings_plan(sim_settings_collect(sim_settings_examples[["Simple: truncated Normal"]]))
   ids <- vapply(entries, `[[`, character(1), "id")
   expect_equal(sum(ids == "sevTruncateAtZero"), 1)
@@ -110,6 +111,7 @@ custom_settings <- list(
 )
 
 test_that("customised settings saved by the app load back into every field", {
+  skip_server_on_cran()
   file <- tempfile(fileext = ".txt")
   on.exit(unlink(file), add = TRUE)
   shiny::testServer(shiny_simulator_server, {
@@ -143,6 +145,7 @@ test_that("customised settings saved by the app load back into every field", {
 })
 
 test_that("an update the browser lost is sent again, but a value typed instead of it is kept", {
+  skip_server_on_cran()
   sent <- list()
   local_mocked_bindings(
     sim_settings_apply_update = function(session, id, kind, value) sent[[length(sent) + 1]] <<- list(id = id, value = value),
@@ -169,6 +172,7 @@ test_that("an update the browser lost is sent again, but a value typed instead o
 })
 
 test_that("corrupted files, .rds files and other tools' files are refused with a message", {
+  skip_server_on_cran()
   applied <- list()
   notes <- character()
   local_mocked_bindings(
@@ -231,6 +235,7 @@ test_that("corrupted files, .rds files and other tools' files are refused with a
 })
 
 test_that("a repeated line or a vector in a hand-edited file is refused instead of reaching a field", {
+  skip_server_on_cran()
   applied <- list()
   notes <- character()
   local_mocked_bindings(

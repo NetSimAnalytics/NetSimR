@@ -18,6 +18,7 @@ test_that("in a web browser the simulator has no processing choice and the GLM t
 })
 
 test_that("in a web browser the simulator runs without workers, even when a settings file asks for them", {
+  skip_server_on_cran()
   local_mocked_bindings(netsimr_in_browser = function() TRUE)
   shiny::testServer(shiny_simulator_server, {
     session$setInputs(freqDistr = "Poisson", lamda = 3, sevDistr = "LogNormal", mu = 6, sigma = 1.5,

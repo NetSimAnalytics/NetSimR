@@ -22,6 +22,7 @@ read_fix_upload <- function(session, path, sep = ",", dec = ".") {
 }
 
 test_that("a Windows-1252 file with accented characters is read, and the session survives it", {
+  skip_server_on_cran()
   #the CSV that Excel writes on a German or French Windows: read as UTF-8, the byte of an o-umlaut
   #made a string that is not valid text, and trimws() in the numeric detection stopped with "input
   #string 1 is invalid UTF-8" inside an observer, which ended the session
@@ -53,6 +54,7 @@ test_that("a Windows-1252 file with accented characters is read, and the session
 })
 
 test_that("a row with more fields than the first rows keeps them in its own columns", {
+  skip_server_on_cran()
   #read without a header (the header is read on its own), read.table() sized the columns from the
   #first five rows; a later row with an extra field was split, and the surplus became a new row in
   #the first column: 11 rows instead of 8, and three claims (7, 12 and 900) that were never in the file
@@ -107,6 +109,7 @@ test_that("the header is found after more than 100 blank lines", {
 })
 
 test_that("files with Windows, old Mac and Unix line endings, a byte order mark, or nothing in them read alike", {
+  skip_server_on_cran()
   expected <- data.frame(sev = c(100, 250, 300), n = 1:3)
   text <- "sev,n\n100,1\n250,2\n300,3\n"
   for (eol in c("\n", "\r\n", "\r")) {

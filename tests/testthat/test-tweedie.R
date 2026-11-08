@@ -44,6 +44,7 @@ test_that("a Tweedie fit solves the Tweedie score equations and recovers the rel
 })
 
 test_that("the GLM tool fits a Tweedie model, without AIC, and refuses a stepwise selection", {
+  skip_server_on_cran()
   d <- tweedie_data()
   path <- tempfile(fileext = ".csv")
   write.csv(d, path, row.names = FALSE)

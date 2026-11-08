@@ -40,6 +40,7 @@ test_that("a direct png() call asks Windows for the cairo device, and the report
 })
 
 test_that("netsimr_render_plot draws the chart lazily, redraws on resize and passes its arguments on", {
+  skip_server_on_cran()
   drawn <- 0
   server <- function(input, output, session) {
     output$chart <- netsimr_render_plot({

@@ -1326,6 +1326,7 @@ shiny_simulator_ui <- function(request) {
             a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
             "."
           ),
+          netsimr_feedback_links("Claims simulator"),
           p(class = "sim-muted mb-0",
             "Please reach out if you have any feedback or encounter any bugs.")
         )

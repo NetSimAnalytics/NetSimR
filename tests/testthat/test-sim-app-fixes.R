@@ -248,6 +248,7 @@ test_that("very large settings are described in scientific format on the compare
 })
 
 test_that("very large implied moments are shown in scientific format", {
+  skip_server_on_cran()
   shiny::testServer(shiny_simulator_server, {
     set_page_inputs(session, sevDistr = "Normal")
     session$setInputs(lamda = 3, normal_mean = 1e308, normal_sd = 1)
@@ -260,6 +261,7 @@ test_that("very large implied moments are shown in scientific format", {
 # ---------------------------------------------------------------- remembered inputs
 
 test_that("typed parameters and layer amounts survive switching options away and back", {
+  skip_server_on_cran()
   shiny::testServer(shiny_simulator_server, {
     set_page_inputs(session, reinsuranceStructureEEL = "Limited Layer")
     session$setInputs(lamda = 4, mu = 7.5, sigma = 1.25, reinsurance_structure_eel_deductible_amount = 5000,
@@ -294,6 +296,7 @@ test_that("typed parameters and layer amounts survive switching options away and
 })
 
 test_that("switching the custom seed off and on keeps its value", {
+  skip_server_on_cran()
   shiny::testServer(shiny_simulator_server, {
     set_page_inputs(session, seedSetBinary = TRUE)
     #a first seed field starts at 1
@@ -306,6 +309,7 @@ test_that("switching the custom seed off and on keeps its value", {
 })
 
 test_that("values typed just after loading an example are kept, not set back to the example's", {
+  skip_server_on_cran()
   #the loader used to count a value as loaded only once it had held for half a second, and
   #took any change before then for a field reset by the browser: it sent the example's value
   #again over what the user had typed (seen in the browser tests on slow CI machines)
@@ -336,6 +340,7 @@ test_that("values typed just after loading an example are kept, not set back to 
 })
 
 test_that("fields built after loading settings start from the loaded values, even after the load gave up", {
+  skip_server_on_cran()
   #a slow browser: the example's choices reach the server only after the loader has stopped
   #waiting for the fields (here at once); the fields are built from the loaded values anyway
   old <- options(netsimr.settings_io_timeout = -1)
@@ -362,6 +367,7 @@ test_that("fields built after loading settings start from the loaded values, eve
 # ---------------------------------------------------------------- Pareto slices
 
 test_that("quick Add slice clicks each add a slice", {
+  skip_server_on_cran()
   shiny::testServer(shiny_simulator_server, {
     sent <- function() get("slice_count_sent", envir = environment(set_slice_count))
     set_page_inputs(session)
@@ -390,6 +396,7 @@ test_that("quick Add slice clicks each add a slice", {
 })
 
 test_that("loaded settings replace the number of slices a click sent just before", {
+  skip_server_on_cran()
   #the count sent by a click was kept until the browser echoed exactly it, so a click after
   #loading settings built on it (Add, Add, load an example without slices, Add gave 3)
   local_mocked_bindings(sim_settings_notify = function(message, type = "message") NULL)
@@ -522,6 +529,7 @@ test_that("the tail counts and TVaR follow their documented definitions", {
 })
 
 test_that("the Pareto shows x_m before alpha, a slice its threshold first and a layer its limit first", {
+  skip_server_on_cran()
   #the order actuaries enter them in; the parameters keep their order everywhere else
   shiny::testServer(shiny_simulator_server, {
     set_page_inputs(session)
@@ -565,6 +573,7 @@ test_that("the Pareto shows x_m before alpha, a slice its threshold first and a 
 })
 
 test_that("amounts and the number of simulations are inputs that show thousands separators", {
+  skip_server_on_cran()
   #a browser's number input cannot show 1,000,000, so these are text inputs with their own binding
   expect_identical(sim_amount_text(1234567), "1,234,567")
   expect_identical(sim_amount_text(1234.5), "1,234.5")

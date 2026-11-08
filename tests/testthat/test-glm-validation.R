@@ -124,6 +124,7 @@ test_that("stepwise selection adds the factors that matter and leaves out the no
 })
 
 test_that("the tool fits to the training rows, predicts the test rows and validates on them", {
+  skip_server_on_cran()
   d <- glm_selection_data()
   path <- tempfile(fileext = ".csv")
   write.csv(d, path, row.names = FALSE)
@@ -188,6 +189,7 @@ test_that("the tool fits to the training rows, predicts the test rows and valida
 })
 
 test_that("without rows held out the validation is of the training rows, and the selection needs a model", {
+  skip_server_on_cran()
   d <- glm_selection_data(1500)
   path <- tempfile(fileext = ".csv")
   write.csv(d, path, row.names = FALSE)
@@ -211,6 +213,7 @@ test_that("without rows held out the validation is of the training rows, and the
 })
 
 test_that("the settings file keeps the rows held out, the seed and the criterion", {
+  skip_server_on_cran()
   values <- glm_settings_values(list(holdout_share = "0.3", holdout_seed = 12, select_criterion = "BIC"))
   expect_identical(values, list(holdout_share = "0.3", holdout_seed = 12L, select_criterion = "BIC"))
   expect_null(glm_settings_values(list(holdout_share = "0.9", holdout_seed = "x", select_criterion = "Cp")))
@@ -259,6 +262,7 @@ test_that("the lasso keeps the factors that matter, and ridge shrinks every term
 })
 
 test_that("the tool's selection card runs the lasso and puts its terms in the formula", {
+  skip_server_on_cran()
   skip_if_not_installed("glmnet")
   d <- glm_selection_data(2500)
   path <- tempfile(fileext = ".csv")

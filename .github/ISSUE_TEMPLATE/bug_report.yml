@@ -1,0 +1,58 @@
+name: Report a problem
+description: Something in NetSimR, a function or one of its tools, does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report this. Please leave out any confidential data:
+        a small made-up example that shows the problem is the most useful.
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Where
+      description: The tool or part of the package.
+      options:
+        - Claims simulator
+        - Distribution fitting tool
+        - GLM fitting tool
+        - Reserving tool
+        - Reinsurance pricing tool
+        - Portfolio capital tool
+        - A function, from R
+        - The website or a vignette
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: NetSimR version
+      description: packageVersion("NetSimR"), or the version in the tool's link.
+      placeholder: "0.4.0"
+  - type: dropdown
+    id: where_run
+    attributes:
+      label: Where it runs
+      options:
+        - On my computer (R)
+        - In the browser, on the package's website
+        - On a Shiny server
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead (with any error message).
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce it
+      description: The settings, a settings file, or R code that shows the problem.
+      render: r
+  - type: textarea
+    id: session
+    attributes:
+      label: Session information
+      description: The output of sessionInfo(), if you run R.
+      render: text

@@ -44,6 +44,7 @@ session_workers <- function(server_function) get("workers", envir = environment(
 worker_pids <- function(cluster) sort(unlist(parallel::clusterCall(cluster, Sys.getpid)))
 
 test_that("a failed run keeps the previous results", {
+  skip_server_on_cran()
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session)
     session$setInputs(RunSimulations = 1)
@@ -66,6 +67,7 @@ test_that("a failed run keeps the previous results", {
 })
 
 test_that("a sequential session starts no workers", {
+  skip_server_on_cran()
   sockets_before <- open_sockets()
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session)
@@ -77,6 +79,7 @@ test_that("a sequential session starts no workers", {
 })
 
 test_that("workers started by the app stay warm through a failed run and are shut down with the session", {
+  skip_server_on_cran()
   skip_on_cran()
   old_options <- options(mc.cores = 2)
   on.exit(options(old_options), add = TRUE)
@@ -107,6 +110,7 @@ test_that("workers started by the app stay warm through a failed run and are shu
 })
 
 test_that("Auto keeps small runs in the session and starts the workers once a run pays for them", {
+  skip_server_on_cran()
   skip_on_cran()
   old_options <- options(mc.cores = 2)
   on.exit(options(old_options), add = TRUE)
@@ -145,6 +149,7 @@ test_that("Auto keeps small runs in the session and starts the workers once a ru
 })
 
 test_that("a worker that dies during a run is replaced by fresh workers on the next run", {
+  skip_server_on_cran()
   skip_on_cran()
   old_options <- options(mc.cores = 2)
   on.exit(options(old_options), add = TRUE)
@@ -177,6 +182,7 @@ test_that("a worker that dies during a run is replaced by fresh workers on the n
 })
 
 test_that("the compare tab draws the return-period chart for two stored runs, in both themes", {
+  skip_server_on_cran()
   last_run <- shiny::reactiveVal(NULL)
   make_run <- function(id, ...) {
     settings <- base_settings(numOfSimulations = 1000, seedValue = id, ...)
@@ -254,6 +260,7 @@ test_that("the compare chart's y axis spans negative runs, and infinite totals a
 })
 
 test_that("the message about empty fields follows the fields and goes once they are filled in", {
+  skip_server_on_cran()
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session, lamda = NA, mu = NA)
     session$setInputs(RunSimulations = 1)

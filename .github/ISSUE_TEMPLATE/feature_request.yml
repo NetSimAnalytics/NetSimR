@@ -1,0 +1,37 @@
+name: Suggest a feature
+description: A method, an option or a tool that would help your work.
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Where
+      description: The tool or part of the package it would change.
+      options:
+        - Claims simulator
+        - Distribution fitting tool
+        - GLM fitting tool
+        - Reserving tool
+        - Reinsurance pricing tool
+        - Portfolio capital tool
+        - A function, from R
+        - Something new
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: NetSimR version
+      placeholder: "0.4.0"
+  - type: textarea
+    id: need
+    attributes:
+      label: What you need
+      description: The task, and what is missing or slow today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+      description: A method, a reference, or how another tool does it.

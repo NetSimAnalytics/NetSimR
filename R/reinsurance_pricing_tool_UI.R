@@ -323,6 +323,7 @@ reinsurance_pricing_tool_UI <- function(request) {
             a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com"),
             "."
           ),
+          netsimr_feedback_links("Reinsurance pricing tool"),
           p(class = "sim-muted mb-0",
             "The functions behind the tool, such as ", tags$code("burning_cost()"), ", ",
             tags$code("property_exposure_rating()"), " and ", tags$code("technical_premium()"), ", can also be used from R.")

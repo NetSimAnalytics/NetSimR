@@ -143,6 +143,7 @@ test_that("the Compare description says when a Normal severity is truncated at z
 # ---------------------------------------------------------------- charts
 
 test_that("a run of 20 simulations has no return-period curve, and the chart says so", {
+  skip_server_on_cran()
   #20 simulations stop the curve at return period 2, its only point, which lines() cannot draw
   expect_equal(nrow(sim_tab_return_period_curve(seq_len(19))), 0)
   expect_equal(nrow(sim_tab_return_period_curve(seq_len(20))), 0)

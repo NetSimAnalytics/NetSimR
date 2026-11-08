@@ -25,6 +25,7 @@ xlp_example_burning_cost <- function(...) {
 }
 
 test_that("the server rates the example's experience with the layer and each year's factors", {
+  skip_server_on_cran()
   shiny::testServer(reinsurance_pricing_tool_Server, {
     xlp_page_inputs(session)
     expected <- xlp_example_burning_cost()
@@ -72,6 +73,7 @@ test_that("the server rates the example's experience with the layer and each yea
 })
 
 test_that("the experience needs every year's premium, and a valid layer", {
+  skip_server_on_cran()
   shiny::testServer(reinsurance_pricing_tool_Server, {
     xlp_page_inputs(session)
     g <- generation()
@@ -94,6 +96,7 @@ test_that("the experience needs every year's premium, and a valid layer", {
 })
 
 test_that("an uploaded file of losses is read with the chosen columns", {
+  skip_server_on_cran()
   file <- tempfile(fileext = ".csv")
   on.exit(unlink(file), add = TRUE)
   utils::write.csv(data.frame(uw_year = xl_large_losses$year, gross_loss = xl_large_losses$amount, ref = xl_large_losses$claim),
@@ -117,6 +120,7 @@ test_that("an uploaded file of losses is read with the chosen columns", {
 })
 
 test_that("the server rates the exposure of the example profiles and an uploaded one", {
+  skip_server_on_cran()
   file <- tempfile(fileext = ".csv")
   on.exit(unlink(file), add = TRUE)
   utils::write.csv(data.frame(name = c("a", "b"), tsi = c(2e6, 1e7), gnpi = c(1e6, 5e5), lr = c(0.5, 0.7)), file, row.names = FALSE)
@@ -159,6 +163,7 @@ test_that("the server rates the exposure of the example profiles and an uploaded
 })
 
 test_that("the pricing blends the rates and gives the technical premium", {
+  skip_server_on_cran()
   shiny::testServer(reinsurance_pricing_tool_Server, {
     xlp_page_inputs(session)
     p <- pricing()
@@ -202,6 +207,7 @@ test_that("the pricing blends the rates and gives the technical premium", {
 })
 
 test_that("the credibility button sets the weight of the experience", {
+  skip_server_on_cran()
   shiny::testServer(reinsurance_pricing_tool_Server, {
     xlp_page_inputs(session, full_credibility = 100)
     n <- bc()$n_layer_losses
@@ -215,6 +221,7 @@ test_that("the credibility button sets the weight of the experience", {
 })
 
 test_that("the settings file keeps the layer, the options and each year's values, and loads them back", {
+  skip_server_on_cran()
   file <- tempfile(fileext = ".txt")
   on.exit(unlink(file), add = TRUE)
   shiny::testServer(reinsurance_pricing_tool_Server, {
@@ -258,6 +265,7 @@ test_that("the settings file keeps the layer, the options and each year's values
 })
 
 test_that("the charts of the reinsurance pricing tool render", {
+  skip_server_on_cran()
   shiny::testServer(reinsurance_pricing_tool_Server, {
     xlp_page_inputs(session, app_theme = "dark")
     for (id in c("burning_cost_plot", "losses_plot", "layer_losses_plot", "pareto_plot", "band_plot", "curve_plot", "method_plot")) {

@@ -16,6 +16,7 @@ motor_triangle <- function(value = "paid") {
 motor_premium <- function() unique(simulated_motor_claims[c("accident_year", "earned_premium")])$earned_premium
 
 test_that("the server fits the example's chain ladder with the development settings", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "raa")
     expect_identical(triangle(), raa_triangle)
@@ -42,6 +43,7 @@ test_that("the server fits the example's chain ladder with the development setti
 })
 
 test_that("a clicked link ratio is left out, and brought back", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "raa")
     cl()
@@ -73,6 +75,7 @@ test_that("a clicked link ratio is left out, and brought back", {
 })
 
 test_that("each origin's method, premium and loss ratio give its ultimate", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "motor", prior_loss_ratio = 70, decay = 1, method_all = "cl")
     cl_motor <- chain_ladder(motor_triangle())
@@ -106,6 +109,7 @@ test_that("each origin's method, premium and loss ratio give its ultimate", {
 })
 
 test_that("the RAA triangle has no premiums, so its expected loss ratio methods say so", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "raa", prior_loss_ratio = 70, method_all = "bf")
     r <- results()
@@ -118,6 +122,7 @@ test_that("the RAA triangle has no premiums, so its expected loss ratio methods 
 })
 
 test_that("the Paid & incurred tab and the one-year view give the package's results", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "raa")
     expect_error(munich(), "needs incurred claims")
@@ -137,6 +142,7 @@ test_that("the Paid & incurred tab and the one-year view give the package's resu
 })
 
 test_that("the bootstrap runs on the triangle showing, and asks to run again for another", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "raa", boot_n = 500, boot_seed = 3, boot_process = "gamma",
                       boot_tail = FALSE)
@@ -161,6 +167,7 @@ test_that("the bootstrap runs on the triangle showing, and asks to run again for
 })
 
 test_that("an uploaded table is read with the chosen columns", {
+  skip_server_on_cran()
   file <- tempfile(fileext = ".csv")
   on.exit(unlink(file), add = TRUE)
   utils::write.csv(simulated_motor_claims, file, row.names = FALSE)
@@ -188,6 +195,7 @@ test_that("an uploaded table is read with the chosen columns", {
 })
 
 test_that("a saved settings file holds the session's choices, by origin", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "motor", average = "simple", periods = "6",
                       tail_method = "exponential", tail_from = "1", sigma = "log-linear", prior_loss_ratio = 65,
@@ -214,6 +222,7 @@ test_that("a saved settings file holds the session's choices, by origin", {
 })
 
 test_that("a loaded settings file sets the triangle it names, its link ratios and each origin's choices", {
+  skip_server_on_cran()
   file <- tempfile(fileext = ".txt")
   on.exit(unlink(file), add = TRUE)
   write_settings_file(list(data_source = "example", example = "motor", average = "simple", periods = "6",
@@ -253,6 +262,7 @@ test_that("a loaded settings file sets the triangle it names, its link ratios an
 })
 
 test_that("a loaded settings file for the triangle showing sets its link ratios at once, and a bad file is refused", {
+  skip_server_on_cran()
   file <- tempfile(fileext = ".txt")
   on.exit(unlink(file), add = TRUE)
   write_settings_file(list(data_source = "example", example = "raa", excluded_ratios = c("1982 | 1-2", "1990 | 1-2")),
@@ -279,6 +289,7 @@ test_that("a loaded settings file for the triangle showing sets its link ratios 
 })
 
 test_that("the charts of the reserving tool render", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "motor", app_theme = "light", tail_method = "exponential",
                       prior_loss_ratio = 70, method_all = "cl", decay = 1, boot_n = 200, boot_seed = 1, run_bootstrap = 1)
@@ -294,6 +305,7 @@ test_that("the charts of the reserving tool render", {
 })
 
 test_that("the More methods tab gives the actual vs expected, Clark's curve and the chain ladder for inflation", {
+  skip_server_on_cran()
   shiny::testServer(reserving_tool_Server, {
     session$setInputs(data_source = "example", example = "raa")
     expect_equal(ave()$total, actual_vs_expected(raa_triangle)$total)

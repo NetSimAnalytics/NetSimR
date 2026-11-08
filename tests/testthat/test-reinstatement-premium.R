@@ -75,6 +75,7 @@ test_that("the layer metrics and the report give the premium figures a layer is 
 })
 
 test_that("the simulator saves, loads and remembers the premium and the rate", {
+  skip_server_on_cran()
   ids <- sim_settings_input_ids()
   expect_true(all(c("reinsurance_structure_eel_premium", "reinsurance_structure_eel_reinstatement_rate_pct") %in% ids))
   plan_ids <- function(inputs) vapply(sim_settings_plan(inputs), `[[`, character(1), "id")
