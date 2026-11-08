@@ -461,9 +461,9 @@ test_that("a small run on the caller's workers uses them", {
   cluster <- use_shared_workers()
   real_run_chunks <- run_chunks_on_workers
   sent <- 0
-  local_mocked_bindings(run_chunks_on_workers = function(cluster, run_chunk, chunk_seeds) {
+  local_mocked_bindings(run_chunks_on_workers = function(cluster, run_chunk, chunk_seeds, chunks = seq_along(chunk_seeds)) {
     sent <<- sent + 1
-    real_run_chunks(cluster, run_chunk, chunk_seeds)
+    real_run_chunks(cluster, run_chunk, chunk_seeds, chunks)
   })
   expected <- run_simulation(numOfSimulations = 1000, chunk_size = 250)
   expect_identical(sent, 0)
@@ -471,6 +471,51 @@ test_that("a small run on the caller's workers uses them", {
   expect_identical(sent, 1)
 })
 
+
+test_that("auto times a chunk here and sends the rest to the workers with the same results", {
+  skip_on_cran()
+  cluster <- use_shared_workers()
+  expected <- run_simulation(numOfSimulations = 1000, chunk_size = 100)
+  seen <- list()
+  real_plan <- netsimr_parallel_plan
+  local_mocked_bindings(netsimr_parallel_plan = function(..., single = NULL) {
+    seen[[length(seen) + 1]] <<- list(args = list(...), single = single)
+    2L
+  })
+  sent <- NULL
+  real_run_chunks <- run_chunks_on_workers
+  local_mocked_bindings(run_chunks_on_workers = function(cluster, run_chunk, chunk_seeds, chunks = seq_along(chunk_seeds)) {
+    sent <<- chunks
+    real_run_chunks(cluster, run_chunk, chunk_seeds, chunks)
+  })
+  calls <- numeric(0)
+  result <- run_simulation(numOfSimulations = 1000, chunk_size = 100, multiprocessing = "auto", workers = cluster,
+                           progress = function(value, detail) calls <<- c(calls, value))
+  expect_identical(result, expected)
+  #the first two chunks ran here, the second timed, and the plan was for the other eight
+  expect_identical(sent, 3:10)
+  expect_true(is.numeric(seen[[1]]$single) && seen[[1]]$single >= 0)
+  expect_identical(seen[[1]]$args$n_chunks, 8L)
+  expect_equal(calls, c(0.1, 0.2, 0.2))
+  expect_true(netsimr_last_run$parallel)
+  #a run of two chunks is judged from its size
+  seen <- list()
+  expect_identical(run_simulation(numOfSimulations = 200, chunk_size = 100, multiprocessing = "auto", workers = cluster),
+                   run_simulation(numOfSimulations = 200, chunk_size = 100))
+  expect_null(seen[[1]]$single)
+  expect_identical(sent, 1:2)
+})
+
+test_that("the plan takes a measured time instead of its estimate", {
+  local_mocked_bindings(netsimr_available_cores = function() 12L)
+  #the estimate of a small run keeps it here; measured as slow, it goes to the workers
+  expect_identical(netsimr_parallel_plan(claims = 1e5, simulations = 1e4, n_chunks = 10, running = 12), 0L)
+  expect_identical(netsimr_parallel_plan(claims = 1e5, simulations = 1e4, n_chunks = 10, running = 12, single = 5), 12L)
+  #an estimate of a large run sends it; measured as fast, it stays
+  expect_gt(netsimr_parallel_plan(claims = 1e9, simulations = 1e6, n_chunks = 100), 0L)
+  expect_identical(netsimr_parallel_plan(claims = 1e9, simulations = 1e6, n_chunks = 100, single = 0.1), 0L)
+  expect_identical(netsimr_parallel_plan(claims = 1e9, simulations = 1e6, n_chunks = 100, single = NA), 0L)
+})
 
 #stop the shared workers (on CRAN the parallel tests are skipped and never start them)
 if (!is.null(shared_workers$cluster)) parallel::stopCluster(shared_workers$cluster)

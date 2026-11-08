@@ -153,7 +153,7 @@ test_that("a worker that dies during a run is replaced by fresh workers on the n
   real_run_chunks <- run_chunks_on_workers
   die <- function(i) tools::pskill(Sys.getpid())
   environment(die) <- globalenv()
-  dying_workers <- function(cluster, run_chunk, chunk_seeds) real_run_chunks(cluster, die, chunk_seeds)
+  dying_workers <- function(cluster, run_chunk, chunk_seeds, chunks = seq_along(chunk_seeds)) real_run_chunks(cluster, die, chunk_seeds, chunks)
   shiny::testServer(shiny_simulator_server, {
     set_run_inputs(session, processing = "parallel")
     pids <- worker_pids(session_workers(stop_parallel_workers))
@@ -251,4 +251,26 @@ test_that("the compare chart's y axis spans negative runs, and infinite totals a
   expect_false(grepl("NaN", as.character(sim_tab_metrics_table(list(negative, infinite), c("A", "B"))), fixed = TRUE))
   #the x axis reaches 1 in 1,000,000, the longest return period of the largest run
   expect_true(all(c(2e5, 5e5, 1e6) %in% return_period_axis_ticks))
+})
+
+test_that("the message about empty fields follows the fields and goes once they are filled in", {
+  shiny::testServer(shiny_simulator_server, {
+    set_run_inputs(session, lamda = NA, mu = NA)
+    session$setInputs(RunSimulations = 1)
+    expect_length(missing_notice$listed, 2)
+    #filling in one field leaves the other listed; filling in both removes the message
+    session$setInputs(lamda = 3)
+    expect_length(missing_notice$listed, 1)
+    expect_match(missing_notice$listed, "Severity")
+    session$setInputs(mu = 6)
+    expect_null(missing_notice$listed)
+    #once it has timed out, emptying a field does not bring it back before the next run
+    session$setInputs(mu = NA, RunSimulations = 2)
+    expect_length(missing_notice$listed, 1)
+    missing_notice$until <- Sys.time() - 1
+    session$setInputs(lamda = NA)
+    expect_null(missing_notice$listed)
+    session$setInputs(RunSimulations = 3)
+    expect_length(missing_notice$listed, 2)
+  })
 })

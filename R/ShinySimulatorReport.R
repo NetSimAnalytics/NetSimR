@@ -782,7 +782,16 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   # ---------- statistics ----------
   #the figures are computed by summarise_simulation; the charts quantile the raw vectors themselves
   st <- summary$stats
-  quantile_of_vec <- function(x, p) stats::quantile(x, p, names = FALSE)
+  #the charts and tables ask for quantiles of the same few vectors (a million values each in a
+  #large run), so each is sorted once and kept; the quantiles are those of stats::quantile()
+  sorted_vectors <- list()
+  quantile_of_vec <- function(x, p) {
+    if (anyNA(x)) return(stats::quantile(x, p, names = FALSE))
+    for (kept in sorted_vectors) if (identical(kept$x, x)) return(sorted_quantile(kept$sorted, p))
+    sorted <- sort(x)
+    sorted_vectors[[length(sorted_vectors) + 1]] <<- list(x = x, sorted = sorted)
+    sorted_quantile(sorted, p)
+  }
   claims_mean <- st$mean
   claims_sd <- st$sd
   var995 <- st$var995
@@ -984,7 +993,12 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     if (top <= 60) {
       #one bar per claim count, with the rare highest counts grouped into the last bar
       grouped <- pmin(whole_counts, top)
-      heights <- as.numeric(table(factor(grouped, levels = 0:top)))
+      #(tabulate() counts a million whole numbers far faster than table(), which makes a factor)
+      heights <- if (all(grouped >= 0)) {
+        as.numeric(tabulate(grouped + 1, nbins = top + 1))
+      } else {
+        as.numeric(table(factor(grouped, levels = 0:top)))
+      }
       bar_labels <- as.character(0:top)
       if (any(whole_counts > top)) bar_labels[length(bar_labels)] <- paste0(top, "+")
       y_top <- max(heights) * 1.1

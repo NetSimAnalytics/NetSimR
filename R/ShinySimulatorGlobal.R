@@ -999,9 +999,19 @@ simulate_function <- function(
     identical(reinsuranceStructureEEL, "No Reinsurance Structure") && !is.null(sev_object@sum_func) &&
     !isTRUE(largest_claims)
   #the largest of each simulation's values, a simulation without any being 0; id holds the
-  #simulation numbers 1 to n, so it is made a factor directly, without as.factor()'s sort
+  #simulation numbers 1 to n. With a few claims per simulation, the claims are sorted by
+  #simulation and size (a radix sort), and each simulation's largest is the last of its
+  #claims; with many, split() into one group per simulation is faster, with id made a factor
+  #directly, without as.factor()'s sort
   largest_by_simulation <- function(values, id, n) {
     if (!length(values)) return(numeric(n))
+    if (length(values) <= 50 * n) {
+      claims <- tabulate(id, n)
+      largest <- numeric(n)
+      has <- claims > 0
+      largest[has] <- values[order(id, values, method = "radix")][cumsum(claims)[has]]
+      return(largest)
+    }
     groups <- split(values, structure(id, levels = as.character(seq_len(n)), class = "factor"))
     vapply(groups, function(x) if (length(x)) max(x) else 0, numeric(1), USE.NAMES = FALSE)
   }
@@ -1149,32 +1159,52 @@ simulate_function <- function(
   #run chunks, optionally in parallel across chunks (not per-simulation); "auto" goes to the
   #workers only when that is expected to be faster (see netsimr_parallel_plan()), and a run
   #of a single chunk stays in this session unless a cluster is given (the results are the
-  #same either way)
+  #same either way, as each chunk has its own random stream)
   if (is.character(multiprocessing) && !identical(multiprocessing, "auto")) {
     stop("multiprocessing must be TRUE, FALSE or \"auto\".", call. = FALSE)
   }
   auto <- identical(multiprocessing, "auto")
   if (isTRUE(multiprocessing) || auto) netsimr_check_workers(workers)
-  parallel_run <- (isTRUE(multiprocessing) && (n_chunks >= 2 || inherits(workers, "cluster"))) || (auto && n_chunks >= 2)
-  if (parallel_run) {
-    is_cluster <- inherits(workers, "cluster")
-    if (auto) {
-      claims_drawn <- if (sum_in_one_step) {
-        0
-      } else if (draw_large_claims_only) {
-        expected_claims * large_prob * numOfSimulations
-      } else {
-        expected_claims * numOfSimulations
-      }
-      #a cluster runs warm; a function starts all the available cores; a number is started as it is
-      planned <- netsimr_parallel_plan(
-        claims = claims_drawn, simulations = numOfSimulations, n_chunks = n_chunks,
-        one_step = sum_in_one_step, running = if (is_cluster) length(workers),
-        start = if (is.numeric(workers)) workers else if (is.function(workers)) netsimr_available_cores()
-      )
-      parallel_run <- planned > 0
-      if (parallel_run && is.null(workers)) workers <- planned
+  chunk_results <- vector("list", n_chunks)
+  run_here <- function(chunks) {
+    for (i in chunks) {
+      assign(".Random.seed", chunk_seeds[[i]], envir = global_env)
+      chunk_results[[i]] <<- run_chunk(i)
+      if (is.function(progress)) progress(i / n_chunks, paste("Chunk", i, "of", n_chunks))
     }
+  }
+  remaining <- seq_len(n_chunks)
+  parallel_run <- (isTRUE(multiprocessing) && (n_chunks >= 2 || inherits(workers, "cluster"))) || (auto && n_chunks >= 2)
+  if (parallel_run && auto) {
+    is_cluster <- inherits(workers, "cluster")
+    #"auto" times the second chunk in this session (the first also compiles the code) and
+    #decides from it how to run the rest; a run of two chunks is judged from its size alone
+    measured <- NULL
+    if (n_chunks >= 3) {
+      run_here(1L)
+      #(proc.time(), as system.time() would first collect the garbage, a twentieth of a second)
+      started <- proc.time()[["elapsed"]]
+      run_here(2L)
+      seconds <- proc.time()[["elapsed"]] - started
+      remaining <- seq.int(3L, n_chunks)
+      measured <- seconds * sum(chunk_sizes[remaining]) / chunk_sizes[2]
+    }
+    claims_drawn <- if (sum_in_one_step) {
+      0
+    } else if (draw_large_claims_only) {
+      expected_claims * large_prob * numOfSimulations
+    } else {
+      expected_claims * numOfSimulations
+    }
+    #a cluster runs warm; a function starts all the available cores; a number is started as it is
+    planned <- netsimr_parallel_plan(
+      claims = claims_drawn, simulations = numOfSimulations, n_chunks = length(remaining),
+      one_step = sum_in_one_step, running = if (is_cluster) length(workers),
+      start = if (is.numeric(workers)) workers else if (is.function(workers)) netsimr_available_cores(),
+      single = measured
+    )
+    parallel_run <- planned > 0
+    if (parallel_run && is.null(workers)) workers <- planned
   }
   netsimr_last_run$parallel <- FALSE
   netsimr_last_run$workers <- 0L
@@ -1190,20 +1220,22 @@ simulate_function <- function(
     }
     netsimr_last_run$parallel <- TRUE
     netsimr_last_run$workers <- length(cluster)
-    if (is.function(progress)) progress(0, paste("On", length(cluster), "parallel workers"))
+    if (is.function(progress)) {
+      progress((min(remaining) - 1) / n_chunks, paste("On", length(cluster), "parallel workers"))
+    }
     #keep objects the workers do not need (e.g. a Shiny progress callback, or the cluster
-    #itself) out of the chunk closure, which is sent to the workers with its environment
+    #itself, or the chunks already run) out of the chunk closure, which is sent to the workers
+    #with its environment
     progress <- NULL
     settings <- NULL
     workers <- NULL
-    chunk_results <- run_chunks_on_workers(cluster, run_chunk, chunk_seeds)
+    done <- chunk_results
+    chunk_results <- NULL
+    done[remaining] <- run_chunks_on_workers(cluster, run_chunk, chunk_seeds[remaining], remaining)
+    chunk_results <- done
+    rm(done)
   } else {
-    chunk_results <- vector("list", n_chunks)
-    for (i in seq_len(n_chunks)) {
-      assign(".Random.seed", chunk_seeds[[i]], envir = global_env)
-      chunk_results[[i]] <- run_chunk(i)
-      if (is.function(progress)) progress(i / n_chunks, paste("Chunk", i, "of", n_chunks))
-    }
+    run_here(remaining)
   }
 
   data <- data.frame(
@@ -1339,9 +1371,10 @@ netsimr_parallel_costs <- list(
 
 #' How many workers an "auto" run should use
 #'
-#' Estimates the time of the run in one session and on workers, from the expected number of
-#' claims drawn, the number of simulations and chunks, and the cost of starting workers that
-#' are not running yet; the chunks go to the workers when that is at least a quarter faster.
+#' Compares the time of the chunks in one session (measured, or estimated from the expected
+#' number of claims drawn and the number of simulations) with their time on workers, from
+#' the number of chunks and the cost of starting workers that are not running yet; the
+#' chunks go to the workers when that is at least a quarter faster.
 #' @param claims The expected number of claims drawn by the whole run.
 #' @param simulations The number of simulations.
 #' @param n_chunks The number of chunks; the workers take contiguous groups of them.
@@ -1349,12 +1382,20 @@ netsimr_parallel_costs <- list(
 #' @param running The number of workers already running, or NULL.
 #' @param start The number of workers that would be started, or NULL to choose the fastest
 #'   number up to the available cores.
+#' @param single The time the chunks would take in this session, in seconds, when it has been
+#'   measured (an "auto" run times one chunk); NULL to estimate it from the claims and
+#'   simulations.
 #' @return The number of workers to use, 0 to run in the session.
 #' @noRd
-netsimr_parallel_plan <- function(claims, simulations, n_chunks, one_step = FALSE, running = NULL, start = NULL) {
+netsimr_parallel_plan <- function(claims, simulations, n_chunks, one_step = FALSE, running = NULL, start = NULL,
+                                  single = NULL) {
   costs <- netsimr_parallel_costs
-  if (!is.finite(claims) || n_chunks < 2) return(0L)
-  single <- costs$claim * claims + simulations * if (one_step) costs$simulation_one_step else costs$simulation
+  if (n_chunks < 2) return(0L)
+  if (is.null(single)) {
+    if (!is.finite(claims)) return(0L)
+    single <- costs$claim * claims + simulations * if (one_step) costs$simulation_one_step else costs$simulation
+  }
+  if (!is.finite(single)) return(0L)
   candidates <- if (!is.null(running)) running else if (!is.null(start)) start else seq_len(netsimr_available_cores())
   candidates <- candidates[candidates >= 2]
   if (!length(candidates)) return(0L)
@@ -1399,12 +1440,13 @@ netsimr_stop_workers <- function(cluster) {
 #' @param cluster A socket cluster of the parallel package.
 #' @param run_chunk Function of the chunk index that returns the chunk's results.
 #' @param chunk_seeds List of L'Ecuyer-CMRG seeds (\code{.Random.seed} values), one per chunk.
+#' @param chunks The numbers of the chunks, one per seed, that run_chunk() is given.
 #' @return List of the chunk results, in chunk order.
 #' @noRd
-run_chunks_on_workers <- function(cluster, run_chunk, chunk_seeds) {
+run_chunks_on_workers <- function(cluster, run_chunk, chunk_seeds, chunks = seq_along(chunk_seeds)) {
   n_chunks <- length(chunk_seeds)
   groups <- parallel::splitIndices(n_chunks, min(n_chunks, length(cluster)))
-  tasks <- lapply(groups, function(chunks) list(chunks = chunks, seeds = chunk_seeds[chunks]))
+  tasks <- lapply(groups, function(k) list(chunks = chunks[k], seeds = chunk_seeds[k]))
   run_group <- function(task) {
     warnings <- character(0)
     result <- tryCatch(

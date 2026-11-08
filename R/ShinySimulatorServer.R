@@ -316,10 +316,8 @@ shiny_simulator_server <- function(input, output, session) {
 
   #run simulation button
   #the browser disables the button and shows "Running..." on click; this message re-enables it
-  observeEvent(input$RunSimulations,{
-    on.exit(session$sendCustomMessage("netsimr-run-finished", TRUE), add = TRUE)
-
-    #collect the settings for this run
+  #the settings of a run, from the inputs
+  collect_run_settings <- function() {
     slice_count <- pareto_slice_count()
     #sapply on purpose: it gives a numeric vector when every field is filled in, and a list
     #when a field is still empty (NULL), which find_missing_simulation_settings() reports by name
@@ -367,22 +365,61 @@ shiny_simulator_server <- function(input, output, session) {
       ,largest_claims = sim_wants_largest_claims(tryCatch(freq_moments()[["mean"]], error = function(e) NA),
                                                  input$numberOfSimulations)
     )
+  }
+
+  #the message that lists the settings to fix before a run. While it shows, it follows the
+  #fields: a field filled in leaves the list, and the message goes once nothing is left, rather
+  #than listing fields already fixed until it times out. It shows for 10 seconds from its last
+  #change; after that, changing a field does not bring it back
+  missing_notice <- reactiveValues(listed = NULL, until = NULL)
+  show_missing_notice <- function(missing) {
+    showNotification(
+      tags$div(
+        tags$strong("Please fix these settings before running:"),
+        tags$ul(lapply(missing, tags$li))
+      ),
+      type = "error",
+      duration = 10,
+      id = "missing_settings_notice"
+    )
+    missing_notice$listed <- missing
+    missing_notice$until <- Sys.time() + 10
+  }
+  hide_missing_notice <- function() {
+    removeNotification("missing_settings_notice")
+    missing_notice$listed <- NULL
+    missing_notice$until <- NULL
+  }
+  observe({
+    listed <- missing_notice$listed
+    until <- missing_notice$until
+    req(listed, until)
+    missing <- tryCatch(find_missing_simulation_settings(collect_run_settings()), error = function(e) listed)
+    isolate({
+      if (Sys.time() > until) {
+        missing_notice$listed <- NULL
+        missing_notice$until <- NULL
+      } else if (length(missing) == 0) {
+        hide_missing_notice()
+      } else if (!identical(missing, listed)) {
+        show_missing_notice(missing)
+      }
+    })
+  })
+
+  observeEvent(input$RunSimulations,{
+    on.exit(session$sendCustomMessage("netsimr-run-finished", TRUE), add = TRUE)
+
+    #collect the settings for this run
+    new_settings <- collect_run_settings()
 
     #stop before running and tell the user which fields are empty
     missing_settings <- find_missing_simulation_settings(new_settings)
     if (length(missing_settings) > 0) {
-      showNotification(
-        tags$div(
-          tags$strong("Please fix these settings before running:"),
-          tags$ul(lapply(missing_settings, tags$li))
-        ),
-        type = "error",
-        duration = 10,
-        id = "missing_settings_notice"
-      )
+      show_missing_notice(missing_settings)
       return(NULL)
     }
-    removeNotification("missing_settings_notice")
+    hide_missing_notice()
 
     on.exit(gc(), add = TRUE)
 
