@@ -109,7 +109,7 @@
 <li>
 <strong>Excess of loss pricing</strong>: the burning cost with indexation, development and aggregate terms, a Pareto model of the large losses, exposure rating with the Swiss Re and Lloyd’s (MBBEFD) curves or a claim size distribution, credibility blending and the technical premium with reinstatements.</li>
 <li>
-<strong>Six Shiny tools</strong>: a claims simulator with reports and run comparison; a distribution fitting tool for claim counts and sizes, including claims reported only above a threshold or capped at policy limits, with Q-Q and P-P plots, Anderson-Darling tests and the conditional tail expectations of each fit, whose fits it saves as simulator settings; a GLM fitting tool with a Tweedie family, splines and bands, variable selection (stepwise, lasso, elastic net, ridge), validation on held-out rows (Gini, lift and double lift), a rate table and scoring of new data; a reserving tool with a report; a reinsurance pricing tool; and a portfolio capital tool with copulas and capital allocation.</li>
+<strong>Six Shiny tools</strong>: NetSimulator, a claims simulator with reports and run comparison; NetDisFit, a distribution fitting tool for claim counts and sizes, including claims reported only above a threshold or capped at policy limits, with Q-Q and P-P plots, Anderson-Darling tests and the conditional tail expectations of each fit, whose fits it saves as simulator settings; NetGLM, a GLM fitting tool with a Tweedie family, splines and bands, variable selection (stepwise, lasso, elastic net, ridge), validation on held-out rows (Gini, lift and double lift), a rate table and scoring of new data; NetReserve, a reserving tool with a report; NetTreaty, a reinsurance pricing tool; and NetCapital, a portfolio capital tool with copulas and capital allocation.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -167,12 +167,12 @@
 <h2 id="shiny-tools">Shiny tools<a class="anchor" aria-label="anchor" href="#shiny-tools"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/run_shiny_simulator.html">run_shiny_simulator</a></span><span class="op">(</span><span class="op">)</span>                  <span class="co"># claims simulator</span></span>
-<span><span class="fu"><a href="reference/run_shiny_distribution_fitting_tool.html">run_shiny_distribution_fitting_tool</a></span><span class="op">(</span><span class="op">)</span>  <span class="co"># frequency and severity fits</span></span>
-<span><span class="fu"><a href="reference/run_shiny_glm_fitting_tool.html">run_shiny_glm_fitting_tool</a></span><span class="op">(</span><span class="op">)</span>           <span class="co"># generalised linear models</span></span>
-<span><span class="fu"><a href="reference/run_shiny_reserving_tool.html">run_shiny_reserving_tool</a></span><span class="op">(</span><span class="op">)</span>             <span class="co"># claims reserving</span></span>
-<span><span class="fu"><a href="reference/run_shiny_reinsurance_pricing_tool.html">run_shiny_reinsurance_pricing_tool</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># excess of loss pricing</span></span>
-<span><span class="fu"><a href="reference/run_shiny_portfolio_tool.html">run_shiny_portfolio_tool</a></span><span class="op">(</span><span class="op">)</span>             <span class="co"># portfolio capital</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/run_shiny_simulator.html">run_shiny_simulator</a></span><span class="op">(</span><span class="op">)</span>                  <span class="co"># NetSimulator: claims simulation</span></span>
+<span><span class="fu"><a href="reference/run_shiny_distribution_fitting_tool.html">run_shiny_distribution_fitting_tool</a></span><span class="op">(</span><span class="op">)</span>  <span class="co"># NetDisFit: frequency and severity fits</span></span>
+<span><span class="fu"><a href="reference/run_shiny_glm_fitting_tool.html">run_shiny_glm_fitting_tool</a></span><span class="op">(</span><span class="op">)</span>           <span class="co"># NetGLM: generalised linear models</span></span>
+<span><span class="fu"><a href="reference/run_shiny_reserving_tool.html">run_shiny_reserving_tool</a></span><span class="op">(</span><span class="op">)</span>             <span class="co"># NetReserve: claims reserving</span></span>
+<span><span class="fu"><a href="reference/run_shiny_reinsurance_pricing_tool.html">run_shiny_reinsurance_pricing_tool</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># NetTreaty: reinsurance pricing</span></span>
+<span><span class="fu"><a href="reference/run_shiny_portfolio_tool.html">run_shiny_portfolio_tool</a></span><span class="op">(</span><span class="op">)</span>             <span class="co"># NetCapital: portfolio capital</span></span></code></pre></div>
 <p>Problems and ideas are welcome as <a href="https://github.com/NetSimAnalytics/NetSimR/issues/new/choose" class="external-link">GitHub issues</a>; each tool’s About card links to them.</p>
 </div>
 <div class="section level2">

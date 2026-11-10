@@ -66,16 +66,17 @@ remotes::install_github("NetSimAnalytics/NetSimR")
   exposure rating with the Swiss Re and Lloyd’s (MBBEFD) curves or a
   claim size distribution, credibility blending and the technical
   premium with reinstatements.
-- **Six Shiny tools**: a claims simulator with reports and run
-  comparison; a distribution fitting tool for claim counts and sizes,
-  including claims reported only above a threshold or capped at policy
-  limits, with Q-Q and P-P plots, Anderson-Darling tests and the
-  conditional tail expectations of each fit, whose fits it saves as
-  simulator settings; a GLM fitting tool with a Tweedie family, splines
-  and bands, variable selection (stepwise, lasso, elastic net, ridge),
-  validation on held-out rows (Gini, lift and double lift), a rate table
-  and scoring of new data; a reserving tool with a report; a reinsurance
-  pricing tool; and a portfolio capital tool with copulas and capital
+- **Six Shiny tools**: NetSimulator, a claims simulator with reports and
+  run comparison; NetDisFit, a distribution fitting tool for claim
+  counts and sizes, including claims reported only above a threshold or
+  capped at policy limits, with Q-Q and P-P plots, Anderson-Darling
+  tests and the conditional tail expectations of each fit, whose fits it
+  saves as simulator settings; NetGLM, a GLM fitting tool with a Tweedie
+  family, splines and bands, variable selection (stepwise, lasso,
+  elastic net, ridge), validation on held-out rows (Gini, lift and
+  double lift), a rate table and scoring of new data; NetReserve, a
+  reserving tool with a report; NetTreaty, a reinsurance pricing tool;
+  and NetCapital, a portfolio capital tool with copulas and capital
   allocation.
 
 ## Examples
@@ -134,12 +135,12 @@ property_exposure_rating(xl_property_profile, 1e6, 4e6, curve = "Y3", loss_ratio
 
 ``` r
 
-run_shiny_simulator()                  # claims simulator
-run_shiny_distribution_fitting_tool()  # frequency and severity fits
-run_shiny_glm_fitting_tool()           # generalised linear models
-run_shiny_reserving_tool()             # claims reserving
-run_shiny_reinsurance_pricing_tool()   # excess of loss pricing
-run_shiny_portfolio_tool()             # portfolio capital
+run_shiny_simulator()                  # NetSimulator: claims simulation
+run_shiny_distribution_fitting_tool()  # NetDisFit: frequency and severity fits
+run_shiny_glm_fitting_tool()           # NetGLM: generalised linear models
+run_shiny_reserving_tool()             # NetReserve: claims reserving
+run_shiny_reinsurance_pricing_tool()   # NetTreaty: reinsurance pricing
+run_shiny_portfolio_tool()             # NetCapital: portfolio capital
 ```
 
 Problems and ideas are welcome as [GitHub

@@ -1,6 +1,6 @@
 # Run the generalised linear model fitting application
 
-Opens a Shiny application that imports data from a CSV file or a
+Opens NetGLM, a Shiny application that imports data from a CSV file or a
 database query, fits generalised linear models to it, compares the AIC
 of stored models, suggests terms by stepwise AIC or BIC, charts actual
 against predicted values, validates the model on rows held out for

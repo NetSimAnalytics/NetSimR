@@ -1,7 +1,7 @@
-# A function to run the shiny simulator application
+# Run the claims simulator application
 
-Opens the claims simulator, a Shiny app for running the
-frequency-severity model of
+Opens NetSimulator, a Shiny app for running the frequency-severity model
+of
 [`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
 from a form, with charts, a report and saved settings, without writing
 any code.

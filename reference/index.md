@@ -5,7 +5,7 @@
 Applications that run the package’s models without writing code.
 
 - [`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
-  : A function to run the shiny simulator application
+  : Run the claims simulator application
 - [`run_shiny_distribution_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md)
   : Run the distribution fitting application
 - [`run_shiny_glm_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md)
