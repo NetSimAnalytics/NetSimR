@@ -644,7 +644,7 @@ distribution_fitting_tool_UI <- function(request) {
         tags$span(class = "sim-brand-subtitle", "Distribution fitting by NetSimR")
       )
     ),
-    window_title = "NetSim Distribution Fitting Tool",
+    window_title = "NetDisFit \u2013 Distribution Fitting Tool",
     id = "dft_navbar",
     selected = "welcome",
     fillable = FALSE,

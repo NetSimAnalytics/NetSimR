@@ -2,7 +2,7 @@
 % Please edit documentation in R/ShinySimulatorGlobal.R
 \name{run_shiny_simulator}
 \alias{run_shiny_simulator}
-\title{A function to run the shiny simulator application}
+\title{Run the claims simulator application}
 \usage{
 run_shiny_simulator()
 }
@@ -12,7 +12,7 @@ A shiny app object (class \code{shiny.appobj}). Printing it, as happens when
   \code{shiny::runApp()} to choose options such as the port.
 }
 \description{
-Opens the claims simulator, a Shiny app for running the frequency-severity model of
+Opens NetSimulator, a Shiny app for running the frequency-severity model of
 \code{\link{simulate_function}} from a form, with charts, a report and saved settings,
 without writing any code.
 }

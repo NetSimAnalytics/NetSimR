@@ -19,39 +19,40 @@ leaves your computer: the data you upload and the models you fit stay in the pag
 .netsimr-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin: 1.5rem 0; }
 .netsimr-tool { border: 1px solid var(--bs-border-color); border-radius: 0.75rem; padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .netsimr-tool h3 { font-size: 1.1rem; margin: 0; }
+.netsimr-tool-kind { display: block; font-size: 0.85rem; font-weight: 500; color: var(--bs-secondary-color); margin-top: 0.2rem; }
 .netsimr-tool p { margin: 0; flex: 1; }
 .netsimr-tool a.btn { align-self: flex-start; }
 </style>
 <div class="netsimr-tools">
   <div class="netsimr-tool">
-    <h3>Claims simulator</h3>
-    <p>Frequency-severity simulation with Pareto tails, caps and reinsurance layers, with return periods and a report.</p>
-    <a class="btn btn-primary" href="../apps/simulator/" target="_blank" rel="noopener">Open the simulator</a>
+    <h3>NetSimulator <span class="netsimr-tool-kind">Claims &amp; reinsurance simulator</span></h3>
+    <p>Frequency-severity simulation with Pareto tails, caps and reinsurance layers, with return periods, run comparison and a report.</p>
+    <a class="btn btn-primary" href="../apps/simulator/" target="_blank" rel="noopener">Open NetSimulator</a>
   </div>
   <div class="netsimr-tool">
-    <h3>Distribution fitting</h3>
-    <p>Fit claim frequency and severity distributions to your data, compare them and send the fits to the simulator.</p>
-    <a class="btn btn-primary" href="../apps/distribution/" target="_blank" rel="noopener">Open the fitting tool</a>
+    <h3>NetDisFit <span class="netsimr-tool-kind">Distribution fitting</span></h3>
+    <p>Fit claim counts and sizes, including claims above a reporting threshold or at their policy limits; compare the fits with Q-Q and P-P plots and their tail expectations, and send them to the simulator.</p>
+    <a class="btn btn-primary" href="../apps/distribution/" target="_blank" rel="noopener">Open NetDisFit</a>
   </div>
   <div class="netsimr-tool">
-    <h3>GLM fitting</h3>
-    <p>Fit generalised linear models to a CSV file, with splines and bands, let stepwise selection or the lasso suggest the terms, test them on held-out rows, and download the rate table.</p>
-    <a class="btn btn-primary" href="../apps/glm/" target="_blank" rel="noopener">Open the GLM tool</a>
+    <h3>NetGLM <span class="netsimr-tool-kind">GLM fitting</span></h3>
+    <p>Fit generalised linear models to a CSV or Excel file, with splines and bands; let stepwise selection or the lasso suggest the terms, test them on held-out rows, and download the rate table and a report.</p>
+    <a class="btn btn-primary" href="../apps/glm/" target="_blank" rel="noopener">Open NetGLM</a>
   </div>
   <div class="netsimr-tool">
-    <h3>Claims reserving</h3>
-    <p>The chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Cape Cod, the bootstrap and the Munich chain ladder.</p>
-    <a class="btn btn-primary" href="../apps/reserving/" target="_blank" rel="noopener">Open the reserving tool</a>
+    <h3>NetReserve <span class="netsimr-tool-kind">Claims reserving</span></h3>
+    <p>The chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Cape Cod, the bootstrap and the Munich chain ladder, with discounting and the risk adjustment for IFRS 17 and Solvency II, and a report.</p>
+    <a class="btn btn-primary" href="../apps/reserving/" target="_blank" rel="noopener">Open NetReserve</a>
   </div>
   <div class="netsimr-tool">
-    <h3>Reinsurance pricing</h3>
-    <p>Price an excess of loss layer with the burning cost, a Pareto model and exposure curves, and blend them.</p>
-    <a class="btn btn-primary" href="../apps/reinsurance/" target="_blank" rel="noopener">Open the pricing tool</a>
+    <h3>NetTreaty <span class="netsimr-tool-kind">Reinsurance pricing</span></h3>
+    <p>Price an excess of loss layer with the burning cost, a Pareto model and exposure curves, blend them, and compare reinsurance programmes by their cost and the capital they save.</p>
+    <a class="btn btn-primary" href="../apps/reinsurance/" target="_blank" rel="noopener">Open NetTreaty</a>
   </div>
   <div class="netsimr-tool">
-    <h3>Portfolio capital</h3>
-    <p>Join several lines of business with a Gaussian or t copula: VaR, TVaR, diversification and each line's capital.</p>
-    <a class="btn btn-primary" href="../apps/portfolio/" target="_blank" rel="noopener">Open the capital tool</a>
+    <h3>NetCapital <span class="netsimr-tool-kind">Portfolio capital</span></h3>
+    <p>Join lines of business with a Gaussian or t copula: VaR, TVaR, diversification and each line's capital, beside the Solvency II standard formula.</p>
+    <a class="btn btn-primary" href="../apps/portfolio/" target="_blank" rel="noopener">Open NetCapital</a>
   </div>
 </div>
 ```
@@ -67,23 +68,23 @@ leaves your computer: the data you upload and the models you fit stay in the pag
 </style>
 <div class="netsimr-gallery">
   <figure><a href="../screenshots/simulator.png"><img src="../screenshots/simulator.png" alt="The claims simulator's report of a run with an excess of loss layer" loading="lazy"></a>
-    <figcaption>Claims simulator: the report of a run with an excess of loss layer.</figcaption></figure>
+    <figcaption>NetSimulator: the report of a run with an excess of loss layer.</figcaption></figure>
   <figure><a href="../screenshots/distribution.png"><img src="../screenshots/distribution.png" alt="Severity fits of claims at their policy limits" loading="lazy"></a>
-    <figcaption>Distribution fitting: claim sizes fitted with their policy limits.</figcaption></figure>
+    <figcaption>NetDisFit: claim sizes fitted with their policy limits.</figcaption></figure>
   <figure><a href="../screenshots/glm-rates.png"><img src="../screenshots/glm-rates.png" alt="The rate table of a GLM with a spline of age" loading="lazy"></a>
-    <figcaption>GLM fitting: the rate table of a model with a spline of age.</figcaption></figure>
+    <figcaption>NetGLM: the rate table of a model with a spline of age.</figcaption></figure>
   <figure><a href="../screenshots/reserving.png"><img src="../screenshots/reserving.png" alt="Ultimates of each reserving method by origin" loading="lazy"></a>
-    <figcaption>Reserving: the ultimates of each method, origin by origin.</figcaption></figure>
+    <figcaption>NetReserve: the ultimates of each method, origin by origin.</figcaption></figure>
   <figure><a href="../screenshots/reserving-ifrs17.png"><img src="../screenshots/reserving-ifrs17.png" alt="Discounted reserves and cash flows for IFRS 17" loading="lazy"></a>
-    <figcaption>Reserving: discounted reserves and the risk adjustment for IFRS 17.</figcaption></figure>
+    <figcaption>NetReserve: discounted reserves and the risk adjustment for IFRS 17.</figcaption></figure>
   <figure><a href="../screenshots/reinsurance.png"><img src="../screenshots/reinsurance.png" alt="The technical premium of an excess of loss layer by method" loading="lazy"></a>
-    <figcaption>Reinsurance pricing: the layer priced by experience and exposure.</figcaption></figure>
+    <figcaption>NetTreaty: the layer priced by experience and exposure.</figcaption></figure>
   <figure><a href="../screenshots/reinsurance-programmes.png"><img src="../screenshots/reinsurance-programmes.png" alt="Reinsurance programmes compared by cost and capital" loading="lazy"></a>
-    <figcaption>Reinsurance pricing: programmes compared by cost and capital saved.</figcaption></figure>
+    <figcaption>NetTreaty: programmes compared by cost and capital saved.</figcaption></figure>
   <figure><a href="../screenshots/portfolio.png"><img src="../screenshots/portfolio.png" alt="The capital of a portfolio of three lines joined by a copula" loading="lazy"></a>
-    <figcaption>Portfolio capital: VaR, TVaR and each line's capital.</figcaption></figure>
+    <figcaption>NetCapital: VaR, TVaR and each line's capital.</figcaption></figure>
   <figure><a href="../screenshots/portfolio-standard-formula.png"><img src="../screenshots/portfolio-standard-formula.png" alt="The Solvency II standard formula by segment" loading="lazy"></a>
-    <figcaption>Portfolio capital: the Solvency II standard formula by segment.</figcaption></figure>
+    <figcaption>NetCapital: the Solvency II standard formula by segment.</figcaption></figure>
 </div>
 ```
 

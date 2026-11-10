@@ -192,7 +192,7 @@ portfolio_tool_UI <- function(request) {
         tags$span(class = "sim-brand-subtitle", "Portfolio capital by NetSimR")
       )
     ),
-    window_title = "NetSim Portfolio Capital Tool",
+    window_title = "NetCapital \u2013 Portfolio Capital Tool",
     id = "pfo_navbar",
     selected = "welcome",
     fillable = FALSE,

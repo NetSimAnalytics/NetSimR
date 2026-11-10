@@ -200,7 +200,7 @@ reinsurance_pricing_tool_UI <- function(request) {
         tags$span(class = "sim-brand-subtitle", "Reinsurance pricing by NetSimR")
       )
     ),
-    window_title = "NetSim Reinsurance Pricing Tool",
+    window_title = "NetTreaty \u2013 Reinsurance Pricing Tool",
     id = "xlp_navbar",
     selected = "welcome",
     fillable = FALSE,

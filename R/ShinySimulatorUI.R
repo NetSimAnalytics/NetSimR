@@ -1198,11 +1198,11 @@ shiny_simulator_ui <- function(request) {
       div(class = "sim-brand-mark", icon("dice")),
       div(
         class = "sim-brand-text",
-        tags$span(class = "sim-brand-title", "NetSimR Simulator"),
-        tags$span(class = "sim-brand-subtitle", "Claims & reinsurance simulation")
+        tags$span(class = "sim-brand-title", "NetSimulator"),
+        tags$span(class = "sim-brand-subtitle", "Claims simulation by NetSimR")
       )
     ),
-    window_title = "NetSimR Claims Simulator",
+    window_title = "NetSimulator \u2013 Claims & Reinsurance Simulator",
     id = "sim_navbar",
     selected = "welcome",
     fillable = FALSE,
@@ -1257,7 +1257,7 @@ shiny_simulator_ui <- function(request) {
 
         div(
           class = "sim-hero",
-          div(class = "sim-hero-eyebrow", "NetSimR"),
+          div(class = "sim-hero-eyebrow", "NetSimulator"),
           div(class = "sim-hero-title", "Claims & Reinsurance Simulator"),
           p(
             class = "sim-hero-text",

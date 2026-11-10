@@ -19,12 +19,12 @@ tools <- c(
   portfolio = "run_shiny_portfolio_tool"
 )
 titles <- c(
-  simulator = "NetSim claims simulator",
-  distribution = "NetSim distribution fitting tool",
-  glm = "NetSim GLM fitting tool",
-  reserving = "NetSim reserving tool",
-  reinsurance = "NetSim reinsurance pricing tool",
-  portfolio = "NetSim portfolio capital tool"
+  simulator = "NetSimulator \u2013 Claims & Reinsurance Simulator",
+  distribution = "NetDisFit \u2013 Distribution Fitting Tool",
+  glm = "NetGLM \u2013 GLM Fitting Tool",
+  reserving = "NetReserve \u2013 Claims Reserving Tool",
+  reinsurance = "NetTreaty \u2013 Reinsurance Pricing Tool",
+  portfolio = "NetCapital \u2013 Portfolio Capital Tool"
 )
 
 source_dir <- file.path(tempdir(), "netsimr-shinylive")

@@ -1532,7 +1532,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
           class = "report-header",
           div(
             class = "report-header-top",
-            tags$p(class = "report-eyebrow", "NetSimR Claims & Reinsurance Simulator"),
+            tags$p(class = "report-eyebrow", "NetSimulator by NetSimR"),
             report_theme_switch()
           ),
           tags$h1("Simulation Report"),

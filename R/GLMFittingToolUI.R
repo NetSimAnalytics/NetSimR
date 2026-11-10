@@ -40,9 +40,6 @@ glm_ui_css <- "
 .sim-brand-mark {
   background: linear-gradient(135deg, #2dd4bf, #0d9488);
   box-shadow: 0 6px 18px rgba(13, 148, 136, 0.35);
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.02em;
 }
 
 .theme-btn.active,
@@ -287,14 +284,14 @@ GLMFittingToolUI <- function(request) {
   bslib::page_navbar(
     title = div(
       class = "sim-brand",
-      div(class = "sim-brand-mark", "GLM"),
+      div(class = "sim-brand-mark", icon("chart-line")),
       div(
         class = "sim-brand-text",
-        tags$span(class = "sim-brand-title", "GLM Fitting Tool"),
-        tags$span(class = "sim-brand-subtitle", "Model fitting and diagnostics by NetSimR")
+        tags$span(class = "sim-brand-title", "NetGLM"),
+        tags$span(class = "sim-brand-subtitle", "GLM fitting by NetSimR")
       )
     ),
-    window_title = "GLM Fitting Tool",
+    window_title = "NetGLM \u2013 GLM Fitting Tool",
     id = "main_navbar",
     selected = "welcome",
     fillable = FALSE,
@@ -357,7 +354,7 @@ GLMFittingToolUI <- function(request) {
 
         div(
           class = "sim-hero",
-          div(class = "sim-hero-eyebrow", "NetSimR"),
+          div(class = "sim-hero-eyebrow", "NetGLM"),
           div(class = "sim-hero-title", "GLM Fitting Tool"),
           p(
             class = "sim-hero-text",

@@ -262,7 +262,7 @@ reserving_tool_UI <- function(request) {
         tags$span(class = "sim-brand-subtitle", "Claims reserving by NetSimR")
       )
     ),
-    window_title = "NetSim Reserving Tool",
+    window_title = "NetReserve \u2013 Claims Reserving Tool",
     id = "rsv_navbar",
     selected = "welcome",
     fillable = FALSE,

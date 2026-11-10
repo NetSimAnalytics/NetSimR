@@ -141,7 +141,7 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
     tags$li("The rate table gives every prediction as a base rate times a relativity for each rating factor, so a rating engine can price with it.")
   )))
 
-  netsimr_write_report(file, "GLM Report", "NetSimR GLM Fitting Tool",
+  netsimr_write_report(file, "GLM Report", "NetGLM by NetSimR",
                        list(key, settings, coefficient_section, rates_section, validation, guide),
                        accent = c(glow = "rgba(45, 212, 191, 0.30)", dark = "#042f2e", middle = "#115e59", bright = "#0d9488",
                                   eyebrow = "#99f6e4"),

@@ -1478,9 +1478,9 @@ run_chunks_on_workers <- function(cluster, run_chunk, chunk_seeds, chunks = seq_
   unlist(lapply(groups_done, `[[`, "result"), recursive = FALSE, use.names = FALSE)
 }
 
-#' A function to run the shiny simulator application
+#' Run the claims simulator application
 #'
-#' Opens the claims simulator, a Shiny app for running the frequency-severity model of
+#' Opens NetSimulator, a Shiny app for running the frequency-severity model of
 #' \code{\link{simulate_function}} from a form, with charts, a report and saved settings,
 #' without writing any code.
 #'
