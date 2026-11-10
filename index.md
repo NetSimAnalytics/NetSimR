@@ -69,13 +69,14 @@ remotes::install_github("NetSimAnalytics/NetSimR")
 - **Six Shiny tools**: a claims simulator with reports and run
   comparison; a distribution fitting tool for claim counts and sizes,
   including claims reported only above a threshold or capped at policy
-  limits, with Q-Q plots and Anderson-Darling tests, whose fits it saves
-  as simulator settings; a GLM fitting tool with a Tweedie family,
-  splines and bands, variable selection (stepwise, lasso, elastic net,
-  ridge), validation on held-out rows (Gini, lift and double lift), a
-  rate table and scoring of new data; a reserving tool with a report; a
-  reinsurance pricing tool; and a portfolio capital tool with copulas
-  and capital allocation.
+  limits, with Q-Q and P-P plots, Anderson-Darling tests and the
+  conditional tail expectations of each fit, whose fits it saves as
+  simulator settings; a GLM fitting tool with a Tweedie family, splines
+  and bands, variable selection (stepwise, lasso, elastic net, ridge),
+  validation on held-out rows (Gini, lift and double lift), a rate table
+  and scoring of new data; a reserving tool with a report; a reinsurance
+  pricing tool; and a portfolio capital tool with copulas and capital
+  allocation.
 
 ## Examples
 
