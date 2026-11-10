@@ -901,6 +901,8 @@ distribution_fitting_tool_UI <- function(request) {
           id = "sev_results_tabs",
           bslib::nav_panel("CDF fit", dft_plot_output("sev_fit_plot")),
           bslib::nav_panel("Q-Q plot", dft_plot_output("sev_qq_plot")),
+          bslib::nav_panel("P-P plot", dft_plot_output("sev_pp_plot")),
+          bslib::nav_panel("Tail (CTE)", uiOutput("sev_cte_table")),
           bslib::nav_panel("Histogram", dft_plot_output("sev_hist")),
           bslib::nav_panel("Data summary", verbatimTextOutput("sev_summary"))
         )

@@ -580,6 +580,53 @@ distribution_fitting_tool_Server <- function(input, output, session) {
                    ylim = c(min(x) - 0.1 * span, max(x) + 0.25 * span))
   }, alt = "Q-Q plot: the quantiles of each fitted distribution against those of the claim sizes")
 
+  # the probabilities of each fitted distribution against those of the claims: where the Q-Q
+  # plot shows the tail, the P-P plot shows the body of the distribution
+  output$sev_pp_plot <- chart(function() {
+    need_run("execute_sev_analysis", "claim size")
+    models <- model_cdfs(sev_models())
+    pp <- dft_pp_data(severity_data(), models$cdfs, if (sev_has_censoring()) sev_km())
+    series <- c(
+      list(list(x = c(0, 1), y = c(0, 1), name = "Perfect fit", colour = "muted", lwd = 1.4)),
+      lapply(seq_along(pp$fitted), function(i) {
+        list(x = pp$empirical, y = pp$fitted[[i]], name = names(pp$fitted)[i], colour = models$colours[i])
+      })
+    )
+    dft_line_chart(series, if (sev_has_censoring()) "Kaplan-Meier probability" else "Empirical probability",
+                   "Fitted probability", dark(), ylim = c(0, 1.02))
+  }, alt = "P-P plot: the cumulative probabilities of each fitted distribution against those of the claim sizes")
+
+  # the conditional tail expectations: the mean claim above each percentile, of the claims and
+  # of each fit
+  output$sev_cte_table <- renderUI({
+    need_run("execute_sev_analysis", "claim size")
+    x <- severity_data()
+    levels <- dft_cte_levels
+    censoring <- sev_has_censoring()
+    cells <- function(v) lapply(v, function(value) if (is.infinite(value)) "Infinite" else dft_fmt(value))
+    empirical <- if (censoring) rep(NA_real_, length(levels)) else dft_empirical_cte(x, levels)
+    rows <- c(list(c(list("Claims"), cells(empirical))),
+              lapply(sev_models(), function(m) c(list(m$name), cells(dft_model_cte(m, levels, x)))))
+    largest <- round(length(x) * (1 - max(levels)), 9)
+    d <- sev_threshold()
+    percent <- function(v) paste0(formatC(100 * v, format = "fg"), "%")
+    shares <- percent(1 - levels)
+    dft_html_table(
+      c("Distribution", paste("CTE", percent(levels))), rows,
+      note = paste0(
+        "The conditional tail expectation (CTE, also TVaR or expected shortfall) at a level is the mean claim above ",
+        "that percentile", if (d > 0) paste0(", of the claims above the reporting threshold of ", dft_fmt(d)), ". ",
+        if (censoring) paste0("The claims at their policy limits hide the sizes of the largest losses, so the claims give ",
+                              "no CTE: the fits estimate it, from the limits as well as the claims.") else
+          paste0("For the claims it is the mean of the largest ", paste(shares[-length(shares)], collapse = ", "), " and ",
+                 shares[length(shares)], " of them; at ", percent(max(levels)), " it rests on ",
+                 if (largest < 1) "less than one claim, so it is the largest claim" else
+                   paste(dft_fmt(largest, 3), if (largest == 1) "claim" else "claims"),
+                 if (largest < 20) ", too few for a reliable estimate, where the fits help." else ".")
+      )
+    )
+  })
+
   output$sev_fit_plot <- chart(function() {
     need_run("execute_sev_analysis", "claim size")
     log_scale <- isTRUE(input$sev_fit_log_scale)

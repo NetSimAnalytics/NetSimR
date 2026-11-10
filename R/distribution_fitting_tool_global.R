@@ -1341,6 +1341,97 @@ dft_qq_data <- function(claims, cdfs, points = 200) {
        fitted = lapply(cdfs, function(cdf) dft_model_quantiles(cdf, p, claims)))
 }
 
+# The points of a P-P plot: at each claim size, the empirical probability of a
+# claim up to it against each model's cdf there. A point on the diagonal is a
+# probability the model gets right. The empirical probability of the i-th of n
+# sorted claims is (i - 0.5) / n, the middle of its step; with policy limits it
+# is the middle of each step of the Kaplan-Meier estimate `km`
+# (dft_kaplan_meier()), at the claims below their limits. At most `points`
+# claims are kept, evenly spread over the steps.
+dft_pp_data <- function(claims, cdfs, km = NULL, points = 500) {
+  if (is.null(km)) {
+    x <- sort(claims)
+    empirical <- (seq_along(x) - 0.5) / length(x)
+  } else {
+    x <- km$x
+    empirical <- (c(0, km$cdf[-length(km$cdf)]) + km$cdf) / 2
+  }
+  if (length(x) > points) {
+    keep <- unique(round(seq(1, length(x), length.out = points)))
+    x <- x[keep]
+    empirical <- empirical[keep]
+  }
+  list(x = x, empirical = empirical, fitted = lapply(cdfs, function(cdf) cdf(x)))
+}
+
+# The levels of the conditional tail expectations in the Severity tab.
+dft_cte_levels <- c(0.9, 0.95, 0.99, 0.995)
+
+# The empirical conditional tail expectation (CTE, also TVaR or expected
+# shortfall) of claims at each level p: the mean of the largest n (1 - p)
+# claims, the last of them counted in part when n (1 - p) is not whole (the
+# estimator of Acerbi and Tasche, 2002). Below one claim it is the largest.
+dft_empirical_cte <- function(claims, p) {
+  x <- sort(claims, decreasing = TRUE)
+  n <- length(x)
+  vapply(p, function(level) {
+    # (rounded: 200 * (1 - 0.995) is a hair below 1 in floating point)
+    k <- round(n * (1 - level), 9)
+    whole <- floor(k)
+    if (whole >= n) return(mean(x))
+    if (k <= 0) return(x[1])
+    (sum(x[seq_len(whole)]) + (k - whole) * x[whole + 1]) / k
+  }, numeric(1))
+}
+
+# The mean claim above v, E[X | X > v], of a fitted distribution of the Severity
+# tab (by its name and ground-up parameters, named as dft_truncated_severity_models()
+# names them), in closed form from the log survival functions, so that it stays
+# accurate far into the tail. Returns a function of v, or NULL for a fit without
+# parameters. Above a reporting threshold d < v it is also the mean of a claim
+# above v among those above d.
+dft_tail_mean <- function(name, params) {
+  p <- unname(params)
+  if (length(p) == 0 || anyNA(p)) return(NULL)
+  upper_log <- function(q, ...) stats::pgamma(q, ..., lower.tail = FALSE, log.p = TRUE)
+  switch(
+    name,
+    # mu + sigma phi(a) / (1 - Phi(a)), with a = (v - mu) / sigma
+    Normal = function(v) {
+      a <- (v - p[1]) / p[2]
+      p[1] + p[2] * exp(stats::dnorm(a, log = TRUE) - stats::pnorm(a, lower.tail = FALSE, log.p = TRUE))
+    },
+    LogNormal = function(v) {
+      exp(p[1] + p[2]^2 / 2 + stats::pnorm((log(v) - p[1] - p[2]^2) / p[2], lower.tail = FALSE, log.p = TRUE) -
+            stats::pnorm((log(v) - p[1]) / p[2], lower.tail = FALSE, log.p = TRUE))
+    },
+    # memoryless: v plus the mean
+    Exponential = function(v) pmax(v, 0) + p[1],
+    # (Scale, Shape) = (p[1], p[2]): shape scale S_{shape + 1}(v) / S_shape(v)
+    Gamma = function(v) {
+      p[1] * p[2] * exp(upper_log(v, shape = p[2] + 1, scale = p[1]) - upper_log(v, shape = p[2], scale = p[1]))
+    },
+    # (xm, alpha): alpha v / (alpha - 1) above xm, infinite for alpha <= 1
+    Pareto = function(v) if (p[2] > 1) p[2] * pmax(v, p[1]) / (p[2] - 1) else rep(Inf, length(v)),
+    # (Scale, Shape): scale Gamma(1 + 1/shape, z) e^z, with z = (v / scale)^shape
+    Weibull = function(v) {
+      z <- (pmax(v, 0) / p[1])^p[2]
+      p[1] * exp(z + lgamma(1 + 1 / p[2]) + upper_log(z, shape = 1 + 1 / p[2]))
+    },
+    NULL
+  )
+}
+
+# The conditional tail expectations of a fitted model of the Severity tab at the
+# levels p: the mean claim above its quantile at each level. The quantiles are of
+# the model's cdf, which above a reporting threshold is of the claims above it.
+# NA for a fit that failed.
+dft_model_cte <- function(model, p, claims) {
+  tail_mean <- dft_tail_mean(model$name, model$params)
+  if (is.null(model$cdf) || is.null(tail_mean)) return(rep(NA_real_, length(p)))
+  tail_mean(dft_model_quantiles(model$cdf, p, claims))
+}
+
 
 # The note under the Severity tab's table on the fits above a threshold that
 # failed (the `failed` messages of dft_truncated_severity_models()): those that

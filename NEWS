@@ -35,6 +35,10 @@ Changes in Version 0.4.0
     suggested), and the reserving, GLM, reinsurance pricing and portfolio
     tools download their results as an Excel workbook (with writexl, now
     suggested).
+  o The distribution fitting tool's Severity tab has a P-P plot beside the
+    Q-Q plot (with policy limits, against the Kaplan-Meier estimate), and a
+    Tail (CTE) tab with the conditional tail expectation (TVaR) at 90%, 95%,
+    99% and 99.5% of the claims and of each fitted distribution.
   o The website has a gallery of the tools, on the Try online page, and a
     page on custom tools for insurers and reinsurers; each tool's About card
     links to it.
