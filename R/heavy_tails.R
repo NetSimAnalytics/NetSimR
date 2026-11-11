@@ -277,6 +277,9 @@ dft_hill_data <- function(x, from = 5, points = 400) {
   lx <- log(x)
   k <- from:max(from + 1, min(n - 1, ceiling(n / 2)))
   alpha <- 1 / (cumsum(lx)[k] / k - lx[k + 1])
+  # the k largest claims all the size of the next have no excess and no estimate: found from
+  # the claims, as the running sum can leave a rounding error in place of zero (macOS)
+  alpha[x[1] == x[k + 1]] <- Inf
   if (length(k) > points) {
     keep <- unique(round(seq(1, length(k), length.out = points)))
     k <- k[keep]
