@@ -18,6 +18,11 @@ be [tried in the
 browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.html),
 with nothing to install.
 
+**Your data stays on your computer.** The tools run on your own machine:
+in R or, on the website, in an R that runs inside your browser. A file
+you open in a tool is read there and is not sent anywhere. [How this
+works](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer).
+
 [![Try the Shiny apps in your browser, nothing to
 install](https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge)](https://netsimanalytics.github.io/NetSimR/articles/try-online.html)
 
@@ -466,7 +471,7 @@ LogNormal or Gamma bodies with a Pareto tail.
   browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.md):
 
   The package’s six Shiny tools, running in your browser with webR: no R
-  to install.
+  to install, and your data never leaves your computer.
 
 - [A worked example: the six tools and their
   reports](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md):

@@ -25,7 +25,7 @@
   browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.md):
 
   The package’s six Shiny tools, running in your browser with webR: no R
-  to install.
+  to install, and your data never leaves your computer.
 
 - [A worked example: the six tools and their
   reports](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md):

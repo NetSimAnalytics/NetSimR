@@ -30,6 +30,10 @@ line, and the comparison with the standard formula.
 
 - **Your data, where it lives**: databases, Excel workbooks or files,
   read as they are.
+- **Your data stays yours**: a tool runs on your own servers or on each
+  actuary’s computer, and sends nothing outside, as [NetSimR’s
+  tools](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer)
+  do.
 - **Your methods and assumptions**: the tool does what your actuaries do
   today, faster and the same way every time, with the choices they make
   in it recorded.

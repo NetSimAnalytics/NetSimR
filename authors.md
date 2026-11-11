@@ -5,6 +5,12 @@
 - **Yiannis Parizas**. Author, maintainer.
   [](https://orcid.org/0009-0000-0523-0751)
 
+- **The Inter Project Authors**. Copyright holder.  
+  The Inter font, in inst/fonts
+
+- **The JetBrains Mono Project Authors**. Copyright holder.  
+  The JetBrains Mono font, in inst/fonts
+
 ## Citation
 
 Source:

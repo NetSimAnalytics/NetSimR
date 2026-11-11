@@ -187,7 +187,8 @@ functions, for those who work in R.
 ## On your own data
 
 Each tool reads CSV, text and Excel files, so the same steps run on your
-own policies, claims and triangles, in the browser (where the data stays
-on your computer) or in R. For tools built around your own data, methods
-and reporting, see [Custom
+own policies, claims and triangles, in the browser or in R. Either way
+[the data never leaves your
+computer](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer).
+For tools built around your own data, methods and reporting, see [Custom
 tools](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md).

@@ -8,8 +8,16 @@ downloads](https://cranlogs.r-pkg.org/badges/grand-total/NetSimR)](https://cran.
 The six Shiny tools of NetSimR run right here, in your browser, with
 [webR](https://docs.r-wasm.org/webr/latest/), R compiled to WebAssembly,
 and [shinylive](https://posit-dev.github.io/r-shinylive/). Nothing to
-install, and nothing leaves your computer: the data you upload and the
-models you fit stay in the page.
+install.
+
+## Your data never leaves your computer
+
+The tools run inside your browser: R itself is downloaded to the page
+and does the work there. A file you open in a tool is read by that R, on
+your computer, and is not sent to us or to anyone else. This website is
+a set of static pages: there is no server behind it that could receive
+your data. [How this works, and how it was
+checked](#your-data-stays-on-your-computer).
 
 ## The six Shiny tools
 
@@ -141,18 +149,51 @@ Need a tool like these built around your own data and methods? See
 [Custom
 tools](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md).
 
+## Your data stays on your computer
+
+Claims, policies and triangles are confidential, so this is worth being
+exact about.
+
+- **Where the work is done.** A tool’s page downloads R and the packages
+  it needs, and runs them in your browser. The file you choose is handed
+  by the browser to that R, in the page’s memory. The fits, simulations
+  and charts are made there.
+- **What is sent: nothing of yours.** The website is static pages on
+  GitHub Pages. There is no server behind it that runs code or could
+  keep a file, so there is nowhere for a file to go.
+- **What the page does fetch.** Downloads only: R, its packages and
+  their files, from this website and from [the repository of
+  webR](https://repo.r-wasm.org/). None of these requests carries
+  anything from your files or your results. The tools bring their own
+  fonts and icons, so a page asks no other server for anything.
+- **The one thing reported: that a page was visited.** The website
+  counts page visits with [GoatCounter](https://www.goatcounter.com/):
+  the address of the page, where the visit came from, the kind of
+  browser, the size of its screen and the country, without cookies or
+  personal data. Nothing you upload, type or compute is part of it.
+- **What you save stays with you.** Reports, settings files and CSV or
+  Excel downloads are written by your browser to your own computer.
+  Closing the tab ends the session and clears its memory.
+- **How it was checked.** In November 2026 a file of claims with marked
+  values was opened and fitted in NetDisFit on this website, while the
+  browser logged every request it made to the network. The file’s name
+  and its values were in none of them.
+- **In R, the same holds.** Installed from CRAN, the tools run in R on
+  your own computer, need no internet connection and make no request to
+  any other server, and count nothing. The GLM tool’s database source
+  connects only to the database you name. If your company’s rules
+  exclude any web tool, this is the way to use them.
+
+The package’s code, and the workflow that builds this website from it,
+are public on [GitHub](https://github.com/NetSimAnalytics/NetSimR).
+
 ## Good to know
 
 - **The first start takes a little while**: the browser downloads R and
   the packages, a few tens of megabytes. Later starts are quicker, as
   the browser keeps them.
-- **It runs on your computer.** Uploaded files are read by the R running
-  in the page and are not sent anywhere. Closing the tab ends the
-  session; save the settings of a tool to come back to it.
-- **Visits are counted, not people.** The website, the tools’ pages
-  included, counts page visits with
-  [GoatCounter](https://www.goatcounter.com/), which sets no cookies and
-  keeps no personal data. The tools installed from CRAN count nothing.
+- **Closing the tab ends the session**: save the settings of a tool to
+  come back to it.
 - **Some things need R on your computer**: the simulator’s parallel
   workers, and the GLM tool’s database connections, are not available in
   the browser. Large simulations also run faster in R.
