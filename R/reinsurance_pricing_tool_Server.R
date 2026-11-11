@@ -1110,7 +1110,8 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     r <- list()
     r$key <- c(
       list(Layer = list(value = xlp_layer_label(lay$deductible, lay$limit),
-                        note = paste(reinstatements, "reinstatements at", rsv_percent(lay$reinstatement_rate, 0))),
+                        note = paste(reinstatements, if (identical(reinstatements, "1")) "reinstatement at" else "reinstatements at",
+                                     rsv_percent(lay$reinstatement_rate, 0))),
            `Technical premium` = list(value = if (ok) rsv_amount(blended$upfront_premium) else dft_dash,
                                       note = if (ok && blended$reinstatement_premium > 0) {
                                         paste("Upfront; and", rsv_amount(blended$reinstatement_premium), "expected from reinstatements")

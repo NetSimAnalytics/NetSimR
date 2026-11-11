@@ -398,7 +398,10 @@ dft_ui_css <- "
   text-align: right;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--sim-border-strong);
-  white-space: nowrap;
+  /* a heading of several words takes two lines when the table would otherwise be wider than
+     its card (the browser keeps it on one line while there is room) */
+  white-space: normal;
+  vertical-align: bottom;
 }
 
 .dft-table td {

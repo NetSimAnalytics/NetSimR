@@ -146,6 +146,7 @@ articles:
   navbar: Shiny tools
   contents:
   - articles/try-online
+  - articles/worked-example
 - title: Custom tools
   navbar: Custom tools
   contents:

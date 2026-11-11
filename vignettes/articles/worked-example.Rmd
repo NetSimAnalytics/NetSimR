@@ -1,0 +1,147 @@
+---
+title: "A worked example: the six tools and their reports"
+description: >
+  The six Shiny tools of NetSimR run on the package's example data, from pricing to reserves,
+  with the report each one writes.
+---
+
+The six tools of NetSimR, each run on the example data that comes with the package, with the
+report it writes. Every step can be repeated in a few clicks, in your browser on the
+[Try online](try-online.html) page or in R, and every report below is the tool's own: a single
+HTML file that opens anywhere, with its charts in a light and a dark theme, to send to a
+colleague or file with the work.
+
+The reports on this page are written again each time the website is built, by the tools as they
+are now.
+
+```{=html}
+<style>
+.netsimr-step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1.5rem; align-items: start; margin: 1rem 0 2.5rem 0; }
+.netsimr-step figure { margin: 0; border: 1px solid var(--bs-border-color); border-radius: 0.75rem; overflow: hidden; }
+.netsimr-step img { display: block; width: 100%; height: auto; }
+.netsimr-step figcaption { padding: 0.5rem 0.8rem; font-size: 0.85rem; color: var(--bs-secondary-color); }
+.netsimr-step p { margin: 0 0 0.75rem 0; }
+.netsimr-step .netsimr-step-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.netsimr-step-how { font-size: 0.9rem; color: var(--bs-secondary-color); }
+@media (max-width: 767.98px) { .netsimr-step { grid-template-columns: minmax(0, 1fr); gap: 1rem; } }
+</style>
+```
+
+## 1. Pricing the policies: NetGLM
+
+```{=html}
+<div class="netsimr-step">
+  <div>
+    <p>The example is 10,000 motor policies with their age, region, vehicle and vehicle value, their exposure and their claims. A Poisson model of the claim counts, with the exposure as an offset and a spline of age, is fitted to four policies in five; the fifth is held out to test it.</p>
+    <p>The report has the coefficients, the rate table with a chart for each rating factor, and the validation on the policies held out: the lift chart and the Lorenz curve, with its Gini coefficient.</p>
+    <p class="netsimr-step-how">To repeat it: open the tool, click <strong>Try an example</strong>, choose to hold out 20% of the rows, then click <strong>Fit model</strong>.</p>
+    <div class="netsimr-step-links">
+      <a class="btn btn-primary" href="../reports/netglm-report.html" target="_blank" rel="noopener">Open the report</a>
+      <a class="btn btn-outline-primary" href="../apps/glm/" target="_blank" rel="noopener">Open NetGLM</a>
+    </div>
+  </div>
+  <figure><a href="../reports/netglm-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-netglm.png" alt="The top of the GLM report: the model, its observations, AIC and Gini coefficient" loading="lazy"></a>
+    <figcaption>The GLM report.</figcaption></figure>
+</div>
+```
+
+## 2. Fitting the claim sizes: NetDisFit
+
+```{=html}
+<div class="netsimr-step">
+  <div>
+    <p>The example is 2,500 liability claims, of which 204 were paid at their policy limit. A claim at its limit says only that the loss was at least that large, so the tool fits the loss before the limits: eight distributions by maximum likelihood, compared with the Kaplan-Meier estimate of the claim sizes.</p>
+    <p>The Burr is the closest by the Kolmogorov-Smirnov distance and the Log-Normal has the lowest AIC; the choice between them is the actuary's. The report has the table of fits, the cumulative distributions, the Q-Q and P-P plots, and the conditional tail expectation of each fit.</p>
+    <p class="netsimr-step-how">To repeat it: open the tool, click <strong>Try an example</strong>, then <strong>Run analysis</strong>. On the Export tab, save the report, and the fitted Burr as a settings file for the next step.</p>
+    <div class="netsimr-step-links">
+      <a class="btn btn-primary" href="../reports/netdisfit-report.html" target="_blank" rel="noopener">Open the report</a>
+      <a class="btn btn-outline-primary" href="../apps/distribution/" target="_blank" rel="noopener">Open NetDisFit</a>
+    </div>
+  </div>
+  <figure><a href="../reports/netdisfit-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-netdisfit.png" alt="The top of the distribution fitting report: the data, the closest fit and the settings" loading="lazy"></a>
+    <figcaption>The distribution fitting report.</figcaption></figure>
+</div>
+```
+
+## 3. Simulating the book and a layer: NetSimulator
+
+```{=html}
+<div class="netsimr-step">
+  <div>
+    <p>The simulator loads the fitted Burr from the file of step 2. The question here is what the book would cost if every policy were written at the highest limit, 1,000,000: each claim is capped there, the claims of a year are a Poisson with a mean of 625 (the 2,500 claims came in four years), and an excess of loss layer of 750,000 excess of 250,000 takes the large ones.</p>
+    <p>Over 20,000 simulated years the gross claims average about 47 million a year, of which the layer takes a little over a quarter; it brings the 1 in 200 year down from about 59 million to about 40 million. The report sets gross, ceded and net side by side, with the layer's metrics and the return periods.</p>
+    <p class="netsimr-step-how">To repeat it: in the tool, <strong>Load settings</strong> with the file of step 2, set the claim count, the severity cap and the layer, and click <strong>Run Simulations</strong>.</p>
+    <div class="netsimr-step-links">
+      <a class="btn btn-primary" href="../reports/netsimulator-report.html" target="_blank" rel="noopener">Open the report</a>
+      <a class="btn btn-outline-primary" href="../apps/simulator/" target="_blank" rel="noopener">Open NetSimulator</a>
+    </div>
+  </div>
+  <figure><a href="../reports/netsimulator-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-netsimulator.png" alt="The top of the simulation report: the mean, the percentiles and the tail of the ceded losses" loading="lazy"></a>
+    <figcaption>The simulation report.</figcaption></figure>
+</div>
+```
+
+## 4. Pricing a treaty and choosing a programme: NetTreaty
+
+```{=html}
+<div class="netsimr-step">
+  <div>
+    <p>The example is a property book: ten years of large losses and premiums, and a risk profile by band of sum insured. The layer of 4,000,000 excess of 1,000,000 is rated on the experience (the burning cost and a Pareto fitted to the losses) and on the exposure (an exposure curve on the risk profile), and the two are blended into the technical premium, with its reinstatement premiums.</p>
+    <p>The Programmes tab then compares five programmes on simulated years (a quota share, the layer, a stop loss, a quota share with the layer, and a surplus treaty) by what each costs and the capital it saves. It can load a model fitted in NetDisFit, such as the file of step 2, as the claims the programmes are compared on.</p>
+    <p class="netsimr-step-how">To repeat it: open the tool, which starts with the example; click <strong>Compare</strong> on the Programmes tab, and save the report on the Pricing tab.</p>
+    <div class="netsimr-step-links">
+      <a class="btn btn-primary" href="../reports/nettreaty-report.html" target="_blank" rel="noopener">Open the report</a>
+      <a class="btn btn-outline-primary" href="../apps/reinsurance/" target="_blank" rel="noopener">Open NetTreaty</a>
+    </div>
+  </div>
+  <figure><a href="../reports/nettreaty-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-nettreaty.png" alt="The top of the reinsurance pricing report: the layer, its technical premium, rate on line and the best value programme" loading="lazy"></a>
+    <figcaption>The reinsurance pricing report.</figcaption></figure>
+</div>
+```
+
+## 5. The capital of the portfolio: NetCapital
+
+```{=html}
+<div class="netsimr-step">
+  <div>
+    <p>Three lines of business (motor, property and liability), each with its claim count and claim size distributions, are simulated together: a Gaussian copula with a correlation of 0.25 between each pair makes their bad years tend to coincide.</p>
+    <p>The report has each line's and the portfolio's VaR and TVaR at 99.5%, the diversification benefit (here nearly a quarter of the lines' own VaR), the capital each line contributes to the total, and charts of the total losses and of the dependence between two lines.</p>
+    <p class="netsimr-step-how">To repeat it: open the tool, which starts with the three lines, and click <strong>Run</strong> on the Capital tab.</p>
+    <div class="netsimr-step-links">
+      <a class="btn btn-primary" href="../reports/netcapital-report.html" target="_blank" rel="noopener">Open the report</a>
+      <a class="btn btn-outline-primary" href="../apps/portfolio/" target="_blank" rel="noopener">Open NetCapital</a>
+    </div>
+  </div>
+  <figure><a href="../reports/netcapital-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-netcapital.png" alt="The top of the portfolio capital report: the mean total loss, VaR, TVaR and the diversification benefit" loading="lazy"></a>
+    <figcaption>The portfolio capital report.</figcaption></figure>
+</div>
+```
+
+## 6. Reserving the claims: NetReserve
+
+```{=html}
+<div class="netsimr-step">
+  <div>
+    <p>The example is a motor triangle of paid and incurred claims, twelve origin years by twelve development years, with premiums. The chain ladder gives the ultimates and the IBNR, Mack's formula and a bootstrap of 5,000 triangles their uncertainty, and the other methods (Bornhuetter-Ferguson, Cape Cod, the Munich chain ladder) a second opinion.</p>
+    <p>The report follows the tabs: the development factors with their tail, the ultimates, the uncertainty of the reserves, and for IFRS 17 and Solvency II the discounted reserves with the risk adjustment, here at the 75th percentile of the bootstrap.</p>
+    <p class="netsimr-step-how">To repeat it: open the tool, choose the <strong>Simulated motor</strong> example on the Data tab, run the bootstrap on the Uncertainty tab, and save the report.</p>
+    <div class="netsimr-step-links">
+      <a class="btn btn-primary" href="../reports/netreserve-report.html" target="_blank" rel="noopener">Open the report</a>
+      <a class="btn btn-outline-primary" href="../apps/reserving/" target="_blank" rel="noopener">Open NetReserve</a>
+    </div>
+  </div>
+  <figure><a href="../reports/netreserve-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-netreserve.png" alt="The top of the reserving report: the latest claims, the ultimate, the IBNR and its uncertainty" loading="lazy"></a>
+    <figcaption>The reserving report.</figcaption></figure>
+</div>
+```
+
+## The same in code
+
+The vignette [From pricing to capital and reserves](EndToEnd.html) follows one portfolio through
+the same steps with the package's functions, for those who work in R.
+
+## On your own data
+
+Each tool reads CSV, text and Excel files, so the same steps run on your own policies, claims
+and triangles, in the browser (where the data stays on your computer) or in R. For tools built
+around your own data, methods and reporting, see [Custom tools](custom-tools.html).

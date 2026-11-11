@@ -51,7 +51,9 @@ Changes in Version 0.4.0
     and report, and on the website.
   o The website has a gallery of the tools, on the Try online page, and a
     page on custom tools for insurers and reinsurers; each tool's About card
-    links to it.
+    links to it. A worked example runs each of the six tools on the
+    package's example data and opens the report it writes; the reports are
+    written again by the tools each time the website is built.
   o Zero-inflated claim counts: simulate_claims(), simulate_function() and the
     claims simulator take a Zero_Inflated_Poisson and a
     Zero_Inflated_Negative_Binomial, with the probability of an extra zero
@@ -95,6 +97,11 @@ Changes in Version 0.4.0
     pass, and the distribution fitting tool's fits above a reporting
     threshold or with policy limits work from sufficient statistics of the
     claims.
+  o The tools' tables fit their cards on more screens: a column heading of
+    several words takes two lines, and a row's name wraps, before the table
+    scrolls sideways. The reinsurance pricing tool's comparison of
+    programmes showed its last column, the value of each programme, only
+    after scrolling.
   o Bug fixes: discount_reserves() stops with a clear message when
     tail_periods is not a whole number (such as Inf), and
     indicated_rate_change() when the years are not numbers; large

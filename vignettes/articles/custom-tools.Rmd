@@ -50,8 +50,10 @@ your own data, assumptions and processes.
 ## See the tools
 
 The [Try online](try-online.html) page runs NetSimR's six tools in your browser, and its gallery
-shows them at work. The vignette
-[From pricing to capital and reserves](EndToEnd.html) follows one portfolio through all of them.
+shows them at work. [A worked example](worked-example.html) runs each tool on example data and
+opens the report it writes, the kind of document a custom tool hands to a committee. The vignette
+[From pricing to capital and reserves](EndToEnd.html) follows one portfolio through the same
+steps in code.
 
 ```{=html}
 <div class="netsimr-contact">
