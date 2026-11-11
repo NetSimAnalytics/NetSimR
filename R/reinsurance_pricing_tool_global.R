@@ -179,6 +179,76 @@ xlp_casualty_curve_chart <- function(lev, label, limits, deductible, limit, dark
                  vlines = c(deductible, if (is.finite(limit)) deductible + limit))
 }
 
+# The claim count and claim size distributions of the Programmes tab's gross portfolio, by
+# the name compare_reinsurance() takes: each with its id in the simulator (and in the
+# simulator's settings files, which NetDisFit's Export tab writes), the labels of its
+# parameters, in the order of simulate_claims(), and their defaults (a mean claim of about
+# 185,000 and about 200 claims a year, as the LogNormal and the Poisson the tab starts with).
+xlp_prog_frequencies <- list(
+  Poisson = list(id = "Poisson", params = "Mean (lambda)", defaults = 200),
+  `Negative Binomial` = list(id = "Negative_Binomial", params = c("r (shape)", "beta (scale)"), defaults = c(100, 2)),
+  `Zero-inflated Poisson` = list(id = "Zero_Inflated_Poisson", params = c("Mean (lambda)", "Extra zeros (probability)"),
+                                 defaults = c(220, 0.1)),
+  `Zero-inflated Negative Binomial` = list(id = "Zero_Inflated_Negative_Binomial",
+                                           params = c("r (shape)", "beta (scale)", "Extra zeros (probability)"),
+                                           defaults = c(110, 2, 0.1))
+)
+xlp_prog_severities <- list(
+  LogNormal = list(id = "LogNormal", params = c("meanlog", "sdlog"), defaults = c(11, 1.5)),
+  Gamma = list(id = "Gamma", params = c("shape", "scale"), defaults = c(0.5, 4e5)),
+  Pareto = list(id = "Pareto", params = c("alpha", "x_m (minimum)"), defaults = c(2, 1e5)),
+  Exponential = list(id = "Exponential", params = "rate", defaults = 5e-6),
+  Weibull = list(id = "Weibull", params = c("shape", "scale"), defaults = c(0.7, 1.5e5)),
+  Burr = list(id = "Burr", params = c("alpha", "gamma", "scale"), defaults = c(2, 1.2, 2e5)),
+  `Generalised Pareto` = list(id = "Generalised_Pareto", params = c("location", "scale", "shape"), defaults = c(0, 1.2e5, 0.3)),
+  Normal = list(id = "Normal", params = c("mean", "sd"), defaults = c(2e5, 5e4))
+)
+
+# The gross portfolio of the Programmes tab from the values of a simulator settings file,
+# such as the one NetDisFit's Export tab saves: the `frequency` and the `severity` (each a
+# `name` of the lists above and its `params`; NULL when the file leaves it out or the tab
+# does not simulate it), the Pareto `slices` (a data frame of thresholds and alphas, or
+# NULL) and `notes` on what was left out.
+xlp_fit_from_settings <- function(v) {
+  number <- function(id) {
+    x <- v[[id]]
+    if (is.numeric(x) && length(x) == 1 && is.finite(x)) as.numeric(x) else NA_real_
+  }
+  notes <- character(0)
+  pick <- function(id, models, options, what) {
+    if (!(is.character(id) && length(id) == 1 && !is.na(id))) return(NULL)
+    at <- match(id, vapply(models, function(m) m$id, character(1)))
+    if (is.na(at)) {
+      notes <<- c(notes, paste0("this tab has no ", gsub("_", " ", id), " ", what))
+      return(NULL)
+    }
+    params <- vapply(options[[id]]@paramIDs, number, numeric(1))
+    if (anyNA(params)) {
+      notes <<- c(notes, paste0("the file does not give every parameter of the ", names(models)[at], " ", what))
+      return(NULL)
+    }
+    list(name = names(models)[at], params = unname(params))
+  }
+  frequency <- pick(v$freqDistr, xlp_prog_frequencies, freq_dist_options, "claim count")
+  severity <- pick(v$sevDistr, xlp_prog_severities, sev_dist_options, "claim size")
+  # the slices belong to the severity: without it they are left out
+  slices <- NULL
+  k <- number("pareto_slice_times")
+  if (!is.null(severity) && is.finite(k) && k >= 1) {
+    j <- seq_len(min(k, max_number_of_pareto_slices))
+    # (the alpha in the odd fields, the threshold in the even ones)
+    slices <- data.frame(threshold = vapply(paste0("slice_pareto_param_", 2 * j), number, numeric(1)),
+                         alpha = vapply(paste0("slice_pareto_param_", 2 * j - 1), number, numeric(1)), row.names = NULL)
+    usable <- !anyNA(slices) && all(slices$threshold > 0) && all(slices$alpha > 0) && all(diff(slices$threshold) > 0)
+    if (!usable) {
+      notes <- c(notes, "the Pareto slices of the file are not usable")
+      slices <- NULL
+    }
+  }
+  if (!is.null(severity) && isTRUE(v$sevCapBinary)) notes <- c(notes, "the severity cap of the file is not applied")
+  list(frequency = frequency, severity = severity, slices = slices, notes = notes)
+}
+
 # The settings file of the reinsurance pricing tool (see write_settings_file()): the
 # tool, the version and the inputs it keeps with their kind. "column" inputs refer to
 # columns of an uploaded file and are applied once a file with that column is read;
@@ -196,7 +266,7 @@ xlp_settings_inputs <- c(
   loss_ratio_col = "column", loss_ratio = "numeric", curve = "select", curve_c = "numeric", curve_b = "numeric",
   curve_g = "numeric", severity = "select", severity_p1 = "numeric", severity_p2 = "numeric",
   experience_method = "radio", experience_weight = "slider", full_credibility = "numeric",
-  prog_frequency = "select", prog_severity = "select", prog_f1 = "numeric", prog_f2 = "numeric", prog_s1 = "numeric",
-  prog_s2 = "numeric", prog_n = "numeric", prog_level = "select", prog_loading = "numeric", prog_coc = "numeric",
-  prog_seed = "numeric"
+  prog_frequency = "select", prog_severity = "select", prog_f1 = "numeric", prog_f2 = "numeric", prog_f3 = "numeric",
+  prog_s1 = "numeric", prog_s2 = "numeric", prog_s3 = "numeric", prog_n = "numeric", prog_level = "select",
+  prog_loading = "numeric", prog_coc = "numeric", prog_seed = "numeric"
 )

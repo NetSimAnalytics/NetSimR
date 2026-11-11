@@ -15,7 +15,9 @@ compare_reinsurance(
   level = 0.995,
   loading = 0.25,
   coc_rate = 0.1,
-  seed = NULL
+  seed = NULL,
+  pareto_thresholds = NULL,
+  pareto_alphas = NULL
 )
 }
 \arguments{
@@ -54,6 +56,10 @@ reinsurer's expenses and profit.}
 
 \item{seed}{A whole number for a reproducible run, or \code{NULL}. The stream of the
 R session is restored after a run with a seed.}
+
+\item{pareto_thresholds, pareto_alphas}{Pareto slices of the claim size, as in
+\code{\link{simulate_claims}}: increasing claim sizes above which the tail of the
+severity is a Pareto, and the alpha of each. \code{NULL} (the default) for none.}
 }
 \value{
 An object of class \code{netsimr_programmes}, a list with \code{summary}, a

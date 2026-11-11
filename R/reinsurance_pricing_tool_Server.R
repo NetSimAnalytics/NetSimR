@@ -899,27 +899,105 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     out
   })
 
-  observeEvent(input$prog_frequency, {
-    if (identical(input$prog_frequency, "Poisson")) {
-      updateNumericInput(session, "prog_f1", label = "Mean (lambda)")
-    } else {
-      updateNumericInput(session, "prog_f1", label = "r (shape)")
+  # the gross portfolio: a claim count and a claim size distribution, each with up to three
+  # parameters, and the Pareto slices of a fitted model that was loaded
+  prog_models <- list(frequency = xlp_prog_frequencies, severity = xlp_prog_severities)
+  prog_param_id <- function(what, j) paste0(if (what == "frequency") "prog_f" else "prog_s", j)
+  prog_slices <- reactiveVal(NULL)
+  # set when a loaded file changes a distribution, whose defaults must then not overwrite
+  # the file's parameters
+  prog_keep <- new.env()
+  prog_keep$frequency <- FALSE
+  prog_keep$severity <- FALSE
+
+  # a distribution chosen: its parameters' names, and their defaults unless a file gave them
+  for (kind in names(prog_models)) local({
+    what <- kind
+    observeEvent(input[[paste0("prog_", what)]], {
+      d <- prog_models[[what]][[input[[paste0("prog_", what)]]]]
+      if (is.null(d)) return()
+      keep <- prog_keep[[what]]
+      prog_keep[[what]] <- FALSE
+      for (j in seq_along(d$params)) {
+        if (keep) {
+          updateNumericInput(session, prog_param_id(what, j), label = d$params[j])
+        } else {
+          updateNumericInput(session, prog_param_id(what, j), label = d$params[j], value = d$defaults[j])
+        }
+      }
+    }, ignoreInit = TRUE)
+  })
+
+  # sets a distribution and its parameters, from a file
+  set_prog_model <- function(what, name, params) {
+    id <- paste0("prog_", what)
+    prog_keep[[what]] <- !identical(name, input[[id]])
+    updateSelectInput(session, id, selected = name)
+    labels <- prog_models[[what]][[name]]$params
+    for (j in seq_along(labels)) updateNumericInput(session, prog_param_id(what, j), label = labels[j], value = params[j])
+  }
+
+  # the chosen distribution with its parameters, as compare_reinsurance() takes them
+  prog_model <- function(what) {
+    name <- or_default(input[[paste0("prog_", what)]], names(prog_models[[what]])[1])
+    d <- prog_models[[what]][[name]]
+    validate(need(!is.null(d), paste("Choose the claim", if (what == "frequency") "count" else "size", "distribution.")))
+    list(name = name, labels = d$params,
+         params = vapply(seq_along(d$params), function(j) number(input[[prog_param_id(what, j)]]), numeric(1)))
+  }
+
+  # a fitted model: a settings file of NetDisFit's Export tab, or of the simulator
+  observeEvent(input$prog_fit, {
+    fail <- function(message) showNotification(paste("The fitted model could not be loaded:", message), type = "error", duration = 10)
+    settings <- tryCatch(read_settings_file(input$prog_fit$datapath, sim_settings_tool), error = function(e) e)
+    if (inherits(settings, "error")) return(fail(conditionMessage(settings)))
+    if (settings$version > sim_settings_version) return(fail("it was saved by a newer version of NetSimR."))
+    fit <- xlp_fit_from_settings(settings$values)
+    if (is.null(fit$frequency) && is.null(fit$severity)) {
+      return(fail(if (length(fit$notes) > 0) paste0(paste(fit$notes, collapse = "; "), ".") else
+        "the file holds no claim count or claim size distribution."))
     }
-  }, ignoreInit = TRUE)
-  observeEvent(input$prog_severity, {
-    labels <- list(LogNormal = c("meanlog", "sdlog"), Gamma = c("shape", "scale"), Pareto = c("alpha", "x_m (minimum)"),
-                   Exponential = c("rate", ""))[[input$prog_severity]]
-    updateNumericInput(session, "prog_s1", label = labels[1])
-    if (nzchar(labels[2])) updateNumericInput(session, "prog_s2", label = labels[2])
-  }, ignoreInit = TRUE)
+    if (!is.null(fit$frequency)) set_prog_model("frequency", fit$frequency$name, fit$frequency$params)
+    if (!is.null(fit$severity)) {
+      set_prog_model("severity", fit$severity$name, fit$severity$params)
+      prog_slices(fit$slices)
+    }
+    loaded <- c(if (!is.null(fit$frequency)) paste("the", fit$frequency$name, "claim count"),
+                if (!is.null(fit$severity)) paste0("the ", fit$severity$name, " claim size",
+                                                   if (!is.null(fit$slices)) " with its Pareto tail"))
+    showNotification(paste0("Loaded ", paste(loaded, collapse = " and "), " of ", input$prog_fit$name, ".",
+                            if (length(fit$notes) > 0) paste0(" Left out: ", paste(fit$notes, collapse = "; "), "."),
+                            " Click Compare to simulate with ", if (length(loaded) > 1) "them." else "it."),
+                     type = if (length(fit$notes) > 0) "warning" else "message", duration = 8)
+  })
+
+  observeEvent(input$prog_tail_remove, prog_slices(NULL))
+
+  prog_tail_text <- function() {
+    s <- prog_slices()
+    if (is.null(s)) return(NULL)
+    paste0("Pareto tail: ", paste0("alpha ", dft_fmt(s$alpha, 4), " above ", rsv_amount(s$threshold), collapse = "; "), ".")
+  }
+
+  # the Pareto slices of the loaded model, which have no inputs of their own
+  output$prog_tail <- renderUI({
+    text <- prog_tail_text()
+    if (is.null(text)) return(NULL)
+    dft_help(text, "It replaces the tail of the claim size above, from the fitted model that was loaded.",
+             actionLink("prog_tail_remove", "Remove the tail"))
+  })
 
   programmes_run <- eventReactive(input$run_programmes, {
-    frequency <- or_default(input$prog_frequency, "Poisson")
-    severity <- or_default(input$prog_severity, "LogNormal")
-    fp <- c(number(input$prog_f1), if (frequency != "Poisson") number(input$prog_f2))
-    sp <- c(number(input$prog_s1), if (severity != "Exponential") number(input$prog_s2))
-    validate(need(all(is.finite(fp)) && all(fp > 0), "Enter the claim count parameters, above 0."),
+    frequency <- prog_model("frequency")
+    severity <- prog_model("severity")
+    fp <- frequency$params
+    sp <- severity$params
+    # (the probability of an extra zero may be 0, and is below 1)
+    zero <- grepl("Extra zeros", frequency$labels, fixed = TRUE)
+    validate(need(all(is.finite(fp)) && all(fp[!zero] > 0), "Enter the claim count parameters, above 0."),
+             need(all(fp[zero] >= 0 & fp[zero] < 1), "The probability of an extra zero must be at least 0 and below 1."),
              need(all(is.finite(sp)), "Enter the claim size parameters."))
+    tail <- prog_slices()
     n <- number(input$prog_n)
     validate(need(is.finite(n) && n >= 1000 && n <= 2e5, "The simulated years must be from 1,000 to 200,000."))
     loading <- number(input$prog_loading)
@@ -928,9 +1006,18 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     validate(need(is.finite(loading) && loading >= 0 && loading < 100, "The loading must be from 0% to below 100%."),
              need(is.finite(coc) && coc >= 0, "Enter the cost of capital, at least 0%."))
     withProgress(message = "Simulating the programmes", value = 0.3, {
-      checked(attempt(compare_reinsurance(frequency, fp, severity, sp, programme_list(), premium = rating()$premium, n = round(n),
-                                          level = as.numeric(or_default(input$prog_level, "0.995")), loading = loading / 100,
-                                          coc_rate = coc / 100, seed = if (is.finite(seed)) round(seed))))
+      cmp <- checked(attempt(compare_reinsurance(
+        frequency$name, fp, severity$name, sp, programme_list(), premium = rating()$premium, n = round(n),
+        level = as.numeric(or_default(input$prog_level, "0.995")), loading = loading / 100, coc_rate = coc / 100,
+        seed = if (is.finite(seed)) round(seed), pareto_thresholds = tail$threshold, pareto_alphas = tail$alpha
+      )))
+      # the gross portfolio of the run, for the report
+      cmp$portfolio <- list(
+        frequency = paste0(frequency$name, " (", paste(dft_fmt(fp, 6), collapse = ", "), ")"),
+        severity = paste0(severity$name, " (", paste(dft_fmt(sp, 6), collapse = ", "), ")"),
+        tail = prog_tail_text()
+      )
+      cmp
     })
   })
 
@@ -1074,11 +1161,8 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       Blend = if (!is.null(p)) list(`Experience rate` = attr(p, "experience"),
                                     `Weight of the experience` = paste0(round(100 * attr(p, "weight")), "%")),
       Programmes = if (!is.null(cmp)) {
-        params <- function(ids) paste(vapply(ids, function(id) format(number(input[[id]])), ""), collapse = ", ")
-        frequency <- or_default(input$prog_frequency, "Poisson")
-        severity <- or_default(input$prog_severity, "LogNormal")
-        list(`Claim counts` = paste0(frequency, " (", params(c("prog_f1", if (frequency != "Poisson") "prog_f2")), ")"),
-             `Claim sizes` = paste0(severity, " (", params(c("prog_s1", if (severity != "Exponential") "prog_s2")), ")"),
+        list(`Claim counts` = cmp$portfolio$frequency, `Claim sizes` = cmp$portfolio$severity,
+             `Pareto tail` = if (!is.null(cmp$portfolio$tail)) sub("^Pareto tail: ", "", cmp$portfolio$tail),
              `Simulated years` = count(cmp$n), Level = paste0(format(100 * cmp$level), "%"),
              `Cost of capital` = rsv_percent(cmp$coc_rate, 0))
       }
@@ -1163,6 +1247,12 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
         values$year_development <- v$development
         values$year_include <- v$include
       }
+      # the Pareto tail of a fitted model that was loaded
+      tail <- prog_slices()
+      if (!is.null(tail)) {
+        values$prog_tail_thresholds <- tail$threshold
+        values$prog_tail_alphas <- tail$alpha
+      }
       # the programmes' grid, a vector per column
       for (field in prog_fields) {
         values[[paste0("prog_", field, "s")]] <- if (field == "name") {
@@ -1186,7 +1276,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
                     profile_example = unname(xlp_profile_examples), profile_type = c("property", "casualty"),
                     profile_sep = c(",", ";", "\t"), profile_dec = c(".", ","), curve = unname(xlp_curves),
                     severity = names(xlp_severities), experience_method = c("burning_cost", "pareto"),
-                    prog_frequency = c("Poisson", "Negative Binomial"), prog_severity = c("LogNormal", "Gamma", "Pareto", "Exponential"),
+                    prog_frequency = names(xlp_prog_frequencies), prog_severity = names(xlp_prog_severities),
                     prog_level = c("0.995", "0.99", "0.9"))
     usable <- function(id) {
       x <- v[[id]]
@@ -1198,6 +1288,15 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       is.character(x)
     }
     skip_severity_defaults <<- usable("severity") && !identical(v$severity, input$severity)
+    # (the gross portfolio's distributions too; a file without a Pareto tail has none)
+    prog_keep$frequency <- usable("prog_frequency") && !identical(v$prog_frequency, input$prog_frequency)
+    prog_keep$severity <- usable("prog_severity") && !identical(v$prog_severity, input$prog_severity)
+    thresholds <- suppressWarnings(as.numeric(v$prog_tail_thresholds))
+    alphas <- suppressWarnings(as.numeric(v$prog_tail_alphas))
+    prog_slices(if (length(thresholds) > 0 && length(alphas) == length(thresholds) && !anyNA(c(thresholds, alphas)) &&
+                    all(thresholds > 0) && all(alphas > 0) && all(diff(thresholds) > 0)) {
+      data.frame(threshold = thresholds, alpha = alphas)
+    })
     for (id in names(xlp_settings_inputs)) {
       if (!usable(id)) next
       x <- v[[id]]

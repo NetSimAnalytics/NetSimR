@@ -194,6 +194,11 @@ reinsurance_pricing_tool_UI <- function(request) {
       pill(paste0(prefix, "_dec"), "Decimal mark", c("Point (1.5)" = ".", "Comma (1,5)" = ","), ".")
     )
   }
+  # the condition of a parameter's input: the distributions of the select with that many parameters
+  with_params <- function(id, models, n) {
+    names <- names(models)[vapply(models, function(m) length(m$params) >= n, logical(1))]
+    paste0("[", paste0("'", names, "'", collapse = ", "), "].indexOf(input.", id, ") >= 0")
+  }
   accept <- netsimr_data_accept
   bslib::page_navbar(
     title = div(
@@ -565,17 +570,25 @@ reinsurance_pricing_tool_UI <- function(request) {
       dft_layout(
         dft_settings_card(
           "sliders", "Gross portfolio", "The claims every programme sees.",
-          div(class = "param-grid-2",
-              selectInput("prog_frequency", "Claim count", c("Poisson", "Negative Binomial"), selectize = FALSE),
-              selectInput("prog_severity", "Claim size", c("LogNormal", "Gamma", "Pareto", "Exponential"), selectize = FALSE)),
+          selectInput("prog_frequency", "Claim count", names(xlp_prog_frequencies), selectize = FALSE),
           div(class = "param-grid-2",
               numericInput("prog_f1", "Mean (lambda)", value = 200, min = 0, step = 10),
-              conditionalPanel(condition = "input.prog_frequency == 'Negative Binomial'",
-                               numericInput("prog_f2", "beta (scale)", value = 2, min = 0, step = 0.5))),
+              conditionalPanel(condition = with_params("prog_frequency", xlp_prog_frequencies, 2),
+                               numericInput("prog_f2", "beta (scale)", value = 2, min = 0, step = 0.5)),
+              conditionalPanel(condition = with_params("prog_frequency", xlp_prog_frequencies, 3),
+                               numericInput("prog_f3", "Extra zeros (probability)", value = 0.1, min = 0, max = 1, step = 0.05))),
+          selectInput("prog_severity", "Claim size", names(xlp_prog_severities), selectize = FALSE),
           div(class = "param-grid-2",
               numericInput("prog_s1", "meanlog", value = 11, step = 0.1),
-              conditionalPanel(condition = "input.prog_severity != 'Exponential'",
-                               numericInput("prog_s2", "sdlog", value = 1.5, step = 0.1))),
+              conditionalPanel(condition = with_params("prog_severity", xlp_prog_severities, 2),
+                               numericInput("prog_s2", "sdlog", value = 1.5, step = 0.1)),
+              conditionalPanel(condition = with_params("prog_severity", xlp_prog_severities, 3),
+                               numericInput("prog_s3", "scale", value = 2e5, step = 0.1))),
+          uiOutput("prog_tail"),
+          fileInput("prog_fit", "Load a fitted model", accept = ".txt", placeholder = "No file selected"),
+          dft_help("A settings file saved on the Export tab of NetDisFit, the distribution fitting tool, or by",
+                   "NetSimulator: it sets the claim count and the claim size, with any Pareto tail fitted above",
+                   "slicing points."),
           dft_help("The subject premium is the rating year's, on the Layer tab: the expected gross claims should be",
                    "below it."),
           tags$hr(class = "sim-divider"),

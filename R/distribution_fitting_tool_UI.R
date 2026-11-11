@@ -1057,7 +1057,8 @@ distribution_fitting_tool_UI <- function(request) {
       icon = icon("paper-plane"),
 
       dft_page_intro("Send a fit to the simulator",
-                     "Save fitted models as a settings file that the claims simulator loads, or the fits as a report."),
+                     paste("Save fitted models as a settings file that NetSimulator and NetTreaty's Programmes tab load,",
+                           "or the fits as a report.")),
 
       dft_layout(
         div(class = "dft-settings-stack", dft_settings_card(
@@ -1082,13 +1083,18 @@ distribution_fitting_tool_UI <- function(request) {
           bslib::card_body(uiOutput("export_summary"))
         ),
         bslib::card(
-          sim_card_header("route", "In the simulator"),
+          sim_card_header("route", "Where the file goes"),
           bslib::card_body(
-            p("Open the claims simulator with ", tags$code("run_shiny_simulator()"), " and, in its Simulation card, ",
-              "load the file with ", tags$b("Load settings", .noWS = "after"), "."),
+            p(tags$b("NetSimulator", .noWS = "after"), ": open the claims simulator with ", tags$code("run_shiny_simulator()"),
+              " and, in its Simulation card, load the file with ", tags$b("Load settings", .noWS = "after"), "."),
+            p(tags$b("NetTreaty", .noWS = "after"), ": open the reinsurance pricing tool with ",
+              tags$code("run_shiny_reinsurance_pricing_tool()"), " and, on its Programmes tab, load the file with ",
+              tags$b("Load a fitted model", .noWS = "after"), ": the reinsurance programmes are then compared on the ",
+              "fitted claims."),
             p(class = "sim-muted mb-0",
               "The settings the file leaves out, such as the number of simulations and the layers, keep the values ",
-              "they have in the simulator. A sliced or piecewise Pareto model becomes the simulator's Pareto slices.")
+              "they have in the tool. A sliced or piecewise Pareto model becomes Pareto slices, a tail above the ",
+              "slicing points.")
           )
         )
       )

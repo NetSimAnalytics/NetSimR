@@ -70,6 +70,20 @@ Changes in Version 0.4.0
     slicing points and thresholds, and the models chosen to export. The
     reinsurance pricing tool writes a report of the layer's pricing, its
     experience and exposure ratings and, once compared, the programmes.
+  o From the fit to the reinsurance: the reinsurance pricing tool's
+    Programmes tab loads a model fitted in the distribution fitting tool (the
+    settings file of its Export tab, or one of the claims simulator), and
+    compares the programmes on it. Its gross portfolio takes every claim
+    count and claim size the fitting tool exports: the zero-inflated counts,
+    the Weibull, the Burr, the generalised Pareto and the Normal beside those
+    it had, and the Pareto slices of a sliced or piecewise Pareto model.
+    compare_reinsurance() has new pareto_thresholds and pareto_alphas
+    arguments for those slices, as simulate_claims() has. Choosing a
+    distribution on the tab now sets its parameters to defaults of a like
+    mean.
+  o The vignette "Simulating claims with simulate_claims()" has sections on
+    the zero-inflated claim counts and on the Weibull, Burr and generalised
+    Pareto claim sizes.
   o Phones: the reserving, GLM, reinsurance pricing, portfolio and
     distribution fitting tools scroll to the results after a run; the claims
     simulator has a second Run button at the foot of its settings; small

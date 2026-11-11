@@ -51,6 +51,9 @@
 #' @param severity,severity_params The claim size distribution and its parameters, as
 #'   in \code{\link{simulate_claims}}, such as "LogNormal" (meanlog, sdlog) or "Pareto"
 #'   (alpha, x_m).
+#' @param pareto_thresholds,pareto_alphas Pareto slices of the claim size, as in
+#'   \code{\link{simulate_claims}}: increasing claim sizes above which the tail of the
+#'   severity is a Pareto, and the alpha of each. \code{NULL} (the default) for none.
 #' @param programmes A named list of programmes, each a list with any of:
 #'   \code{surplus}, a list with the \code{retention} (a line), the \code{lines} ceded
 #'   above it, \code{sum_insured} (the sum insured of each risk, or of each band of
@@ -96,7 +99,8 @@
 #'                            premium = 60e6, n = 5000, seed = 1)
 #' cmp
 compare_reinsurance <- function(frequency, frequency_params, severity, severity_params, programmes, premium, n = 10000,
-                                level = 0.995, loading = 0.25, coc_rate = 0.1, seed = NULL) {
+                                level = 0.995, loading = 0.25, coc_rate = 0.1, seed = NULL, pareto_thresholds = NULL,
+                                pareto_alphas = NULL) {
   if (!is.list(programmes) || (length(programmes) > 0 && (is.null(names(programmes)) || any(!nzchar(names(programmes)))))) {
     stop("programmes must be a named list of programmes.", call. = FALSE)
   }
@@ -153,6 +157,20 @@ compare_reinsurance <- function(frequency, frequency_params, severity, severity_
   severity_id <- claims_distribution_id(severity, sev_dist_options, "severity")
   fp <- claims_distribution_params(frequency_params, freq_dist_options[[frequency_id]], "frequency_params")
   sp <- claims_distribution_params(severity_params, sev_dist_options[[severity_id]], "severity_params")
+  n_slices <- length(pareto_thresholds)
+  if (length(pareto_alphas) != n_slices) {
+    stop("pareto_alphas and pareto_thresholds must have the same length: one alpha per threshold.", call. = FALSE)
+  }
+  if (n_slices > 0) {
+    if (n_slices > max_number_of_pareto_slices) stop("At most ", max_number_of_pareto_slices, " Pareto slices are allowed.", call. = FALSE)
+    if (!is.numeric(pareto_thresholds) || any(!is.finite(pareto_thresholds)) || any(pareto_thresholds <= 0) ||
+        any(diff(pareto_thresholds) <= 0)) {
+      stop("pareto_thresholds must be increasing claim sizes above 0.", call. = FALSE)
+    }
+    if (!is.numeric(pareto_alphas) || any(!is.finite(pareto_alphas)) || any(pareto_alphas <= 0)) {
+      stop("pareto_alphas must be above 0.", call. = FALSE)
+    }
+  }
 
   if (!is.null(seed)) {
     global <- globalenv()
@@ -172,6 +190,12 @@ compare_reinsurance <- function(frequency, frequency_params, severity, severity_
   counts <- freq_dist_options[[frequency_id]]@simulate_func(n, fp)
   total <- sum(counts)
   sizes <- sev_dist_options[[severity_id]]@simulate_func(total, sp)
+  # Pareto slices: the claims above the first threshold are redrawn from the spliced tail
+  if (n_slices > 0) {
+    slices <- pareto_splice(severity_model(sev_dist_options[[severity_id]], sp), pareto_thresholds, pareto_alphas)
+    above <- sizes > slices$first_threshold
+    if (any(above)) sizes[above] <- slices$draw_above_first(sum(above))
+  }
   # the sum of each year's claims, as differences of the running total at the end of each year
   ends <- cumsum(counts)
   by_year <- function(x) diff(c(0, c(0, cumsum(x))[ends + 1]))
