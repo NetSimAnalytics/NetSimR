@@ -48,6 +48,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Shiny tools</h6></li>
     <li><a class="dropdown-item" href="../articles/try-online.html">Try the Shiny tools in your browser</a></li>
+    <li><a class="dropdown-item" href="../articles/worked-example.html">A worked example: the six tools and their reports</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Custom tools</h6></li>
     <li><a class="dropdown-item" href="../articles/custom-tools.html">Custom tools for insurers and reinsurers</a></li>
@@ -109,7 +110,7 @@ the models you fit stay in the page.</p>
   <div class="netsimr-tool">
     <h3>NetDisFit <span class="netsimr-tool-kind">Distribution fitting</span>
 </h3>
-    <p>Fit claim counts and sizes, including claims above a reporting threshold or at their policy limits; compare the fits with Q-Q and P-P plots and their tail expectations, and send them to the simulator.</p>
+    <p>Fit claim counts and sizes, including claims above a reporting threshold or at their policy limits; compare the fits with Q-Q, P-P and Hill plots and their tail expectations, and send them to the simulator and the reinsurance pricing tool, with a report.</p>
     <a class="btn btn-primary" href="../apps/distribution/" target="_blank" rel="noopener">Open NetDisFit</a>
   </div>
   <div class="netsimr-tool">
@@ -127,7 +128,7 @@ the models you fit stay in the page.</p>
   <div class="netsimr-tool">
     <h3>NetTreaty <span class="netsimr-tool-kind">Reinsurance pricing</span>
 </h3>
-    <p>Price an excess of loss layer with the burning cost, a Pareto model and exposure curves, blend them, and compare reinsurance programmes by their cost and the capital they save.</p>
+    <p>Price an excess of loss layer with the burning cost, a Pareto model and exposure curves, blend them, and compare quota share, surplus, excess of loss and stop loss programmes by their cost and the capital they save, with a report.</p>
     <a class="btn btn-primary" href="../apps/reinsurance/" target="_blank" rel="noopener">Open NetTreaty</a>
   </div>
   <div class="netsimr-tool">
@@ -137,6 +138,9 @@ the models you fit stay in the page.</p>
     <a class="btn btn-primary" href="../apps/portfolio/" target="_blank" rel="noopener">Open NetCapital</a>
   </div>
 </div>
+<p>New to the tools? <a href="worked-example.html">A worked example</a>
+runs each of them on the package’s example data, with the report it
+writes.</p>
 </div>
 <div class="section level2">
 <h2 id="gallery">Gallery<a class="anchor" aria-label="anchor" href="#gallery"></a>
@@ -155,9 +159,12 @@ the models you fit stay in the page.</p>
     <figcaption>NetReserve: the ultimates of each method, origin by origin.</figcaption></figure><figure><a href="../screenshots/reserving-ifrs17.png"><img src="../screenshots/reserving-ifrs17.png" alt="Discounted reserves and cash flows for IFRS 17" loading="lazy"></a>
     <figcaption>NetReserve: discounted reserves and the risk adjustment for IFRS 17.</figcaption></figure><figure><a href="../screenshots/reinsurance.png"><img src="../screenshots/reinsurance.png" alt="The technical premium of an excess of loss layer by method" loading="lazy"></a>
     <figcaption>NetTreaty: the layer priced by experience and exposure.</figcaption></figure><figure><a href="../screenshots/reinsurance-programmes.png"><img src="../screenshots/reinsurance-programmes.png" alt="Reinsurance programmes compared by cost and capital" loading="lazy"></a>
-    <figcaption>NetTreaty: programmes compared by cost and capital saved.</figcaption></figure><figure><a href="../screenshots/portfolio.png"><img src="../screenshots/portfolio.png" alt="The capital of a portfolio of three lines joined by a copula" loading="lazy"></a>
+    <figcaption>NetTreaty: programmes compared by their cost and the capital they save.</figcaption></figure><figure><a href="../screenshots/portfolio.png"><img src="../screenshots/portfolio.png" alt="The capital of a portfolio of three lines joined by a copula" loading="lazy"></a>
     <figcaption>NetCapital: VaR, TVaR and each line's capital.</figcaption></figure><figure><a href="../screenshots/portfolio-standard-formula.png"><img src="../screenshots/portfolio-standard-formula.png" alt="The Solvency II standard formula by segment" loading="lazy"></a>
-    <figcaption>NetCapital: the Solvency II standard formula by segment.</figcaption></figure>
+    <figcaption>NetCapital: the Solvency II standard formula by segment.</figcaption></figure><figure><a href="../reports/netdisfit-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-netdisfit.png" alt="The report of the distribution fitting tool" loading="lazy"></a>
+    <figcaption>NetDisFit: the report of the fits, <a href="../reports/netdisfit-report.html" target="_blank" rel="noopener">to open</a>.</figcaption></figure><figure><a href="../reports/nettreaty-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-nettreaty.png" alt="The report of the reinsurance pricing tool" loading="lazy"></a>
+    <figcaption>NetTreaty: the report of the layer's pricing, <a href="../reports/nettreaty-report.html" target="_blank" rel="noopener">to open</a>.</figcaption></figure><figure><a href="../reports/netreserve-report.html" target="_blank" rel="noopener"><img src="../screenshots/report-netreserve.png" alt="The report of the reserving tool" loading="lazy"></a>
+    <figcaption>NetReserve: the reserving report, <a href="../reports/netreserve-report.html" target="_blank" rel="noopener">to open</a>.</figcaption></figure>
 </div>
 <p>Need a tool like these built around your own data and methods? See <a href="custom-tools.html">Custom tools</a>.</p>
 </div>

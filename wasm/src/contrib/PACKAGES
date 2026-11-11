@@ -7,5 +7,5 @@ Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote,
         pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite, glmnet,
         readxl, writexl
 License: GPL-3
-MD5sum: 52ae9df64642f3a2e1992ff53e2133bd
+MD5sum: a71270416e64fc6b1a17a0d38643f480
 NeedsCompilation: no

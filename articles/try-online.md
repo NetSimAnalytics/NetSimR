@@ -24,8 +24,9 @@ NetSimulator](https://netsimanalytics.github.io/NetSimR/apps/simulator/)
 ### NetDisFit Distribution fitting
 
 Fit claim counts and sizes, including claims above a reporting threshold
-or at their policy limits; compare the fits with Q-Q and P-P plots and
-their tail expectations, and send them to the simulator.
+or at their policy limits; compare the fits with Q-Q, P-P and Hill plots
+and their tail expectations, and send them to the simulator and the
+reinsurance pricing tool, with a report.
 
 [Open
 NetDisFit](https://netsimanalytics.github.io/NetSimR/apps/distribution/)
@@ -50,8 +51,9 @@ NetReserve](https://netsimanalytics.github.io/NetSimR/apps/reserving/)
 ### NetTreaty Reinsurance pricing
 
 Price an excess of loss layer with the burning cost, a Pareto model and
-exposure curves, blend them, and compare reinsurance programmes by their
-cost and the capital they save.
+exposure curves, blend them, and compare quota share, surplus, excess of
+loss and stop loss programmes by their cost and the capital they save,
+with a report.
 
 [Open
 NetTreaty](https://netsimanalytics.github.io/NetSimR/apps/reinsurance/)
@@ -64,6 +66,11 @@ formula.
 
 [Open
 NetCapital](https://netsimanalytics.github.io/NetSimR/apps/portfolio/)
+
+New to the tools? [A worked
+example](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md)
+runs each of them on the package’s example data, with the report it
+writes.
 
 ## Gallery
 
@@ -100,7 +107,7 @@ NetTreaty: the layer priced by experience and exposure.
 [![Reinsurance programmes compared by cost and
 capital](../screenshots/reinsurance-programmes.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reinsurance-programmes.png)
 
-NetTreaty: programmes compared by cost and capital saved.
+NetTreaty: programmes compared by their cost and the capital they save.
 
 [![The capital of a portfolio of three lines joined by a
 copula](../screenshots/portfolio.png)](https://netsimanalytics.github.io/NetSimR/screenshots/portfolio.png)
@@ -111,6 +118,24 @@ NetCapital: VaR, TVaR and each line's capital.
 segment](../screenshots/portfolio-standard-formula.png)](https://netsimanalytics.github.io/NetSimR/screenshots/portfolio-standard-formula.png)
 
 NetCapital: the Solvency II standard formula by segment.
+
+[![The report of the distribution fitting
+tool](../screenshots/report-netdisfit.png)](https://netsimanalytics.github.io/NetSimR/reports/netdisfit-report.md)
+
+NetDisFit: the report of the fits, [to
+open](https://netsimanalytics.github.io/NetSimR/reports/netdisfit-report.md).
+
+[![The report of the reinsurance pricing
+tool](../screenshots/report-nettreaty.png)](https://netsimanalytics.github.io/NetSimR/reports/nettreaty-report.md)
+
+NetTreaty: the report of the layer's pricing, [to
+open](https://netsimanalytics.github.io/NetSimR/reports/nettreaty-report.md).
+
+[![The report of the reserving
+tool](../screenshots/report-netreserve.png)](https://netsimanalytics.github.io/NetSimR/reports/netreserve-report.md)
+
+NetReserve: the reserving report, [to
+open](https://netsimanalytics.github.io/NetSimR/reports/netreserve-report.md).
 
 Need a tool like these built around your own data and methods? See
 [Custom

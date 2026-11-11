@@ -27,6 +27,12 @@
   The package’s six Shiny tools, running in your browser with webR: no R
   to install.
 
+- [A worked example: the six tools and their
+  reports](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md):
+
+  The six Shiny tools of NetSimR run on the package’s example data, from
+  pricing to reserves, with the report each one writes.
+
 ### Custom tools
 
 - [Custom tools for insurers and

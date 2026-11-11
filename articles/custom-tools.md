@@ -46,9 +46,13 @@ line, and the comparison with the standard formula.
 The [Try
 online](https://netsimanalytics.github.io/NetSimR/articles/try-online.md)
 page runs NetSimR’s six tools in your browser, and its gallery shows
-them at work. The vignette [From pricing to capital and
+them at work. [A worked
+example](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md)
+runs each tool on example data and opens the report it writes, the kind
+of document a custom tool hands to a committee. The vignette [From
+pricing to capital and
 reserves](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md)
-follows one portfolio through all of them.
+follows one portfolio through the same steps in code.
 
 **Get in touch.** Yiannis Parizas, the author of NetSimR:
 <yiannis.parizas@gmail.com> or
