@@ -86,7 +86,9 @@
 <span>  level <span class="op">=</span> <span class="fl">0.995</span>,</span>
 <span>  loading <span class="op">=</span> <span class="fl">0.25</span>,</span>
 <span>  coc_rate <span class="op">=</span> <span class="fl">0.1</span>,</span>
-<span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pareto_thresholds <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pareto_alphas <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -146,6 +148,12 @@ reinsurer's expenses and profit.</p></dd>
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>A whole number for a reproducible run, or <code>NULL</code>. The stream of the
 R session is restored after a run with a seed.</p></dd>
+
+
+<dt id="arg-pareto-thresholds-pareto-alphas">pareto_thresholds, pareto_alphas<a class="anchor" aria-label="anchor" href="#arg-pareto-thresholds-pareto-alphas"></a></dt>
+<dd><p>Pareto slices of the claim size, as in
+<code><a href="simulate_claims.html">simulate_claims</a></code>: increasing claim sizes above which the tail of the
+severity is a Pareto, and the alpha of each. <code>NULL</code> (the default) for none.</p></dd>
 
 </dl></div>
     <div class="section level2">

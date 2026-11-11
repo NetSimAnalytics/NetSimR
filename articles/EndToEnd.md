@@ -438,11 +438,13 @@ on the package’s website:
   validation, lift and double lift charts, variable selection, and the
   rate table.
 - [`run_shiny_distribution_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md):
-  the claim size fits of section 4, sent on to the simulator.
+  the claim size fits of section 4, sent on to the simulator and to the
+  reinsurance pricing tool’s Programmes tab, with a report.
 - [`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md):
   the simulation and the layer of section 4, with a report.
 - [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md):
-  the price of the layer, and the comparison of programmes.
+  the price of the layer, and the comparison of programmes on the fitted
+  claims, with a report.
 - [`run_shiny_portfolio_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md):
   the portfolio of section 5, with a correlation matrix, charts and a
   report, and the standard formula of section 7.

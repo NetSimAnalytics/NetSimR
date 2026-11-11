@@ -148,11 +148,13 @@ the worst 0.5% of periods).</p>
 <div class="section level2">
 <h2 id="distributions-and-their-parameters">3. Distributions and their parameters<a class="anchor" aria-label="anchor" href="#distributions-and-their-parameters"></a>
 </h2>
-<p>The frequency can be Poisson, Negative Binomial, Binomial or a fixed
+<p>The frequency can be Poisson, Negative Binomial, Binomial, a
+zero-inflated Poisson or Negative Binomial (section 4), or a fixed
 number of claims; the severity Normal, Log-Normal, Gamma, Exponential,
-Pareto or a fixed amount. The table in <code><a href="../reference/simulate_claims.html">?simulate_claims</a></code>
-lists the parameters of each. Names ignore case, spaces and underscores,
-and the parameters can be given in order or named, in any order:</p>
+Pareto, Weibull, Burr, generalised Pareto (section 5) or a fixed amount.
+The table in <code><a href="../reference/simulate_claims.html">?simulate_claims</a></code> lists the parameters of each.
+Names ignore case, spaces and underscores, and the parameters can be
+given in order or named, in any order:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">named</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
 <span>  <span class="fl">5000</span>, frequency <span class="op">=</span> <span class="st">"negative binomial"</span>, frequency_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fl">1.5</span>, r <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
@@ -163,14 +165,143 @@ and the parameters can be given in order or named, in any order:</p>
 <pre><code><span><span class="co">## [1] TRUE</span></span></code></pre>
 </div>
 <div class="section level2">
-<h2 id="a-pareto-tail">4. A Pareto tail<a class="anchor" aria-label="anchor" href="#a-pareto-tail"></a>
+<h2 id="zero-inflated-claim-counts">4. Zero-inflated claim counts<a class="anchor" aria-label="anchor" href="#zero-inflated-claim-counts"></a>
 </h2>
-<p>Log-Normal tails are often too light for large claims.
-<code>pareto_thresholds</code> and <code>pareto_alphas</code> replace
-the tail above each threshold with a Pareto distribution; here claims
-above 100,000 follow a Pareto with alpha 1.5. Up to six slices can be
-given, with increasing thresholds.</p>
+<p>Some portfolios have more periods without any claim than a Poisson or
+a Negative Binomial allows: a cover that is only sometimes exposed, a
+large-loss or catastrophe layer, a scheme that is dormant in some years.
+A zero-inflated count is zero with probability <code>zero_prob</code>,
+and otherwise drawn from the Poisson (or the Negative Binomial) of its
+other parameters. With a Poisson of mean
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>
+and a probability
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
+of an extra zero, the mean is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mi>λ</mi></mrow><annotation encoding="application/x-tex">(1 - p)\lambda</annotation></semantics></math>,
+the variance
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mi>λ</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mi>p</mi><mi>λ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1 - p)\lambda(1 + p\lambda)</annotation></semantics></math>,
+and the chance of no claim
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>+</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>λ</mi></mrow></msup></mrow><annotation encoding="application/x-tex">p + (1 - p)e^{-\lambda}</annotation></semantics></math>.</p>
+<p>Here 40% of the periods are extra zeros and the others have 5 claims
+on average, so the mean is 3 claims a period, as in the first run:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">zero_inflated</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
+<span>  <span class="fl">5000</span>, frequency <span class="op">=</span> <span class="st">"Zero-inflated Poisson"</span>, frequency_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fl">5</span>, zero_prob <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span>,</span>
+<span>  severity <span class="op">=</span> <span class="st">"LogNormal"</span>, severity_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">count_stats</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, variance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">var</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, no_claims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">n</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  poisson <span class="op">=</span> <span class="fu">count_stats</span><span class="op">(</span><span class="va">claims</span><span class="op">$</span><span class="va">claim_counts</span><span class="op">)</span>,</span>
+<span>  zero_inflated <span class="op">=</span> <span class="fu">count_stats</span><span class="op">(</span><span class="va">zero_inflated</span><span class="op">$</span><span class="va">claim_counts</span><span class="op">)</span>,</span>
+<span>  zero_inflated_expected <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.6</span> <span class="op">*</span> <span class="fl">5</span>, <span class="fl">0.6</span> <span class="op">*</span> <span class="fl">5</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="fl">5</span><span class="op">)</span>, <span class="fl">0.4</span> <span class="op">+</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##                         mean variance no_claims</span></span>
+<span><span class="co">## poisson                3.008    3.078     0.053</span></span>
+<span><span class="co">## zero_inflated          2.975    8.901     0.404</span></span>
+<span><span class="co">## zero_inflated_expected 3.000    9.000     0.404</span></span></code></pre>
+<p>The counts have the same mean but three times the variance, and two
+periods in five have no claim. The total claims are only a little more
+volatile, as here the claim sizes, not the counts, drive most of their
+volatility:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>poisson <span class="op">=</span> <span class="fu">tail_stats</span><span class="op">(</span><span class="va">claims</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span>, zero_inflated <span class="op">=</span> <span class="fu">tail_stats</span><span class="op">(</span><span class="va">zero_inflated</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##                mean    sd VaR99.5 TVaR99.5</span></span>
+<span><span class="co">## poisson       28009 52982  284160   502727</span></span>
+<span><span class="co">## zero_inflated 27781 56781  284340   505901</span></span></code></pre>
+<p><code>"Zero-inflated Negative Binomial"</code> takes <code>r</code>,
+<code>beta</code> and <code>zero_prob</code>. The distribution fitting
+tool, <code><a href="../reference/run_shiny_distribution_fitting_tool.html">run_shiny_distribution_fitting_tool()</a></code>, fits both to
+claim counts beside the Poisson and the Negative Binomial, and suggests
+the one with the lowest AIC: a zero-inflated model is worth its extra
+parameter only when the data has more zeros than the others give.</p>
+</div>
+<div class="section level2">
+<h2 id="weibull-burr-and-generalised-pareto-claim-sizes">5. Weibull, Burr and generalised Pareto claim sizes<a class="anchor" aria-label="anchor" href="#weibull-burr-and-generalised-pareto-claim-sizes"></a>
+</h2>
+<p>Three more severities have tails of other kinds than the
+Log-Normal’s:</p>
+<ul>
+<li>the <strong>Weibull</strong>, with a <code>shape</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math>
+and a <code>scale</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mi>X</mi><mo>&gt;</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mi>/</mi><mi>θ</mi><msup><mo stretchy="false" form="postfix">)</mo><mi>τ</mi></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">P(X &gt; x) = \exp(-(x / \theta)^{\tau})</annotation></semantics></math>.
+A shape below 1 gives a tail heavier than that of the Exponential, but
+lighter than any Pareto tail;</li>
+<li>the <strong>Burr</strong> (type XII), with <code>alpha</code>,
+<code>gamma</code> and a <code>scale</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mi>X</mi><mo>&gt;</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mi>/</mi><mi>θ</mi><msup><mo stretchy="false" form="postfix">)</mo><mi>γ</mi></msup><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mi>α</mi></mrow></msup></mrow><annotation encoding="application/x-tex">P(X &gt; x) = (1 + (x / \theta)^{\gamma})^{-\alpha}</annotation></semantics></math>.
+It has a Pareto tail of index
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mi>γ</mi></mrow><annotation encoding="application/x-tex">\alpha\gamma</annotation></semantics></math>
+over a body shaped by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>γ</mi><annotation encoding="application/x-tex">\gamma</annotation></semantics></math>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>γ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\gamma = 1</annotation></semantics></math>
+is the Lomax,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\alpha = 1</annotation></semantics></math>
+the log-logistic);</li>
+<li>the <strong>generalised Pareto</strong>, with a
+<code>location</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>,
+a <code>scale</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
+and a <code>shape</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>κ</mi><annotation encoding="application/x-tex">\kappa</annotation></semantics></math>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mi>X</mi><mo>&gt;</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mi>κ</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>−</mo><mi>μ</mi><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mi>σ</mi><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mi>κ</mi></mrow></msup></mrow><annotation encoding="application/x-tex">P(X &gt; x) = (1 + \kappa (x - \mu) / \sigma)^{-1 / \kappa}</annotation></semantics></math>
+above its location. It has a Pareto tail of index
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>κ</mi></mrow><annotation encoding="application/x-tex">1 / \kappa</annotation></semantics></math>
+for a positive shape, and is the Exponential for a shape of 0. It is the
+distribution extreme value theory gives for the claims above a high
+threshold, its location.</li>
+</ul>
+<p>The tail index is the alpha of the Pareto the tail follows: the lower
+it is, the heavier the tail, and moments of that order and above are
+infinite. To compare the four, each is given the mean claim of the
+Log-Normal of the first run, from the formula of its mean:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mean_claim</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">8</span> <span class="op">+</span> <span class="fl">1.5</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">severities</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  LogNormal <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"LogNormal"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="co"># mean: scale * gamma(1 + 1 / shape)</span></span>
+<span>  Weibull <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Weibull"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="fl">0.6</span>, scale <span class="op">=</span> <span class="va">mean_claim</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Special.html" class="external-link">gamma</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fl">1</span> <span class="op">/</span> <span class="fl">0.6</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="co"># mean: scale * alpha * beta(alpha - 1 / gamma, 1 + 1 / gamma); tail index 1.5 * 1.5 = 2.25</span></span>
+<span>  Burr <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Burr"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">1.5</span>, gamma <span class="op">=</span> <span class="fl">1.5</span>, scale <span class="op">=</span> <span class="va">mean_claim</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Special.html" class="external-link">beta</a></span><span class="op">(</span><span class="fl">1.5</span> <span class="op">-</span> <span class="fl">1</span> <span class="op">/</span> <span class="fl">1.5</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">1</span> <span class="op">/</span> <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="co"># mean: location + scale / (1 - shape); tail index 1 / 0.4 = 2.5</span></span>
+<span>  `Generalised Pareto` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Generalised Pareto"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="va">mean_claim</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fl">0.4</span><span class="op">)</span>, shape <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">runs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">severities</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span><span class="fl">20000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="va">s</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="va">s</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">runs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu">tail_stats</span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##                     mean    sd VaR99.5 TVaR99.5</span></span>
+<span><span class="co">## LogNormal          27309 46055  271405   425194</span></span>
+<span><span class="co">## Weibull            27609 32573  177785   222003</span></span>
+<span><span class="co">## Burr               27680 38629  169907   307638</span></span>
+<span><span class="co">## Generalised Pareto 27706 41670  198612   344855</span></span></code></pre>
+<p>The means agree, as they should; the differences are in the tail. The
+Weibull has the lowest TVaR: its tail is the lightest. The Burr’s 99.5%
+VaR is below the Weibull’s but its TVaR well above, as its Pareto tail
+shows beyond that level. And the Log-Normal with a sigma of 1.5 is the
+heaviest of the four at this level, although it has no Pareto tail: a
+tail index says which distribution is the heavier far enough out, not at
+a given return period. Which one fits is a question for the data: the
+distribution fitting tool fits all of them by maximum likelihood (also
+to claims reported above a threshold, or capped at policy limits),
+compares them by the Kolmogorov-Smirnov distance, the Anderson-Darling
+statistic and the AIC, and draws a Hill plot of the tail index. Its
+Export tab saves the fitted model as a settings file for the claims
+simulator and for the Programmes tab of the reinsurance pricing
+tool.</p>
+</div>
+<div class="section level2">
+<h2 id="a-pareto-tail">6. A Pareto tail<a class="anchor" aria-label="anchor" href="#a-pareto-tail"></a>
+</h2>
+<p>Rather than choosing one distribution for all claim sizes, the tail
+of any severity can be replaced. Log-Normal tails are often too light
+for large claims. <code>pareto_thresholds</code> and
+<code>pareto_alphas</code> replace the tail above each threshold with a
+Pareto distribution; here claims above 100,000 follow a Pareto with
+alpha 1.5. Up to six slices can be given, with increasing
+thresholds.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tail</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
 <span>  <span class="fl">5000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"LogNormal"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  pareto_thresholds <span class="op">=</span> <span class="fl">100000</span>, pareto_alphas <span class="op">=</span> <span class="fl">1.5</span></span>
@@ -183,12 +314,12 @@ given, with increasing thresholds.</p>
 “Sliced LogNormal-Pareto and Gamma-Pareto distributions” vignette, so
 its mean gives the expected total. With alpha 1.5 the variance is
 infinite, so the simulated mean converges slowly.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>expected <span class="op">=</span> <span class="fl">3</span> <span class="op">*</span> <span class="fu"><a href="../reference/SlicedLNormParetoMean.html">SlicedLNormParetoMean</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span>, <span class="fl">100000</span>, <span class="fl">1.5</span><span class="op">)</span>, simulated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">tail</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##  expected simulated </span></span>
 <span><span class="co">##  30671.80  31021.78</span></span></code></pre>
 <p>A return-period chart shows where the two models differ:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">return_periods</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>rp <span class="op">=</span> <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/ppoints.html" class="external-link">ppoints</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, loss <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">lognormal_rp</span> <span class="op">&lt;-</span> <span class="fu">return_periods</span><span class="op">(</span><span class="va">claims</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span></span>
 <span><span class="va">pareto_rp</span> <span class="op">&lt;-</span> <span class="fu">return_periods</span><span class="op">(</span><span class="va">tail</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span></span>
@@ -201,14 +332,14 @@ infinite, so the simulated mean converges slowly.</p>
 <p><img src="SimulateClaims_files/figure-html/return%20periods-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level2">
-<h2 id="an-each-and-every-loss-layer-with-reinstatements">5. An each-and-every-loss layer with reinstatements<a class="anchor" aria-label="anchor" href="#an-each-and-every-loss-layer-with-reinstatements"></a>
+<h2 id="an-each-and-every-loss-layer-with-reinstatements">7. An each-and-every-loss layer with reinstatements<a class="anchor" aria-label="anchor" href="#an-each-and-every-loss-layer-with-reinstatements"></a>
 </h2>
 <p>An each-and-every-loss (EEL) layer applies to every claim. A
 “limited” layer of 50,000 excess of 20,000 pays
 <code>min(max(claim - 20000, 0), 50000)</code> for each claim; with two
 reinstatements it pays at most <code>(2 + 1) * 50000 = 150000</code> in
 a period.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">layer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
 <span>  <span class="fl">5000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"LogNormal"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  pareto_thresholds <span class="op">=</span> <span class="fl">100000</span>, pareto_alphas <span class="op">=</span> <span class="fl">1.5</span>,</span>
@@ -228,12 +359,12 @@ a period.</p>
 difference. <code>number_of_reinstatements_used</code> is the layer’s
 recoveries in the period divided by the limit, capped at the number of
 reinstatements.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># amounts ceded to the layer</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>largest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">layer</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span>, expected_loss <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">layer</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##       largest expected_loss </span></span>
 <span><span class="co">##        147460          6262</span></span></code></pre>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># probabilities, and the expected loss as a share of the limit</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  chance_hit <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">layer</span><span class="op">$</span><span class="va">total_claims</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span>,</span>
@@ -244,7 +375,7 @@ reinstatements.</p>
 <span><span class="co">##                         0.2652                         0.1252 </span></span>
 <span><span class="co">## chance_all_reinstatements_used </span></span>
 <span><span class="co">##                         0.0012</span></span></code></pre>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># the net (retained) losses</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">tail_stats</span><span class="op">(</span><span class="va">layer</span><span class="op">$</span><span class="va">gross_claims</span> <span class="op">-</span> <span class="va">layer</span><span class="op">$</span><span class="va">total_claims</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##     mean       sd  VaR99.5 TVaR99.5 </span></span>
@@ -254,7 +385,7 @@ deductible) and “exclude” (the claims with the layer taken out, i.e. the
 retained losses).</p>
 </div>
 <div class="section level2">
-<h2 id="an-aggregate-deductible">6. An aggregate deductible<a class="anchor" aria-label="anchor" href="#an-aggregate-deductible"></a>
+<h2 id="an-aggregate-deductible">8. An aggregate deductible<a class="anchor" aria-label="anchor" href="#an-aggregate-deductible"></a>
 </h2>
 <p>An aggregate layer applies to each period’s total after the EEL
 layer. The order is: severity cap, EEL layer on each claim, sum over the
@@ -265,7 +396,7 @@ layer’s recoveries before the reinstatement capacity caps them.</p>
 with no reinstatements, and an aggregate deductible of 50: the layer
 recovers 300, the deductible leaves 250, and the capacity of one limit
 caps that at 100.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
 <span>  <span class="fl">3</span>, frequency <span class="op">=</span> <span class="st">"Fixed_number_of_Counts"</span>, frequency_params <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  severity <span class="op">=</span> <span class="st">"Fixed_Severity"</span>, severity_params <span class="op">=</span> <span class="fl">100</span>,</span>
@@ -276,10 +407,10 @@ caps that at 100.</p>
 <span><span class="co">## 1            3          100          300                             0</span></span>
 <span><span class="co">## 2            3          100          300                             0</span></span>
 <span><span class="co">## 3            3          100          300                             0</span></span></code></pre>
-<p>An annual aggregate deductible of 25,000 on the layer of section 5
+<p>An annual aggregate deductible of 25,000 on the layer of section 7
 reduces its expected loss. With the same seed the claims are the same,
 so the difference comes from the deductible alone:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">with_deductible</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
 <span>  <span class="fl">5000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"LogNormal"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  pareto_thresholds <span class="op">=</span> <span class="fl">100000</span>, pareto_alphas <span class="op">=</span> <span class="fl">1.5</span>,</span>
@@ -291,19 +422,19 @@ so the difference comes from the deductible alone:</p>
 <span><span class="co">## 6262.340 2203.648</span></span></code></pre>
 </div>
 <div class="section level2">
-<h2 id="faster-runs-with-gross-false">7. Faster runs with gross = FALSE<a class="anchor" aria-label="anchor" href="#faster-runs-with-gross-false"></a>
+<h2 id="faster-runs-with-gross-false">9. Faster runs with gross = FALSE<a class="anchor" aria-label="anchor" href="#faster-runs-with-gross-false"></a>
 </h2>
 <p>When only the ceded losses of an “unlimited” or “limited” EEL layer
 are needed, <code>gross = FALSE</code> draws only the claims that reach
 the layer, which is much faster for a high deductible. Here only about
 one claim in 10 is above 20,000:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="../reference/pSlicedLNormPareto.html">pSlicedLNormPareto</a></span><span class="op">(</span><span class="fl">20000</span>, <span class="fl">8</span>, <span class="fl">1.5</span>, <span class="fl">100000</span>, <span class="fl">1.5</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 0.102222</span></span></code></pre>
 <p>The results follow the same distribution, but they are not the same
 draws as with <code>gross = TRUE</code>, and there is no
 <code>gross_claims</code> column:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
 <span>  <span class="fl">20000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"LogNormal"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  pareto_thresholds <span class="op">=</span> <span class="fl">100000</span>, pareto_alphas <span class="op">=</span> <span class="fl">1.5</span>,</span>
@@ -313,7 +444,7 @@ draws as with <code>gross = TRUE</code>, and there is no
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fast</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] "claim_counts"                  "total_claims"                 </span></span>
 <span><span class="co">## [3] "number_of_reinstatements_used"</span></span></code></pre>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span></span>
 <span>  <span class="fl">20000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"LogNormal"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1.5</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  pareto_thresholds <span class="op">=</span> <span class="fl">100000</span>, pareto_alphas <span class="op">=</span> <span class="fl">1.5</span>,</span>
@@ -326,17 +457,17 @@ draws as with <code>gross = TRUE</code>, and there is no
 <span><span class="co">## gross_true  6296 14898   73302    90067</span></span></code></pre>
 </div>
 <div class="section level2">
-<h2 id="reproducible-runs">8. Reproducible runs<a class="anchor" aria-label="anchor" href="#reproducible-runs"></a>
+<h2 id="reproducible-runs">10. Reproducible runs<a class="anchor" aria-label="anchor" href="#reproducible-runs"></a>
 </h2>
 <p>A <code>seed</code> makes a run reproducible, and leaves the random
 number stream of the session unchanged. Without a seed,
 <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> before the call has the same effect:</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span><span class="fl">2000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"Gamma"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5000</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span><span class="fl">2000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"Gamma"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5000</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] TRUE</span></span></code></pre>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">c1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span><span class="fl">2000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"Gamma"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5000</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
@@ -355,7 +486,7 @@ how many to start. To reuse the same workers across calls, start them
 once with base R’s <code>parallel</code> package and pass them as
 <code>workers</code>. The chunk is not run here, as it starts worker
 processes:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">workers</span> <span class="op">&lt;-</span> <span class="fu">parallel</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/parallel/makeCluster.html" class="external-link">makeCluster</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_claims.html">simulate_claims</a></span><span class="op">(</span><span class="fl">2000</span>, <span class="st">"Poisson"</span>, <span class="fl">3</span>, <span class="st">"Gamma"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5000</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">42</span>, parallel <span class="op">=</span> <span class="cn">TRUE</span>, workers <span class="op">=</span> <span class="va">workers</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">p</span>, <span class="va">a</span><span class="op">)</span>  <span class="co"># TRUE</span></span>
@@ -365,7 +496,7 @@ default is chosen from the expected number of claims (about a million
 claims per chunk). Keep it the same to reproduce a run exactly.</p>
 </div>
 <div class="section level2">
-<h2 id="further-options">9. Further options<a class="anchor" aria-label="anchor" href="#further-options"></a>
+<h2 id="further-options">11. Further options<a class="anchor" aria-label="anchor" href="#further-options"></a>
 </h2>
 <p><code>severity_cap</code> caps each claim before the layers;
 <code>truncate_at_zero = TRUE</code> draws Normal claim sizes from the

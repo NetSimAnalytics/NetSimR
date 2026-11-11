@@ -21,7 +21,9 @@ compare_reinsurance(
   level = 0.995,
   loading = 0.25,
   coc_rate = 0.1,
-  seed = NULL
+  seed = NULL,
+  pareto_thresholds = NULL,
+  pareto_alphas = NULL
 )
 ```
 
@@ -80,6 +82,13 @@ compare_reinsurance(
 
   A whole number for a reproducible run, or `NULL`. The stream of the R
   session is restored after a run with a seed.
+
+- pareto_thresholds, pareto_alphas:
+
+  Pareto slices of the claim size, as in
+  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md):
+  increasing claim sizes above which the tail of the severity is a
+  Pareto, and the alpha of each. `NULL` (the default) for none.
 
 ## Value
 

@@ -84,9 +84,11 @@ hist(claims$total_claims, breaks = 100, main = "Total claims per period", xlab =
 
 ## 3. Distributions and their parameters
 
-The frequency can be Poisson, Negative Binomial, Binomial or a fixed
+The frequency can be Poisson, Negative Binomial, Binomial, a
+zero-inflated Poisson or Negative Binomial (section 4), or a fixed
 number of claims; the severity Normal, Log-Normal, Gamma, Exponential,
-Pareto or a fixed amount. The table in
+Pareto, Weibull, Burr, generalised Pareto (section 5) or a fixed amount.
+The table in
 [`?simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
 lists the parameters of each. Names ignore case, spaces and underscores,
 and the parameters can be given in order or named, in any order:
@@ -103,13 +105,132 @@ identical(named, in_order)
 
     ## [1] TRUE
 
-## 4. A Pareto tail
+## 4. Zero-inflated claim counts
 
-Log-Normal tails are often too light for large claims.
-`pareto_thresholds` and `pareto_alphas` replace the tail above each
-threshold with a Pareto distribution; here claims above 100,000 follow a
-Pareto with alpha 1.5. Up to six slices can be given, with increasing
-thresholds.
+Some portfolios have more periods without any claim than a Poisson or a
+Negative Binomial allows: a cover that is only sometimes exposed, a
+large-loss or catastrophe layer, a scheme that is dormant in some years.
+A zero-inflated count is zero with probability `zero_prob`, and
+otherwise drawn from the Poisson (or the Negative Binomial) of its other
+parameters. With a Poisson of mean $`\lambda`$ and a probability $`p`$
+of an extra zero, the mean is $`(1 - p)\lambda`$, the variance
+$`(1 - p)\lambda(1 + p\lambda)`$, and the chance of no claim
+$`p + (1 - p)e^{-\lambda}`$.
+
+Here 40% of the periods are extra zeros and the others have 5 claims on
+average, so the mean is 3 claims a period, as in the first run:
+
+``` r
+
+zero_inflated <- simulate_claims(
+  5000, frequency = "Zero-inflated Poisson", frequency_params = c(lambda = 5, zero_prob = 0.4),
+  severity = "LogNormal", severity_params = c(8, 1.5), seed = 1
+)
+count_stats <- function(n) c(mean = mean(n), variance = var(n), no_claims = mean(n == 0))
+round(rbind(
+  poisson = count_stats(claims$claim_counts),
+  zero_inflated = count_stats(zero_inflated$claim_counts),
+  zero_inflated_expected = c(0.6 * 5, 0.6 * 5 * (1 + 0.4 * 5), 0.4 + 0.6 * exp(-5))
+), 3)
+```
+
+    ##                         mean variance no_claims
+    ## poisson                3.008    3.078     0.053
+    ## zero_inflated          2.975    8.901     0.404
+    ## zero_inflated_expected 3.000    9.000     0.404
+
+The counts have the same mean but three times the variance, and two
+periods in five have no claim. The total claims are only a little more
+volatile, as here the claim sizes, not the counts, drive most of their
+volatility:
+
+``` r
+
+round(rbind(poisson = tail_stats(claims$total_claims), zero_inflated = tail_stats(zero_inflated$total_claims)))
+```
+
+    ##                mean    sd VaR99.5 TVaR99.5
+    ## poisson       28009 52982  284160   502727
+    ## zero_inflated 27781 56781  284340   505901
+
+`"Zero-inflated Negative Binomial"` takes `r`, `beta` and `zero_prob`.
+The distribution fitting tool,
+[`run_shiny_distribution_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md),
+fits both to claim counts beside the Poisson and the Negative Binomial,
+and suggests the one with the lowest AIC: a zero-inflated model is worth
+its extra parameter only when the data has more zeros than the others
+give.
+
+## 5. Weibull, Burr and generalised Pareto claim sizes
+
+Three more severities have tails of other kinds than the Log-Normal’s:
+
+- the **Weibull**, with a `shape` $`\tau`$ and a `scale` $`\theta`$:
+  $`P(X > x) = \exp(-(x / \theta)^{\tau})`$. A shape below 1 gives a
+  tail heavier than that of the Exponential, but lighter than any Pareto
+  tail;
+- the **Burr** (type XII), with `alpha`, `gamma` and a `scale`
+  $`\theta`$: $`P(X > x) = (1 + (x / \theta)^{\gamma})^{-\alpha}`$. It
+  has a Pareto tail of index $`\alpha\gamma`$ over a body shaped by
+  $`\gamma`$ ($`\gamma = 1`$ is the Lomax, $`\alpha = 1`$ the
+  log-logistic);
+- the **generalised Pareto**, with a `location` $`\mu`$, a `scale`
+  $`\sigma`$ and a `shape` $`\kappa`$:
+  $`P(X > x) = (1 + \kappa (x - \mu) / \sigma)^{-1 / \kappa}`$ above its
+  location. It has a Pareto tail of index $`1 / \kappa`$ for a positive
+  shape, and is the Exponential for a shape of 0. It is the distribution
+  extreme value theory gives for the claims above a high threshold, its
+  location.
+
+The tail index is the alpha of the Pareto the tail follows: the lower it
+is, the heavier the tail, and moments of that order and above are
+infinite. To compare the four, each is given the mean claim of the
+Log-Normal of the first run, from the formula of its mean:
+
+``` r
+
+mean_claim <- exp(8 + 1.5^2 / 2)
+severities <- list(
+  LogNormal = list("LogNormal", c(8, 1.5)),
+  # mean: scale * gamma(1 + 1 / shape)
+  Weibull = list("Weibull", c(shape = 0.6, scale = mean_claim / gamma(1 + 1 / 0.6))),
+  # mean: scale * alpha * beta(alpha - 1 / gamma, 1 + 1 / gamma); tail index 1.5 * 1.5 = 2.25
+  Burr = list("Burr", c(alpha = 1.5, gamma = 1.5, scale = mean_claim / (1.5 * beta(1.5 - 1 / 1.5, 1 + 1 / 1.5)))),
+  # mean: location + scale / (1 - shape); tail index 1 / 0.4 = 2.5
+  `Generalised Pareto` = list("Generalised Pareto", c(location = 0, scale = mean_claim * (1 - 0.4), shape = 0.4))
+)
+runs <- lapply(severities, function(s) simulate_claims(20000, "Poisson", 3, s[[1]], s[[2]], seed = 1))
+round(t(sapply(runs, function(r) tail_stats(r$total_claims))))
+```
+
+    ##                     mean    sd VaR99.5 TVaR99.5
+    ## LogNormal          27309 46055  271405   425194
+    ## Weibull            27609 32573  177785   222003
+    ## Burr               27680 38629  169907   307638
+    ## Generalised Pareto 27706 41670  198612   344855
+
+The means agree, as they should; the differences are in the tail. The
+Weibull has the lowest TVaR: its tail is the lightest. The Burr’s 99.5%
+VaR is below the Weibull’s but its TVaR well above, as its Pareto tail
+shows beyond that level. And the Log-Normal with a sigma of 1.5 is the
+heaviest of the four at this level, although it has no Pareto tail: a
+tail index says which distribution is the heavier far enough out, not at
+a given return period. Which one fits is a question for the data: the
+distribution fitting tool fits all of them by maximum likelihood (also
+to claims reported above a threshold, or capped at policy limits),
+compares them by the Kolmogorov-Smirnov distance, the Anderson-Darling
+statistic and the AIC, and draws a Hill plot of the tail index. Its
+Export tab saves the fitted model as a settings file for the claims
+simulator and for the Programmes tab of the reinsurance pricing tool.
+
+## 6. A Pareto tail
+
+Rather than choosing one distribution for all claim sizes, the tail of
+any severity can be replaced. Log-Normal tails are often too light for
+large claims. `pareto_thresholds` and `pareto_alphas` replace the tail
+above each threshold with a Pareto distribution; here claims above
+100,000 follow a Pareto with alpha 1.5. Up to six slices can be given,
+with increasing thresholds.
 
 ``` r
 
@@ -154,7 +275,7 @@ legend("topleft", c("Pareto tail above 100,000", "Log-Normal"), col = c("firebri
 
 ![](SimulateClaims_files/figure-html/return%20periods-1.png)
 
-## 5. An each-and-every-loss layer with reinstatements
+## 7. An each-and-every-loss layer with reinstatements
 
 An each-and-every-loss (EEL) layer applies to every claim. A “limited”
 layer of 50,000 excess of 20,000 pays
@@ -222,7 +343,7 @@ The other layer types are “unlimited” (everything above the deductible)
 and “exclude” (the claims with the layer taken out, i.e. the retained
 losses).
 
-## 6. An aggregate deductible
+## 8. An aggregate deductible
 
 An aggregate layer applies to each period’s total after the EEL layer.
 The order is: severity cap, EEL layer on each claim, sum over the
@@ -250,7 +371,7 @@ simulate_claims(
     ## 2            3          100          300                             0
     ## 3            3          100          300                             0
 
-An annual aggregate deductible of 25,000 on the layer of section 5
+An annual aggregate deductible of 25,000 on the layer of section 7
 reduces its expected loss. With the same seed the claims are the same,
 so the difference comes from the deductible alone:
 
@@ -268,7 +389,7 @@ c(without = mean(layer$total_claims), with = mean(with_deductible$total_claims))
     ##  without     with 
     ## 6262.340 2203.648
 
-## 7. Faster runs with gross = FALSE
+## 9. Faster runs with gross = FALSE
 
 When only the ceded losses of an “unlimited” or “limited” EEL layer are
 needed, `gross = FALSE` draws only the claims that reach the layer,
@@ -314,7 +435,7 @@ round(rbind(gross_false = tail_stats(fast$total_claims), gross_true = tail_stats
     ## gross_false 6286 14917   69711    88241
     ## gross_true  6296 14898   73302    90067
 
-## 8. Reproducible runs
+## 10. Reproducible runs
 
 A `seed` makes a run reproducible, and leaves the random number stream
 of the session unchanged. Without a seed,
@@ -365,7 +486,7 @@ Results with a seed depend on `chunk_size`, which by default is chosen
 from the expected number of claims (about a million claims per chunk).
 Keep it the same to reproduce a run exactly.
 
-## 9. Further options
+## 11. Further options
 
 `severity_cap` caps each claim before the layers;
 `truncate_at_zero = TRUE` draws Normal claim sizes from the Normal
