@@ -21,6 +21,13 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   # the charts are drawn in the colours of the theme the page reports
   dark <- reactive(identical(input$app_theme, "dark"))
   chart <- function(draw, alt) netsimr_render_plot(draw(), bg = "transparent", res = 96, alt = alt)
+  # each chart is drawn for a theme: on the page in the colours of the theme showing, and in
+  # the report in both
+  charts <- list()
+  add_chart <- function(id, draw, alt) {
+    charts[[id]] <<- list(draw = draw, alt = alt)
+    output[[id]] <- chart(function() draw(isTRUE(dark())), alt)
+  }
 
   # the value of an expression with its warnings, or an error; `checked()` shows the
   # error in place of the outputs that use it
@@ -288,7 +295,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     div(
       class = "dft-stats",
       dft_stat_tile("Years", length(used), icon_name = "calendar", note = paste(min(used), "to", max(used))),
-      dft_stat_tile("Losses in the layer", format(b$n_layer_losses, big.mark = ","), icon_name = "bolt"),
+      dft_stat_tile("Losses in the layer", format(b$n_layer_losses, big.mark = ",", scientific = FALSE), icon_name = "bolt"),
       dft_stat_tile("Burning cost", rsv_percent(b$rate, 2), icon_name = "fire", accent = TRUE, note = "Of subject premium"),
       dft_stat_tile("Expected layer loss", rsv_amount(b$expected_loss), icon_name = "coins", note = "Burning cost"),
       dft_stat_tile("Pareto", if (pareto_ok) rsv_percent(p$rate, 2) else dft_dash, icon_name = "chart-line",
@@ -296,7 +303,8 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     )
   })
 
-  output$burning_cost_table <- renderUI({
+  # the tables are built as the arguments of rsv_table(), for the page and the report
+  bc_table <- function() {
     b <- bc()
     y <- b$by_year
     rows <- lapply(seq_len(nrow(y)), function(i) {
@@ -306,7 +314,6 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     used <- y[y$included, ]
     total <- list("Total", format(sum(used$losses)), format(sum(used$layer_count)), rsv_amount(sum(used$layer_losses)),
                   rsv_amount(sum(used$aggregate_losses)), rsv_amount(sum(used$onlevel_premium)), rsv_percent(b$rate, 2))
-    row <- function(cells, class = NULL) tags$tr(class = class, lapply(cells, tags$td))
     ex <- experience()
     notes <- c(
       if (any(!y$included)) paste0("Left out: ", paste(y$year[!y$included], collapse = ", "), "."),
@@ -321,54 +328,65 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       },
       attr(b, "warnings")
     )
+    list(header = c("Year", "Losses", "In layer", "Layer losses", "Developed", "On-level premium", "Burning cost"),
+         rows = rows, total = total, note = notes, excluded = !y$included)
+  }
+
+  output$burning_cost_table <- renderUI({
+    t <- bc_table()
+    row <- function(cells, class = NULL) tags$tr(class = class, lapply(cells, tags$td))
     tagList(
       div(class = "dft-table-wrap",
           tags$table(class = "dft-table",
-                     tags$thead(tags$tr(lapply(c("Year", "Losses", "In layer", "Layer losses", "Developed",
-                                                 "On-level premium", "Burning cost"), tags$th))),
-                     tags$tbody(lapply(seq_along(rows), function(i) row(rows[[i]], if (!y$included[i]) "xlp-excluded")),
-                                row(total, "xlp-total")))),
-      p(class = "dft-table-note", paste(notes, collapse = " "))
+                     tags$thead(tags$tr(lapply(t$header, tags$th))),
+                     tags$tbody(lapply(seq_along(t$rows), function(i) row(t$rows[[i]], if (t$excluded[i]) "xlp-excluded")),
+                                row(t$total, "xlp-total")))),
+      p(class = "dft-table-note", paste(t$note, collapse = " "))
     )
   })
 
-  output$burning_cost_plot <- chart(function() {
+  add_chart("burning_cost_plot", function(in_dark) {
     b <- bc()
     y <- b$by_year
     dft_category_chart(as.character(y$year), bars = list(name = "Burning cost of the year", values = y$burning_cost,
-                                                        colour = xlp_chart_colours(dark())$accent_soft),
+                                                        colour = xlp_chart_colours(in_dark)$accent_soft),
                        lines = list(list(name = paste("Burning cost", rsv_percent(b$rate, 2)), values = rep(b$rate, nrow(y)),
                                          colour = dft_model_palette[1])),
-                       x_title = "Year", y_title = "Layer losses over on-level premium", dark = dark(), y_percent = TRUE)
+                       x_title = "Year", y_title = "Layer losses over on-level premium", dark = in_dark, y_percent = TRUE)
   }, alt = "Burning cost of each year, with the burning cost of all the years")
 
-  losses_chart <- function() {
+  losses_chart <- function(in_dark) {
     b <- bc()
     lay <- layer()
     validate(need(nrow(b$losses) > 0, "There are no losses in these years."))
-    xlp_losses_chart(b$losses, b$by_year$year, lay$deductible, lay$limit, dark())
+    xlp_losses_chart(b$losses, b$by_year$year, lay$deductible, lay$limit, in_dark)
   }
-  output$losses_plot <- chart(losses_chart, alt = "Indexed large losses of each year against the layer")
-  output$layer_losses_plot <- chart(losses_chart, alt = "Indexed large losses of each year against the layer")
+  add_chart("losses_plot", losses_chart, alt = "Indexed large losses of each year against the layer")
+  add_chart("layer_losses_plot", losses_chart, alt = "Indexed large losses of each year against the layer")
 
-  output$pareto_plot <- chart(function() {
+  add_chart("pareto_plot", function(in_dark) {
     p <- pareto()
     validate(need(!inherits(p, "error"), if (inherits(p, "error")) conditionMessage(p)))
     validate(need(nrow(p$losses) > 0, "No losses above the Pareto threshold."))
-    xlp_pareto_chart(p$losses$indexed[p$losses$year %in% p$by_year$year[p$by_year$included]], p$threshold, p$alpha, dark())
+    xlp_pareto_chart(p$losses$indexed[p$losses$year %in% p$by_year$year[p$by_year$included]], p$threshold, p$alpha, in_dark)
   }, alt = "Share of the large losses above each size, observed and fitted by the Pareto")
 
-  output$pareto_note <- renderUI({
+  # what the Pareto rating found, or NULL without one
+  pareto_text <- function() {
     p <- pareto()
     if (inherits(p, "error")) return(NULL)
-    p(class = "dft-table-note",
-      paste0(p$n, " losses above ", rsv_amount(p$threshold), " in the money of ", p$rating_year, "; alpha ",
-             formatC(p$alpha, format = "f", digits = 3),
-             if (!isTRUE(all.equal(p$alpha, p$alpha_estimated)) && is.finite(p$alpha_estimated)) {
-               paste0(" (estimated ", formatC(p$alpha_estimated, format = "f", digits = 3), ")")
-             },
-             ". Expected ", formatC(p$expected_count, format = "f", digits = 2), " losses above the threshold in ", p$rating_year,
-             ", each with ", rsv_amount(p$layer_severity), " in the layer on average."))
+    paste0(p$n, " losses above ", rsv_amount(p$threshold), " in the money of ", p$rating_year, "; alpha ",
+           formatC(p$alpha, format = "f", digits = 3),
+           if (!isTRUE(all.equal(p$alpha, p$alpha_estimated)) && is.finite(p$alpha_estimated)) {
+             paste0(" (estimated ", formatC(p$alpha_estimated, format = "f", digits = 3), ")")
+           },
+           ". Expected ", formatC(p$expected_count, format = "f", digits = 2), " losses above the threshold in ", p$rating_year,
+           ", each with ", rsv_amount(p$layer_severity), " in the layer on average.")
+  }
+
+  output$pareto_note <- renderUI({
+    text <- pareto_text()
+    if (!is.null(text)) p(class = "dft-table-note", text)
   })
 
   output$download_burning_cost <- downloadHandler(
@@ -488,7 +506,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     )
   })
 
-  output$exposure_table <- renderUI({
+  exposure_table <- function() {
     e <- exposure()
     bands <- e$bands
     property <- identical(e$type, "property")
@@ -520,28 +538,30 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       },
       profile()$description
     )
-    rsv_table(header, rows, total, note)
-  })
+    list(header = header, rows = rows, total = total, note = note)
+  }
 
-  output$band_plot <- chart(function() {
+  output$exposure_table <- renderUI(do.call(rsv_table, exposure_table()))
+
+  add_chart("band_plot", function(in_dark) {
     e <- exposure()
     bands <- e$bands
     size <- if (identical(e$type, "property")) bands$sum_insured else bands$policy_limit
     label <- if ("band" %in% names(bands)) as.character(bands$band) else rsv_amount(size)
     dft_category_chart(label, bars = list(name = "Expected layer loss", values = bands$layer_loss,
-                                          colour = xlp_chart_colours(dark())$accent_soft),
-                       x_title = "Band", y_title = "Expected layer loss", dark = dark())
+                                          colour = xlp_chart_colours(in_dark)$accent_soft),
+                       x_title = "Band", y_title = "Expected layer loss", dark = in_dark)
   }, alt = "Expected loss to the layer of each band of the risk profile")
 
-  output$curve_plot <- chart(function() {
+  add_chart("curve_plot", function(in_dark) {
     e <- exposure()
     if (identical(e$type, "property")) {
-      xlp_property_curve_chart(e$curve, dark())
+      xlp_property_curve_chart(e$curve, in_dark)
     } else {
       lay <- layer()
       s <- severity()
       lev <- pricing_lev(s$id, s$params)
-      xlp_casualty_curve_chart(lev$fn, lev$label, e$bands$policy_limit, lay$deductible, lay$limit, dark())
+      xlp_casualty_curve_chart(lev$fn, lev$label, e$bands$policy_limit, lay$deductible, lay$limit, in_dark)
     }
   }, alt = "The exposure curve or limited expected value of the exposure rating")
 
@@ -690,7 +710,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       })
   }
 
-  output$pricing_table <- renderUI({
+  pricing_table <- function() {
     p <- pricing()
     r <- rating()
     lay <- layer()
@@ -703,28 +723,30 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
                "its expected loss over the limit, as the burning cost's years are not available."
              })
     }
-    rsv_table(c("Method", "Rate", "Expected loss", "Upfront premium", "Reinstatement premium", "Rate on line"),
-              pricing_rows(p), note = c(
-                paste0("Rates are shares of the subject premium of ", rsv_amount(r$premium), ". The upfront and expected",
-                       " reinstatement premiums add up to the expected loss over one minus the loading of ",
-                       rsv_percent(r$loading, 0), "."),
-                reinstatement_note, pricing_notes(p)))
-  })
+    list(header = c("Method", "Rate", "Expected loss", "Upfront premium", "Reinstatement premium", "Rate on line"),
+         rows = pricing_rows(p), note = c(
+           paste0("Rates are shares of the subject premium of ", rsv_amount(r$premium), ". The upfront and expected",
+                  " reinstatement premiums add up to the expected loss over one minus the loading of ",
+                  rsv_percent(r$loading, 0), "."),
+           reinstatement_note, pricing_notes(p)))
+  }
+
+  output$pricing_table <- renderUI(do.call(rsv_table, pricing_table()))
 
   output$glance_table <- renderUI({
     p <- pricing()
     rsv_table(c("Method", "Rate", "Expected loss", "Rate on line"), pricing_rows(p, full = FALSE), note = pricing_notes(p))
   })
 
-  output$method_plot <- chart(function() {
+  add_chart("method_plot", function(in_dark) {
     p <- pricing()
     ok <- is.finite(p$expected_loss)
     validate(need(any(ok), "No method can rate the layer yet."))
     dft_category_chart(p$method, bars = list(name = "Expected layer loss", values = ifelse(ok, p$expected_loss, 0),
-                                             colour = xlp_chart_colours(dark())$accent_soft),
+                                             colour = xlp_chart_colours(in_dark)$accent_soft),
                        lines = list(list(name = "Upfront technical premium", values = p$upfront_premium,
                                          colour = dft_model_palette[1])),
-                       x_title = "Method", y_title = "Amount", dark = dark())
+                       x_title = "Method", y_title = "Amount", dark = in_dark)
   }, alt = "Expected layer loss and technical premium of each method")
 
   output$download_pricing <- downloadHandler(
@@ -777,15 +799,17 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   ######################
 
   # the programmes of the grid: by default a quota share, the Layer tab's layer, a stop loss,
-  # and a quota share with the layer
+  # a quota share with the layer, and a surplus treaty on the Exposure tab's risk profile
   prog_defaults <- data.frame(
-    name = c("Quota share 30%", "The layer", "Stop loss", "Quota share 20% and the layer"),
-    qs = c(30, NA, NA, 20), commission = c(25, NA, NA, 25),
-    xl_deductible = c(NA, 1e6, NA, 1e6), xl_limit = c(NA, 4e6, NA, 4e6), xl_reinstatements = c(NA, 1, NA, 1),
-    xl_premium = NA_real_, sl_attachment = c(NA, NA, 45e6, NA), sl_limit = c(NA, NA, 30e6, NA), sl_premium = NA_real_,
+    name = c("Quota share 30%", "The layer", "Stop loss", "Quota share 20% and the layer", "Surplus 4 lines"),
+    surplus_retention = c(NA, NA, NA, NA, 1e6), surplus_lines = c(NA, NA, NA, NA, 4),
+    qs = c(30, NA, NA, 20, NA), commission = c(25, NA, NA, 25, 30),
+    xl_deductible = c(NA, 1e6, NA, 1e6, NA), xl_limit = c(NA, 4e6, NA, 4e6, NA), xl_reinstatements = c(NA, 1, NA, 1, NA),
+    xl_premium = NA_real_, sl_attachment = c(NA, NA, 45e6, NA, NA), sl_limit = c(NA, NA, 30e6, NA, NA), sl_premium = NA_real_,
     stringsAsFactors = FALSE
   )
   prog_fields <- names(prog_defaults)
+  prog_rows <- seq_len(nrow(prog_defaults))
   prog_id <- function(field, i) paste0("prog_", field, "_", i)
   loaded_programmes <- reactiveVal(NULL)
   prog_value <- function(field, i) {
@@ -798,41 +822,60 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
 
   output$programme_inputs <- renderUI({
     head <- function(x) div(class = "xlp-year-head", x)
-    cells <- isolate(lapply(1:4, function(i) {
+    columns <- c("Programme", "Surplus retention", "Lines", "QS %", "Comm. %", "Layer deductible", "Layer limit", "Reinst.",
+                 "Layer premium", "Stop loss attachment", "Stop loss limit", "Stop loss premium")
+    cells <- isolate(lapply(prog_rows, function(i) {
       amount <- function(field, label) sim_hidden_label(sim_amount_input(prog_id(field, i), paste(label, "of programme", i),
                                                                          value = prog_value(field, i), min = 0))
       number_in <- function(field, label, step) sim_hidden_label(numericInput(prog_id(field, i), paste(label, "of programme", i),
                                                                               value = prog_value(field, i), min = 0, step = step,
                                                                               width = "100%"))
-      tagList(
+      inputs <- list(
         sim_hidden_label(textInput(prog_id("name", i), paste("Name of programme", i), value = prog_value("name", i), width = "100%")),
+        amount("surplus_retention", "Surplus retention"), number_in("surplus_lines", "Surplus lines", 1),
         number_in("qs", "Quota share (%)", 5), number_in("commission", "Commission (%)", 1),
         amount("xl_deductible", "Layer deductible"), amount("xl_limit", "Layer limit"),
         number_in("xl_reinstatements", "Reinstatements", 1), amount("xl_premium", "Layer premium"),
         amount("sl_attachment", "Stop loss attachment"), amount("sl_limit", "Stop loss limit"), amount("sl_premium", "Stop loss premium")
       )
+      # a row of the grid on a wide screen; a card on a phone, each input under its column's name
+      div(class = "xlp-prog-row", Map(function(input, label) div(class = "xlp-prog-cell", `data-label` = label, input),
+                                      inputs, columns))
     }))
     tagList(
       div(class = "xlp-year-wrap",
-          div(class = "xlp-year-grid", style = paste0("grid-template-columns: minmax(14rem, 1.8fr) repeat(2, minmax(4.5rem, 0.6fr)) ",
-                                                      "repeat(2, minmax(7rem, 1fr)) minmax(4.5rem, 0.6fr) repeat(4, minmax(7rem, 1fr));",
-                                                      " min-width: 1220px;"),
-              head("Programme"), head("QS %"), head("Comm. %"), head("Layer deductible"), head("Layer limit"),
-              head("Reinst."), head("Layer premium"), head("Stop loss attachment"), head("Stop loss limit"), head("Stop loss premium"),
-              cells)),
+          div(class = "xlp-year-grid xlp-prog-grid",
+              style = paste0("grid-template-columns: minmax(14rem, 1.8fr) minmax(7rem, 1fr) repeat(3, minmax(4.5rem, 0.6fr)) ",
+                             "repeat(2, minmax(7rem, 1fr)) minmax(4.5rem, 0.6fr) repeat(4, minmax(7rem, 1fr));",
+                             " min-width: 1420px;"),
+              lapply(columns, head), cells)),
       dft_help("Leave a programme's name empty to leave it out, and a part empty when the programme does not have it. Empty",
-               "premiums are priced at the loading; empty reinstatements are unlimited.")
+               "premiums are priced at the loading; empty reinstatements are unlimited."),
+      dft_help("A surplus treaty cedes of each risk the part of its sum insured above the retention, up to the lines (each a",
+               "retention), and that share of its premium and claims. Its risks are the Exposure tab's risk profile: a claim",
+               "falls on a band with the chance of the band's share of the premium, whatever the claim's size. The",
+               "commission is the quota share's and the surplus treaty's.")
     )
   })
 
   # the programmes of compare_reinsurance() from the grid
   programme_list <- reactive({
     out <- list()
-    for (i in 1:4) {
+    for (i in prog_rows) {
       name <- trimws(as.character(or_default(prog_value("name", i), "")))
       if (!nzchar(name)) next
       v <- function(field) number(prog_value(field, i))
       p <- list()
+      if (is.finite(v("surplus_retention")) && v("surplus_retention") > 0) {
+        validate(need(is.finite(v("surplus_lines")) && v("surplus_lines") > 0,
+                      paste0("Enter the lines of the surplus treaty of '", name, "', above 0.")))
+        # the risks of the Exposure tab's profile, each band with its share of the premium
+        risks <- profile()$profile
+        sizes <- or_default(risks$sum_insured, risks$policy_limit)
+        p$surplus <- list(retention = v("surplus_retention"), lines = v("surplus_lines"), sum_insured = sizes,
+                          weights = if (sum(risks$premium) > 0) risks$premium,
+                          commission = if (is.finite(v("commission"))) v("commission") / 100 else 0)
+      }
       if (is.finite(v("qs")) && v("qs") > 0) {
         validate(need(v("qs") <= 100, paste0("The quota share of '", name, "' must be at most 100%.")))
         p$quota_share <- v("qs") / 100
@@ -848,7 +891,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
         p$stop_loss <- list(attachment = if (is.finite(v("sl_attachment"))) v("sl_attachment") else 0, limit = v("sl_limit"))
         if (is.finite(v("sl_premium"))) p$stop_loss$premium <- v("sl_premium")
       }
-      validate(need(length(p) > 0, paste0("Give '", name, "' a quota share, a layer limit or a stop loss limit.")),
+      validate(need(length(p) > 0, paste0("Give '", name, "' a surplus retention, a quota share, a layer limit or a stop loss limit.")),
                need(is.null(out[[name]]) && name != "No reinsurance", paste0("Give each programme its own name ('", name, "').")))
       out[[name]] <- p
     }
@@ -910,10 +953,10 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
         dft_stat_tile("Its capital relief", rsv_amount(best$capital_relief), icon_name = "shield-halved",
                       note = paste("For a margin of", rsv_amount(best$margin))),
         dft_stat_tile("Subject premium", rsv_amount(cmp$premium), icon_name = "coins",
-                      note = paste(format(cmp$n, big.mark = ","), "simulated years")))
+                      note = paste(format(cmp$n, big.mark = ",", scientific = FALSE), "simulated years")))
   })
 
-  output$programme_table <- renderUI({
+  programme_table <- function() {
     cmp <- current_programmes()
     s <- cmp$summary
     rows <- lapply(seq_len(nrow(s)), function(i) {
@@ -921,36 +964,182 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
            rsv_amount(s$mean_result[i]), rsv_percent(s$p_loss[i]), rsv_amount(s$capital[i]), rsv_amount(s$capital_relief[i]),
            rsv_amount(s$value[i]))
     })
-    rsv_table(c("Programme", "Expected ceded", "Reinsurance premium", "Margin", "Mean result", "Loss-making years", "Capital",
-                "Capital relief", "Value"), rows,
-              note = paste0("Reinsurance premium: the premiums paid less any ceding commission, with the expected reinstatement premiums.",
+    list(header = c("Programme", "Expected ceded", "Reinsurance premium", "Margin", "Mean result", "Loss-making years", "Capital",
+                    "Capital relief", "Value"), rows = rows, stack = TRUE,
+         note = paste0("Reinsurance premium: the premiums paid less any ceding commission, with the expected reinstatement premiums.",
                             " Margin: that premium less the expected recoveries. Capital: the mean net result less its ",
                             format(100 * (1 - cmp$level)), "% worst. Value: ", rsv_percent(cmp$coc_rate, 0),
                             " of the capital relief less the margin, positive when the capital saved is worth more than the",
                             " reinsurance costs."))
-  })
+  }
 
-  output$programme_plot <- chart(function() {
+  output$programme_table <- renderUI(do.call(rsv_table, programme_table()))
+
+  add_chart("programme_plot", function(in_dark) {
     s <- current_programmes()$summary
-    dft_category_chart(s$programme, bars = list(name = "Capital", values = s$capital, colour = xlp_chart_colours(dark())$accent_soft),
+    dft_category_chart(s$programme, bars = list(name = "Capital", values = s$capital, colour = xlp_chart_colours(in_dark)$accent_soft),
                        lines = list(list(name = "Margin paid to reinsurers", values = s$margin, colour = dft_model_palette[1])),
-                       x_title = "Programme", y_title = "Amount", dark = dark())
+                       x_title = "Programme", y_title = "Amount", dark = in_dark)
   }, alt = "The capital each programme needs and the margin it pays to the reinsurers")
 
-  output$programme_return_plot <- chart(function() {
+  add_chart("programme_return_plot", function(in_dark) {
     cmp <- current_programmes()
     p <- exp(seq(log(0.5), log(1 - 10 / cmp$n), length.out = 200))
     periods <- 1 / (1 - p)
     series <- lapply(seq_len(ncol(cmp$results)), function(j) {
       list(name = colnames(cmp$results)[j], x = periods, y = stats::quantile(cmp$results[, j], 1 - p, names = FALSE),
-           colour = c(xlp_chart_colours(dark())$accent, dft_model_palette)[j])
+           colour = c(xlp_chart_colours(in_dark)$accent, dft_model_palette)[j])
     })
-    dft_line_chart(series, "Return period (years)", "Net result in the 1 in N bad year", dark(), x_log = TRUE)
+    dft_line_chart(series, "Return period (years)", "Net result in the 1 in N bad year", in_dark, x_log = TRUE)
   }, alt = "The net result of each programme in a bad year of each return period")
 
   output$download_programmes <- downloadHandler(
     filename = function() "reinsurance_programmes.csv",
     content = function(file) utils::write.csv(csv_safe(current_programmes()$summary), file, row.names = FALSE)
+  )
+
+  ######################
+  #Report
+  ######################
+
+  # what the report shows: the layer and its pricing, and each part of the tool that can be
+  # found (a part that cannot, such as a Pareto rating without enough losses, is left out)
+  report_data <- function() {
+    quiet <- function(expr) tryCatch(expr, error = function(e) NULL)
+    figure <- function(id, title, note = NULL, wide = FALSE) c(charts[[id]], list(title = title, note = note, wide = wide))
+    count <- function(n) format(n, big.mark = ",", scientific = FALSE)
+    lay <- layer()
+    rt <- rating()
+    p <- quiet(pricing())
+    blended <- if (!is.null(p)) p[p$method == "Blended", ]
+    ok <- !is.null(blended) && is.finite(blended$rate)
+    b <- quiet(bc())
+    pa <- quiet(pareto())
+    if (inherits(pa, "error")) pa <- NULL
+    e <- quiet(exposure())
+    cmp <- if (isTruthy(input$run_programmes)) quiet(current_programmes())
+    reinstatements <- if (is.finite(lay$reinstatements)) format(lay$reinstatements) else "Unlimited"
+
+    r <- list()
+    r$key <- c(
+      list(Layer = list(value = xlp_layer_label(lay$deductible, lay$limit),
+                        note = paste(reinstatements, "reinstatements at", rsv_percent(lay$reinstatement_rate, 0))),
+           `Technical premium` = list(value = if (ok) rsv_amount(blended$upfront_premium) else dft_dash,
+                                      note = if (ok && blended$reinstatement_premium > 0) {
+                                        paste("Upfront; and", rsv_amount(blended$reinstatement_premium), "expected from reinstatements")
+                                      } else "Upfront"),
+           `Rate on line` = list(value = if (ok) rsv_percent(blended$rate_on_line, 2) else dft_dash,
+                                 note = if (ok) paste("Payback", formatC(blended$payback, format = "f", digits = 1), "years")),
+           `Expected layer loss` = list(value = if (ok) rsv_amount(blended$expected_loss) else dft_dash,
+                                        note = if (!is.null(p)) paste0(round(100 * attr(p, "weight")), "% ", attr(p, "experience"),
+                                                                       ", ", round(100 * (1 - attr(p, "weight"))), "% exposure"))),
+      if (!is.null(cmp)) {
+        best <- cmp$summary[-1, ][which.max(cmp$summary$value[-1]), ]
+        list(`Best value programme` = list(value = best$programme, note = paste0(if (best$value >= 0) "Saves " else "Costs ",
+                                                                                rsv_amount(abs(best$value)), " a year")))
+      }
+    )
+    r$warnings <- if (!is.null(p)) {
+      missing <- !is.finite(p$rate) & nzchar(p$note)
+      if (any(missing)) paste0(p$method[missing], ": ", p$note[missing])
+    } else "The layer cannot be priced: check the settings of the Experience and Exposure tabs."
+
+    used <- if (!is.null(b)) b$by_year$year[b$by_year$included]
+    threshold <- number(input$threshold)
+    pareto_alpha <- number(input$pareto_alpha)
+    property <- !is.null(e) && identical(e$type, "property")
+    profile_source <- if (identical(input$profile_source, "upload")) or_default(input$profile_file$name, "An uploaded file") else
+      names(xlp_profile_examples)[match(or_default(input$profile_example, "property"), xlp_profile_examples)]
+    r$settings <- list(
+      Layer = list(Deductible = rsv_amount(lay$deductible), Limit = rsv_amount(lay$limit), Reinstatements = reinstatements,
+                   `Reinstatement rate` = rsv_percent(lay$reinstatement_rate, 0),
+                   `Annual aggregate deductible` = if (lay$aggregate_deductible > 0) rsv_amount(lay$aggregate_deductible),
+                   `Annual aggregate limit` = if (is.finite(lay$aggregate_limit)) rsv_amount(lay$aggregate_limit)),
+      `Rating year` = list(`Rating year` = format(rt$year), `Subject premium` = rsv_amount(rt$premium),
+                           Loading = rsv_percent(rt$loading, 0)),
+      Experience = list(
+        Losses = if (identical(input$loss_source, "upload")) or_default(input$loss_file$name, "An uploaded file") else "Example large losses",
+        Years = if (length(used) > 0) paste(min(used), "to", max(used)),
+        `Claims inflation` = if (is.finite(number(input$inflation))) paste0(format(number(input$inflation)), "% a year"),
+        `Reporting threshold` = if (is.finite(threshold) && threshold > 0) rsv_amount(threshold) else "None",
+        Weights = if (identical(input$weights, "equal")) "Equal" else "By premium",
+        `Pareto threshold` = if (is.finite(number(input$pareto_threshold))) rsv_amount(number(input$pareto_threshold)),
+        `Pareto alpha` = if (is.finite(pareto_alpha)) format(pareto_alpha) else "Estimated"),
+      Exposure = list(Profile = profile_source,
+                      Business = if (!is.null(e)) if (property) "Property" else "Casualty",
+                      `Exposure curve` = if (property) e$curve$label,
+                      `Claim sizes` = if (!is.null(e) && !property) e$severity$label,
+                      `Expected loss ratio` = if ("loss_ratio" %in% names(quiet(profile()$profile))) "From the profile" else
+                        if (is.finite(number(input$loss_ratio))) paste0(format(number(input$loss_ratio)), "%")),
+      Blend = if (!is.null(p)) list(`Experience rate` = attr(p, "experience"),
+                                    `Weight of the experience` = paste0(round(100 * attr(p, "weight")), "%")),
+      Programmes = if (!is.null(cmp)) {
+        params <- function(ids) paste(vapply(ids, function(id) format(number(input[[id]])), ""), collapse = ", ")
+        frequency <- or_default(input$prog_frequency, "Poisson")
+        severity <- or_default(input$prog_severity, "LogNormal")
+        list(`Claim counts` = paste0(frequency, " (", params(c("prog_f1", if (frequency != "Poisson") "prog_f2")), ")"),
+             `Claim sizes` = paste0(severity, " (", params(c("prog_s1", if (severity != "Exponential") "prog_s2")), ")"),
+             `Simulated years` = count(cmp$n), Level = paste0(format(100 * cmp$level), "%"),
+             `Cost of capital` = rsv_percent(cmp$coc_rate, 0))
+      }
+    )
+
+    if (!is.null(p)) r$pricing <- quiet(list(
+      tiles = list(`Expected layer loss` = if (ok) rsv_amount(blended$expected_loss) else dft_dash,
+                   `Technical premium` = if (ok) rsv_amount(blended$upfront_premium) else dft_dash,
+                   `Rate on line` = if (ok) rsv_percent(blended$rate_on_line, 2) else dft_dash,
+                   Payback = if (ok) paste(formatC(blended$payback, format = "f", digits = 1), "years") else dft_dash,
+                   Rate = list(value = if (ok) rsv_percent(blended$upfront_premium / rt$premium, 2) else dft_dash,
+                               note = "Upfront premium over subject premium")),
+      tables = list(list(table = pricing_table(), title = "Methods")),
+      charts = list(figure("method_plot", "Expected loss by method"))
+    ))
+
+    if (!is.null(b)) r$experience <- quiet(list(
+      tiles = list(Years = list(value = as.character(length(used)), note = paste(min(used), "to", max(used))),
+                   `Losses in the layer` = count(b$n_layer_losses),
+                   `Burning cost` = list(value = rsv_percent(b$rate, 2), note = "Of subject premium"),
+                   `Expected layer loss` = list(value = rsv_amount(b$expected_loss), note = "Burning cost"),
+                   Pareto = list(value = if (!is.null(pa)) rsv_percent(pa$rate, 2) else dft_dash,
+                                 note = if (!is.null(pa)) paste0("Alpha ", formatC(pa$alpha, format = "f", digits = 2)) else "Not available")),
+      tables = list(list(table = bc_table(), title = "Burning cost by year")),
+      charts = list(figure("burning_cost_plot", "Burning cost by year", wide = TRUE),
+                    figure("losses_plot", "Large losses against the layer", wide = TRUE),
+                    if (!is.null(pa)) figure("pareto_plot", "Pareto fit", note = pareto_text(), wide = TRUE))
+    ))
+
+    if (!is.null(e)) r$exposure <- quiet(list(
+      tiles = list(Bands = list(value = as.character(nrow(e$bands)),
+                                note = paste0(if (property) "Property" else "Casualty", "; ",
+                                              if (property) e$curve$label else e$severity$label)),
+                   `Ground-up loss` = list(value = rsv_amount(e$ground_up_loss), note = paste("Of a premium of", rsv_amount(e$subject_premium))),
+                   `Exposure rate` = list(value = rsv_percent(e$rate, 2), note = "Of subject premium"),
+                   `Expected layer loss` = list(value = rsv_amount(e$rate * rt$premium), note = "At the rating year's premium")),
+      tables = list(list(table = exposure_table(), title = "Bands of the risk profile")),
+      charts = list(figure("band_plot", "Expected layer loss by band"),
+                    figure("curve_plot", if (property) "Exposure curve" else "Limited expected value"))
+    ))
+
+    if (!is.null(cmp)) r$programmes <- quiet({
+      s <- cmp$summary
+      best <- s[-1, ][which.max(s$value[-1]), ]
+      list(
+        tiles = list(`Capital without reinsurance` = rsv_amount(s$capital[1]),
+                     `Best value` = list(value = best$programme, note = paste0(if (best$value >= 0) "Saves " else "Costs ",
+                                                                             rsv_amount(abs(best$value)), " a year net of its margin")),
+                     `Its capital relief` = list(value = rsv_amount(best$capital_relief), note = paste("For a margin of", rsv_amount(best$margin))),
+                     `Subject premium` = list(value = rsv_amount(cmp$premium), note = paste(count(cmp$n), "simulated years"))),
+        tables = list(list(table = programme_table(), title = "Programmes")),
+        charts = list(figure("programme_plot", "Capital and margin", wide = TRUE),
+                      figure("programme_return_plot", "Net result by return period", wide = TRUE))
+      )
+    })
+    r
+  }
+
+  output$download_report <- downloadHandler(
+    filename = function() "reinsurance_pricing_report.html",
+    content = function(file) write_reinsurance_report(file, report_data())
   )
 
   ######################
@@ -977,9 +1166,9 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       # the programmes' grid, a vector per column
       for (field in prog_fields) {
         values[[paste0("prog_", field, "s")]] <- if (field == "name") {
-          vapply(1:4, function(i) as.character(or_default(prog_value("name", i), "")), character(1))
+          vapply(prog_rows, function(i) as.character(or_default(prog_value("name", i), "")), character(1))
         } else {
-          vapply(1:4, function(i) number(prog_value(field, i)), numeric(1))
+          vapply(prog_rows, function(i) number(prog_value(field, i)), numeric(1))
         }
       }
       write_settings_file(values, file, xlp_settings_tool, xlp_settings_version)
@@ -1049,15 +1238,16 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
         }
       }
     }
-    grid <- lapply(stats::setNames(prog_fields, prog_fields), function(field) {
+    # the programmes' grid: a file of fewer programmes, or without a column (one saved before
+    # the surplus treaty), leaves the rest empty
+    grid <- if (length(v$prog_names) > 0) lapply(stats::setNames(prog_fields, prog_fields), function(field) {
       x <- v[[paste0("prog_", field, "s")]]
-      if (length(x) != 4) return(NULL)
-      if (field == "name") as.character(x) else suppressWarnings(as.numeric(x))
+      x <- if (field == "name") as.character(x) else suppressWarnings(as.numeric(x))
+      c(x, rep(if (field == "name") "" else NA_real_, length(prog_rows)))[prog_rows]
     })
-    grid <- grid[!vapply(grid, is.null, logical(1))]
     if (length(grid) > 0) {
       loaded_programmes(grid)
-      for (field in names(grid)) for (i in 1:4) {
+      for (field in names(grid)) for (i in prog_rows) {
         if (field == "name") updateTextInput(session, prog_id(field, i), value = grid[[field]][i]) else
           updateNumericInput(session, prog_id(field, i), value = grid[[field]][i])
       }

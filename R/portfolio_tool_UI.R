@@ -223,6 +223,7 @@ portfolio_tool_UI <- function(request) {
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
         tags$style(HTML(pfo_ui_css)),
+        netsimr_phone_head(),
         #the binding of the amount inputs (the number of simulations)
         tags$script(HTML(sim_amount_input_js))
       ),

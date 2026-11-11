@@ -74,12 +74,19 @@ test_that("each fit above a threshold has its own cdf", {
   x <- x[x > d][1:5000]
   models <- dft_truncated_severity_models(x, d)
   for (m in models) {
+    #(Normal claims have a lighter tail than any Burr, whose fit is reported as failed)
+    if (m$name == "Burr") {
+      expect_null(m$cdf)
+      next
+    }
     p <- unname(m$params)
     ground <- switch(m$name,
       Normal = function(q) stats::pnorm(q, p[1], p[2]), LogNormal = function(q) stats::plnorm(q, p[1], p[2]),
       Exponential = function(q) stats::pexp(q, 1 / p[1]), Gamma = function(q) stats::pgamma(q, shape = p[2], scale = p[1]),
       Pareto = function(q) ifelse(q < p[1], 0, 1 - (p[1] / q)^p[2]),
-      Weibull = function(q) stats::pweibull(q, shape = p[2], scale = p[1]))
+      Weibull = function(q) stats::pweibull(q, shape = p[2], scale = p[1]),
+      #(from the threshold, its location)
+      `Generalised Pareto` = function(q) 1 - (1 + p[3] * (pmax(q, p[1]) - p[1]) / p[2])^(-1 / p[3]))
     q <- c(4500, 6000, 9000)
     expect_equal(m$cdf(q), (ground(q) - ground(d)) / (1 - ground(d)), tolerance = 1e-9, label = m$name)
   }
@@ -94,9 +101,12 @@ test_that("a fit that runs to the edge of its parameters is reported as failed",
   x <- x[x > d]
   models <- dft_truncated_severity_models(x, d)
   failed <- attr(models, "failed")
-  expect_length(failed, 2)
+  expect_length(failed, 3)
   expect_match(failed[1], "^Normal fit above the threshold failed: the claims above the threshold have a heavier tail")
   expect_match(failed[2], "^Gamma fit")
+  #(and a lighter one than any Burr: the Burr's likelihood rises all the way to the Weibull's)
+  expect_match(failed[3], "^Burr fit above the threshold failed: the claims have a lighter tail than any Burr")
+  expect_gt(fit_named(models, "Weibull")$loglik, fit_named(models, "LogNormal")$loglik)
   expect_null(fit_named(models, "Normal")$cdf)
   expect_true(all(is.na(fit_named(models, "Gamma")$params)))
   expect_true(is.function(fit_named(models, "LogNormal")$cdf))
@@ -107,7 +117,7 @@ test_that("a fit above a threshold refuses claims at or below it, and reports a 
   expect_error(dft_truncated_severity_models(c(10, 20, 30), 0), "positive number")
   #two claims: the two-parameter fits may fail, but the result keeps its form
   models <- dft_truncated_severity_models(c(10.5, 11), 10)
-  expect_length(models, 6)
+  expect_length(models, 8)
   for (m in models) expect_true(is.null(m$cdf) || is.function(m$cdf))
 })
 

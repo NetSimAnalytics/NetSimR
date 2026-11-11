@@ -146,6 +146,11 @@ xlp_ui_css <- "
   color: var(--sim-heading);
 }
 
+/* a programme of the Programmes tab: its cells are the grid's own on a wide screen */
+.xlp-prog-row {
+  display: contents;
+}
+
 .xlp-year-grid .form-control {
   padding-top: 0.3rem;
   padding-bottom: 0.3rem;
@@ -235,6 +240,7 @@ reinsurance_pricing_tool_UI <- function(request) {
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
         tags$style(HTML(xlp_ui_css)),
+        netsimr_phone_head(),
         #the binding of the amount inputs (deductible, limit, premiums)
         tags$script(HTML(sim_amount_input_js))
       ),
@@ -536,7 +542,8 @@ reinsurance_pricing_tool_UI <- function(request) {
           sim_card_header("table-cells", "Methods", "Each method's rate, expected loss and technical premium."),
           bslib::card_body(
             uiOutput("pricing_table"),
-            div(class = "xlp-downloads", downloadButton("download_pricing", "Pricing (CSV)", class = "btn-outline-xlp"),
+            div(class = "xlp-downloads", downloadButton("download_report", "Report (HTML)", class = "btn-outline-xlp"),
+                downloadButton("download_pricing", "Pricing (CSV)", class = "btn-outline-xlp"),
                 netsimr_excel_button("download_excel", class = "btn-outline-xlp"))
           )
         ),
@@ -585,7 +592,7 @@ reinsurance_pricing_tool_UI <- function(request) {
         ),
         uiOutput("programme_stats"),
         bslib::card(
-          sim_card_header("list-check", "Programmes", "Up to four, each a quota share, a layer, a stop loss or a mix."),
+          sim_card_header("list-check", "Programmes", "Up to five, each a surplus treaty, a quota share, a layer, a stop loss or a mix."),
           bslib::card_body(uiOutput("programme_inputs"))
         ),
         bslib::card(

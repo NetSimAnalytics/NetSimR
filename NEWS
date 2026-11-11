@@ -16,8 +16,14 @@ Changes in Version 0.4.0
     reinsurance programmes (a quota share, an excess of loss layer, a stop
     loss, or a mix), with each one's expected recoveries, premium, margin, net
     result, capital and capital relief, and its value at a cost of capital.
-    The reinsurance pricing tool compares up to four programmes on a new
+    The reinsurance pricing tool compares up to five programmes on a new
     Programmes tab.
+  o compare_reinsurance() also takes a surplus treaty: of each risk it cedes
+    the part of the sum insured above the retention, up to a number of lines,
+    and that share of the risk's premium and claims. Each simulated claim falls
+    on a risk of the profile given (a sum insured per risk or band, weighted
+    by premium). The reinsurance pricing tool's programmes include one, on the
+    Exposure tab's risk profile.
   o Rate reviews. New on_level_premium(), the parallelogram method worked out
     exactly for any rate changes and policy term; indicated_rate_change(), the
     loss ratio method with trend, expenses, profit and credibility; and
@@ -46,6 +52,41 @@ Changes in Version 0.4.0
   o The website has a gallery of the tools, on the Try online page, and a
     page on custom tools for insurers and reinsurers; each tool's About card
     links to it.
+  o Zero-inflated claim counts: simulate_claims(), simulate_function() and the
+    claims simulator take a Zero_Inflated_Poisson and a
+    Zero_Inflated_Negative_Binomial, with the probability of an extra zero
+    (more periods without a claim than the Poisson or Negative Binomial
+    gives). The distribution fitting tool fits both, suggests the frequency
+    with the lowest AIC, and sends a zero-inflated fit to the simulator.
+  o Heavier tails: simulate_claims(), simulate_function() and the claims
+    simulator take a Weibull, a Burr (type XII) and a Generalised Pareto
+    severity. The distribution fitting tool fits the Burr and the generalised
+    Pareto too (with a reporting threshold and policy limits as well), sends
+    them to the simulator, and draws a Hill plot of the tail index with its
+    estimates from the largest claims.
+  o The distribution fitting tool writes a report of every analysis run (its
+    figures, tables of fits and charts, in both themes), and saves and loads
+    its settings: the data options, each tab's columns and options, the
+    slicing points and thresholds, and the models chosen to export. The
+    reinsurance pricing tool writes a report of the layer's pricing, its
+    experience and exposure ratings and, once compared, the programmes.
+  o Phones: the reserving, GLM, reinsurance pricing, portfolio and
+    distribution fitting tools scroll to the results after a run; the claims
+    simulator has a second Run button at the foot of its settings; small
+    text and buttons are larger; the distribution fitting tool's tables of
+    fits show each fit as a card, and its messages show at the top of the
+    screen; and the reinsurance pricing tool shows a card per programme in
+    place of the grid.
+  o Faster: compare_reinsurance() sums each simulated year's claims in one
+    pass, and the distribution fitting tool's fits above a reporting
+    threshold or with policy limits work from sufficient statistics of the
+    claims.
+  o Bug fixes: discount_reserves() stops with a clear message when
+    tail_periods is not a whole number (such as Inf), and
+    indicated_rate_change() when the years are not numbers; large
+    amounts in the tools' tables and messages no longer show as 1e+05; the
+    claims simulator's introduction no longer speaks of panels on the left
+    and right, which a phone shows one above the other.
 
   o New run_shiny_portfolio_tool(), NetCapital: the capital of a portfolio
     of lines of business, each simulated from a claim count and a claim size

@@ -12,14 +12,23 @@
 #'   Poisson \tab frequency \tab lambda \cr
 #'   Negative_Binomial \tab frequency \tab r, beta (Gamma shape and scale of the Poisson mean) \cr
 #'   Binomial \tab frequency \tab n, p \cr
+#'   Zero_Inflated_Poisson \tab frequency \tab lambda, zero_prob (probability of an extra zero) \cr
+#'   Zero_Inflated_Negative_Binomial \tab frequency \tab r, beta, zero_prob \cr
 #'   Fixed_number_of_Counts \tab frequency \tab count \cr
 #'   Normal \tab severity \tab mean, sd \cr
 #'   LogNormal \tab severity \tab meanlog, sdlog \cr
 #'   Gamma \tab severity \tab shape, scale \cr
 #'   Exponential \tab severity \tab rate \cr
 #'   Pareto \tab severity \tab alpha, x_m (minimum) \cr
+#'   Weibull \tab severity \tab shape, scale \cr
+#'   Burr \tab severity \tab alpha, gamma, scale \cr
+#'   Generalised_Pareto \tab severity \tab location, scale, shape \cr
 #'   Fixed_Severity \tab severity \tab amount
 #' }
+#' The Burr (type XII) has P(X > x) = (1 + (x / scale)^gamma)^(-alpha), a Pareto tail of
+#' index alpha * gamma over a body shaped by gamma. The Generalised Pareto has
+#' P(X > x) = (1 + shape * (x - location) / scale)^(-1 / shape) above its location: a
+#' Pareto tail of index 1 / shape for a positive shape, and the Exponential for shape 0.
 #'
 #' Layers are "none", "unlimited" (everything above the deductible), "limited" (the
 #' limit excess of the deductible) or "exclude" (the claims with that layer removed).
@@ -198,12 +207,17 @@ claims_param_names <- list(
   Poisson = "lambda",
   Negative_Binomial = c("r", "beta"),
   Binomial = c("n", "p"),
+  Zero_Inflated_Poisson = c("lambda", "zero_prob"),
+  Zero_Inflated_Negative_Binomial = c("r", "beta", "zero_prob"),
   Fixed_number_of_Counts = "count",
   Normal = c("mean", "sd"),
   LogNormal = c("meanlog", "sdlog"),
   Gamma = c("shape", "scale"),
   Exponential = "rate",
   Pareto = c("alpha", "x_m"),
+  Weibull = c("shape", "scale"),
+  Burr = c("alpha", "gamma", "scale"),
+  Generalised_Pareto = c("location", "scale", "shape"),
   Fixed_Severity = "amount"
 )
 

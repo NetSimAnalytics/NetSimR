@@ -663,7 +663,7 @@ bootstrap_chain_ladder <- function(triangle, n = 1000, process = c("gamma", "odp
   by_origin <- data.frame(origin = rownames(C), by_origin, stringsAsFactors = FALSE, row.names = NULL, check.names = FALSE)
   structure(list(
     method = paste0("Bootstrap chain ladder (", if (process == "gamma") "gamma" else "over-dispersed Poisson", " process, ",
-                    format(n, big.mark = ","), " simulations)"),
+                    format(n, big.mark = ",", scientific = FALSE), " simulations)"),
     by_origin = by_origin, total = summarise(totals, sum(latest_claims)),
     reserves = reserves, total_reserves = totals, residuals = adjusted, fitted = fitted, scale = scale,
     factors = stats::setNames(factors, colnames(reserving_link_ratios(C))), tail = tail, process = process,

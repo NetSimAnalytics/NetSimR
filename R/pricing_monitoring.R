@@ -126,6 +126,7 @@ on_level_premium <- function(premium, years, changes, term = 1) {
 indicated_rate_change <- function(losses, premium, years, trend = 0, effective, rate_period = 1, term = 1, expense_ratio = 0,
                                   profit = 0, weights = NULL, credibility = 1, complement = NULL) {
   n <- length(years)
+  if (!is.numeric(years) || n == 0 || any(!is.finite(years))) stop("years must be the accident years, as numbers.", call. = FALSE)
   if (!is.numeric(losses) || !is.numeric(premium) || length(losses) != n || length(premium) != n ||
       any(!is.finite(c(losses, premium))) || any(premium <= 0)) {
     stop("losses, premium and years must have the same length, with premiums above 0.", call. = FALSE)

@@ -474,6 +474,8 @@ shiny_simulator_server <- function(input, output, session) {
       ,data = simulated_data$data
       ,finished = Sys.time()
     ))
+    #a run started from the foot of the settings on a narrow screen then opens the Report tab
+    session$sendCustomMessage("netsimr-run-succeeded", run_counter)
   })
 
   #the browser shows "Preparing report..." on click; the report handler re-enables the button

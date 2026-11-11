@@ -144,6 +144,40 @@ dft_ui_css <- "
   margin-top: 0.25rem;
 }
 
+.btn-outline-dft {
+  border: 1px solid var(--sim-border-strong);
+  background: var(--sim-input-bg);
+  color: var(--sim-label);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.btn-outline-dft:hover,
+.btn-outline-dft:focus {
+  border-color: var(--dft-accent);
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+}
+
+.dft-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* two settings cards, one above the other, in the settings column */
+.dft-settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.dft-settings-stack > .card {
+  margin-bottom: 0;
+}
+
 .dft-sliders:empty {
   display: none;
 }
@@ -381,9 +415,13 @@ dft_ui_css <- "
   text-align: left;
 }
 
+/* the names may wrap (a badge goes under its name), so that a table of many columns, such
+   as the severity fits, fits the card rather than scroll */
 .dft-table td:first-child {
   font-weight: 700;
   color: var(--sim-heading);
+  white-space: normal;
+  min-width: 7.5rem;
 }
 
 .dft-table tbody tr:hover td {
@@ -489,6 +527,20 @@ dft_ui_css <- "
 
 .dft-table-preview + .dft-table-note {
   margin-top: 0.5rem;
+}
+
+/* a long table (the relativities of a factor of many levels): it scrolls under a header
+   that stays in view, so that what follows it (the chart) is not a hundred rows away */
+.dft-table-scroll {
+  max-height: 26rem;
+  overflow: auto;
+}
+
+.dft-table-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--sim-card-bg);
 }
 
 /* charts: PNG images drawn on the server for the current theme */
@@ -678,6 +730,7 @@ distribution_fitting_tool_UI <- function(request) {
         tags$script(HTML(netsimr_theme_js("netsimr-distribution-fitting-theme"))),
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
+        netsimr_phone_head(),
         #the binding of the reporting threshold's amount input
         tags$script(HTML(sim_amount_input_js))
       ),
@@ -742,19 +795,20 @@ distribution_fitting_tool_UI <- function(request) {
         div(
           class = "sim-stat",
           div(class = "sim-stat-label", icon("chart-column"), "Frequency models"),
-          div(class = "sim-stat-value", paste("Poisson", "Negative Binomial", sep = paste0(" ", intToUtf8(183), " ")))
+          div(class = "sim-stat-value", paste("Poisson", "Negative Binomial", "Zero-inflated", sep = paste0(" ", intToUtf8(183), " ")))
         ),
         div(
           class = "sim-stat",
           div(class = "sim-stat-label", icon("chart-line"), "Severity models"),
           div(class = "sim-stat-value",
-              paste(c("Normal", "LogNormal", "Exponential", "Gamma", "Pareto"), collapse = paste0(" ", intToUtf8(183), " ")))
+              paste(c("Normal", "LogNormal", "Exponential", "Gamma", "Pareto", "Weibull", "Burr", "Generalised Pareto"),
+                    collapse = paste0(" ", intToUtf8(183), " ")))
         ),
         div(
           class = "sim-stat",
           div(class = "sim-stat-label", icon("scissors"), "Tail models"),
           div(class = "sim-stat-value",
-              paste(c("Sliced LogNormal-Pareto", "Piecewise Pareto"), collapse = paste0(" ", intToUtf8(183), " ")))
+              paste(c("Sliced LogNormal-Pareto", "Piecewise Pareto", "Hill plot"), collapse = paste0(" ", intToUtf8(183), " ")))
         )
       ),
 
@@ -771,7 +825,7 @@ distribution_fitting_tool_UI <- function(request) {
       dft_page_intro("Data", "Upload a CSV, text or Excel file, or choose an example. Every analysis tab reads its columns from it."),
 
       dft_layout(
-        dft_settings_card(
+        div(class = "dft-settings-stack", dft_settings_card(
           "file-arrow-up", "Data file", "CSV or text (comma, semicolon or tab separated), or Excel.",
           div(class = "sim-section-label", "Source"),
           div(class = "pill-radio",
@@ -797,6 +851,14 @@ distribution_fitting_tool_UI <- function(request) {
                 radioButtons("quote", NULL, c("Double" = '"', "Single" = "'", "None" = ""), '"', inline = TRUE))
           )
         ),
+        dft_settings_card(
+          "floppy-disk", "Settings file", "Keep this session's choices and restore them later.",
+          div(class = "dft-downloads", downloadButton("save_settings", "Save settings", class = "btn-outline-dft")),
+          fileInput("load_settings", "Load settings", accept = ".txt", placeholder = "No file selected"),
+          dft_help("The file keeps the data options, each tab's columns and options, the slicing points and thresholds,",
+                   "and the models chosen on the Export tab. An uploaded data file is not kept: upload it again, and its",
+                   "columns are chosen as they were. Run each analysis again to fit with the loaded settings.")
+        )),
         uiOutput("data_overview"),
         bslib::card(
           sim_card_header("table-list", "Preview", "The first rows of the uploaded data, as the analysis tabs read them."),
@@ -813,7 +875,7 @@ distribution_fitting_tool_UI <- function(request) {
       value = "frequency",
       icon = icon("chart-column"),
 
-      dft_page_intro("Frequency analysis", "Fit Poisson and Negative Binomial distributions to claim counts."),
+      dft_page_intro("Frequency analysis", "Fit Poisson and Negative Binomial distributions, plain and zero-inflated, to claim counts."),
 
       dft_layout(
         dft_settings_card(
@@ -844,7 +906,8 @@ distribution_fitting_tool_UI <- function(request) {
             "Fit details",
             div(class = "pill-radio mb-3",
                 radioButtons("FreqDistri", NULL,
-                             c("Poisson" = "Poisson", "Negative Binomial" = "NegativeBinomial"),
+                             c("Poisson" = "Poisson", "Negative Binomial" = "NegativeBinomial",
+                               "Zero-inflated Poisson" = "ZIPoisson", "Zero-inflated Negative Binomial" = "ZINegativeBinomial"),
                              inline = TRUE)),
             verbatimTextOutput("selected_distribution_summary")
           ),
@@ -859,7 +922,8 @@ distribution_fitting_tool_UI <- function(request) {
       value = "severity",
       icon = icon("chart-line"),
 
-      dft_page_intro("Severity analysis", "Fit Normal, LogNormal, Exponential, Gamma, Pareto and Weibull distributions to claim sizes."),
+      dft_page_intro("Severity analysis", paste("Fit Normal, LogNormal, Exponential, Gamma, Pareto, Weibull, Burr and generalised",
+                                                "Pareto distributions to claim sizes.")),
 
       dft_layout(
         dft_settings_card(
@@ -903,6 +967,7 @@ distribution_fitting_tool_UI <- function(request) {
           bslib::nav_panel("Q-Q plot", dft_plot_output("sev_qq_plot")),
           bslib::nav_panel("P-P plot", dft_plot_output("sev_pp_plot")),
           bslib::nav_panel("Tail (CTE)", uiOutput("sev_cte_table")),
+          bslib::nav_panel("Hill plot", dft_plot_output("sev_hill_plot"), uiOutput("sev_hill_note")),
           bslib::nav_panel("Histogram", dft_plot_output("sev_hist")),
           bslib::nav_panel("Data summary", verbatimTextOutput("sev_summary"))
         )
@@ -992,10 +1057,10 @@ distribution_fitting_tool_UI <- function(request) {
       icon = icon("paper-plane"),
 
       dft_page_intro("Send a fit to the simulator",
-                     "Save fitted models as a settings file that the claims simulator loads."),
+                     "Save fitted models as a settings file that the claims simulator loads, or the fits as a report."),
 
       dft_layout(
-        dft_settings_card(
+        div(class = "dft-settings-stack", dft_settings_card(
           "sliders", "Settings", "Choose the fitted models to send.",
           selectInput("export_frequency", "Frequency",
                       choices = c("Leave the simulator's" = "none", names(dft_export_frequency_models)),
@@ -1008,6 +1073,10 @@ distribution_fitting_tool_UI <- function(request) {
           uiOutput("export_threshold_option"),
           uiOutput("export_download")
         ),
+        dft_settings_card(
+          "file-lines", "Report", "The fits of every analysis run, as one HTML page.",
+          uiOutput("report_download")
+        )),
         bslib::card(
           sim_card_header("table-cells", "Settings to send", "What the file sets in the simulator."),
           bslib::card_body(uiOutput("export_summary"))

@@ -28,8 +28,14 @@ in \code{\link{simulate_claims}}, such as "LogNormal" (meanlog, sdlog) or "Paret
 (alpha, x_m).}
 
 \item{programmes}{A named list of programmes, each a list with any of:
-\code{quota_share} (the share ceded) and \code{commission} (the ceding commission,
-a share of the ceded premium); \code{xl}, a list with the \code{deductible},
+\code{surplus}, a list with the \code{retention} (a line), the \code{lines} ceded
+above it, \code{sum_insured} (the sum insured of each risk, or of each band of
+risks), and optionally \code{weights} (the chance a claim falls on each risk and
+its share of the premium, such as its premium; equal by default), \code{premium}
+(the ceded premium) and \code{commission} (the ceding commission, a share of the
+ceded premium); \code{quota_share} (the share ceded) and \code{commission} (the
+ceding commission, a share of the ceded premium); \code{xl}, a list with the
+\code{deductible},
 \code{limit}, \code{reinstatements} (\code{Inf}, the default, for unlimited and free),
 \code{reinstatement_rate} (1 by default) and optionally \code{premium}; and
 \code{stop_loss}, a list with the \code{attachment}, \code{limit} and optionally
@@ -59,21 +65,35 @@ An object of class \code{netsimr_programmes}, a list with \code{summary}, a
 }
 \description{
 Simulates the claims of a portfolio once and puts them through each of
-  several reinsurance programmes (a quota share, an excess of loss layer on each
-  claim and an aggregate stop loss, alone or together), to compare what each costs
+  several reinsurance programmes (a surplus treaty, a quota share, an excess of loss
+  layer on each claim and an aggregate stop loss, alone or together), to compare what
+  each costs
   with the capital it saves: the expected ceded losses, the reinsurance premiums, the
   margin paid to the reinsurers, the net result, its value at risk and the capital it
   needs.
 }
 \details{
-Every programme sees the same simulated claims. In each, the quota share
-  cedes its share of every claim first; the excess of loss layer then recovers from
-  each retained claim the part above its deductible, up to its limit, and at most
+Every programme sees the same simulated claims. In each, the surplus treaty
+  cedes its share of every claim first, then the quota share its share of what is
+  left; the excess of loss layer then recovers from each retained claim the part above
+  its deductible, up to its limit, and at most
   \eqn{(1 + \textrm{reinstatements})} limits a year; the stop loss last recovers the
   part of the year's retained claims above its attachment, up to its limit.
 
-  The premium of a quota share is its share of the subject premium, less its ceding
-  commission. A layer's or stop loss's premium is given or, when it is not, priced at
+  A surplus treaty cedes of each risk the part of its sum insured above the
+  \code{retention}, up to \code{lines} retentions, and that share of the risk's
+  premium and of each of its claims: nothing of a risk within the retention, and
+  \eqn{\min(S - R, \textrm{lines} \times R) / S} of a risk of sum insured \eqn{S}
+  above the retention \eqn{R}. Each simulated claim falls on one of the risks of
+  \code{sum_insured}, drawn with the chances \code{weights} (the same risk in every
+  programme with the same risks), and its size is drawn as every other claim's,
+  whatever the sum insured of its risk. The treaty's premium is given or, when it is
+  not, the subject premium times the ceded share of the risks, weighted by
+  \code{weights}, so give each risk's premium as its weight.
+
+  The premium of a quota share is its share of the subject premium (of what the
+  surplus treaty leaves of it), less its ceding commission. A layer's or stop loss's
+  premium is given or, when it is not, priced at
   the expected ceded loss with \code{loading} as the share of the premium for the
   reinsurer's expenses and profit (\code{\link{technical_premium}}, with the
   reinstatements the simulations use). The excess of loss layer's reinstatement
@@ -91,7 +111,11 @@ Every programme sees the same simulated claims. In each, the quota share
 programmes <- list(
   `Quota share 30\%` = list(quota_share = 0.3, commission = 0.25),
   `XL 4m xs 1m` = list(xl = list(deductible = 1e6, limit = 4e6, reinstatements = 1)),
-  `Stop loss 30m xs 45m` = list(stop_loss = list(attachment = 45e6, limit = 30e6))
+  `Stop loss 30m xs 45m` = list(stop_loss = list(attachment = 45e6, limit = 30e6)),
+  # four lines above a retention of 1m, on bands of sum insured weighted by premium
+  `Surplus 4 lines` = list(surplus = list(retention = 1e6, lines = 4, commission = 0.3,
+                                          sum_insured = c(0.5e6, 1e6, 2e6, 5e6, 10e6),
+                                          weights = c(20, 15, 12, 8, 5)))
 )
 cmp <- compare_reinsurance("Poisson", 200, "LogNormal", c(11, 1.5), programmes,
                            premium = 60e6, n = 5000, seed = 1)

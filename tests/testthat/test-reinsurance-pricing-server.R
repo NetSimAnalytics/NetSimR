@@ -275,3 +275,26 @@ test_that("the charts of the reinsurance pricing tool render", {
     expect_match(output$curve_plot$src, "^data:image/png;base64,")
   })
 })
+
+test_that("the report holds the pricing, both ratings and, once run, the programmes", {
+  skip_server_on_cran()
+  shiny::testServer(reinsurance_pricing_tool_Server, {
+    xlp_page_inputs(session)
+    html <- paste(readLines(output$download_report, warn = FALSE), collapse = "\n")
+    for (text in c("Reinsurance Pricing Report", "Technical premium", "Burning cost by year", "Pareto fit",
+                   "Bands of the risk profile", "Exposure curve", "Swiss Re Y3")) {
+      expect_match(html, text, fixed = TRUE)
+    }
+    expect_no_match(html, "Best value programme", fixed = TRUE)
+    # (every method rates the layer: no warnings)
+    expect_no_match(html, "class=\"callout callout-warning\"", fixed = TRUE)
+    session$setInputs(prog_frequency = "Poisson", prog_severity = "LogNormal", prog_f1 = 200, prog_s1 = 11, prog_s2 = 1.5,
+                      prog_n = 2000, prog_level = "0.995", prog_loading = 25, prog_coc = 10, prog_seed = 1, run_programmes = 1)
+    html <- paste(readLines(output$download_report, warn = FALSE), collapse = "\n")
+    for (text in c("Best value programme", "Surplus 4 lines", "Net result by return period")) {
+      expect_match(html, text, fixed = TRUE)
+    }
+    # each chart is drawn twice, for the light and the dark theme
+    expect_identical(lengths(regmatches(html, gregexpr("data:image/png", html, fixed = TRUE))), 16L)
+  })
+})

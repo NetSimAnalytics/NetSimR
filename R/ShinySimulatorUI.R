@@ -534,6 +534,8 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0 0.75rem;
+  /* (a label on two lines keeps its input level with the others) */
+  align-items: end;
 }
 
 .param-grid-2 {
@@ -1235,7 +1237,8 @@ shiny_simulator_ui <- function(request) {
       tags$head(
         tags$script(HTML(netsimr_theme_js("netsimr-simulator-theme"))),
         tags$script(HTML(sim_amount_input_js)),
-        tags$style(HTML(sim_ui_css))
+        tags$style(HTML(sim_ui_css)),
+        netsimr_phone_head()
       ),
       #Shiny's built-in busy indicators follow the app theme, so they work in dark mode too
       useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
@@ -1243,7 +1246,8 @@ shiny_simulator_ui <- function(request) {
         pulse_background = "linear-gradient(90deg, #60a5fa, #2563eb, #60a5fa)",
         pulse_height = "4px"
       ),
-      tags$script(HTML(sim_run_state_js))
+      tags$script(HTML(sim_run_state_js)),
+      tags$script(HTML(sim_run_phone_js))
     ),
 
     # ---------------------------------------------------------------- Welcome
@@ -1330,7 +1334,7 @@ shiny_simulator_ui <- function(request) {
         div(
           h2(class = "sim-page-title", "Claims simulator"),
           p(class = "sim-page-subtitle",
-            "Configure the model on the right, then run it from the panel on the left.")
+            "Set the claim frequency, the claim severity and the reinsurance, then run the simulation.")
         )
       ),
 
@@ -1491,6 +1495,13 @@ shiny_simulator_ui <- function(request) {
                 uiOutput("reinsuranceStructureDeductibleAL")
               )
             )
+          ),
+
+          #on a narrow screen the Run panel is above all the settings: the button again, at their foot
+          div(
+            class = "sim-run-phone",
+            tags$button(id = "RunSimulationsPhone", type = "button", class = "btn btn-default btn-run",
+                        icon("play"), "Run Simulations")
           )
         )
       )

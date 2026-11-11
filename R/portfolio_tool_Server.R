@@ -177,7 +177,7 @@ portfolio_tool_Server <- function(input, output, session) {
       means <- vapply(l, mean, numeric(1))
       return(div(class = "dft-stats",
                  dft_stat_tile("Lines", length(l), icon_name = "layer-group", note = "Uploaded simulated losses"),
-                 dft_stat_tile("Simulations", format(length(l[[1]]), big.mark = ","), icon_name = "hashtag",
+                 dft_stat_tile("Simulations", format(length(l[[1]]), big.mark = ",", scientific = FALSE), icon_name = "hashtag",
                                note = input$upload_file$name),
                  dft_stat_tile("Mean total loss", rsv_amount(sum(means)), icon_name = "coins", accent = TRUE)))
     }
@@ -185,7 +185,7 @@ portfolio_tool_Server <- function(input, output, session) {
     means <- vapply(l, function(x) line_means(x)[["loss"]], numeric(1))
     div(class = "dft-stats",
         dft_stat_tile("Lines", length(l), icon_name = "layer-group", note = "Frequency and severity"),
-        dft_stat_tile("Expected claims", format(round(sum(vapply(l, function(x) line_means(x)[["count"]], numeric(1)))), big.mark = ","),
+        dft_stat_tile("Expected claims", format(round(sum(vapply(l, function(x) line_means(x)[["count"]], numeric(1)))), big.mark = ",", scientific = FALSE),
                       icon_name = "hashtag", note = "A year"),
         dft_stat_tile("Expected total loss", if (all(is.finite(means))) rsv_amount(sum(means)) else "Infinite", icon_name = "coins",
                       accent = TRUE, note = if (!all(is.finite(means))) "A Pareto with alpha of 1 or less has no mean"))
@@ -355,7 +355,7 @@ portfolio_tool_Server <- function(input, output, session) {
           dft_stat_tile(paste("TVaR", label), rsv_amount(total$tvar), icon_name = "chart-area", note = "The mean beyond the VaR"),
           dft_stat_tile("Diversification", rsv_amount(d[["benefit"]]), icon_name = "scale-balanced",
                         note = paste0(rsv_percent(d[["benefit_share"]]), " of the lines' VaR of ", rsv_amount(d[["stand_alone_var"]]))),
-          dft_stat_tile("Simulations", format(p$n, big.mark = ","), icon_name = "hashtag",
+          dft_stat_tile("Simulations", format(p$n, big.mark = ",", scientific = FALSE), icon_name = "hashtag",
                         note = if (p$copula == "t") paste0("t copula, ", format(p$df), " df") else "Gaussian copula"))
     )
   })

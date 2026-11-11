@@ -329,7 +329,8 @@ GLMFittingToolUI <- function(request) {
         tags$script(HTML(netsimr_theme_js("netsimr-glm-fitting-theme"))),
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
-        tags$style(HTML(glm_ui_css))
+        tags$style(HTML(glm_ui_css)),
+        netsimr_phone_head()
       ),
       #tells the server which theme is showing, so the chart is drawn in matching colours
       tags$script(HTML(sim_compare_theme_js("app_theme"))),

@@ -42,7 +42,7 @@ test_that("missing or invalid parameters give NA moments", {
   expect_equal(distribution_moments(sev_dist_options, "Gamma", c(2, NA)), na_moments)
   expect_equal(distribution_moments(sev_dist_options, "Gamma", NULL), na_moments)
   expect_equal(distribution_moments(sev_dist_options, "Gamma", c("a", "b")), na_moments)
-  expect_equal(distribution_moments(sev_dist_options, "Weibull", c(1, 2)), na_moments)
+  expect_equal(distribution_moments(sev_dist_options, "Inverse_Gaussian", c(1, 2)), na_moments)
   expect_equal(distribution_moments(sev_dist_options, NULL, c(1, 2)), na_moments)
   #out of range or fractional where a whole number is required
   expect_equal(distribution_moments(sev_dist_options, "Exponential", 0), na_moments)

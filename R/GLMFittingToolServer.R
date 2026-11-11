@@ -153,9 +153,9 @@ GLMFittingToolServer <- function(input, output, session) {
       class = "dft-stats",
       dft_stat_tile("Source", div(class = "dft-file-name", imported()$source), icon_name = "database",
                     note = if (import_failed()) "The last import failed: this is the data imported before"),
-      dft_stat_tile("Rows", format(nrow(df), big.mark = ","), icon_name = "bars",
-                    note = if (nrow(df) > preview_rows) paste("The preview shows the first", format(preview_rows, big.mark = ","))),
-      dft_stat_tile("Columns", format(ncol(df), big.mark = ","), icon_name = "table-columns",
+      dft_stat_tile("Rows", format(nrow(df), big.mark = ",", scientific = FALSE), icon_name = "bars",
+                    note = if (nrow(df) > preview_rows) paste("The preview shows the first", format(preview_rows, big.mark = ",", scientific = FALSE))),
+      dft_stat_tile("Columns", format(ncol(df), big.mark = ",", scientific = FALSE), icon_name = "table-columns",
                     note = if (ncol(df) == 1) "Only one column: check the separator" else paste(length(numeric_columns()), "numeric"))
     )
   })
@@ -330,7 +330,7 @@ GLMFittingToolServer <- function(input, output, session) {
         } else if ((is.character(x) || is.factor(x) || is.logical(x)) && length(unique(present)) < 2) {
           "a single value"
         } else if (glm_many_values(x)) {
-          paste(format(length(unique(present)), big.mark = ","), "different values")
+          paste(format(length(unique(present)), big.mark = ",", scientific = FALSE), "different values")
         }
         if (!is.null(reason)) stats::setNames(reason, column)
       }))
@@ -345,7 +345,7 @@ GLMFittingToolServer <- function(input, output, session) {
     predictors <- if (length(labels) > 0) all.vars(str2lang(paste(labels, collapse = " + "))) else character(0)
     for (column in setdiff(intersect(predictors, columns), spec$response)) {
       if (glm_many_values(model_data[[column]])) {
-        warnings <- c(warnings, paste0("'", column, "' is text with ", format(length(unique(stats::na.omit(model_data[[column]]))), big.mark = ","),
+        warnings <- c(warnings, paste0("'", column, "' is text with ", format(length(unique(stats::na.omit(model_data[[column]]))), big.mark = ",", scientific = FALSE),
                                        " different values, each with its own coefficient"))
       }
     }
@@ -504,9 +504,9 @@ GLMFittingToolServer <- function(input, output, session) {
 
   outdated_note <- function(then) {
     result <- fit_result()
-    dft_help(paste0("This model was fitted to '", result$import$source, "' (", format(nrow(result$data), big.mark = ","),
+    dft_help(paste0("This model was fitted to '", result$import$source, "' (", format(nrow(result$data), big.mark = ",", scientific = FALSE),
                     " rows), imported before the data now on the Data tab ('", imported()$source, "', ",
-                    format(nrow(selected_data()), big.mark = ","), " rows). ", then))
+                    format(nrow(selected_data()), big.mark = ",", scientific = FALSE), " rows). ", then))
   }
 
   #print the model summary
@@ -542,10 +542,10 @@ GLMFittingToolServer <- function(input, output, session) {
       if (model_outdated()) outdated_note("Click Fit model to fit it to the new data."),
       div(
         class = "dft-stats",
-        dft_stat_tile("Observations", format(facts$n, big.mark = ","), icon_name = "hashtag",
+        dft_stat_tile("Observations", format(facts$n, big.mark = ",", scientific = FALSE), icon_name = "hashtag",
                       note = paste(c(
-                        if (has_holdout(fit_result())) paste(format(sum(fit_result()$test), big.mark = ","), "rows held out for testing"),
-                        if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ","), "rows with missing values left out")
+                        if (has_holdout(fit_result())) paste(format(sum(fit_result()$test), big.mark = ",", scientific = FALSE), "rows held out for testing"),
+                        if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ",", scientific = FALSE), "rows with missing values left out")
                       ), collapse = "; ")),
         dft_stat_tile("Parameters", facts$parameters, icon_name = "list-ol"),
         dft_stat_tile("AIC", dft_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE,
@@ -681,7 +681,7 @@ GLMFittingToolServer <- function(input, output, session) {
       div(class = "glm-slot-formula", paste(lhs, if (!is.null(offset_term(spec$offset, spec$offset_log))) "+", if (spec$formula == "") "1" else spec$formula)),
       div(class = "sim-muted", paste0(glm_family_label(spec), " (", spec$link, " link)",
                                       if (spec$weights != "None") paste0(", weights ", spec$weights), ", ",
-                                      format(stored$n, big.mark = ","), " observations",
+                                      format(stored$n, big.mark = ",", scientific = FALSE), " observations",
                                       if (!identical(or_default(spec$holdout, "0"), "0")) {
                                         paste0(", ", names(glm_holdout_choices)[glm_holdout_choices == spec$holdout], " held out (seed ", spec$seed, ")")
                                       })),
@@ -826,9 +826,9 @@ GLMFittingToolServer <- function(input, output, session) {
       dft_stat_tile("Rating factors", length(rates$factors), icon_name = "table-list",
                     note = if (rates$exact) "Every prediction is the base rate times the relativities" else
                       "Numbers with many values are shown at quantiles"),
-      dft_stat_tile("Scored", if (is.null(score)) dft_dash else format(score$predicted, big.mark = ","), icon_name = "file-import",
+      dft_stat_tile("Scored", if (is.null(score)) dft_dash else format(score$predicted, big.mark = ",", scientific = FALSE), icon_name = "file-import",
                     note = if (is.null(score)) "Upload a file of policies to score it" else
-                      paste("of", format(score$total, big.mark = ","), "rows of", score$name))
+                      paste("of", format(score$total, big.mark = ",", scientific = FALSE), "rows of", score$name))
     )
   })
 
@@ -840,7 +840,7 @@ GLMFittingToolServer <- function(input, output, session) {
     has_relativity <- !is.na(rates$relativity)
     rows <- lapply(seq_len(nrow(f)), function(i) {
       c(lapply(vars, function(v) if (is.numeric(f[[v]])) dft_fmt(f[[v]][i], 6) else as.character(f[[v]][i])),
-        list(if (is.na(f$rows[i])) dft_dash else format(f$rows[i], big.mark = ","), dft_fmt(f$effect[i], 4)),
+        list(if (is.na(f$rows[i])) dft_dash else format(f$rows[i], big.mark = ",", scientific = FALSE), dft_fmt(f$effect[i], 4)),
         if (has_relativity) list(dft_fmt(f$relativity[i], 4)))
     })
     base <- which(f$base)
@@ -857,7 +857,8 @@ GLMFittingToolServer <- function(input, output, session) {
       if (!isTRUE(attr(f, "exact"))) "The numbers are shown at quantiles: a value between two rows has a relativity between theirs."
     )
     dft_html_table(c(vars, "Rows", "Effect", if (has_relativity) rate_label(rates)), rows,
-                   best = if (length(base)) base[1], best_label = "Base", note = paste(note, collapse = " "))
+                   best = if (length(base)) base[1], best_label = "Base", note = paste(note, collapse = " "),
+                   class = "dft-table-scroll")
   })
 
   output$rate_plot <- netsimr_render_plot({
@@ -910,8 +911,8 @@ GLMFittingToolServer <- function(input, output, session) {
     result$name <- file$name
     scored(result)
     left <- result$total - result$predicted
-    showNotification(paste0("Scored ", format(result$predicted, big.mark = ","), " of ", format(result$total, big.mark = ","),
-                            " rows", if (left > 0) paste0("; ", format(left, big.mark = ","), " have a missing value or a level ",
+    showNotification(paste0("Scored ", format(result$predicted, big.mark = ",", scientific = FALSE), " of ", format(result$total, big.mark = ",", scientific = FALSE),
+                            " rows", if (left > 0) paste0("; ", format(left, big.mark = ",", scientific = FALSE), " have a missing value or a level ",
                                                           "the model has not seen, and no prediction") else "", "."),
                      type = if (left > 0) "warning" else "message", duration = 8)
   })
@@ -921,10 +922,10 @@ GLMFittingToolServer <- function(input, output, session) {
     if (is.null(s)) return(dft_help("The file needs the columns of the model's terms (and its offset); its other columns are kept."))
     tagList(
       downloadButton("download_scored", "Scored data (CSV)", class = "btn-outline-glm"),
-      dft_help(paste0(format(s$predicted, big.mark = ","), " of ", format(s$total, big.mark = ","), " rows of ", s$name,
+      dft_help(paste0(format(s$predicted, big.mark = ",", scientific = FALSE), " of ", format(s$total, big.mark = ",", scientific = FALSE), " rows of ", s$name,
                       " scored, in the column ", s$column, ".",
-                      if (s$unseen > 0) paste0(" ", format(s$unseen, big.mark = ","), " with a level the model has not seen.") else "",
-                      if (s$incomplete > 0) paste0(" ", format(s$incomplete, big.mark = ","), " with a missing value.") else ""))
+                      if (s$unseen > 0) paste0(" ", format(s$unseen, big.mark = ",", scientific = FALSE), " with a level the model has not seen.") else "",
+                      if (s$incomplete > 0) paste0(" ", format(s$incomplete, big.mark = ",", scientific = FALSE), " with a missing value.") else ""))
     )
   })
 
@@ -1000,7 +1001,7 @@ GLMFittingToolServer <- function(input, output, session) {
     validate(need(any(keep), "No row has the response, the prediction and the variable all present."))
     band <- droplevels(grouping[keep])
     # text is not grouped: an ID would draw hundreds of unreadable bars
-    validate(need(nlevels(band) <= 100, paste0("'", variable, "' has ", format(nlevels(band), big.mark = ","),
+    validate(need(nlevels(band) <= 100, paste0("'", variable, "' has ", format(nlevels(band), big.mark = ",", scientific = FALSE),
                                                " different values: choose a numeric variable, or one with at most 100 values.")))
     w <- weight[keep]
     e <- exposure[keep]
@@ -1039,7 +1040,7 @@ GLMFittingToolServer <- function(input, output, session) {
     tagList(
       if (model_outdated()) outdated_note("The chart is of that data; click Fit model to fit it to the new data."),
       if (isTRUE(dropped > 0)) {
-        dft_help(format(dropped, big.mark = ","), if (dropped == 1) " row is" else " rows are",
+        dft_help(format(dropped, big.mark = ",", scientific = FALSE), if (dropped == 1) " row is" else " rows are",
                  " left out: the response, the prediction or the variable is missing.")
       }
     )
@@ -1124,7 +1125,7 @@ GLMFittingToolServer <- function(input, output, session) {
       div(
         class = "dft-stats",
         dft_stat_tile(if (is.null(test)) "Training rows" else "Training / test rows",
-                      both(function(m) format(m$rows, big.mark = ",")), icon_name = "table-list"),
+                      both(function(m) format(m$rows, big.mark = ",", scientific = FALSE)), icon_name = "table-list"),
         dft_stat_tile(if (is.null(test)) "Deviance per row" else "Deviance per row, training / test",
                       both(function(m) fmt(m$deviance, 4)), icon_name = "scale-balanced", accent = TRUE,
                       note = if (!is.null(test) && is.finite(test$deviance) && is.finite(training$deviance) &&
@@ -1310,7 +1311,7 @@ GLMFittingToolServer <- function(input, output, session) {
       actionButton("use_selection", "Use these terms", icon = icon("arrow-up"), class = "btn-outline-glm mt-1"),
       dft_help(
         "Each step adds a column or drops a term, whichever lowers the ", s$criterion, " most, until none does. ",
-        if (s$left_out > 0) paste0(format(s$left_out, big.mark = ","), " rows with a candidate column missing were left out of the selection. "),
+        if (s$left_out > 0) paste0(format(s$left_out, big.mark = ",", scientific = FALSE), " rows with a candidate column missing were left out of the selection. "),
         if (with_test) "The test deviance is measured on the rows held out: if it rises at a step, that step fits noise. ",
         "Fit the suggested terms with Fit model, and check them on the Validation tab."
       ),
@@ -1339,7 +1340,7 @@ GLMFittingToolServer <- function(input, output, session) {
         "The ", name, " shrinks the coefficients towards zero by a penalty chosen by 5-fold cross-validation on the training rows",
         if (s$penalty != "ridge") ", and drops the terms whose coefficients reach zero" else "; ridge shrinks every term but drops none",
         ". The larger penalty within one standard error of the lowest cross-validated deviance keeps fewer terms. ",
-        if (s$left_out > 0) paste0(format(s$left_out, big.mark = ","), " rows with a column missing were left out. "),
+        if (s$left_out > 0) paste0(format(s$left_out, big.mark = ",", scientific = FALSE), " rows with a column missing were left out. "),
         "Use the terms to fit an ordinary GLM, whose relativities and standard errors the Coefficients table gives."
       )),
       if (length(s$warnings) > 0) dft_help(paste("The fit warned:", paste(unique(s$warnings), collapse = "; ")))

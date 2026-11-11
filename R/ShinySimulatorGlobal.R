@@ -232,10 +232,14 @@ sim_wants_largest_claims <- function(freq_mean, n) {
 #' A vector with the frequency distribution objects
 #'
 #' A named list of \code{distributionClass} objects, one for each claim count distribution
-#' of the simulator: \code{Poisson}, \code{Negative_Binomial}, \code{Binomial} and
+#' of the simulator: \code{Poisson}, \code{Negative_Binomial}, \code{Binomial},
+#' \code{Zero_Inflated_Poisson}, \code{Zero_Inflated_Negative_Binomial} and
 #' \code{Fixed_number_of_Counts}. The names are the values accepted by the \code{freqDistr} argument of
 #' \code{simulate_function()}, and the objects hold the parameter ids, labels and ranges
-#' of the app's inputs and the functions that draw the claim counts.
+#' of the app's inputs and the functions that draw the claim counts. A zero-inflated
+#' count is zero with the probability of its last parameter, and otherwise drawn from the
+#' Poisson or Negative Binomial of its other parameters: more periods without a claim than
+#' those distributions give on their own.
 #'
 #' @return The frequency distribution objects.
 #' @keywords internal
@@ -295,6 +299,47 @@ freq_dist_options <- c(
       list(total = large + stats::rbinom(n, size = p[1] - large, prob = small_prob), large = large)
     }
   )
+  ,Zero_Inflated_Poisson=distributionClass(
+    distrID='Zero_Inflated_Poisson'
+    ,distr_label='Zero-inflated Poisson'
+    ,paramIDs=c("zip_lambda", "zip_zero")
+    ,param_labels=c("lambda (mean of the Poisson)", "Probability of an extra zero")
+    ,param_min_values=c(0, 0)
+    ,param_max_values=c(NA, 1)
+    ,param_max_strict=c(FALSE, TRUE)
+    ,simulate_func = function(number_of_simulations, parameters){
+      stats::rbinom(number_of_simulations, 1, 1 - parameters[2]) * stats::rpois(n = number_of_simulations, lambda = parameters[1])
+    }
+    ,moments_func = function(p, truncate_at_zero = FALSE) zero_inflated_moments(p[1], p[1], p[2])
+    #a period with claims splits as the Poisson does; a period of extra zeros has neither
+    ,split_func = function(n, p, large_prob) {
+      any_claims <- stats::rbinom(n, 1, 1 - p[2])
+      large <- any_claims * stats::rpois(n, p[1] * large_prob)
+      list(total = large + any_claims * stats::rpois(n, p[1] * (1 - large_prob)), large = large)
+    }
+  )
+  ,Zero_Inflated_Negative_Binomial=distributionClass(
+    distrID='Zero_Inflated_Negative_Binomial'
+    ,distr_label='Zero-inflated Negative Binomial'
+    ,paramIDs=c("zinb_r", "zinb_beta", "zinb_zero")
+    ,param_labels=c("r (shape)", "beta (scale)", "Probability of an extra zero")
+    ,param_min_values=c(0, 0, 0)
+    ,param_max_values=c(NA, NA, 1)
+    ,param_min_strict=c(TRUE, TRUE, FALSE)
+    ,param_max_strict=c(FALSE, FALSE, TRUE)
+    ,simulate_func = function(number_of_simulations, parameters){
+      stats::rbinom(number_of_simulations, 1, 1 - parameters[3]) *
+        stats::rpois(n = number_of_simulations, lambda = stats::rgamma(n = number_of_simulations, shape = parameters[1], scale = parameters[2]))
+    }
+    ,moments_func = function(p, truncate_at_zero = FALSE) {
+      zero_inflated_moments(p[1] * p[2], p[1] * p[2] * (1 + p[2]), p[3])
+    }
+    ,split_func = function(n, p, large_prob) {
+      rate <- stats::rbinom(n, 1, 1 - p[3]) * stats::rgamma(n, shape = p[1], scale = p[2])
+      large <- stats::rpois(n, rate * large_prob)
+      list(total = large + stats::rpois(n, rate * (1 - large_prob)), large = large)
+    }
+  )
   ,Fixed_number_of_Counts=distributionClass(
     distrID='Fixed_number_of_Counts'
     ,distr_label='Fixed number of Counts'
@@ -312,6 +357,20 @@ freq_dist_options <- c(
   )
 )
 
+#' Mean and standard deviation of a zero-inflated count
+#'
+#' A count that is zero with probability \code{zero_prob} and otherwise drawn from a
+#' distribution with the given mean and variance has mean \code{(1 - zero_prob) * mean}
+#' and variance \code{(1 - zero_prob) * (variance + zero_prob * mean^2)}.
+#'
+#' @param mean,variance The mean and variance of the distribution without the extra zeros.
+#' @param zero_prob The probability of an extra zero.
+#' @return A numeric vector of length two: the mean and the standard deviation.
+#' @noRd
+zero_inflated_moments <- function(mean, variance, zero_prob) {
+  c((1 - zero_prob) * mean, sqrt((1 - zero_prob) * (variance + zero_prob * mean^2)))
+}
+
 #' A data frame with the frequency distribution parameter placeholders
 #'
 #' One row per parameter of the frequency distribution with the most parameters, giving
@@ -328,11 +387,20 @@ freq_dist_parameter_placeholders <- data.frame(
 #' A vector with the severity distribution objects
 #'
 #' A named list of \code{distributionClass} objects, one for each severity distribution
-#' of the simulator: Normal, LogNormal, Gamma, Exponential, Pareto and Fixed_Severity.
+#' of the simulator: Normal, LogNormal, Gamma, Exponential, Pareto, Weibull, Burr,
+#' Generalised_Pareto and Fixed_Severity.
 #' The names are the values accepted by the \code{sevDistr} argument of
 #' \code{simulate_function()}. The Normal distribution has its own parameter ids
 #' (normal_mean, normal_sd), so that switching between the Normal and the Log-Normal in
-#' the app does not carry values across.
+#' the app does not carry values across, and so have the Weibull, the Burr and the
+#' Generalised Pareto.
+#'
+#' The Burr (type XII) has P(X > x) = (1 + (x / scale)^gamma)^(-alpha) for x > 0: a
+#' Pareto tail of index alpha * gamma over a body shaped by gamma (alpha = 1 is the
+#' log-logistic, gamma = 1 the Lomax). The Generalised Pareto has
+#' P(X > x) = (1 + shape * (x - location) / scale)^(-1 / shape) for x above its location:
+#' a Pareto tail of index 1 / shape for a positive shape, the Exponential for shape 0 and
+#' a tail that ends at location - scale / shape for a negative one.
 #'
 #' @return The severity distribution objects.
 #' @keywords internal
@@ -441,6 +509,51 @@ sev_dist_options <- c(
     ,moments_func = function(p, truncate_at_zero = FALSE) pareto_moments(p[1], p[2])
     ,survival_func = function(x, p) (p[2] / pmax(x, p[2]))^p[1]
     ,tail_quantile_func = function(s, p) p[2] * s^(-1 / p[1])
+  )
+  ,Weibull=distributionClass(
+    distrID='Weibull'
+    ,distr_label='Weibull'
+    ,paramIDs=c("weibull_shape", "weibull_scale")
+    ,param_labels=c("Shape", "Scale")
+    ,param_min_values=c(0, 0)
+    ,param_min_strict=c(TRUE, TRUE)
+    ,param_amounts=c(FALSE, TRUE)
+    ,simulate_func = function(number_of_simulations, parameters){
+      stats::rweibull(n = number_of_simulations, shape = parameters[1], scale = parameters[2])
+    }
+    ,moments_func = function(p, truncate_at_zero = FALSE) weibull_moments(p[1], p[2])
+    ,survival_func = function(x, p) stats::pweibull(x, shape = p[1], scale = p[2], lower.tail = FALSE)
+    ,tail_quantile_func = function(s, p) stats::qweibull(s, shape = p[1], scale = p[2], lower.tail = FALSE)
+  )
+  ,Burr=distributionClass(
+    distrID='Burr'
+    ,distr_label='Burr'
+    ,paramIDs=c("burr_alpha", "burr_gamma", "burr_scale")
+    ,param_labels=c("alpha (first shape)", "gamma (second shape)", "Scale")
+    ,param_min_values=c(0, 0, 0)
+    ,param_min_strict=c(TRUE, TRUE, TRUE)
+    ,param_amounts=c(FALSE, FALSE, TRUE)
+    ,simulate_func = function(number_of_simulations, parameters){
+      burr_tail_quantile(stats::runif(number_of_simulations), parameters[1], parameters[2], parameters[3])
+    }
+    ,moments_func = function(p, truncate_at_zero = FALSE) burr_moments(p[1], p[2], p[3])
+    ,survival_func = function(x, p) exp(burr_log_survival(x, p[1], p[2], p[3]))
+    ,tail_quantile_func = function(s, p) burr_tail_quantile(s, p[1], p[2], p[3])
+  )
+  ,Generalised_Pareto=distributionClass(
+    distrID='Generalised_Pareto'
+    ,distr_label='Generalised Pareto'
+    ,paramIDs=c("gpd_location", "gpd_scale", "gpd_shape")
+    ,param_labels=c("Location (threshold)", "Scale", "Shape (xi)")
+    ,param_min_values=c(0, 0, NA)
+    ,param_min_strict=c(FALSE, TRUE, FALSE)
+    ,param_amounts=c(TRUE, TRUE, FALSE)
+    ,simulate_func = function(number_of_simulations, parameters){
+      gpd_tail_quantile(stats::runif(number_of_simulations), parameters[1], parameters[2], parameters[3])
+    }
+    ,moments_func = function(p, truncate_at_zero = FALSE) gpd_moments(p[1], p[2], p[3])
+    ,survival_func = function(x, p) exp(gpd_log_survival(x, p[1], p[2], p[3]))
+    ,tail_quantile_func = function(s, p) gpd_tail_quantile(s, p[1], p[2], p[3])
   )
   ,Fixed_Severity=distributionClass(
     distrID='Fixed_Severity'
@@ -702,7 +815,7 @@ find_missing_simulation_settings <- function(settings) {
              s$numOfSimulations < 1 || s$numOfSimulations > max_number_of_simulations) {
     problems <- c(problems, paste(
       "Number of simulations must be a whole number between 1 and"
-      ,format(max_number_of_simulations, big.mark = ",")
+      ,format(max_number_of_simulations, big.mark = ",", scientific = FALSE)
     ))
   }
   if (!is.null(s$chunk_size)) check_amount(s$chunk_size, "Chunk size", minimum = 1, whole = TRUE, finite = TRUE)
@@ -715,7 +828,7 @@ find_missing_simulation_settings <- function(settings) {
       problems <- c(problems, "Seed value must be a whole number")
     } else if (abs(s$seedValue) > .Machine$integer.max) {
       #set.seed() only takes integers
-      largest <- format(.Machine$integer.max, big.mark = ",")
+      largest <- format(.Machine$integer.max, big.mark = ",", scientific = FALSE)
       problems <- c(problems, paste0("Seed value must be between -", largest, " and ", largest))
     }
   }
@@ -842,7 +955,7 @@ find_missing_simulation_settings <- function(settings) {
 #' @param sev_params A vector of the severity distribution parameters.
 #' @param seedSetBinary True if there is a fixed seed (\code{seedValue}), otherwise false. Defaults to TRUE when a \code{seedValue} is given and FALSE otherwise, so a \code{seedValue} on its own makes the run reproducible; an explicit FALSE ignores \code{seedValue}.
 #' @param seedValue The seed value, a whole number between \code{-.Machine$integer.max} and \code{.Machine$integer.max}, or NULL (the default) for no fixed seed.
-#' @param freqDistr The frequency distribution: \code{"Poisson"}, \code{"Negative_Binomial"}, \code{"Binomial"} or \code{"Fixed_number_of_Counts"}. The parameters of each are listed in \code{\link{simulate_claims}}.
+#' @param freqDistr The frequency distribution: \code{"Poisson"}, \code{"Negative_Binomial"}, \code{"Binomial"}, \code{"Zero_Inflated_Poisson"}, \code{"Zero_Inflated_Negative_Binomial"} or \code{"Fixed_number_of_Counts"}. The parameters of each are listed in \code{\link{simulate_claims}}.
 #' @param sevDistr The severity distribution: \code{"Normal"}, \code{"LogNormal"}, \code{"Gamma"}, \code{"Exponential"}, \code{"Pareto"} or \code{"Fixed_Severity"}. The parameters of each are listed in \code{\link{simulate_claims}}.
 #' @param paretoSlice True if there is Pareto slicing.
 #' @param pareto_slice_times The number of Pareto slices.

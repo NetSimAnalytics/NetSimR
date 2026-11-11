@@ -60,6 +60,9 @@ test_that("the discounted reserves are the chain ladder's payments, discounted a
   expect_output(print(be), "discounted")
   expect_error(discount_reserves(cl, -1), "above -1")
   expect_error(discount_reserves(cl, 0.03, timing = 2), "share of a period")
+  # (an endless tail would spread its payments over infinitely many periods)
+  expect_error(discount_reserves(paid, 0, tail = 1.05, tail_periods = Inf), "whole number of at least 1")
+  expect_error(discount_reserves(paid, 0, tail = 1.05, tail_periods = 1.5), "whole number of at least 1")
 })
 
 test_that("the risk adjustment is a percentile of the bootstrap, or the cost of capital over the run-off", {

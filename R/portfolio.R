@@ -190,7 +190,7 @@ portfolio_correlation <- function(correlation, names) {
 #' @export
 #' @keywords internal
 print.netsimr_portfolio <- function(x, ...) {
-  cat("Portfolio of ", length(x$summary$line) - 1, " lines, ", format(x$n, big.mark = ","), " simulations, ",
+  cat("Portfolio of ", length(x$summary$line) - 1, " lines, ", format(x$n, big.mark = ",", scientific = FALSE), " simulations, ",
       if (x$copula == "t") paste0("t copula (", format(x$df), " degrees of freedom)") else "Gaussian copula", "\n\n", sep = "")
   s <- x$summary
   amount <- function(v) formatC(v, format = "f", digits = 0, big.mark = ",")

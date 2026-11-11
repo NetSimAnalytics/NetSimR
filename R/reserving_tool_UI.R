@@ -297,6 +297,7 @@ reserving_tool_UI <- function(request) {
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
         tags$style(HTML(rsv_ui_css)),
+        netsimr_phone_head(),
         #the binding of the amount inputs (premiums, simulations)
         tags$script(HTML(sim_amount_input_js)),
         tags$script(HTML(rsv_ratio_js))

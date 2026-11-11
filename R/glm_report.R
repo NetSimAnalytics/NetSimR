@@ -60,8 +60,8 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
   key <- list(id = "key-results", title = "Key results", content = tagList(
     tags$p(class = "section-intro", paste0(formula_text, ", ", glm_family_label(spec), " family with the ", spec$link, " link.")),
     netsimr_report_tiles(c(
-      list(Observations = list(value = format(stats::nobs(model), big.mark = ","),
-                               note = if (!is.null(test)) paste(format(test$rows, big.mark = ","), "rows held out for testing")),
+      list(Observations = list(value = format(stats::nobs(model), big.mark = ",", scientific = FALSE),
+                               note = if (!is.null(test)) paste(format(test$rows, big.mark = ",", scientific = FALSE), "rows held out for testing")),
            Parameters = format(sum(!is.na(stats::coef(model)))),
            AIC = list(value = fmt(aic, 7), note = if (!is.finite(aic)) "None for a quasi-likelihood family"),
            `Deviance explained` = if (is.finite(explained)) paste0(dft_fmt(100 * explained, 3), "%") else dft_dash),
@@ -73,8 +73,8 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
   ))
 
   settings <- list(id = "model", title = "Data and model", content = netsimr_report_settings(list(
-    Data = list(Source = r$source, Rows = format(r$rows, big.mark = ","),
-                `Held out for testing` = if (!is.null(test)) paste0(format(test$rows, big.mark = ","), " rows (seed ", spec$seed, ")") else "None"),
+    Data = list(Source = r$source, Rows = format(r$rows, big.mark = ",", scientific = FALSE),
+                `Held out for testing` = if (!is.null(test)) paste0(format(test$rows, big.mark = ",", scientific = FALSE), " rows (seed ", spec$seed, ")") else "None"),
     Model = list(Response = spec$response, Family = glm_family_label(spec), Link = spec$link,
                  Offset = if (spec$offset == "None") "None" else if (spec$offset_log) paste0("log(", spec$offset, ")") else spec$offset,
                  Weights = spec$weights, Terms = if (nzchar(spec$formula)) spec$formula else "1")
@@ -95,7 +95,7 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
       vars <- setdiff(names(f), c("effect", "relativity", "base", "rows"))
       shown <- if (nrow(f) > 30) f[unique(round(seq(1, nrow(f), length.out = 30))), ] else f
       table <- frame(Value = do.call(paste, c(lapply(vars, function(v) as.character(shown[[v]])), sep = ", ")),
-                     Rows = ifelse(is.na(shown$rows), dft_dash, format(shown$rows, big.mark = ",")))
+                     Rows = ifelse(is.na(shown$rows), dft_dash, format(shown$rows, big.mark = ",", scientific = FALSE)))
       table[[label]] <- dft_fmt(if (is.na(rates$relativity)) shown$effect else shown$relativity, 4)
       div(class = "two-col",
           netsimr_report_table(table, title = name,

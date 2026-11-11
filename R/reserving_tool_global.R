@@ -445,12 +445,17 @@ rsv_method_results <- function(cl, premium, prior, decay, selected) {
 }
 
 # A results table: `rows` and `total` are lists of cells (the first is the row's
-# name), the total row set apart at the bottom.
-rsv_table <- function(header, rows, total = NULL, note = NULL) {
-  row <- function(cells, class = NULL) tags$tr(class = class, lapply(cells, tags$td))
+# name), the total row set apart at the bottom. With `stack`, a phone shows each
+# row as a card, a line per column under the column's name.
+rsv_table <- function(header, rows, total = NULL, note = NULL, stack = FALSE) {
+  row <- function(cells, class = NULL) {
+    tags$tr(class = class, lapply(seq_along(cells), function(j) {
+      tags$td(`data-label` = if (stack && j <= length(header)) header[[j]], cells[[j]])
+    }))
+  }
   tagList(
     div(
-      class = "dft-table-wrap",
+      class = paste(c("dft-table-wrap", if (stack) "dft-table-stack"), collapse = " "),
       tags$table(
         class = "dft-table",
         tags$thead(tags$tr(lapply(header, tags$th))),

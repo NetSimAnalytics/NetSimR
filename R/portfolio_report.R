@@ -16,7 +16,7 @@ write_portfolio_report <- function(file, portfolio, spec, generated = Sys.time()
   frame <- function(...) data.frame(..., check.names = FALSE, stringsAsFactors = FALSE)
 
   key <- list(id = "key-results", title = "Key results", content = tagList(
-    tags$p(class = "section-intro", paste0(nrow(lines), " lines, ", format(p$n, big.mark = ","), " simulated years, ",
+    tags$p(class = "section-intro", paste0(nrow(lines), " lines, ", format(p$n, big.mark = ",", scientific = FALSE), " simulated years, ",
                                            if (p$copula == "t") paste0("t copula with ", format(p$df), " degrees of freedom") else
                                              "Gaussian copula", ".")),
     netsimr_report_tiles(stats::setNames(list(
@@ -50,7 +50,7 @@ write_portfolio_report <- function(file, portfolio, spec, generated = Sys.time()
         netsimr_report_table(corr, title = "Correlations of the copula",
                              note = "The correlations of the copula's normal draws, which give the ranks of the lines' losses.")),
     netsimr_report_settings(list(Simulation = list(
-      Simulations = format(p$n, big.mark = ","), Level = label,
+      Simulations = format(p$n, big.mark = ",", scientific = FALSE), Level = label,
       Copula = if (p$copula == "t") paste0("t, ", format(p$df), " degrees of freedom") else "Gaussian",
       Seed = if (is.null(spec$seed)) "None" else format(spec$seed))))
   ))

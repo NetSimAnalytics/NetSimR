@@ -109,9 +109,9 @@ reserving_tool_Server <- function(input, output, session) {
       class = "dft-stats",
       dft_stat_tile("Source", div(class = "dft-file-name", data_input()$source), icon_name = "file-lines",
                     note = if (!is.null(data_input()$incurred)) "With incurred claims"),
-      dft_stat_tile("Origins", format(nrow(tri), big.mark = ","), icon_name = "calendar",
+      dft_stat_tile("Origins", format(nrow(tri), big.mark = ",", scientific = FALSE), icon_name = "calendar",
                     note = paste(rownames(tri)[1], "to", rownames(tri)[nrow(tri)])),
-      dft_stat_tile("Development periods", format(ncol(tri), big.mark = ","), icon_name = "arrow-right"),
+      dft_stat_tile("Development periods", format(ncol(tri), big.mark = ",", scientific = FALSE), icon_name = "arrow-right"),
       dft_stat_tile("Latest diagonal", rsv_amount(sum(latest)), icon_name = "layer-group"),
       dft_stat_tile("Premium", if (all(is.na(premium))) "None" else rsv_amount(sum(premium, na.rm = TRUE)), icon_name = "coins",
                     note = if (any(is.na(premium)) && !all(is.na(premium))) "Some origins have none")

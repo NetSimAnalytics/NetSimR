@@ -44,6 +44,7 @@ int
 L'Ecuyer
 LDF
 LogNormal
+Lomax
 MBBEFD
 meanlog
 Mitteilungen
@@ -60,6 +61,7 @@ OEP
 ORCID
 Panjer
 Poisson
+prob
 PureIBNR
 Quarg
 R's

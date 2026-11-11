@@ -180,11 +180,11 @@ test_that("claims reported above a threshold are fitted from zero, and their fre
   #the field shows the threshold with its separator
   expect_identical(app$get_js("document.getElementById('sev_threshold').value"), "3,000")
   app_click(app, "execute_sev_analysis")
-  app$wait_for_js("/Mean above threshold/i.test((document.getElementById('sev_param_summary') || {innerText: ''}).innerText)",
+  app$wait_for_js("/Mean above\\s+threshold/i.test((document.getElementById('sev_param_summary') || {innerText: ''}).innerText)",
                   timeout = 60 * 1000)
   table <- app_text(app, "#sev_param_summary")
   expect_match(table, "reporting threshold of 3,000", fixed = TRUE)
-  expect_match(table, "The Pareto starts at the threshold", fixed = TRUE)
+  expect_match(table, "The Pareto and the generalised Pareto start at the threshold", fixed = TRUE)
   #the LogNormal of the claims from zero, not of the claims above the threshold
   fit <- dft_truncated_severity_models(claims$amount, 3000)[[2]]
   expect_match(table, dft_fmt(fit$params[["mu"]]), fixed = TRUE)

@@ -218,9 +218,9 @@ test_that("corrupted files, .rds files and other tools' files are refused with a
 
   #values the app does not offer, and newer or older settings versions
   motor <- sim_settings_examples[["Motor: excess of loss layer"]]
-  write_settings_file(utils::modifyList(motor, list(sevDistr = "Weibull")), path("unknown.txt"),
+  write_settings_file(utils::modifyList(motor, list(sevDistr = "Inverse_Gaussian")), path("unknown.txt"),
                       tool = sim_settings_tool, version = sim_settings_version)
-  expect_match(load_file(path("unknown.txt"), "unknown.txt"), "unknown severity distribution: 'Weibull'", fixed = TRUE)
+  expect_match(load_file(path("unknown.txt"), "unknown.txt"), "unknown severity distribution: 'Inverse_Gaussian'", fixed = TRUE)
   write_settings_file(utils::modifyList(motor, list(reinsuranceStructureAL = c("Limited Layer", "Exclude Layer"))),
                       path("two.txt"), tool = sim_settings_tool, version = sim_settings_version)
   expect_match(load_file(path("two.txt"), "two.txt"),

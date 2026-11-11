@@ -31,6 +31,7 @@ test_that("the indicated rate change trends the losses to the new rates' claims"
   expect_equal(blended$loss_ratio, 0.4 * blended$experience_loss_ratio + 0.6 * 0.65)
   expect_error(indicated_rate_change(70, 100, 2023, effective = 2026, credibility = 0.5), "complement")
   expect_error(indicated_rate_change(70, 100, 2023, effective = 2026, expense_ratio = 0.9, profit = 0.1), "permissible")
+  expect_error(indicated_rate_change(70, 100, "2023", effective = 2026), "accident years, as numbers")
 })
 
 test_that("Buhlmann-Straub credibility matches the actuar package", {

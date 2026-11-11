@@ -117,7 +117,7 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
     for (s in shares) boot_df[[paste0(sub("^p", "", s), "%")]] <- amount(c(o[[s]], boot$total[[s]]))
     tagList(
       netsimr_report_table(boot_df, title = "Bootstrap",
-                           note = paste0(boot$method, ", ", format(length(boot$total_reserves), big.mark = ","), " simulations.")),
+                           note = paste0(boot$method, ", ", format(length(boot$total_reserves), big.mark = ",", scientific = FALSE), " simulations.")),
       netsimr_report_chart(function(dark) rsv_bootstrap_chart(boot$total_reserves, boot$total[["ibnr"]],
                                                               c(`75th percentile` = boot$total[["p75"]],
                                                                 `99.5th percentile` = boot$total[["p99.5"]]), dark),

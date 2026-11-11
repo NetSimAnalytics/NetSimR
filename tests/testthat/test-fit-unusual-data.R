@@ -251,10 +251,10 @@ test_that("distribution fitting tool suggests the model that the fits support", 
     }
     #the sample variance (2.33) is above the mean (1.67), but the Negative Binomial tends to the Poisson,
     #which the table marks as the lowest AIC; the tile suggested the Negative Binomial
-    expect_match(suggestion(c(0, 2, 3), 1), "Suggested model Poisson Too little overdispersion for the Negative Binomial")
+    expect_match(suggestion(c(0, 2, 3), 1), "Suggested model Poisson Too little overdispersion for the other models")
     expect_true(freq_nb_fit()$capped)
     set.seed(12)
-    expect_match(suggestion(rnbinom(300, size = 1, mu = 4), 2), "Suggested model Negative Binomial Lower AIC: the counts are overdispersed")
+    expect_match(suggestion(rnbinom(300, size = 1, mu = 4), 2), "Suggested model Negative Binomial Lowest AIC: the counts are overdispersed")
     expect_lt(freq_nb_fit()$aic, freq_po_fit()$aic)
     expect_match(suggestion(c(2, 2, 3, 3, 2, 3), 3), "Suggested model Poisson The variance is not above the mean")
   })

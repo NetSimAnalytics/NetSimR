@@ -59,7 +59,8 @@ discount_reserves <- function(x, yield_curve = 0, period = 1, timing = 0.5, tail
   if (!is.numeric(timing) || length(timing) != 1 || !is.finite(timing) || timing < 0 || timing > 1) {
     stop("timing must be a share of a period, from 0 to 1.", call. = FALSE)
   }
-  if (!is.numeric(tail_periods) || length(tail_periods) != 1 || tail_periods < 1 || tail_periods != round(tail_periods)) {
+  if (!is.numeric(tail_periods) || length(tail_periods) != 1 || !is.finite(tail_periods) || tail_periods < 1 ||
+      tail_periods != round(tail_periods)) {
     stop("tail_periods must be a whole number of at least 1.", call. = FALSE)
   }
   full <- cl$full_triangle
@@ -113,7 +114,7 @@ solvency_spot_rate <- function(curve, term) {
 #' @export
 print.netsimr_discounted <- function(x, ...) {
   t <- x$total
-  cat("Reserve ", format(round(t[["reserve"]]), big.mark = ","), ", discounted ", format(round(t[["discounted"]]), big.mark = ","),
+  cat("Reserve ", format(round(t[["reserve"]]), big.mark = ",", scientific = FALSE), ", discounted ", format(round(t[["discounted"]]), big.mark = ",", scientific = FALSE),
       " (a discount of ", format(round(t[["discount"]]), big.mark = ","), ", mean term ", formatC(t[["mean_term"]], format = "f", digits = 2),
       " years)\n", sep = "")
   invisible(x)

@@ -61,6 +61,52 @@ test_that("the distribution tool's example fits the liability claims with their 
   })
 })
 
+test_that("the distribution tool saves and loads its settings, and writes a report of the analyses run", {
+  skip_server_on_cran()
+  testServer(distribution_fitting_tool_Server, {
+    session$setInputs(data_source = "example", example = "liability", data_includes_header = TRUE, sep = "\t", dec = ".",
+                      quote = "", severity_var = "amount", sliced_sev_var = "policy_limit", sev_limit_source = "column",
+                      sev_limit_col = "policy_limit", sev_threshold = NA, num_pareto_slices = 2, export_severity = "Burr")
+    v <- read_settings_file(output$save_settings, dft_settings_tool)$values
+    expect_identical(v[c("data_source", "example", "sep", "quote", "sliced_sev_var", "export_severity")],
+                     list(data_source = "example", example = "liability", sep = "\t", quote = "", sliced_sev_var = "policy_limit",
+                          export_severity = "Burr"))
+    expect_true(is.na(v$sev_threshold))
+    # (no analysis has run: no slicing points or thresholds)
+    expect_null(v$slicing_points)
+
+    # a file's columns beat the guesses once the data has them; its slicing points are set at the run
+    path <- tempfile(fileext = ".txt")
+    write_settings_file(list(data_source = "example", example = "liability", sliced_sev_var = "policy_limit",
+                             slicing_points = c(1e5, 5e5)), path, dft_settings_tool, dft_settings_version)
+    session$setInputs(sliced_sev_var = "amount", example = "motor")
+    session$setInputs(load_settings = list(datapath = path, name = "mine.txt"))
+    expect_identical(pending$columns$sliced_sev_var, "policy_limit")
+    expect_equal(pending$slicing, c(1e5, 5e5))
+    session$setInputs(example = "liability")
+    expect_identical(column_choices()$selected$sliced_sev_var, "policy_limit")
+    expect_null(pending$columns$sliced_sev_var)
+    session$setInputs(sliced_sev_var = "amount", execute_sliced_sev_analysis = 1)
+    expect_true(slicing_range()[1] <= 1e5 && slicing_range()[2] >= 5e5)
+    expect_null(pending$slicing)
+    # another tool's file is refused
+    write_settings_file(list(deductible = 1), path, xlp_settings_tool, xlp_settings_version)
+    session$setInputs(load_settings = list(datapath = path, name = "other.txt"))
+    expect_null(pending$columns$severity_var)
+    unlink(path)
+
+    # the report: each analysis run, with its table and charts
+    session$setInputs(slicing_point_left = 1e5, slicing_point_right = 5e5, execute_sev_analysis = 1)
+    html <- paste(readLines(output$download_report, warn = FALSE), collapse = "\n")
+    for (text in c("Distribution Fitting Report", "Liability claims", "Closest severity", "Conditional tail expectations",
+                   "Q-Q plot", "Sliced severity", "Mean excess function", "LogNormal - Pareto - Pareto")) {
+      expect_match(html, text, fixed = TRUE)
+    }
+    expect_no_match(html, "Piecewise Pareto</h2>", fixed = TRUE)
+    expect_gt(lengths(regmatches(html, gregexpr("data:image/png", html, fixed = TRUE))), 10)
+  })
+})
+
 test_that("the reserving tool discounts its reserves, adds a risk adjustment and the reserve risk, and writes a workbook", {
   skip_server_on_cran()
   testServer(reserving_tool_Server, {
@@ -112,14 +158,49 @@ test_that("the reinsurance pricing tool compares its programmes", {
                       rating_year = 2025, rating_premium = 6e7, loading = 25,
                       prog_frequency = "Poisson", prog_severity = "LogNormal", prog_f1 = 200, prog_s1 = 11, prog_s2 = 1.5,
                       prog_n = 2000, prog_level = "0.995", prog_loading = 25, prog_coc = 10, prog_seed = 1)
-    expect_identical(names(programme_list()), c("Quota share 30%", "The layer", "Stop loss", "Quota share 20% and the layer"))
+    expect_identical(names(programme_list()), c("Quota share 30%", "The layer", "Stop loss", "Quota share 20% and the layer",
+                                                "Surplus 4 lines"))
     session$setInputs(prog_name_3 = "", run_programmes = 1)
     s <- current_programmes()$summary
-    expect_identical(s$programme, c("No reinsurance", "Quota share 30%", "The layer", "Quota share 20% and the layer"))
+    expect_identical(s$programme, c("No reinsurance", "Quota share 30%", "The layer", "Quota share 20% and the layer",
+                                    "Surplus 4 lines"))
     expect_match(output$programme_stats$html, "Best value")
     csv <- utils::read.csv(output$download_programmes)
     expect_equal(csv$capital, s$capital)
-    session$setInputs(prog_name_2 = "Quota share 30%")
+    # the surplus treaty's risks are the Exposure tab's profile, each band with its share of the premium
+    surplus <- programme_list()[["Surplus 4 lines"]]$surplus
+    profile <- NetSimR::xl_property_profile
+    expect_equal(surplus[c("retention", "lines", "commission")], list(retention = 1e6, lines = 4, commission = 0.3))
+    expect_equal(surplus$sum_insured, profile$sum_insured)
+    expect_equal(surplus$weights, profile$premium)
+    share <- pmin(pmax(profile$sum_insured - 1e6, 0), 4e6) / profile$sum_insured
+    expect_equal(s$reinsurance_premium[5], 0.7 * 6e7 * sum(profile$premium * share) / sum(profile$premium))
+    # a casualty profile's policy limits stand for the sums insured
+    session$setInputs(profile_example = "casualty")
+    expect_equal(programme_list()[["Surplus 4 lines"]]$surplus$sum_insured, NetSimR::xl_casualty_profile$policy_limit)
+    session$setInputs(prog_surplus_lines_5 = NA)
+    expect_error(programme_list(), "lines of the surplus treaty of 'Surplus 4 lines'")
+    session$setInputs(prog_surplus_lines_5 = 2, prog_surplus_retention_1 = 5e5, prog_surplus_lines_1 = 9)
+
+    # the settings file keeps the grid, a vector for each column
+    v <- read_settings_file(output$save_settings, xlp_settings_tool)$values
+    expect_identical(v$prog_names, c("Quota share 30%", "The layer", "", "Quota share 20% and the layer", "Surplus 4 lines"))
+    expect_equal(v$prog_surplus_retentions, c(5e5, NA, NA, NA, 1e6))
+    expect_equal(v$prog_surplus_liness, c(9, NA, NA, NA, 2))
+    # a file saved with four programmes and no surplus treaty empties the fifth and the surplus columns
+    old <- tempfile(fileext = ".txt")
+    write_settings_file(list(prog_names = c("A", "B", "", ""), prog_qss = c(40, 10, NA, NA),
+                             prog_xl_limits = c(NA, 2e6, NA, NA)), old, xlp_settings_tool, xlp_settings_version)
+    session$setInputs(load_settings = list(datapath = old, name = "old.txt"))
+    grid <- loaded_programmes()
+    expect_identical(grid$name, c("A", "B", "", "", ""))
+    expect_equal(grid$qs, c(40, 10, NA, NA, NA))
+    expect_true(all(is.na(grid$surplus_retention)))
+    expect_true(all(lengths(grid) == 5))
+    unlink(old)
+
+    # (the first programme is now the file's)
+    session$setInputs(prog_name_2 = "A")
     expect_error(programme_list(), "own name")
   })
 })

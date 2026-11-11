@@ -36,7 +36,7 @@ test_that("a blank distribution parameter is named in the error", {
   expect_settings_error("Severity parameter.*sigma", sev_params = 6)
   expect_settings_error("Frequency parameter.*lam", freq_params = NULL)
   expect_settings_error("Frequency parameter.*beta", freqDistr = "Negative_Binomial", freq_params = list(4))
-  expect_settings_error("Severity distribution", sevDistr = "Weibull")
+  expect_settings_error("Severity distribution", sevDistr = "Inverse_Gaussian")
   expect_settings_error("EEL reinsurance structure", reinsuranceStructureEEL = "Some Layer")
 })
 
