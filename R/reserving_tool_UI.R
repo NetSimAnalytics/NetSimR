@@ -282,11 +282,11 @@ reserving_tool_UI <- function(request) {
       warning = "#d97706",
       danger = "#dc2626",
       base_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       ),
       heading_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       )
     ),
@@ -297,6 +297,7 @@ reserving_tool_UI <- function(request) {
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
         tags$style(HTML(rsv_ui_css)),
+        netsimr_fonts_head(),
         netsimr_phone_head(),
         #the binding of the amount inputs (premiums, simulations)
         tags$script(HTML(sim_amount_input_js)),
@@ -405,6 +406,7 @@ reserving_tool_UI <- function(request) {
             condition = "input.data_source == 'upload'",
             fileInput("file1", "File", accept = netsimr_data_accept,
                       placeholder = "No file selected"),
+            netsimr_private_note(),
             bslib::input_switch("data_includes_header", "First row holds column names", value = TRUE),
             div(class = "sim-section-label mt-2", "Separator"),
             div(class = "pill-radio",

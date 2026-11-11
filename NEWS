@@ -97,6 +97,16 @@ Changes in Version 0.4.0
     pass, and the distribution fitting tool's fits above a reporting
     threshold or with policy limits work from sufficient statistics of the
     claims.
+  o Each data upload of the tools says where its file is read: by the R
+    running in the page, on the visitor's computer, in the browser tools of
+    the website, and by the R session of the tool otherwise; it is sent
+    nowhere else. The website says so on its home page and on the Try
+    online page, with what the pages do fetch and how this was checked.
+  o The tools ask no other server for anything: their fonts, Inter and
+    JetBrains Mono, now come with the package (inst/fonts, under the SIL Open
+    Font License) where they were requested from Google Fonts. Run from R, a
+    tool needs no internet connection and makes no request outside the
+    computer.
   o The tools' tables fit their cards on more screens: a column heading of
     several words takes two lines, and a row's name wraps, before the table
     scrolls sideways. The reinsurance pricing tool's comparison of

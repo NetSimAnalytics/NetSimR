@@ -719,11 +719,11 @@ distribution_fitting_tool_UI <- function(request) {
       warning = "#d97706",
       danger = "#dc2626",
       base_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       ),
       heading_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       )
     ),
@@ -733,6 +733,7 @@ distribution_fitting_tool_UI <- function(request) {
         tags$script(HTML(netsimr_theme_js("netsimr-distribution-fitting-theme"))),
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
+        netsimr_fonts_head(),
         netsimr_phone_head(),
         #the binding of the reporting threshold's amount input
         tags$script(HTML(sim_amount_input_js))
@@ -842,6 +843,7 @@ distribution_fitting_tool_UI <- function(request) {
           conditionalPanel(
             condition = "input.data_source != 'example'",
             fileInput("file1", "File", accept = netsimr_data_accept, placeholder = "No file selected"),
+            netsimr_private_note(),
             bslib::input_switch("data_includes_header", "First row holds column names", value = TRUE),
             div(class = "sim-section-label mt-2", "Separator"),
             div(class = "pill-radio",

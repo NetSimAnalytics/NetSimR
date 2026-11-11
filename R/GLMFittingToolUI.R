@@ -311,15 +311,15 @@ GLMFittingToolUI <- function(request) {
       warning = "#d97706",
       danger = "#dc2626",
       base_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       ),
       heading_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       ),
       code_font = bslib::font_collection(
-        bslib::font_google("JetBrains Mono", local = FALSE),
+        "JetBrains Mono",
         "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"
       )
     ),
@@ -330,6 +330,7 @@ GLMFittingToolUI <- function(request) {
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
         tags$style(HTML(glm_ui_css)),
+        netsimr_fonts_head(code = TRUE),
         netsimr_phone_head()
       ),
       #tells the server which theme is showing, so the chart is drawn in matching colours
@@ -446,6 +447,7 @@ GLMFittingToolUI <- function(request) {
           conditionalPanel(
             condition = "input.data_source == 'CSV File'",
             fileInput("csv_file", "File", accept = netsimr_data_accept, placeholder = "No file selected"),
+            netsimr_private_note(),
             bslib::input_switch("csv_header", "First row holds column names", value = TRUE),
             div(class = "sim-section-label mt-2", "Separator"),
             div(class = "pill-radio",
@@ -687,6 +689,7 @@ GLMFittingToolUI <- function(request) {
           tags$hr(class = "sim-divider"),
           div(class = "sim-section-label", "Score new data"),
           fileInput("score_file", "File of policies", accept = netsimr_data_accept, placeholder = "No file selected"),
+          netsimr_private_note(),
           uiOutput("score_result"),
           dft_help("Read with the file options of the Data tab.")
         ),

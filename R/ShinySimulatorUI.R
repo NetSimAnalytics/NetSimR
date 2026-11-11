@@ -1224,11 +1224,11 @@ shiny_simulator_ui <- function(request) {
       warning = "#d97706",
       danger = "#dc2626",
       base_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       ),
       heading_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       )
     ),
@@ -1238,6 +1238,7 @@ shiny_simulator_ui <- function(request) {
         tags$script(HTML(netsimr_theme_js("netsimr-simulator-theme"))),
         tags$script(HTML(sim_amount_input_js)),
         tags$style(HTML(sim_ui_css)),
+        netsimr_fonts_head(),
         netsimr_phone_head()
       ),
       #Shiny's built-in busy indicators follow the app theme, so they work in dark mode too

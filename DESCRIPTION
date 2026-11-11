@@ -2,8 +2,12 @@ Package: NetSimR
 Type: Package
 Title: Actuarial Functions for Non-Life Insurance Modelling
 Version: 0.4.0
-Authors@R: person("Yiannis", "Parizas", email = "yiannis.parizas@gmail.com", role = c("aut", "cre"),
-                  comment = c(ORCID = "0009-0000-0523-0751"))
+Authors@R: c(person("Yiannis", "Parizas", email = "yiannis.parizas@gmail.com", role = c("aut", "cre"),
+                    comment = c(ORCID = "0009-0000-0523-0751")),
+             person("The Inter Project Authors", role = "cph",
+                    comment = "The Inter font, in inst/fonts"),
+             person("The JetBrains Mono Project Authors", role = "cph",
+                    comment = "The JetBrains Mono font, in inst/fonts"))
 Description: Assists actuaries and other insurance modellers in pricing,
     reserving and capital modelling for non-life insurance and
     reinsurance modelling. Provides functions that help model
@@ -47,6 +51,7 @@ Description: Assists actuaries and other insurance modellers in pricing,
     Escaping the triangle by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/06/2019/06/05/escaping-triangle>;
     Taken to excess by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess>.
 License: GPL-3
+Copyright: file inst/COPYRIGHTS
 URL: https://netsimanalytics.github.io/NetSimR/, https://github.com/NetSimAnalytics/NetSimR
 BugReports: https://github.com/NetSimAnalytics/NetSimR/issues
 Encoding: UTF-8

@@ -230,11 +230,11 @@ reinsurance_pricing_tool_UI <- function(request) {
       warning = "#d97706",
       danger = "#dc2626",
       base_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       ),
       heading_font = bslib::font_collection(
-        bslib::font_google("Inter", local = FALSE),
+        "Inter",
         "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
       )
     ),
@@ -245,6 +245,7 @@ reinsurance_pricing_tool_UI <- function(request) {
         tags$style(HTML(sim_ui_css)),
         tags$style(HTML(dft_ui_css)),
         tags$style(HTML(xlp_ui_css)),
+        netsimr_fonts_head(),
         netsimr_phone_head(),
         #the binding of the amount inputs (deductible, limit, premiums)
         tags$script(HTML(sim_amount_input_js))
@@ -393,6 +394,7 @@ reinsurance_pricing_tool_UI <- function(request) {
             conditionalPanel(
               condition = "input.loss_source == 'upload'",
               fileInput("loss_file", "File", accept = accept, placeholder = "No file selected"),
+              netsimr_private_note(),
               file_options("loss"),
               dft_column_select("loss_year_col", "Year column"),
               dft_column_select("loss_amount_col", "Amount column"),
@@ -464,6 +466,7 @@ reinsurance_pricing_tool_UI <- function(request) {
               div(class = "sim-section-label", "Business"),
               pill("profile_type", "Business", c("Property" = "property", "Casualty" = "casualty"), "property"),
               fileInput("profile_file", "File", accept = accept, placeholder = "No file selected"),
+              netsimr_private_note(),
               file_options("profile"),
               selectizeInput("band_col", "Band label column (optional)", choices = NULL,
                              options = list(placeholder = "Upload a data file first")),
