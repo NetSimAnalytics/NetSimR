@@ -217,13 +217,24 @@ order below, or named with these names:
 | Poisson | frequency | lambda |
 | Negative_Binomial | frequency | r, beta (Gamma shape and scale of the Poisson mean) |
 | Binomial | frequency | n, p |
+| Zero_Inflated_Poisson | frequency | lambda, zero_prob (probability of an extra zero) |
+| Zero_Inflated_Negative_Binomial | frequency | r, beta, zero_prob |
 | Fixed_number_of_Counts | frequency | count |
 | Normal | severity | mean, sd |
 | LogNormal | severity | meanlog, sdlog |
 | Gamma | severity | shape, scale |
 | Exponential | severity | rate |
 | Pareto | severity | alpha, x_m (minimum) |
+| Weibull | severity | shape, scale |
+| Burr | severity | alpha, gamma, scale |
+| Generalised_Pareto | severity | location, scale, shape |
 | Fixed_Severity | severity | amount |
+
+The Burr (type XII) has P(X \> x) = (1 + (x / scale)^gamma)^(-alpha), a
+Pareto tail of index alpha \* gamma over a body shaped by gamma. The
+Generalised Pareto has P(X \> x) = (1 + shape \* (x - location) /
+scale)^(-1 / shape) above its location: a Pareto tail of index 1 / shape
+for a positive shape, and the Exponential for shape 0.
 
 Layers are "none", "unlimited" (everything above the deductible),
 "limited" (the limit excess of the deductible) or "exclude" (the claims

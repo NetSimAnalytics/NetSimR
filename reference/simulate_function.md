@@ -74,8 +74,9 @@ simulate_function(
 - freqDistr:
 
   The frequency distribution: `"Poisson"`, `"Negative_Binomial"`,
-  `"Binomial"` or `"Fixed_number_of_Counts"`. The parameters of each are
-  listed in
+  `"Binomial"`, `"Zero_Inflated_Poisson"`,
+  `"Zero_Inflated_Negative_Binomial"` or `"Fixed_number_of_Counts"`. The
+  parameters of each are listed in
   [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md).
 
 - sevDistr:

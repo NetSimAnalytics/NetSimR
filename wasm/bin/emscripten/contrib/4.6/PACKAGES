@@ -7,6 +7,6 @@ Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote,
         pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite, glmnet,
         readxl, writexl
 License: GPL-3
-MD5sum: 36bf3990951e31847b09e70c03046e18
-Built: R 4.6.0; ; 2026-11-10 20:07:39 UTC; unix
+MD5sum: 78076d43996cf018143e76bf2e64fc14
+Built: R 4.6.0; ; 2026-11-11 09:40:27 UTC; unix
 File: NetSimR_0.4.0.tgz

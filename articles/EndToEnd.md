@@ -225,8 +225,11 @@ compare_reinsurance("Poisson", claim_count, "LogNormal", c(meanlog, sdlog), opti
 
 The value column sets 10% a year of the capital saved against the
 margin: positive when the capital relief is worth more than the
-reinsurance costs. The reinsurance pricing tool compares up to four
-programmes on its Programmes tab.
+reinsurance costs. The reinsurance pricing tool compares up to five
+programmes on its Programmes tab, a surplus treaty on its risk profile
+among them;
+[`compare_reinsurance()`](https://netsimanalytics.github.io/NetSimR/reference/compare_reinsurance.md)
+takes one too, with the sums insured of the risks.
 
 ## 5. Capital with a property line
 
