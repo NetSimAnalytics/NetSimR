@@ -10,7 +10,12 @@ template:
       <script data-goatcounter="https://netsimanalytics.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 
 home:
-  title: Actuarial functions for non-life insurance
+  # the home page's tab and link previews; pkgdown appends " • NetSimR", which the
+  # workflow drops from this one page (it already starts with the name)
+  title: "NetSimR: free actuarial tools for non-life insurance"
+  description: >-
+    Free, open-source R package and browser tools for non-life insurance pricing,
+    reserving, reinsurance and capital modelling. Your data stays on your computer.
   links:
   - text: Try the Shiny apps in your browser
     href: https://netsimanalytics.github.io/NetSimR/articles/try-online.html
