@@ -1,4 +1,4 @@
-# NetSimR: Actuarial Functions for Non-Life Insurance Modelling
+# NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital
 
 The NetSimR package provides eight categories of functions:
 
@@ -145,3 +145,11 @@ Authors:
 
 - Yiannis Parizas <yiannis.parizas@gmail.com>
   ([ORCID](https://orcid.org/0009-0000-0523-0751))
+
+Other contributors:
+
+- The Inter Project Authors (The Inter font, in inst/fonts) \[copyright
+  holder\]
+
+- The JetBrains Mono Project Authors (The JetBrains Mono font, in
+  inst/fonts) \[copyright holder\]

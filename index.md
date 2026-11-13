@@ -189,8 +189,8 @@ excess](https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess)
 If NetSimR helps your work, please cite it; `citation("NetSimR")` gives
 the reference for the version installed, and a BibTeX entry:
 
-> Parizas, Y. (2026). NetSimR: Actuarial Functions for Non-Life
-> Insurance Modelling. R package version 0.4.0.
+> Parizas, Y. (2026). NetSimR: Non-Life Actuarial Pricing, Reserving,
+> Reinsurance and Capital. R package version 0.4.0.
 > <https://netsimanalytics.github.io/NetSimR/>
 
 A star on [GitHub](https://github.com/NetSimAnalytics/NetSimR) or a

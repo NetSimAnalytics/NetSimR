@@ -17,12 +17,12 @@
 Source:
 [`inst/CITATION`](https://github.com/NetSimAnalytics/NetSimR/blob/main/inst/CITATION)
 
-Parizas, Y. (2026). NetSimR: Actuarial Functions for Non-Life Insurance
-Modelling. R package version 0.4.0.
+Parizas, Y. (2026). NetSimR: Non-Life Actuarial Pricing, Reserving,
+Reinsurance and Capital. R package version 0.4.0.
 https://netsimanalytics.github.io/NetSimR/
 
     @Manual{,
-      title = {{NetSimR}: Actuarial Functions for Non-Life Insurance Modelling},
+      title = {{NetSimR}: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital},
       author = {Yiannis Parizas},
       year = {2026},
       note = {R package version 0.4.0},
