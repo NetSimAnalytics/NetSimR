@@ -58,6 +58,17 @@ pricing to capital and
 reserves](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md)
 follows one portfolio through the same steps in code.
 
+## About the author
+
+Yiannis Parizas (BSc, MSc, FIA, MBA, ACII) wrote NetSimR and its tools.
+He was editor-in-chief of *The Actuary*, the magazine of the Institute
+and Faculty of Actuaries, for two years, after two years as its general
+insurance and data science features editor. His articles there include
+the three that the package’s methods refer to: “Free for all” (2023),
+“Escaping the triangle” (2019) and “Taken to excess” (2019). [His
+articles in The
+Actuary](https://www.theactuary.com/authors/yiannis-parizas).
+
 **Get in touch.** Yiannis Parizas, the author of NetSimR:
 <yiannis.parizas@gmail.com> or
 [LinkedIn](https://www.linkedin.com/in/yiannisparizas/).

@@ -2,8 +2,9 @@
 
 ## Authors
 
-- **Yiannis Parizas**. Author, maintainer.
-  [](https://orcid.org/0009-0000-0523-0751)
+- **[Yiannis
+  Parizas](https://www.theactuary.com/authors/yiannis-parizas)**.
+  Author, maintainer. [](https://orcid.org/0009-0000-0523-0751)
 
 - **The Inter Project Authors**. Copyright holder.  
   The Inter font, in inst/fonts
