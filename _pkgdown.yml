@@ -33,6 +33,11 @@ home:
   - text: Custom tools for insurers and reinsurers
     href: https://netsimanalytics.github.io/NetSimR/articles/custom-tools.html
 
+# the author's name in the sidebar links to his articles in The Actuary
+authors:
+  Yiannis Parizas:
+    href: https://www.theactuary.com/authors/yiannis-parizas
+
 navbar:
   structure:
     left: [intro, tryonline, reference, articles, news, customtools]
