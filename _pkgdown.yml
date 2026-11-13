@@ -2,6 +2,10 @@ url: https://netsimanalytics.github.io/NetSimR/
 
 template:
   bootstrap: 5
+  # a light, dark or automatic theme, chosen in the navbar (automatic follows the computer's)
+  light-switch: true
+  theme: arrow-light
+  theme-dark: arrow-dark
   # the picture of a link shared on LinkedIn, Teams, Slack and the like (pkgdown/assets/card.png);
   # the logo is man/figures/logo.png and the browser's icons are in pkgdown/favicon
   opengraph:
@@ -41,7 +45,7 @@ authors:
 navbar:
   structure:
     left: [intro, tryonline, reference, articles, news, customtools]
-    right: [search, github]
+    right: [search, github, lightswitch]
   components:
     tryonline:
       text: Try online
