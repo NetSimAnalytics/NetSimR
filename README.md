@@ -172,8 +172,8 @@ The methods are described in articles by Yiannis Parizas in *The Actuary*:
 If NetSimR helps your work, please cite it; `citation("NetSimR")` gives the
 reference for the version installed, and a BibTeX entry:
 
-> Parizas, Y. (2026). NetSimR: Actuarial Functions for Non-Life Insurance
-> Modelling. R package version 0.4.0. <https://netsimanalytics.github.io/NetSimR/>
+> Parizas, Y. (2026). NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance
+> and Capital. R package version 0.4.0. <https://netsimanalytics.github.io/NetSimR/>
 
 A star on [GitHub](https://github.com/NetSimAnalytics/NetSimR) or a mention to
 a colleague also helps others find it.

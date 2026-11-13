@@ -28,7 +28,7 @@ netsimr_year <- function() {
 # How to cite the package, as inst/CITATION gives it (citation("NetSimR")): the author, the
 # year of the version, the title, the version and the website.
 netsimr_citation_text <- function(version = netsimr_version(), year = netsimr_year()) {
-  paste0("Parizas, Y. (", year, "). NetSimR: Actuarial Functions for Non-Life Insurance Modelling. ",
+  paste0("Parizas, Y. (", year, "). NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital. ",
          "R package", if (nzchar(version)) paste0(" version ", version), ". ", netsimr_website_url)
 }
 

@@ -4,7 +4,7 @@
 \name{NetSimR-package}
 \alias{NetSimR}
 \alias{NetSimR-package}
-\title{NetSimR: Actuarial Functions for Non-Life Insurance Modelling}
+\title{NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital}
 \description{
 The NetSimR package provides eight categories of functions:
 \enumerate{
@@ -144,6 +144,12 @@ Useful links:
 Authors:
 \itemize{
   \item Yiannis Parizas \email{yiannis.parizas@gmail.com} (\href{https://orcid.org/0009-0000-0523-0751}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item The Inter Project Authors (The Inter font, in inst/fonts) [copyright holder]
+  \item The JetBrains Mono Project Authors (The JetBrains Mono font, in inst/fonts) [copyright holder]
 }
 
 }
