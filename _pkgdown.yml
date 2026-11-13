@@ -2,12 +2,22 @@ url: https://netsimanalytics.github.io/NetSimR/
 
 template:
   bootstrap: 5
+  # the picture of a link shared on LinkedIn, Teams, Slack and the like (pkgdown/assets/card.png);
+  # the logo is man/figures/logo.png and the browser's icons are in pkgdown/favicon
+  opengraph:
+    image:
+      src: card.png
+      alt: "NetSimR: free actuarial tools for non-life insurance. Pricing, reserving, reinsurance and capital, in R or in your browser."
+  params:
+    # Google Search Console's proof that the site is ours (it is public in every page)
+    google_site_verification: AKlPkBAn-vsvVKpt5cN47ZEQHXtdrM5_FtSX6NEI0Dc
   # page views, counted by GoatCounter without cookies or personal data
   # (https://netsimanalytics.goatcounter.com); the browser tools get the same script from
   # pkgdown/shinylive-apps.R
   includes:
     in_header: |
       <script data-goatcounter="https://netsimanalytics.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+      <meta name="twitter:card" content="summary_large_image">
 
 home:
   # the home page's tab and link previews; pkgdown appends " • NetSimR", which the

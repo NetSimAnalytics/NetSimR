@@ -1,4 +1,4 @@
-# NetSimR
+# NetSimR <img src="man/figures/logo.png" align="right" height="139" alt="NetSimR logo" />
 
 [![R-CMD-check](https://github.com/NetSimAnalytics/NetSimR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/NetSimAnalytics/NetSimR/actions/workflows/R-CMD-check.yaml)
 [![CRAN status](https://www.r-pkg.org/badges/version/NetSimR)](https://CRAN.R-project.org/package=NetSimR)

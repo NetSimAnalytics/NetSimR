@@ -102,6 +102,9 @@ Changes in Version 0.4.0
     the website, and by the R session of the tool otherwise; it is sent
     nowhere else. The website says so on its home page and on the Try
     online page, with what the pages do fetch and how this was checked.
+  o A logo: NetSimR's symbol in a hexagon (man/figures/logo.png), shown in
+    the README and on the website, which also has the symbol as its browser
+    icon and a picture for links shared on LinkedIn and elsewhere.
   o The tools ask no other server for anything: their fonts, Inter and
     JetBrains Mono, now come with the package (inst/fonts, under the SIL Open
     Font License) where they were requested from Google Fonts. Run from R, a
