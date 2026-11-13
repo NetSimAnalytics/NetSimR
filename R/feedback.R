@@ -2,9 +2,10 @@
 #About the package, from the tools
 ##############
 
-# The package's website, repository and issue forms (.github/ISSUE_TEMPLATE: a bug report
+# The package's website, its DOI (CRAN's), repository and issue forms (.github/ISSUE_TEMPLATE: a bug report
 # and a feature request).
 netsimr_website_url <- "https://netsimanalytics.github.io/NetSimR/"
+netsimr_doi_url <- "https://doi.org/10.32614/CRAN.package.NetSimR"
 netsimr_github_url <- "https://github.com/NetSimAnalytics/NetSimR"
 netsimr_issues_url <- "https://github.com/NetSimAnalytics/NetSimR/issues/new"
 
@@ -26,10 +27,10 @@ netsimr_year <- function() {
 }
 
 # How to cite the package, as inst/CITATION gives it (citation("NetSimR")): the author, the
-# year of the version, the title, the version and the website.
+# year of the version, the title, the version and the DOI that CRAN gives the package.
 netsimr_citation_text <- function(version = netsimr_version(), year = netsimr_year()) {
   paste0("Parizas, Y. (", year, "). NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital. ",
-         "R package", if (nzchar(version)) paste0(" version ", version), ". ", netsimr_website_url)
+         "R package", if (nzchar(version)) paste0(" version ", version), ". ", netsimr_doi_url)
 }
 
 # The link of an issue form, with the tool and the version of NetSimR filled in, so a

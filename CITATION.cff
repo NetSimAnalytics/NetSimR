@@ -17,6 +17,8 @@ authors:
     orcid: "https://orcid.org/0009-0000-0523-0751"
 version: 0.4.0
 license: GPL-3.0-only
+# the DOI that CRAN gives every package, which leads to its CRAN page
+doi: "10.32614/CRAN.package.NetSimR"
 url: "https://netsimanalytics.github.io/NetSimR/"
 repository-code: "https://github.com/NetSimAnalytics/NetSimR"
 repository-artifact: "https://CRAN.R-project.org/package=NetSimR"

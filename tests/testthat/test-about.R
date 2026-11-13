@@ -10,7 +10,7 @@ test_that("the issue forms open with the tool and the version filled in", {
 test_that("the citation of the tools is the package's", {
   text <- netsimr_citation_text("0.4.0", "2026")
   expect_identical(text, paste("Parizas, Y. (2026). NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital.",
-                               "R package version 0.4.0. https://netsimanalytics.github.io/NetSimR/"))
+                               "R package version 0.4.0. https://doi.org/10.32614/CRAN.package.NetSimR"))
   citation_file <- system.file("CITATION", package = "NetSimR")
   skip_if(!nzchar(citation_file), "the CITATION file is not installed")
   entry <- utils::readCitationFile(citation_file, meta = list(Version = "0.4.0", `Date/Publication` = "2026-12-01 10:00:00 UTC"))

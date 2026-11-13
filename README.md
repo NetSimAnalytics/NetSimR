@@ -173,7 +173,7 @@ If NetSimR helps your work, please cite it; `citation("NetSimR")` gives the
 reference for the version installed, and a BibTeX entry:
 
 > Parizas, Y. (2026). NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance
-> and Capital. R package version 0.4.0. <https://netsimanalytics.github.io/NetSimR/>
+> and Capital. R package version 0.4.0. <https://doi.org/10.32614/CRAN.package.NetSimR>
 
 A star on [GitHub](https://github.com/NetSimAnalytics/NetSimR) or a mention to
 a colleague also helps others find it.
