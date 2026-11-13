@@ -5,6 +5,8 @@ methods validated against established packages, in tools that people who
 do not write R can use — can be built around your own data, assumptions
 and processes.
 
+## What can be built
+
 ### Pricing
 
 GLM rating models, rate tables ready for a rating engine, scoring of new

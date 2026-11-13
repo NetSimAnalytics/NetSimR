@@ -49,3 +49,17 @@
     padding: 0.8rem 1.2rem;
   }
 }
+
+/* In the dark theme, the navbar's current page is lighter grey on a lighter background,
+   4.3:1; full-strength text makes it readable (accessibility checks ask 4.5:1) */
+[data-bs-theme="dark"] .navbar .nav-item.active > .nav-link {
+  color: var(--bs-emphasis-color);
+}
+
+/* The author under an article's title, which the site's workflow writes as text rather than
+   pkgdown's heading (.github/workflows/pkgdown.yaml) */
+.page-header p.author {
+  font-size: 1.15rem;
+  margin: 0 0 0.5rem 0;
+  color: var(--bs-secondary-color);
+}
