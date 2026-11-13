@@ -53,6 +53,14 @@ jobs:
           sed -i '/^<title>/r pkgdown/structured-data.html' docs/index.html
           grep -c 'application/ld+json' docs/index.html
 
+      # pkgdown writes an article's author as a heading (h4) straight after its title (h1), a
+      # skipped level that accessibility checks flag; the name is a line of text, not a heading
+      - name: Write the articles' author as text, not a heading
+        run: |
+          perl -0pi -e 's|<h4 data-toc-skip class="author">(.*?)</h4>|<p class="author">$1</p>|gs' docs/articles/*.html
+          grep -l 'class="author"' docs/articles/*.html | wc -l
+          ! grep -q '<h4 data-toc-skip class="author"' docs/articles/*.html
+
       # the reports of the worked example (vignettes/articles/worked-example.Rmd), written by
       # the tools themselves
       - name: Write the worked example's reports

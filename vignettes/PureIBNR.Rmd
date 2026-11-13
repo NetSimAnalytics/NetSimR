@@ -1,6 +1,7 @@
 ---
 title: "Pure IBNR exposure from a reporting delay distribution"
 author: "Yiannis Parizas"
+description: "Pure IBNR claim counts and unearned exposure from a LogNormal or Gamma reporting delay distribution, with the theory and worked examples in R."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Pure IBNR exposure from a reporting delay distribution}

@@ -6,6 +6,12 @@ template:
   light-switch: true
   theme: arrow-light
   theme-dark: arrow-dark
+  # links and buttons in the logo's blue: Bootstrap's own blue (#0d6efd) is only 4.5:1 on
+  # white, below what accessibility checks ask of text; this one is 7.3:1. In the dark theme
+  # links are a light tint of it (Bootstrap's own tint is 4.1:1 on the background of code)
+  bslib:
+    primary: "#305595"
+    link-color-dark: "#a3b8dc"
   # the picture of a link shared on LinkedIn, Teams, Slack and the like (pkgdown/assets/card.png);
   # the logo is man/figures/logo.png and the browser's icons are in pkgdown/favicon
   opengraph:

@@ -1,6 +1,7 @@
 ---
 title: "Pricing an excess of loss layer"
 author: "Yiannis Parizas"
+description: "Pricing an excess of loss layer in R: burning cost, Pareto rating, exposure rating with a risk profile, credibility and the technical premium."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Pricing an excess of loss layer}

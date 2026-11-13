@@ -65,7 +65,14 @@ page_head <- function(tool) {
     "<link rel=\"icon\" type=\"image/png\" sizes=\"96x96\" href=\"../../favicon-96x96.png\">",
     "<link rel=\"icon\" type=\"image/svg+xml\" href=\"../../favicon.svg\">",
     "<link rel=\"icon\" sizes=\"any\" href=\"../../favicon.ico\">",
-    "<link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"../../apple-touch-icon.png\">")
+    "<link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"../../apple-touch-icon.png\">",
+    # for accessibility: shinylive's light grey "Loading packages..." is 2.8:1 on white, and
+    # the frame it runs the tool in has no title for screen readers to announce
+    "<style>.loading-status .loading-stage { color: #595959; }</style>",
+    sprintf(paste0("<script>new MutationObserver(function () { var f = document.querySelector(",
+                   "\"iframe.app-frame:not([title])\"); if (f) f.title = \"%s\"; })",
+                   ".observe(document.documentElement, { childList: true, subtree: true });</script>"),
+            gsub("[\"<>\\\\]", "", titles[[tool]])))
 }
 
 source_dir <- file.path(tempdir(), "netsimr-shinylive")

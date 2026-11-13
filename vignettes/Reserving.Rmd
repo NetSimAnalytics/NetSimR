@@ -1,6 +1,7 @@
 ---
 title: "Claims reserving with the chain ladder and its relatives"
 author: "Yiannis Parizas"
+description: "Claims reserving in R: the chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Cape Cod, the bootstrap, the one-year view and the Munich chain ladder."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Claims reserving with the chain ladder and its relatives}

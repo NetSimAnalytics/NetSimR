@@ -1,6 +1,7 @@
 ---
 title: "Capped means, exposure curves and increased limit factors"
 author: "Yiannis Parizas"
+description: "Capped means, exposure curves and increased limit factors for LogNormal, Gamma, Pareto and sliced severities, with the theory and worked examples in R."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Capped means, exposure curves and increased limit factors}

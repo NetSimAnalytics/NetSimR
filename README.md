@@ -18,7 +18,7 @@ website, in an R that runs inside your browser. A file you open in a tool is rea
 not sent anywhere. [How this works](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer).
 
 <p align="center">
-<a class="netsimr-try" href="https://netsimanalytics.github.io/NetSimR/articles/try-online.html" aria-label="Try the Shiny apps in your browser, nothing to install"><img src="https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge" alt="Try the Shiny apps in your browser, nothing to install" height="40"></a>
+<a class="netsimr-try" href="https://netsimanalytics.github.io/NetSimR/articles/try-online.html" aria-label="Try the Shiny apps in your browser, nothing to install"><img src="https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge" alt="Try the Shiny apps in your browser, nothing to install" width="683" height="40"></a>
 </p>
 
 ## Installation

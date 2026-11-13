@@ -1,6 +1,7 @@
 ---
 title: "Rate reviews: on-level premiums, the indicated rate change and credibility"
 author: "Yiannis Parizas"
+description: "A rate review with the loss ratio method in R: on-level premiums by the parallelogram method, trended losses, the indicated rate change and credibility."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Rate reviews: on-level premiums, the indicated rate change and credibility}

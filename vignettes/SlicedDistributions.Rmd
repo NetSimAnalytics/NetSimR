@@ -1,6 +1,7 @@
 ---
 title: "Sliced LogNormal-Pareto and Gamma-Pareto distributions"
 author: "Yiannis Parizas"
+description: "Sliced LogNormal-Pareto and Gamma-Pareto distributions for claim severities with a heavy tail: densities, distribution functions, quantiles and means in R."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Sliced LogNormal-Pareto and Gamma-Pareto distributions}

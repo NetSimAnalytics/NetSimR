@@ -1,6 +1,7 @@
 ---
 title: "From pricing to capital and reserves: a motor portfolio"
 author: "Yiannis Parizas"
+description: "A motor portfolio through a non-life actuary's work in R: GLM pricing, claims simulation, excess of loss reinsurance, capital, reserves, IFRS 17 and Solvency II."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{From pricing to capital and reserves: a motor portfolio}
