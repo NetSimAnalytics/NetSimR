@@ -19,7 +19,7 @@ Source:
 
 Parizas, Y. (2026). NetSimR: Non-Life Actuarial Pricing, Reserving,
 Reinsurance and Capital. R package version 0.4.0.
-https://netsimanalytics.github.io/NetSimR/
+https://doi.org/10.32614/CRAN.package.NetSimR
 
     @Manual{,
       title = {{NetSimR}: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital},
@@ -27,4 +27,5 @@ https://netsimanalytics.github.io/NetSimR/
       year = {2026},
       note = {R package version 0.4.0},
       url = {https://netsimanalytics.github.io/NetSimR/},
+      doi = {10.32614/CRAN.package.NetSimR},
     }
