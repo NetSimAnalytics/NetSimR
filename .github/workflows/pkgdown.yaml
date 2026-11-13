@@ -44,11 +44,14 @@ jobs:
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
-      # the home page's title starts with the package's name, so pkgdown's " • NetSimR" is dropped
-      - name: Shorten the home page's title
+      # the home page's title starts with the package's name, so pkgdown's " • NetSimR" is dropped;
+      # and the page tells search engines what NetSimR is (pkgdown/structured-data.html)
+      - name: Shorten the home page's title, and describe the software for search engines
         run: |
           sed -i 's|^<title>\(NetSimR: .*\) • NetSimR</title>|<title>\1</title>|' docs/index.html
           grep -o '<title>[^<]*</title>' docs/index.html
+          sed -i '/^<title>/r pkgdown/structured-data.html' docs/index.html
+          grep -c 'application/ld+json' docs/index.html
 
       # the reports of the worked example (vignettes/articles/worked-example.Rmd), written by
       # the tools themselves

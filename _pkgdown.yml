@@ -18,6 +18,7 @@ template:
     in_header: |
       <script data-goatcounter="https://netsimanalytics.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
       <meta name="twitter:card" content="summary_large_image">
+      <meta name="msvalidate.01" content="81143FE784BFBFD304B0AB4F2EC23785">
 
 home:
   # the home page's tab and link previews; pkgdown appends " • NetSimR", which the
