@@ -214,19 +214,10 @@ sim_report_draw_counts <- function(pal, counts, quantile_of) {
   graphics::axis(2, at = y_at, labels = formatC(y_at, format = "d", big.mark = ","), lwd = 0)
 }
 
-#' Write the simulation report as a self-contained HTML file
-#'
-#' Builds the page with shiny's HTML tag functions and embeds the charts as PNG images, so the
-#' report needs neither pandoc nor rmarkdown.
-#'
-#' @param file Path of the HTML file to write.
-#' @param settings The list of \code{simulate_function} arguments used for the run.
-#' @param results The data frame returned by \code{simulate_function}. A numeric
-#'   vector of total claims is also accepted.
-#' @param generated Time stamp shown in the report.
-#' @return The path of the written file, invisibly.
-#' @noRd
-write_simulation_report <- function(file, settings, results, generated = Sys.time()) {
+# What the sections of the simulation report draw on: the run's summary, the figures and charts
+# it shows, the formatting of its amounts and the helpers of its tables, from the settings and
+# results of write_simulation_report(). A list, by name.
+sim_report_facts <- function(settings, results) {
   s <- settings
   #every figure in the report comes from the summary; the raw columns only feed the charts
   summary <- summarise_simulation(settings, results)
@@ -248,9 +239,6 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     if (!length(largest)) largest <- NULL
   }
   results <- results[!is.na(results$total_claims), , drop = FALSE]
-
-  div <- shiny::div
-  tags <- shiny::tags
 
   #special characters built from code points keep this file ASCII-only
   dash <- intToUtf8(8212)
@@ -423,7 +411,46 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     isTRUE(is.finite(s$reinsurance_structure_eel_premium))
   no_structure <- function(structure) is_blank(structure) || identical(structure, "No Reinsurance Structure")
 
-  # ---------- key results ----------
+  list(s = s, summary = summary, claims = claims, n = n, n_undefined = n_undefined, results = results,
+       column_or_null = column_or_null, counts = counts, largest = largest, dash = dash, nbsp = nbsp,
+       alpha = alpha, is_blank = is_blank, fmt_num = fmt_num, fmt_int = fmt_int, fmt_pct = fmt_pct,
+       fmt_prob = fmt_prob, amount_digits = amount_digits, fmt_amount = fmt_amount,
+       fmt_setting = fmt_setting, fmt_return_period = fmt_return_period, count_of = count_of, known = known,
+       distr_label = distr_label, param_text = param_text, st = st, sorted_vectors = sorted_vectors,
+       quantile_of_vec = quantile_of_vec, claims_mean = claims_mean, claims_sd = claims_sd, var995 = var995,
+       tvar995 = tvar995, cv_text = cv_text, eel = eel, al = al, role = role,
+       modelled_label = modelled_label, has_gross = has_gross, finite_claims = finite_claims,
+       n_infinite = n_infinite, both_infinities = both_infinities, infinite_note = infinite_note,
+       undefined_text = undefined_text, zero_share = zero_share, histogram_totals = histogram_totals,
+       plot_claims = plot_claims, zero_note = zero_note, max_return_period = max_return_period,
+       chart_card = chart_card, draw_histogram = draw_histogram, draw_cdf = draw_cdf,
+       draw_counts = draw_counts, draw_return_periods = draw_return_periods, off = off,
+       report_table = report_table, report_section = report_section, has_deductible = has_deductible,
+       has_limit = has_limit, priced_reinstatements = priced_reinstatements, no_structure = no_structure)
+}
+
+# The key results section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_key_results <- function(r) {
+  both_infinities <- r$both_infinities
+  claims <- r$claims
+  claims_mean <- r$claims_mean
+  claims_sd <- r$claims_sd
+  count_of <- r$count_of
+  cv_text <- r$cv_text
+  dash <- r$dash
+  fmt_amount <- r$fmt_amount
+  fmt_int <- r$fmt_int
+  fmt_return_period <- r$fmt_return_period
+  n <- r$n
+  n_infinite <- r$n_infinite
+  n_undefined <- r$n_undefined
+  report_section <- r$report_section
+  role <- r$role
+  st <- r$st
+  tvar995 <- r$tvar995
+  undefined_text <- r$undefined_text
+  var995 <- r$var995
+
   key_intro <- switch(
     role,
     gross = "Total claims per simulated period, after any tail adjustments.",
@@ -454,8 +481,29 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       Maximum = list(value = fmt_amount(st$max), note = "Largest simulated total")
     ), tail = c("VaR 99.5%", "TVaR 99.5%"))
   )
+  key_results
+}
 
-  # ---------- model settings ----------
+# The model settings section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_model_settings <- function(r) {
+  al <- r$al
+  alpha <- r$alpha
+  count_of <- r$count_of
+  distr_label <- r$distr_label
+  eel <- r$eel
+  fmt_int <- r$fmt_int
+  fmt_num <- r$fmt_num
+  fmt_setting <- r$fmt_setting
+  has_deductible <- r$has_deductible
+  has_limit <- r$has_limit
+  is_blank <- r$is_blank
+  no_structure <- r$no_structure
+  off <- r$off
+  param_text <- r$param_text
+  priced_reinstatements <- r$priced_reinstatements
+  report_section <- r$report_section
+  s <- r$s
+
   slice_count <- if (isTRUE(s$paretoSlice) && !is_blank(s$pareto_slice_times)) as.integer(s$pareto_slice_times) else 0L
   slice_rows <- if (slice_count > 0) {
     alphas <- unlist(s$slice_pareto_alphas)
@@ -526,8 +574,26 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       )
     ))
   )
+  model_settings
+}
 
-  # ---------- gross, ceded and net ----------
+# The gross, ceded and net section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_gross_net <- function(r) {
+  chart_card <- r$chart_card
+  count_of <- r$count_of
+  dash <- r$dash
+  draw_return_periods <- r$draw_return_periods
+  fmt_num <- r$fmt_num
+  fmt_pct <- r$fmt_pct
+  has_gross <- r$has_gross
+  known <- r$known
+  max_return_period <- r$max_return_period
+  modelled_label <- r$modelled_label
+  report_section <- r$report_section
+  report_table <- r$report_table
+  role <- r$role
+  summary <- r$summary
+
   gross_section <- NULL
   if (has_gross) {
     columns <- summary$gross$series
@@ -613,8 +679,21 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       if (!is.null(comparison_chart)) div(style = "margin-top: 16px;", comparison_chart)
     )
   }
+  gross_section
+}
 
-  # ---------- layer metrics ----------
+# The layer metrics section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_layer_metrics <- function(r) {
+  fmt_amount <- r$fmt_amount
+  fmt_int <- r$fmt_int
+  fmt_num <- r$fmt_num
+  fmt_pct <- r$fmt_pct
+  fmt_prob <- r$fmt_prob
+  fmt_setting <- r$fmt_setting
+  report_section <- r$report_section
+  report_table <- r$report_table
+  summary <- r$summary
+
   layer_section <- NULL
   if (!is.null(summary$layer)) {
     layer <- summary$layer
@@ -671,8 +750,29 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       div(class = "table-card", report_table(metrics, numeric_cols = 2, explain_cols = 3))
     )
   }
+  layer_section
+}
 
-  # ---------- statistics, tail risk and accuracy ----------
+# The statistics, tail risk and accuracy section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_statistics <- function(r) {
+  claims_mean <- r$claims_mean
+  claims_sd <- r$claims_sd
+  cv_text <- r$cv_text
+  dash <- r$dash
+  fmt_amount <- r$fmt_amount
+  fmt_int <- r$fmt_int
+  fmt_num <- r$fmt_num
+  fmt_pct <- r$fmt_pct
+  fmt_return_period <- r$fmt_return_period
+  largest <- r$largest
+  n <- r$n
+  n_undefined <- r$n_undefined
+  quantile_of_vec <- r$quantile_of_vec
+  report_section <- r$report_section
+  report_table <- r$report_table
+  st <- r$st
+  summary <- r$summary
+
   summary_stats <- data.frame(
     Metric = c("Simulations", "Mean", "Median", "Standard deviation", "Coefficient of variation", "Minimum", "Maximum"),
     Value = c(fmt_int(n), fmt_num(claims_mean), fmt_num(st$median), fmt_num(claims_sd),
@@ -752,8 +852,20 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     ),
     accuracy_warning
   )
+  statistics
+}
 
-  # ---------- claim frequency ----------
+# The claim frequency section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_frequency <- function(r) {
+  chart_card <- r$chart_card
+  draw_counts <- r$draw_counts
+  fmt_int <- r$fmt_int
+  fmt_num <- r$fmt_num
+  fmt_prob <- r$fmt_prob
+  report_section <- r$report_section
+  report_table <- r$report_table
+  summary <- r$summary
+
   frequency_section <- NULL
   if (!is.null(summary$frequency)) {
     frequency <- summary$frequency
@@ -778,8 +890,26 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       )
     )
   }
+  frequency_section
+}
 
-  # ---------- charts ----------
+# The charts section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_charts <- function(r) {
+  chart_card <- r$chart_card
+  claims <- r$claims
+  count_of <- r$count_of
+  draw_cdf <- r$draw_cdf
+  draw_histogram <- r$draw_histogram
+  draw_return_periods <- r$draw_return_periods
+  fmt_return_period <- r$fmt_return_period
+  infinite_note <- r$infinite_note
+  largest <- r$largest
+  max_return_period <- r$max_return_period
+  modelled_label <- r$modelled_label
+  n_undefined <- r$n_undefined
+  report_section <- r$report_section
+  zero_note <- r$zero_note
+
   return_period_card <- if (max_return_period >= 5) {
     #colours are palette names, so each theme's copy of the chart uses its own colours
     modelled_series <- stats::setNames(list(list(values = claims, col = "blue", lty = 1, lwd = 2.6)), modelled_label)
@@ -816,8 +946,19 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     chart_card(draw_cdf, "Cumulative distribution", "Share of simulations with total claims at or below each amount.",
                "Cumulative distribution of total claims")
   )
+  charts
+}
 
-  # ---------- reading guide ----------
+# The reading guide section of the simulation report, from its facts `r` (sim_report_facts()).
+sim_report_reading_guide <- function(r) {
+  al <- r$al
+  eel <- r$eel
+  fmt_int <- r$fmt_int
+  has_gross <- r$has_gross
+  no_structure <- r$no_structure
+  report_section <- r$report_section
+  st <- r$st
+
   reading_guide <- report_section(
     "how-to-read", "How to read this report",
     div(class = "callout", tags$ul(
@@ -836,10 +977,32 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       tags$li("Figures reflect the tail adjustments and reinsurance structures listed under Model settings.")
     ))
   )
+  reading_guide
+}
 
-  # ---------- page ----------
-  netsimr_write_report(file, "Simulation Report", "NetSimulator by NetSimR",
-                       list(key_results, model_settings, gross_section, layer_section, statistics, frequency_section,
-                            charts, reading_guide),
-                       generated = generated)
+#' Write the simulation report as a self-contained HTML file
+#'
+#' Builds the page with shiny's HTML tag functions and embeds the charts as PNG images, so the
+#' report needs neither pandoc nor rmarkdown.
+#'
+#' @param file Path of the HTML file to write.
+#' @param settings The list of \code{simulate_function} arguments used for the run.
+#' @param results The data frame returned by \code{simulate_function}. A numeric
+#'   vector of total claims is also accepted.
+#' @param generated Time stamp shown in the report.
+#' @return The path of the written file, invisibly.
+#' @noRd
+write_simulation_report <- function(file, settings, results, generated = Sys.time()) {
+  r <- sim_report_facts(settings, results)
+  sections <- list(
+    sim_report_key_results(r),
+    sim_report_model_settings(r),
+    sim_report_gross_net(r),
+    sim_report_layer_metrics(r),
+    sim_report_statistics(r),
+    sim_report_frequency(r),
+    sim_report_charts(r),
+    sim_report_reading_guide(r)
+  )
+  netsimr_write_report(file, "Simulation Report", "NetSimulator by NetSimR", sections, generated = generated)
 }

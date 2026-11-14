@@ -34,7 +34,7 @@ test_that("a direct png() call asks Windows for the cairo device, and the report
   #the reports draw their charts with them (netsimr_report_chart()); the Windows default device
   #would not anti-alias
   expect_true(any(grepl("png_device_args", deparse(body(netsimr_report_chart)), fixed = TRUE)))
-  expect_true(any(grepl("netsimr_report_chart", deparse(body(write_simulation_report)), fixed = TRUE)))
+  expect_true(any(grepl("netsimr_report_chart", deparse(body(sim_report_facts)), fixed = TRUE)))
   #shiny's renderPlot gets the same arguments where it would draw with png()
   old <- options(shiny.useragg = FALSE, shiny.usecairo = FALSE)
   on.exit(options(old), add = TRUE)
