@@ -24,6 +24,10 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     NULL
   }
 
+  # whether the tool has data: an example, or an uploaded file
+  using_example <- reactive(identical(input$data_source, "example"))
+  has_data <- function() using_example() || isTruthy(input$file1)
+
   # message shown in place of an output until its analysis has run
   need_run <- function(button, what) {
     validate(
@@ -95,8 +99,8 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   }
 
   # the tabs, each a function of its own (below), in the order of what they use of each other
-  tool <- list(dark = dark, failed_fit = failed_fit, need_run = need_run, claim_sizes = claim_sizes,
-               rows_left_out_note = rows_left_out_note, fit_lnorm_mle = fit_lnorm_mle,
+  tool <- list(dark = dark, using_example = using_example, has_data = has_data, failed_fit = failed_fit,
+               need_run = need_run, claim_sizes = claim_sizes, rows_left_out_note = rows_left_out_note, fit_lnorm_mle = fit_lnorm_mle,
                fit_slice_pareto = fit_slice_pareto, charts = charts, add_chart = add_chart,
                model_cdfs = model_cdfs)
   tool <- c(tool, dft_server_data(input, output, session, tool))
@@ -115,9 +119,10 @@ distribution_fitting_tool_Server <- function(input, output, session) {
 # The Data input tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
 # earlier tabs define; the tab returns what it defines, for the tabs after it.
 dft_server_data <- function(input, output, session, tool) {
-  # an example data set is chosen, or a file uploaded
-  using_example <- reactive(identical(input$data_source, "example"))
-  has_data <- function() using_example() || isTruthy(input$file1)
+  has_data <- tool$has_data
+  using_example <- tool$using_example
+
+  # the name of the data: the example's, or the uploaded file's
   data_name <- reactive({
     if (using_example()) names(dft_examples)[match(or_default(input$example, "motor"), dft_examples)] else input$file1$name
   })
@@ -240,7 +245,7 @@ dft_server_data <- function(input, output, session, tool) {
                      type = "message", duration = 10)
   })
 
-  list(using_example = using_example, has_data = has_data, data_name = data_name, data = data,
+  list(data_name = data_name, data = data,
        numeric_columns = numeric_columns, column_choices = column_choices, pending = pending,
        preview_rows = preview_rows)
 }
