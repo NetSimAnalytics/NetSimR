@@ -63,6 +63,30 @@ netsimr_read_excel <- function(path, header = TRUE) {
   df
 }
 
+# Whether a file is UTF-8 text, judged on its bytes: reading its lines to judge them took longer,
+# on a file of a million rows, than reading the data. A file with nul bytes (UTF-16, as Excel's
+# "Unicode text") is judged on its lines, as before.
+netsimr_is_utf8 <- function(path) {
+  bytes <- readBin(path, "raw", file.size(path))
+  if (any(bytes == as.raw(0))) return(all(validUTF8(readLines(path, warn = FALSE))))
+  validUTF8(rawToChar(bytes))
+}
+
+# The number of blank lines at the start of a file, read a thousand lines at a time (none when
+# the whole file is blank).
+netsimr_leading_blank_lines <- function(path) {
+  con <- file(path, "r")
+  on.exit(close(con))
+  count <- 0L
+  repeat {
+    lines <- readLines(con, n = 1000L, warn = FALSE)
+    if (!length(lines)) return(0L)
+    filled <- match(TRUE, grepl("[^[:space:]]", lines, useBytes = TRUE), nomatch = 0L)
+    if (filled > 0L) return(count + filled - 1L)
+    count <- count + length(lines)
+  }
+}
+
 # Reads an uploaded delimited text file. A UTF-8 byte order mark is skipped, so
 # it does not end up in the first column name, and a file that is not UTF-8 is
 # read as Latin-1 (Excel on a German or French Windows writes CSV files in the
@@ -83,8 +107,7 @@ netsimr_read_data <- function(path, header = TRUE, sep = ",", quote = "\"", dec 
     return(netsimr_read_excel(path, header))
   }
   has_bom <- identical(readBin(path, "raw", 3L), as.raw(c(0xef, 0xbb, 0xbf)))
-  lines <- readLines(path, warn = FALSE)
-  encoding <- if (has_bom) "UTF-8-BOM" else if (all(validUTF8(lines))) "" else "latin1"
+  encoding <- if (has_bom) "UTF-8-BOM" else if (netsimr_is_utf8(path)) "" else "latin1"
   # the number of fields in the widest line from `skip` lines on (NA for a line
   # that ends inside a quoted field)
   widest <- function(skip) {
@@ -99,11 +122,11 @@ netsimr_read_data <- function(path, header = TRUE, sep = ",", quote = "\"", dec 
       fileEncoding = encoding, ...
     )
   }
+  # whether lines hold anything (bytes, not characters: the file need not be UTF-8)
+  not_blank <- function(lines) grepl("[^[:space:]]", lines, useBytes = TRUE)
   if (header) {
     # blank lines before the header are skipped, as read.csv() skips them
-    # (bytes, not characters: the file need not be UTF-8)
-    not_blank <- grepl("[^[:space:]]", lines, useBytes = TRUE)
-    blank_lines <- match(TRUE, not_blank, nomatch = 1L) - 1L
+    blank_lines <- netsimr_leading_blank_lines(path)
     # a header shorter than the data rows leaves blank names, which get a V
     # name below; a header longer than them gives empty columns
     columns <- widest(blank_lines)
@@ -111,7 +134,7 @@ netsimr_read_data <- function(path, header = TRUE, sep = ",", quote = "\"", dec 
                            use.names = FALSE)
     df <- tryCatch(read(blank_lines + 1L, columns), error = function(e) {
       # a file with only the header has no data rows, which the tools report
-      if (any(not_blank[-seq_len(blank_lines + 1L)])) stop(e)
+      if (any(not_blank(readLines(path, warn = FALSE)[-seq_len(blank_lines + 1L)]))) stop(e)
       as.data.frame(matrix(logical(0), 0, columns))
     })
   } else {

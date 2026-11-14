@@ -129,3 +129,14 @@ test_that("files with Windows, old Mac and Unix line endings, a byte order mark,
     expect_error(data(), "no data rows")
   })
 })
+
+test_that("a file too large for the memory says so, not that its separator is wrong", {
+  input <- list(h = TRUE, s = ",", d = ".")
+  file <- list(datapath = "unused.csv")
+  local_mocked_bindings(netsimr_read_data = function(...) stop("cannot allocate vector of size 2.1 Gb"))
+  expect_error(netsimr_read_upload(input, file, list(header = "h", sep = "s", dec = "d"), "Upload a file"),
+               "too large for the memory available", class = "shiny.silent.error")
+  local_mocked_bindings(netsimr_read_data = function(...) stop("more columns than column names"))
+  expect_error(netsimr_read_upload(input, file, list(header = "h", sep = "s", dec = "d"), "Upload a file"),
+               "Check the separator.", fixed = TRUE, class = "shiny.silent.error")
+})

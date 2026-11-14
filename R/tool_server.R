@@ -34,6 +34,12 @@ netsimr_read_upload <- function(input, file, ids, missing, min_columns = 1) {
     error = function(e) e
   )
   if (inherits(df, "error")) {
+    # the upload limit is generous (shiny_tool_max_request_size): what a tool can read is set by
+    # the memory of the computer, or of the browser on the website
+    if (grepl("cannot allocate|memory", conditionMessage(df), ignore.case = TRUE)) {
+      validate(paste0("The file is too large for the memory available (", conditionMessage(df), "). Use fewer rows or ",
+                      "columns, or, on the website, the tool installed in R, which can use all of the computer's memory."))
+    }
     validate(paste0("The file could not be read (", conditionMessage(df), "). Check the separator",
                     if (!is.null(ids$quote)) " and quote settings", "."))
   }
