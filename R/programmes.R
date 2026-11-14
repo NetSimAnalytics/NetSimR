@@ -101,10 +101,7 @@
 compare_reinsurance <- function(frequency, frequency_params, severity, severity_params, programmes, premium, n = 10000,
                                 level = 0.995, loading = 0.25, coc_rate = 0.1, seed = NULL, pareto_thresholds = NULL,
                                 pareto_alphas = NULL) {
-  if (!is.list(programmes) || (length(programmes) > 0 && (is.null(names(programmes)) || any(!nzchar(names(programmes)))))) {
-    stop("programmes must be a named list of programmes.", call. = FALSE)
-  }
-  if (anyDuplicated(c("No reinsurance", names(programmes)))) stop("Each programme needs its own name.", call. = FALSE)
+  programmes_check(programmes)
   if (!is.numeric(premium) || length(premium) != 1 || !is.finite(premium) || premium < 0) {
     stop("premium must be the subject premium, at least 0.", call. = FALSE)
   }
@@ -114,44 +111,6 @@ compare_reinsurance <- function(frequency, frequency_params, severity, severity_
   }
   if (!is.numeric(loading) || length(loading) != 1 || !is.finite(loading) || loading < 0 || loading >= 1) {
     stop("loading must be a share of the premium, from 0 to below 1.", call. = FALSE)
-  }
-  check <- function(x, name, positive = FALSE) {
-    if (!is.numeric(x) || length(x) != 1 || is.na(x) || x < 0 || (positive && x == 0)) {
-      stop(name, " must be ", if (positive) "above 0." else "at least 0.", call. = FALSE)
-    }
-  }
-  for (name in names(programmes)) {
-    p <- programmes[[name]]
-    if (!is.list(p)) stop("Programme '", name, "' must be a list.", call. = FALSE)
-    if (!is.null(p$surplus)) {
-      s <- p$surplus
-      if (!is.list(s)) stop("The surplus treaty of '", name, "' must be a list.", call. = FALSE)
-      check(s$retention, paste0("The surplus retention of '", name, "'"), positive = TRUE)
-      check(s$lines, paste0("The surplus lines of '", name, "'"), positive = TRUE)
-      if (!is.finite(s$retention)) stop("The surplus retention of '", name, "' must be finite.", call. = FALSE)
-      si <- s$sum_insured
-      if (!is.numeric(si) || length(si) == 0 || any(!is.finite(si)) || any(si <= 0)) {
-        stop("The surplus treaty of '", name, "' needs sum_insured, the sums insured of the risks, above 0.", call. = FALSE)
-      }
-      w <- s$weights
-      if (!is.null(w) && (!is.numeric(w) || length(w) != length(si) || any(!is.finite(w)) || any(w < 0) || sum(w) <= 0)) {
-        stop("The surplus weights of '", name, "' must be a weight of at least 0 for each sum insured, not all 0.", call. = FALSE)
-      }
-      if (!is.null(s$premium)) check(s$premium, paste0("The surplus premium of '", name, "'"))
-      if (!is.null(s$commission)) check(s$commission, paste0("The surplus commission of '", name, "'"))
-    }
-    if (!is.null(p$quota_share)) {
-      check(p$quota_share, paste0("The quota share of '", name, "'"))
-      if (p$quota_share > 1) stop("The quota share of '", name, "' must be at most 1.", call. = FALSE)
-    }
-    if (!is.null(p$xl)) {
-      check(p$xl$deductible, paste0("The deductible of '", name, "'"))
-      check(p$xl$limit, paste0("The limit of '", name, "'"), positive = TRUE)
-    }
-    if (!is.null(p$stop_loss)) {
-      check(p$stop_loss$attachment, paste0("The stop loss attachment of '", name, "'"))
-      check(p$stop_loss$limit, paste0("The stop loss limit of '", name, "'"), positive = TRUE)
-    }
   }
   frequency_id <- claims_distribution_id(frequency, freq_dist_options, "frequency")
   severity_id <- claims_distribution_id(severity, sev_dist_options, "severity")
@@ -194,59 +153,9 @@ compare_reinsurance <- function(frequency, frequency_params, severity, severity_
   has_surplus <- any(vapply(programmes, function(p) !is.null(p$surplus), logical(1)))
   place <- if (has_surplus) stats::runif(total) else NULL
 
-  run <- function(p) {
-    after_surplus <- sizes
-    surplus_premium <- 0
-    surplus_commission <- 0
-    if (!is.null(p$surplus)) {
-      s <- p$surplus
-      weights <- if (is.null(s$weights)) rep(1, length(s$sum_insured)) else s$weights
-      weights <- weights / sum(weights)
-      ceded_share <- pmin(pmax(s$sum_insured - s$retention, 0), s$lines * s$retention) / s$sum_insured
-      risk <- pmin(findInterval(place, cumsum(weights)) + 1, length(weights))
-      after_surplus <- (1 - ceded_share[risk]) * sizes
-      surplus_premium <- if (!is.null(s$premium)) s$premium else premium * sum(weights * ceded_share)
-      surplus_commission <- if (is.null(s$commission)) 0 else s$commission * surplus_premium
-    }
-    q <- if (is.null(p$quota_share)) 0 else p$quota_share
-    retained_claims <- (1 - q) * after_surplus
-    qs_premium <- q * max(premium - surplus_premium, 0)
-    commission <- if (is.null(p$commission)) 0 else p$commission * qs_premium
-    xl_recovery <- rep(0, n)
-    xl_premium <- 0
-    reinstatement <- rep(0, n)
-    if (!is.null(p$xl)) {
-      x <- p$xl
-      reinstatements <- if (is.null(x$reinstatements)) Inf else x$reinstatements
-      rate <- if (is.null(x$reinstatement_rate)) 1 else x$reinstatement_rate
-      per_claim <- pmin(pmax(retained_claims - x$deductible, 0), x$limit)
-      xl_recovery <- pmin(by_year(per_claim), (reinstatements + 1) * x$limit)
-      reinstated <- if (is.finite(reinstatements)) pmin(xl_recovery, reinstatements * x$limit) else xl_recovery
-      xl_premium <- if (!is.null(x$premium)) x$premium else {
-        # unlimited reinstatements are free: the premium is all upfront
-        if (is.finite(reinstatements)) {
-          technical_premium(mean(xl_recovery), x$limit, loading = loading, reinstatements = reinstatements,
-                            reinstatement_rate = rate, used = mean(reinstated) / x$limit)$upfront_premium
-        } else {
-          mean(xl_recovery) / (1 - loading)
-        }
-      }
-      if (rate > 0 && is.finite(reinstatements) && reinstatements > 0) reinstatement <- xl_premium * rate * reinstated / x$limit
-    }
-    retained <- by_year(retained_claims) - xl_recovery
-    sl_recovery <- rep(0, n)
-    sl_premium <- 0
-    if (!is.null(p$stop_loss)) {
-      s <- p$stop_loss
-      sl_recovery <- pmin(pmax(retained - s$attachment, 0), s$limit)
-      sl_premium <- if (!is.null(s$premium)) s$premium else mean(sl_recovery) / (1 - loading)
-    }
-    net_claims <- retained - sl_recovery
-    paid <- surplus_premium - surplus_commission + qs_premium - commission + xl_premium + reinstatement + sl_premium
-    list(result = premium - paid - net_claims, ceded = gross - net_claims, paid = paid)
-  }
+  claims <- list(n = n, sizes = sizes, place = place, by_year = by_year, gross = gross)
   all <- c(list(`No reinsurance` = list()), programmes)
-  runs <- lapply(all, run)
+  runs <- lapply(all, programme_result, claims = claims, premium = premium, loading = loading)
   results <- vapply(runs, function(r) r$result, numeric(n))
   colnames(results) <- names(all)
   capital_of <- function(x) mean(x) - stats::quantile(x, 1 - level, names = FALSE)
@@ -271,6 +180,115 @@ compare_reinsurance <- function(frequency, frequency_params, severity, severity_
   structure(list(summary = summary, results = results, gross = gross, premium = premium, level = level, loading = loading,
                  coc_rate = coc_rate, n = n, programmes = programmes),
             class = "netsimr_programmes")
+}
+
+# Stops with a message unless `programmes` is a named list of programmes, as compare_reinsurance()
+# takes them, each with valid treaties.
+programmes_check <- function(programmes) {
+  if (!is.list(programmes) || (length(programmes) > 0 && (is.null(names(programmes)) || any(!nzchar(names(programmes)))))) {
+    stop("programmes must be a named list of programmes.", call. = FALSE)
+  }
+  if (anyDuplicated(c("No reinsurance", names(programmes)))) stop("Each programme needs its own name.", call. = FALSE)
+  check <- function(x, name, positive = FALSE) {
+    if (!is.numeric(x) || length(x) != 1 || is.na(x) || x < 0 || (positive && x == 0)) {
+      stop(name, " must be ", if (positive) "above 0." else "at least 0.", call. = FALSE)
+    }
+  }
+  for (name in names(programmes)) {
+    p <- programmes[[name]]
+    if (!is.list(p)) stop("Programme '", name, "' must be a list.", call. = FALSE)
+    if (!is.null(p$surplus)) {
+      s <- p$surplus
+      if (!is.list(s)) stop("The surplus treaty of '", name, "' must be a list.", call. = FALSE)
+      check(s$retention, paste0("The surplus retention of '", name, "'"), positive = TRUE)
+      check(s$lines, paste0("The surplus lines of '", name, "'"), positive = TRUE)
+      if (!is.finite(s$retention)) stop("The surplus retention of '", name, "' must be finite.", call. = FALSE)
+      si <- s$sum_insured
+      if (!is.numeric(si) || length(si) == 0 || any(!is.finite(si)) || any(si <= 0)) {
+        stop("The surplus treaty of '", name, "' needs sum_insured, the sums insured of the risks, above 0.", call. = FALSE)
+      }
+      w <- s$weights
+      if (!is.null(w) && (!is.numeric(w) || length(w) != length(si) || any(!is.finite(w)) || any(w < 0) || sum(w) <= 0)) {
+        stop("The surplus weights of '", name, "' must be a weight of at least 0 for each sum insured, not all 0.", call. = FALSE)
+      }
+      if (!is.null(s$premium)) check(s$premium, paste0("The surplus premium of '", name, "'"))
+      if (!is.null(s$commission)) check(s$commission, paste0("The surplus commission of '", name, "'"))
+    }
+    if (!is.null(p$quota_share)) {
+      check(p$quota_share, paste0("The quota share of '", name, "'"))
+      if (p$quota_share > 1) stop("The quota share of '", name, "' must be at most 1.", call. = FALSE)
+    }
+    if (!is.null(p$xl)) {
+      check(p$xl$deductible, paste0("The deductible of '", name, "'"))
+      check(p$xl$limit, paste0("The limit of '", name, "'"), positive = TRUE)
+    }
+    if (!is.null(p$stop_loss)) {
+      check(p$stop_loss$attachment, paste0("The stop loss attachment of '", name, "'"))
+      check(p$stop_loss$limit, paste0("The stop loss limit of '", name, "'"), positive = TRUE)
+    }
+  }
+  invisible(programmes)
+}
+
+# One programme `p` of compare_reinsurance() on the simulated `claims` (their number of years n,
+# the claim sizes, where each falls among a surplus treaty's risks, by_year() that sums claims
+# by year, and the gross losses of each year): each year's result, ceded losses and
+# reinsurance premium.
+programme_result <- function(p, claims, premium, loading) {
+  n <- claims$n
+  sizes <- claims$sizes
+  place <- claims$place
+  by_year <- claims$by_year
+  gross <- claims$gross
+  after_surplus <- sizes
+  surplus_premium <- 0
+  surplus_commission <- 0
+  if (!is.null(p$surplus)) {
+    s <- p$surplus
+    weights <- if (is.null(s$weights)) rep(1, length(s$sum_insured)) else s$weights
+    weights <- weights / sum(weights)
+    ceded_share <- pmin(pmax(s$sum_insured - s$retention, 0), s$lines * s$retention) / s$sum_insured
+    risk <- pmin(findInterval(place, cumsum(weights)) + 1, length(weights))
+    after_surplus <- (1 - ceded_share[risk]) * sizes
+    surplus_premium <- if (!is.null(s$premium)) s$premium else premium * sum(weights * ceded_share)
+    surplus_commission <- if (is.null(s$commission)) 0 else s$commission * surplus_premium
+  }
+  q <- if (is.null(p$quota_share)) 0 else p$quota_share
+  retained_claims <- (1 - q) * after_surplus
+  qs_premium <- q * max(premium - surplus_premium, 0)
+  commission <- if (is.null(p$commission)) 0 else p$commission * qs_premium
+  xl_recovery <- rep(0, n)
+  xl_premium <- 0
+  reinstatement <- rep(0, n)
+  if (!is.null(p$xl)) {
+    x <- p$xl
+    reinstatements <- if (is.null(x$reinstatements)) Inf else x$reinstatements
+    rate <- if (is.null(x$reinstatement_rate)) 1 else x$reinstatement_rate
+    per_claim <- pmin(pmax(retained_claims - x$deductible, 0), x$limit)
+    xl_recovery <- pmin(by_year(per_claim), (reinstatements + 1) * x$limit)
+    reinstated <- if (is.finite(reinstatements)) pmin(xl_recovery, reinstatements * x$limit) else xl_recovery
+    xl_premium <- if (!is.null(x$premium)) {
+      x$premium
+    } else if (is.finite(reinstatements)) {
+      technical_premium(mean(xl_recovery), x$limit, loading = loading, reinstatements = reinstatements,
+                        reinstatement_rate = rate, used = mean(reinstated) / x$limit)$upfront_premium
+    } else {
+      # unlimited reinstatements are free: the premium is all upfront
+      mean(xl_recovery) / (1 - loading)
+    }
+    if (rate > 0 && is.finite(reinstatements) && reinstatements > 0) reinstatement <- xl_premium * rate * reinstated / x$limit
+  }
+  retained <- by_year(retained_claims) - xl_recovery
+  sl_recovery <- rep(0, n)
+  sl_premium <- 0
+  if (!is.null(p$stop_loss)) {
+    s <- p$stop_loss
+    sl_recovery <- pmin(pmax(retained - s$attachment, 0), s$limit)
+    sl_premium <- if (!is.null(s$premium)) s$premium else mean(sl_recovery) / (1 - loading)
+  }
+  net_claims <- retained - sl_recovery
+  paid <- surplus_premium - surplus_commission + qs_premium - commission + xl_premium + reinstatement + sl_premium
+  list(result = premium - paid - net_claims, ceded = gross - net_claims, paid = paid)
 }
 
 #' @export
