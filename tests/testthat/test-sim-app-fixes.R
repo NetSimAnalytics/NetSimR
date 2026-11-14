@@ -432,10 +432,10 @@ test_that("the layout keeps the brand, the example names and the compare labels 
   expect_match(netsimr_css("tools"), "\\.sim-brand-text \\{[^}]*white-space: nowrap;[^}]*min-width: 0;")
   expect_match(netsimr_css("tools"), "\\.sim-brand-subtitle \\{[^}]*text-overflow: ellipsis;")
   expect_match(netsimr_css("tools"), "\\.navbar \\.navbar-toggle \\{[^}]*flex-shrink: 0;")
-  #the expanded header is one row: the nav never wraps, and below 1500 px the theme switch
+  #the expanded header keeps the nav links on one row, and below 1600 px the theme switch
   #shows its icons only (the distribution fitting tool has seven tabs)
   expect_match(netsimr_css("tools"), "@media \\(min-width: 992px\\) \\{\\s*\\.navbar \\.navbar-nav \\{\\s*flex-wrap: nowrap;")
-  expect_match(netsimr_css("tools"), "@media \\(min-width: 992px\\) and \\(max-width: 1499.98px\\) \\{\\s*\\.theme-btn-label \\{\\s*display: none;")
+  expect_match(netsimr_css("tools"), "@media \\(min-width: 992px\\) and \\(max-width: 1599.98px\\) \\{\\s*\\.theme-btn-label \\{\\s*display: none;")
   #the example select has the full width of the card, with the button under it
   expect_match(netsimr_css("simulator-settings"), "\\.sim-settings-example \\{[^}]*grid-template-columns: minmax\\(0, 1fr\\);")
   expect_match(netsimr_css("simulator-tabs"), "\\.sim-compare-table td:first-child \\{[^}]*white-space: nowrap;")

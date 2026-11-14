@@ -64,9 +64,10 @@ body {
 }
 
 /* the brand keeps a gap after it, so the nav links never touch its subtitle; the gap is a
-   margin on .sim-brand, inside .navbar-brand. Where room is short the brand shrinks, its
-   title and subtitle ending in an ellipsis: beside the menu button on a narrow screen, and
-   beside the nav links on a wide one, which stay on one row (see Responsive) */
+   margin on .sim-brand, inside .navbar-brand. Beside the menu button on a narrow screen,
+   where room is short, the brand shrinks, its title and subtitle ending in an ellipsis; on a
+   wide screen it keeps its width, and the nav links move to a second row when they do not
+   fit beside it (see Responsive) */
 .navbar .navbar-header {
   min-width: 0;
 }
@@ -745,8 +746,8 @@ body {
   }
 }
 
-/* the expanded header is one row: the nav links and the theme switch never wrap, and the
-   brand gives way to them instead */
+/* the expanded header: the nav links and the theme switch stay on one row, beside the brand
+   or, when they do not fit there, under it */
 @media (min-width: 992px) {
   .navbar .navbar-nav {
     flex-wrap: nowrap;
@@ -762,11 +763,29 @@ body {
   .navbar .nav-link {
     white-space: nowrap;
   }
+
+  /* the brand keeps its full width: where the links do not fit beside it, they move to a
+     second row (the reserving tool's eight tabs squeezed its name out of sight) */
+  .navbar > .container-fluid {
+    flex-wrap: wrap;
+  }
+
+  .navbar .navbar-header {
+    flex-shrink: 0;
+  }
 }
 
-/* below 1500 px there is no room for every part at full size (the fitting tools have six
+/* a navbar of eight tabs or more leaves out the link icons below 1800 px, so that its links
+   fit beside the brand on more screens */
+@media (min-width: 992px) and (max-width: 1799.98px) {
+  .navbar .navbar-nav:has(> .nav-item:nth-child(8)) .nav-link > i {
+    display: none;
+  }
+}
+
+/* below 1600 px there is no room for every part at full size (the fitting tools have six
    or seven tabs): the theme switch shows its icons only and the nav links sit closer */
-@media (min-width: 992px) and (max-width: 1499.98px) {
+@media (min-width: 992px) and (max-width: 1599.98px) {
   .theme-btn-label {
     display: none;
   }
@@ -784,10 +803,14 @@ body {
   }
 }
 
-/* and below 1100 px the nav links sit closer still */
+/* and below 1100 px the nav links sit closer still, as does the brand */
 @media (min-width: 992px) and (max-width: 1099.98px) {
   .navbar .nav-link {
     padding: 0.55rem 0.35rem !important;
+  }
+
+  .sim-brand {
+    margin-right: 1.25rem;
   }
 }
 
