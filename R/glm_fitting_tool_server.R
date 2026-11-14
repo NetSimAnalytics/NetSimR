@@ -13,23 +13,39 @@
 #' @import shiny
 GLMFittingToolServer <- function(input, output, session) {
 
-  ######################
-  #help functions
-  ######################
-
   # the chart is drawn in the colours of the theme the page reports
   dark <- netsimr_dark(input)
 
-  ######################
-  #import data
-  ######################
+  # the tabs, each a function of its own (below), in the order of what they use of each other
+  tool <- list(dark = dark)
+  tool <- c(tool, glm_server_data(input, output, session, tool))
+  tool <- c(tool, glm_server_columns(input, output, session, tool))
+  tool <- c(tool, glm_server_model(input, output, session, tool))
+  tool <- c(tool, glm_server_stored(input, output, session, tool))
+  tool <- c(tool, glm_server_downloads(input, output, session, tool))
+  tool <- c(tool, glm_server_charts(input, output, session, tool))
+  tool <- c(tool, glm_server_validation(input, output, session, tool))
+  tool <- c(tool, glm_server_rates(input, output, session, tool))
+  tool <- c(tool, glm_server_selection(input, output, session, tool))
+  tool <- c(tool, glm_server_settings(input, output, session, tool))
+  # every reactive of the tabs under its own name here too, where tests of the server find it
+  list2env(tool, environment())
+  invisible(NULL)
+}
 
+# The import data tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_data <- function(input, output, session, tool) {
   # the data last imported, and where it came from; an import that fails keeps it, so that the
   # data and a model fitted to it stay together. The imports are numbered, so that a model can
   # tell whether it was fitted to the data now imported
   imported <- reactiveVal(NULL)
   import_failed <- reactiveVal(FALSE)
   imports <- 0L
+  next_import <- function() {
+    imports <<- imports + 1L
+    imports
+  }
 
   import_error <- function(message) {
     kept <- !is.null(isolate(imported()))
@@ -126,8 +142,7 @@ GLMFittingToolServer <- function(input, output, session) {
     if (!is.null(df_input)) {
       source <- switch(or_default(input$data_source, "CSV File"), Database = input$db_type,
                        Example = "Example: motor policies", input$csv_file$name)
-      imports <<- imports + 1L
-      imported(list(data = df_input, source = or_default(source, ""), id = imports))
+      imported(list(data = df_input, source = or_default(source, ""), id = next_import()))
     }
   })
 
@@ -160,9 +175,17 @@ GLMFittingToolServer <- function(input, output, session) {
     netsimr_data_preview(df, preview_rows)
   })
 
-  ######################
-  #column choices
-  ######################
+  list(imported = imported, import_failed = import_failed, imports = imports, next_import = next_import,
+       import_error = import_error, db_port = db_port, read_import = read_import,
+       selected_data = selected_data, data_columns = data_columns, numeric_columns = numeric_columns,
+       preview_rows = preview_rows)
+}
+
+# The column choices tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_columns <- function(input, output, session, tool) {
+  data_columns <- tool$data_columns
+  selected_data <- tool$selected_data
 
   # column choices loaded from a settings file before the data they refer to was imported
   pending_columns <- reactiveVal(list())
@@ -247,9 +270,19 @@ GLMFittingToolServer <- function(input, output, session) {
         if (!is.null(glm_offset_term(input$offset, input$offset_log))) " +", " ...")
   })
 
-  ######################
-  #modelling
-  ######################
+  list(pending_columns = pending_columns, pending_link = pending_link, chosen_link = chosen_link,
+       chosen_family = chosen_family, spec_inputs = spec_inputs, unreported = unreported,
+       hold_spec_input = hold_spec_input, spec_value = spec_value)
+}
+
+# The modelling tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_model <- function(input, output, session, tool) {
+  chosen_family <- tool$chosen_family
+  chosen_link <- tool$chosen_link
+  imported <- tool$imported
+  selected_data <- tool$selected_data
+  spec_value <- tool$spec_value
 
   current_spec <- function() {
     list(
@@ -441,9 +474,22 @@ GLMFittingToolServer <- function(input, output, session) {
     )
   })
 
-  ######################
-  #stored models
-  ######################
+  list(current_spec = current_spec, fit_result = fit_result, has_holdout = has_holdout,
+       model_predictions = model_predictions, model_actuals = model_actuals, model_exposure = model_exposure,
+       model_weights = model_weights, shown_predictions = shown_predictions, fitted_model = fitted_model,
+       model_outdated = model_outdated, outdated_note = outdated_note, model_facts = model_facts)
+}
+
+# The stored models tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_stored <- function(input, output, session, tool) {
+  chosen_family <- tool$chosen_family
+  chosen_link <- tool$chosen_link
+  data_columns <- tool$data_columns
+  fit_result <- tool$fit_result
+  hold_spec_input <- tool$hold_spec_input
+  model_facts <- tool$model_facts
+  pending_link <- tool$pending_link
 
   stored_models <- list(reactiveVal(NULL), reactiveVal(NULL))
 
@@ -535,9 +581,19 @@ GLMFittingToolServer <- function(input, output, session) {
   output$aic_output_1 <- renderUI(describe_stored(1))
   output$aic_output_2 <- renderUI(describe_stored(2))
 
-  ######################
-  #downloads
-  ######################
+  list(stored_models = stored_models, store_model = store_model, load_model = load_model,
+       apply_model_spec = apply_model_spec, describe_stored = describe_stored)
+}
+
+# The downloads tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_downloads <- function(input, output, session, tool) {
+  fit_result <- tool$fit_result
+  fitted_model <- tool$fitted_model
+  has_holdout <- tool$has_holdout
+  model_outdated <- tool$model_outdated
+  outdated_note <- tool$outdated_note
+  shown_predictions <- tool$shown_predictions
 
   output$model_downloads <- renderUI({
     if (is.null(fitted_model())) {
@@ -615,9 +671,339 @@ GLMFittingToolServer <- function(input, output, session) {
     }
   )
 
-  ######################
-  #rates and scoring
-  ######################
+  list(downloadable_model = downloadable_model)
+}
+
+# The visualisation tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_charts <- function(input, output, session, tool) {
+  dark <- tool$dark
+  fit_result <- tool$fit_result
+  fitted_model <- tool$fitted_model
+  has_holdout <- tool$has_holdout
+  model_actuals <- tool$model_actuals
+  model_exposure <- tool$model_exposure
+  model_outdated <- tool$model_outdated
+  model_weights <- tool$model_weights
+  outdated_note <- tool$outdated_note
+  shown_predictions <- tool$shown_predictions
+
+  # actual and predicted per band of the chosen variable; with an offset the chart compares
+  # rates per unit of exposure, and weights (e.g. binomial trials) weigh each row
+  # redrawn when the chart is asked for and when the model is refitted
+  fitness_data <- eventReactive(list(input$execute_visualization, input$fit_model, input$avp_rows), {
+    model <- fitted_model()
+    validate(need(!is.null(model), "Fit a model on the Model tab first."))
+    result <- fit_result()
+    spec <- result$spec
+    # the data and columns the model was fitted with, not the current choices
+    df <- result$data
+    variable <- input$visualize_variable
+    validate(need(!is.null(variable) && variable %in% names(df), "Choose the explanatory variable."))
+    # the response as the model codes it, on the same scale as the prediction
+    actual <- model_actuals(result)
+    predicted <- shown_predictions()
+    exposure_of <- model_exposure(result)
+    exposure <- exposure_of$values
+    weight <- model_weights(result)
+    # with rows held out, the chart can show the training or the test rows alone
+    rows <- if (has_holdout(result)) or_default(input$avp_rows, "all") else "all"
+    in_rows <- switch(rows, training = !result$test, test = result$test, rep(TRUE, nrow(df)))
+    grouping <- df[[variable]]
+    # within the slider's range, whatever a client sends
+    bands <- glm_band_count(input$number_of_bands_input)
+    values <- sort(unique(grouping[!is.na(grouping)]))
+    if (is.numeric(grouping) && length(values) > bands) {
+      breaks <- glm_band_breaks(grouping, bands, or_default(input$band_method, "quantile"))
+      # readable labels ("18-24"), or cut()'s own when they would not be distinct
+      grouping <- cut(grouping, breaks = breaks, labels = glm_band_labels(breaks, all(values == round(values))),
+                      include.lowest = TRUE, dig.lab = 6)
+    } else {
+      grouping <- factor(grouping, levels = values, labels = if (is.numeric(values)) glm_value_labels(values) else values)
+    }
+    keep <- in_rows & !is.na(actual) & !is.na(predicted) & !is.na(grouping) & is.finite(exposure) & is.finite(weight)
+    validate(need(any(keep), "No row has the response, the prediction and the variable all present."))
+    band <- droplevels(grouping[keep])
+    # text is not grouped: an ID would draw hundreds of unreadable bars
+    validate(need(nlevels(band) <= 100, paste0("'", variable, "' has ", format(nlevels(band), big.mark = ",", scientific = FALSE),
+                                               " different values: choose a numeric variable, or one with at most 100 values.")))
+    w <- weight[keep]
+    e <- exposure[keep]
+    total <- function(x) as.numeric(tapply(x, band, sum))
+    denominator <- total(w * e)
+    plot_data <- data.frame(
+      band = levels(band),
+      actual = total(w * actual[keep]) / denominator,
+      predicted = total(w * predicted[keep]) / denominator,
+      exposure = denominator,
+      stringsAsFactors = FALSE
+    )
+    attr(plot_data, "dropped") <- sum(in_rows & !keep)
+    attr(plot_data, "rows") <- rows
+    attr(plot_data, "exposure") <- exposure_of$name
+    attr(plot_data, "variable") <- variable
+    plot_data
+  })
+
+  # the titles of the chart follow what it shows: an exposure only when the offset was used as one
+  fitness_labels <- reactive({
+    plot_data <- fitness_data()
+    spec <- isolate(fit_result()$spec)
+    exposure <- attr(plot_data, "exposure")
+    list(
+      x = attr(plot_data, "variable"),
+      y = if (!is.null(exposure)) paste(spec$response, "per unit of exposure") else paste("Average", spec$response),
+      bars = if (!is.null(exposure)) paste0("Exposure (", exposure, ")") else if (spec$weights != "None") paste0("Weight (", spec$weights, ")") else "Rows"
+    )
+  })
+
+  output$fitness_note <- renderUI({
+    # the chart shows the message when there is no data; the note stays empty
+    plot_data <- tryCatch(fitness_data(), error = function(e) NULL)
+    dropped <- attr(req(plot_data), "dropped")
+    tagList(
+      if (model_outdated()) outdated_note("The chart is of that data; click Fit model to fit it to the new data."),
+      if (isTRUE(dropped > 0)) {
+        netsimr_help(format(dropped, big.mark = ",", scientific = FALSE), if (dropped == 1) " row is" else " rows are",
+                 " left out: the response, the prediction or the variable is missing.")
+      }
+    )
+  })
+
+  # actual and predicted on the left axis, and the exposure (or weight, or rows) of each band
+  # as bars on a secondary axis on the right; redrawn in the other theme's colours when it changes,
+  # and when the chart is resized, so that the legend is laid out for the new width
+  output$fitness_plot <- netsimr_render_plot({
+    validate(need(input$execute_visualization, "Choose a variable and click Draw chart."))
+    plot_data <- fitness_data()
+    labels <- fitness_labels()
+    netsimr_category_chart(
+      plot_data$band,
+      bars = list(name = labels$bars, values = plot_data$exposure, colour = "band_bar", y2 = labels$bars),
+      lines = list(list(name = "Actual", values = plot_data$actual, colour = "empirical"),
+                   list(name = "Predicted", values = plot_data$predicted, colour = netsimr_palette[2])),
+      x_title = labels$x, y_title = labels$y, dark = dark()
+    )
+  }, bg = "transparent", res = 96, alt = function() {
+    labels <- tryCatch(fitness_labels(), error = function(e) NULL)
+    if (is.null(labels)) return("Actual and predicted chart")
+    paste0("Actual and predicted by band of ", labels$x, ". Left axis: ", labels$y, ". Bars on the right axis: ", labels$bars, ".")
+  })
+
+  # the choice of rows, shown for a model fitted with rows held out
+  output$avp_rows_ui <- renderUI({
+    result <- if (isTruthy(input$fit_model)) fit_result() else NULL
+    if (!has_holdout(result)) return(NULL)
+    tagList(
+      div(class = "sim-section-label mt-2", "Rows"),
+      div(class = "pill-radio",
+          radioButtons("avp_rows", NULL, c("All" = "all", "Training" = "training", "Test" = "test"),
+                       or_default(isolate(input$avp_rows), "all"), inline = TRUE))
+    )
+  })
+
+  list(fitness_data = fitness_data, fitness_labels = fitness_labels)
+}
+
+# The validation tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_validation <- function(input, output, session, tool) {
+  dark <- tool$dark
+  fit_result <- tool$fit_result
+  has_holdout <- tool$has_holdout
+  imported <- tool$imported
+  model_actuals <- tool$model_actuals
+  model_exposure <- tool$model_exposure
+  model_outdated <- tool$model_outdated
+  model_predictions <- tool$model_predictions
+  model_weights <- tool$model_weights
+  outdated_note <- tool$outdated_note
+  shown_predictions <- tool$shown_predictions
+  stored_models <- tool$stored_models
+
+  # every row's actual, prediction, exposure and weight, and which rows were held out
+  validation_rows <- reactive({
+    validate(need(input$fit_model, "Fit a model on the Model tab first."))
+    result <- fit_result()
+    validate(need(!is.null(result$model), "Fit a model on the Model tab first."))
+    exposure <- model_exposure(result)
+    list(result = result, actual = model_actuals(result), predicted = shown_predictions(),
+         exposure = exposure$values, exposure_name = exposure$name, weight = model_weights(result),
+         test = if (has_holdout(result)) result$test else rep(FALSE, nrow(result$data)))
+  })
+
+  # the rows the charts are drawn for: the test rows when there are any (the training rows
+  # otherwise, said in a note), the training rows or all of them
+  validation_set <- reactive({
+    v <- validation_rows()
+    wanted <- or_default(input$validation_rows, "test")
+    used <- if (identical(wanted, "test") && !any(v$test)) "training" else wanted
+    rows <- switch(used, test = v$test, training = !v$test, rep(TRUE, length(v$test)))
+    list(rows = rows, used = used, wanted = wanted)
+  })
+
+  validation_label <- function(used) switch(used, test = "test rows", training = "training rows", "all rows")
+
+  # the deviance per row and the Gini coefficient of a set of rows
+  validation_measures <- function(v, rows) {
+    gini <- glm_gini_curve(v$actual[rows], v$predicted[rows], v$exposure[rows], v$weight[rows])
+    list(deviance = glm_unit_deviance(v$result$model$family, v$actual[rows], v$predicted[rows], v$weight[rows]),
+         gini = if (is.null(gini)) NA_real_ else gini$gini, rows = sum(rows))
+  }
+
+  output$validation_stats <- renderUI({
+    v <- validation_rows()
+    training <- validation_measures(v, !v$test)
+    test <- if (any(v$test)) validation_measures(v, v$test)
+    both <- function(f) if (is.null(test)) f(training) else paste(f(training), "/", f(test))
+    fmt <- function(x, digits) if (is.finite(x)) netsimr_fmt(x, digits) else netsimr_dash
+    tagList(
+      if (model_outdated()) outdated_note("Click Fit model to fit it to the new data."),
+      if (is.null(test)) netsimr_help("No rows were held out: the figures are of the rows the model was fitted to. ",
+                                  "Hold out rows on the Model tab to see how it does on rows it has not seen."),
+      div(
+        class = "dft-stats",
+        netsimr_stat_tile(if (is.null(test)) "Training rows" else "Training / test rows",
+                      both(function(m) format(m$rows, big.mark = ",", scientific = FALSE)), icon_name = "table-list"),
+        netsimr_stat_tile(if (is.null(test)) "Deviance per row" else "Deviance per row, training / test",
+                      both(function(m) fmt(m$deviance, 4)), icon_name = "scale-balanced", accent = TRUE,
+                      note = if (!is.null(test) && is.finite(test$deviance) && is.finite(training$deviance) &&
+                                 test$deviance > 1.2 * training$deviance) "Much higher on the test rows: the model may be overfitted"),
+        netsimr_stat_tile(if (is.null(test)) "Gini" else "Gini, training / test", both(function(m) fmt(m$gini, 3)),
+                      icon_name = "chart-area", note = "How well the predictions rank the rows: 0 is no better than chance")
+      )
+    )
+  })
+
+  validation_bands <- reactive({
+    bands <- suppressWarnings(as.integer(or_default(input$validation_bands, "10")))
+    if (length(bands) != 1 || is.na(bands) || !bands %in% c(5L, 10L, 20L)) 10L else bands
+  })
+
+  validation_y_title <- function(v) {
+    response <- v$result$spec$response
+    if (!is.null(v$exposure_name)) paste(response, "per unit of exposure") else paste("Average", response)
+  }
+
+  validation_bar_name <- function(v) {
+    if (!is.null(v$exposure_name)) paste0("Exposure (", v$exposure_name, ")") else if (v$result$spec$weights != "None") paste0("Weight (", v$result$spec$weights, ")") else "Rows"
+  }
+
+  set_note <- function(set) {
+    if (identical(set$wanted, "test") && set$used != "test") netsimr_help("No rows were held out, so the chart is of the training rows.")
+  }
+
+  lift_table <- reactive({
+    v <- validation_rows()
+    set <- validation_set()
+    r <- set$rows
+    table <- glm_lift_table(v$actual[r], v$predicted[r], v$predicted[r] / v$exposure[r], v$exposure[r], v$weight[r],
+                            bands = validation_bands())
+    validate(need(!is.null(table), "No row has both the response and a prediction."))
+    table
+  })
+
+  output$lift_plot <- netsimr_render_plot({
+    v <- validation_rows()
+    table <- lift_table()
+    netsimr_category_chart(
+      as.character(table$band),
+      bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
+      lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
+                   list(name = "Predicted", values = table$predicted, colour = netsimr_palette[2])),
+      x_title = paste0("Band of predicted rate, lowest to highest (", validation_label(validation_set()$used), ")"),
+      y_title = validation_y_title(v), dark = dark()
+    )
+  }, bg = "transparent", res = 96, alt = "Lift chart: actual and predicted per band of the predicted rate")
+
+  output$lift_note <- renderUI({
+    tagList(
+      set_note(validation_set()),
+      netsimr_help("The rows are sorted by their predicted rate and cut into bands of about the same exposure. ",
+               "A good model's actual line rises steeply from the first band to the last, and its predicted ",
+               "line follows it.")
+    )
+  })
+
+  output$lorenz_plot <- netsimr_render_plot({
+    v <- validation_rows()
+    r <- validation_set()$rows
+    curve <- glm_gini_curve(v$actual[r], v$predicted[r], v$exposure[r], v$weight[r])
+    validate(need(!is.null(curve), "No row has both the response and a prediction."))
+    curve <- glm_thin_curve(curve)
+    netsimr_line_chart(
+      list(list(x = curve$x, y = curve$y, name = paste0("Model (Gini ", netsimr_fmt(curve$gini, 3), ")"), colour = netsimr_palette[2]),
+           list(x = c(0, 1), y = c(0, 1), name = "No better than chance", colour = "muted", lwd = 1.4)),
+      x_title = paste0("Share of exposure, lowest predicted rate first (", validation_label(validation_set()$used), ")"),
+      y_title = paste("Share of", v$result$spec$response), dark = dark(), ylim = c(0, 1)
+    )
+  }, bg = "transparent", res = 96, alt = "Lorenz curve of the model's predictions, with its Gini coefficient")
+
+  # the stored model to compare with, fitted again to the same rows
+  double_lift <- reactive({
+    v <- validation_rows()
+    choice <- or_default(input$validation_compare, "none")
+    validate(need(choice %in% c("1", "2"), "Choose a stored model to compare this model with."))
+    stored <- stored_models[[as.integer(choice)]]()
+    validate(need(!is.null(stored), paste0("Model ", choice, " is empty: store a model in it on the Model tab.")))
+    result <- v$result
+    validate(need(!model_outdated(), "The data was imported again since this model was fitted: fit it again first."))
+    same_rows <- identical(stored$import$id, result$import$id) &&
+      identical(or_default(stored$spec$holdout, "0"), result$spec$holdout) && identical(or_default(stored$spec$seed, 1L), result$spec$seed)
+    validate(need(same_rows, paste0("Model ", choice, " was fitted to other data or other rows held out, so the two cannot be compared row by row.")))
+    other <- tryCatch(glm_fit_model(stored$spec, isolate(imported()$data)), error = function(e) NULL)
+    validate(need(!is.null(other), paste0("Model ", choice, " could not be fitted again.")))
+    other_predicted <- model_predictions(other)
+    r <- validation_set()$rows
+    table <- glm_lift_table(v$actual[r], v$predicted[r], v$predicted[r] / other_predicted[r], v$exposure[r], v$weight[r],
+                            bands = validation_bands(), others = list(other = other_predicted[r]))
+    validate(need(!is.null(table), "No row has the response and both predictions."))
+    list(table = table, name = paste("Model", choice))
+  })
+
+  output$double_lift_plot <- netsimr_render_plot({
+    v <- validation_rows()
+    d <- double_lift()
+    table <- d$table
+    netsimr_category_chart(
+      as.character(table$band),
+      bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
+      lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
+                   list(name = "This model", values = table$predicted, colour = netsimr_palette[2]),
+                   list(name = d$name, values = table$other, colour = netsimr_palette[1])),
+      x_title = paste0("Band of the ratio to ", d$name, " (", validation_label(validation_set()$used), ")"),
+      y_title = validation_y_title(v), dark = dark()
+    )
+  }, bg = "transparent", res = 96, alt = "Double lift chart: actual and both models' predictions per band of their ratio")
+
+  output$double_lift_note <- renderUI({
+    tagList(
+      set_note(validation_set()),
+      netsimr_help("The rows are sorted by the ratio of this model's prediction to the stored model's, and cut into bands. ",
+               "Where the two disagree most, at either end, the model whose line is nearer the actual line is the better one.")
+    )
+  })
+
+  list(validation_rows = validation_rows, validation_set = validation_set,
+       validation_label = validation_label, validation_measures = validation_measures,
+       validation_bands = validation_bands, validation_y_title = validation_y_title,
+       validation_bar_name = validation_bar_name, set_note = set_note, lift_table = lift_table,
+       double_lift = double_lift)
+}
+
+# The rates and scoring tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_rates <- function(input, output, session, tool) {
+  dark <- tool$dark
+  downloadable_model <- tool$downloadable_model
+  fit_result <- tool$fit_result
+  fitted_model <- tool$fitted_model
+  model_exposure <- tool$model_exposure
+  model_outdated <- tool$model_outdated
+  validation_bar_name <- tool$validation_bar_name
+  validation_measures <- tool$validation_measures
+  validation_rows <- tool$validation_rows
+  validation_y_title <- tool$validation_y_title
 
   # the rating table of the shown model (see glm_rate_table()), from the rows it was fitted to
   rate_table <- reactive({
@@ -800,294 +1186,19 @@ GLMFittingToolServer <- function(input, output, session) {
     }
   )
 
-  ######################
-  #visualisation
-  ######################
+  list(rate_table = rate_table, chosen_rate_factor = chosen_rate_factor, rate_label = rate_label,
+       tools_title = tools_title, scored = scored)
+}
 
-  # actual and predicted per band of the chosen variable; with an offset the chart compares
-  # rates per unit of exposure, and weights (e.g. binomial trials) weigh each row
-  # redrawn when the chart is asked for and when the model is refitted
-  fitness_data <- eventReactive(list(input$execute_visualization, input$fit_model, input$avp_rows), {
-    model <- fitted_model()
-    validate(need(!is.null(model), "Fit a model on the Model tab first."))
-    result <- fit_result()
-    spec <- result$spec
-    # the data and columns the model was fitted with, not the current choices
-    df <- result$data
-    variable <- input$visualize_variable
-    validate(need(!is.null(variable) && variable %in% names(df), "Choose the explanatory variable."))
-    # the response as the model codes it, on the same scale as the prediction
-    actual <- model_actuals(result)
-    predicted <- shown_predictions()
-    exposure_of <- model_exposure(result)
-    exposure <- exposure_of$values
-    weight <- model_weights(result)
-    # with rows held out, the chart can show the training or the test rows alone
-    rows <- if (has_holdout(result)) or_default(input$avp_rows, "all") else "all"
-    in_rows <- switch(rows, training = !result$test, test = result$test, rep(TRUE, nrow(df)))
-    grouping <- df[[variable]]
-    # within the slider's range, whatever a client sends
-    bands <- glm_band_count(input$number_of_bands_input)
-    values <- sort(unique(grouping[!is.na(grouping)]))
-    if (is.numeric(grouping) && length(values) > bands) {
-      breaks <- glm_band_breaks(grouping, bands, or_default(input$band_method, "quantile"))
-      # readable labels ("18-24"), or cut()'s own when they would not be distinct
-      grouping <- cut(grouping, breaks = breaks, labels = glm_band_labels(breaks, all(values == round(values))),
-                      include.lowest = TRUE, dig.lab = 6)
-    } else {
-      grouping <- factor(grouping, levels = values, labels = if (is.numeric(values)) glm_value_labels(values) else values)
-    }
-    keep <- in_rows & !is.na(actual) & !is.na(predicted) & !is.na(grouping) & is.finite(exposure) & is.finite(weight)
-    validate(need(any(keep), "No row has the response, the prediction and the variable all present."))
-    band <- droplevels(grouping[keep])
-    # text is not grouped: an ID would draw hundreds of unreadable bars
-    validate(need(nlevels(band) <= 100, paste0("'", variable, "' has ", format(nlevels(band), big.mark = ",", scientific = FALSE),
-                                               " different values: choose a numeric variable, or one with at most 100 values.")))
-    w <- weight[keep]
-    e <- exposure[keep]
-    total <- function(x) as.numeric(tapply(x, band, sum))
-    denominator <- total(w * e)
-    plot_data <- data.frame(
-      band = levels(band),
-      actual = total(w * actual[keep]) / denominator,
-      predicted = total(w * predicted[keep]) / denominator,
-      exposure = denominator,
-      stringsAsFactors = FALSE
-    )
-    attr(plot_data, "dropped") <- sum(in_rows & !keep)
-    attr(plot_data, "rows") <- rows
-    attr(plot_data, "exposure") <- exposure_of$name
-    attr(plot_data, "variable") <- variable
-    plot_data
-  })
-
-  # the titles of the chart follow what it shows: an exposure only when the offset was used as one
-  fitness_labels <- reactive({
-    plot_data <- fitness_data()
-    spec <- isolate(fit_result()$spec)
-    exposure <- attr(plot_data, "exposure")
-    list(
-      x = attr(plot_data, "variable"),
-      y = if (!is.null(exposure)) paste(spec$response, "per unit of exposure") else paste("Average", spec$response),
-      bars = if (!is.null(exposure)) paste0("Exposure (", exposure, ")") else if (spec$weights != "None") paste0("Weight (", spec$weights, ")") else "Rows"
-    )
-  })
-
-  output$fitness_note <- renderUI({
-    # the chart shows the message when there is no data; the note stays empty
-    plot_data <- tryCatch(fitness_data(), error = function(e) NULL)
-    dropped <- attr(req(plot_data), "dropped")
-    tagList(
-      if (model_outdated()) outdated_note("The chart is of that data; click Fit model to fit it to the new data."),
-      if (isTRUE(dropped > 0)) {
-        netsimr_help(format(dropped, big.mark = ",", scientific = FALSE), if (dropped == 1) " row is" else " rows are",
-                 " left out: the response, the prediction or the variable is missing.")
-      }
-    )
-  })
-
-  # actual and predicted on the left axis, and the exposure (or weight, or rows) of each band
-  # as bars on a secondary axis on the right; redrawn in the other theme's colours when it changes,
-  # and when the chart is resized, so that the legend is laid out for the new width
-  output$fitness_plot <- netsimr_render_plot({
-    validate(need(input$execute_visualization, "Choose a variable and click Draw chart."))
-    plot_data <- fitness_data()
-    labels <- fitness_labels()
-    netsimr_category_chart(
-      plot_data$band,
-      bars = list(name = labels$bars, values = plot_data$exposure, colour = "band_bar", y2 = labels$bars),
-      lines = list(list(name = "Actual", values = plot_data$actual, colour = "empirical"),
-                   list(name = "Predicted", values = plot_data$predicted, colour = netsimr_palette[2])),
-      x_title = labels$x, y_title = labels$y, dark = dark()
-    )
-  }, bg = "transparent", res = 96, alt = function() {
-    labels <- tryCatch(fitness_labels(), error = function(e) NULL)
-    if (is.null(labels)) return("Actual and predicted chart")
-    paste0("Actual and predicted by band of ", labels$x, ". Left axis: ", labels$y, ". Bars on the right axis: ", labels$bars, ".")
-  })
-
-  # the choice of rows, shown for a model fitted with rows held out
-  output$avp_rows_ui <- renderUI({
-    result <- if (isTruthy(input$fit_model)) fit_result() else NULL
-    if (!has_holdout(result)) return(NULL)
-    tagList(
-      div(class = "sim-section-label mt-2", "Rows"),
-      div(class = "pill-radio",
-          radioButtons("avp_rows", NULL, c("All" = "all", "Training" = "training", "Test" = "test"),
-                       or_default(isolate(input$avp_rows), "all"), inline = TRUE))
-    )
-  })
-
-  ######################
-  #validation
-  ######################
-
-  # every row's actual, prediction, exposure and weight, and which rows were held out
-  validation_rows <- reactive({
-    validate(need(input$fit_model, "Fit a model on the Model tab first."))
-    result <- fit_result()
-    validate(need(!is.null(result$model), "Fit a model on the Model tab first."))
-    exposure <- model_exposure(result)
-    list(result = result, actual = model_actuals(result), predicted = shown_predictions(),
-         exposure = exposure$values, exposure_name = exposure$name, weight = model_weights(result),
-         test = if (has_holdout(result)) result$test else rep(FALSE, nrow(result$data)))
-  })
-
-  # the rows the charts are drawn for: the test rows when there are any (the training rows
-  # otherwise, said in a note), the training rows or all of them
-  validation_set <- reactive({
-    v <- validation_rows()
-    wanted <- or_default(input$validation_rows, "test")
-    used <- if (identical(wanted, "test") && !any(v$test)) "training" else wanted
-    rows <- switch(used, test = v$test, training = !v$test, rep(TRUE, length(v$test)))
-    list(rows = rows, used = used, wanted = wanted)
-  })
-
-  validation_label <- function(used) switch(used, test = "test rows", training = "training rows", "all rows")
-
-  # the deviance per row and the Gini coefficient of a set of rows
-  validation_measures <- function(v, rows) {
-    gini <- glm_gini_curve(v$actual[rows], v$predicted[rows], v$exposure[rows], v$weight[rows])
-    list(deviance = glm_unit_deviance(v$result$model$family, v$actual[rows], v$predicted[rows], v$weight[rows]),
-         gini = if (is.null(gini)) NA_real_ else gini$gini, rows = sum(rows))
-  }
-
-  output$validation_stats <- renderUI({
-    v <- validation_rows()
-    training <- validation_measures(v, !v$test)
-    test <- if (any(v$test)) validation_measures(v, v$test)
-    both <- function(f) if (is.null(test)) f(training) else paste(f(training), "/", f(test))
-    fmt <- function(x, digits) if (is.finite(x)) netsimr_fmt(x, digits) else netsimr_dash
-    tagList(
-      if (model_outdated()) outdated_note("Click Fit model to fit it to the new data."),
-      if (is.null(test)) netsimr_help("No rows were held out: the figures are of the rows the model was fitted to. ",
-                                  "Hold out rows on the Model tab to see how it does on rows it has not seen."),
-      div(
-        class = "dft-stats",
-        netsimr_stat_tile(if (is.null(test)) "Training rows" else "Training / test rows",
-                      both(function(m) format(m$rows, big.mark = ",", scientific = FALSE)), icon_name = "table-list"),
-        netsimr_stat_tile(if (is.null(test)) "Deviance per row" else "Deviance per row, training / test",
-                      both(function(m) fmt(m$deviance, 4)), icon_name = "scale-balanced", accent = TRUE,
-                      note = if (!is.null(test) && is.finite(test$deviance) && is.finite(training$deviance) &&
-                                 test$deviance > 1.2 * training$deviance) "Much higher on the test rows: the model may be overfitted"),
-        netsimr_stat_tile(if (is.null(test)) "Gini" else "Gini, training / test", both(function(m) fmt(m$gini, 3)),
-                      icon_name = "chart-area", note = "How well the predictions rank the rows: 0 is no better than chance")
-      )
-    )
-  })
-
-  validation_bands <- reactive({
-    bands <- suppressWarnings(as.integer(or_default(input$validation_bands, "10")))
-    if (length(bands) != 1 || is.na(bands) || !bands %in% c(5L, 10L, 20L)) 10L else bands
-  })
-
-  validation_y_title <- function(v) {
-    response <- v$result$spec$response
-    if (!is.null(v$exposure_name)) paste(response, "per unit of exposure") else paste("Average", response)
-  }
-
-  validation_bar_name <- function(v) {
-    if (!is.null(v$exposure_name)) paste0("Exposure (", v$exposure_name, ")") else if (v$result$spec$weights != "None") paste0("Weight (", v$result$spec$weights, ")") else "Rows"
-  }
-
-  set_note <- function(set) {
-    if (identical(set$wanted, "test") && set$used != "test") netsimr_help("No rows were held out, so the chart is of the training rows.")
-  }
-
-  lift_table <- reactive({
-    v <- validation_rows()
-    set <- validation_set()
-    r <- set$rows
-    table <- glm_lift_table(v$actual[r], v$predicted[r], v$predicted[r] / v$exposure[r], v$exposure[r], v$weight[r],
-                            bands = validation_bands())
-    validate(need(!is.null(table), "No row has both the response and a prediction."))
-    table
-  })
-
-  output$lift_plot <- netsimr_render_plot({
-    v <- validation_rows()
-    table <- lift_table()
-    netsimr_category_chart(
-      as.character(table$band),
-      bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
-      lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
-                   list(name = "Predicted", values = table$predicted, colour = netsimr_palette[2])),
-      x_title = paste0("Band of predicted rate, lowest to highest (", validation_label(validation_set()$used), ")"),
-      y_title = validation_y_title(v), dark = dark()
-    )
-  }, bg = "transparent", res = 96, alt = "Lift chart: actual and predicted per band of the predicted rate")
-
-  output$lift_note <- renderUI({
-    tagList(
-      set_note(validation_set()),
-      netsimr_help("The rows are sorted by their predicted rate and cut into bands of about the same exposure. ",
-               "A good model's actual line rises steeply from the first band to the last, and its predicted ",
-               "line follows it.")
-    )
-  })
-
-  output$lorenz_plot <- netsimr_render_plot({
-    v <- validation_rows()
-    r <- validation_set()$rows
-    curve <- glm_gini_curve(v$actual[r], v$predicted[r], v$exposure[r], v$weight[r])
-    validate(need(!is.null(curve), "No row has both the response and a prediction."))
-    curve <- glm_thin_curve(curve)
-    netsimr_line_chart(
-      list(list(x = curve$x, y = curve$y, name = paste0("Model (Gini ", netsimr_fmt(curve$gini, 3), ")"), colour = netsimr_palette[2]),
-           list(x = c(0, 1), y = c(0, 1), name = "No better than chance", colour = "muted", lwd = 1.4)),
-      x_title = paste0("Share of exposure, lowest predicted rate first (", validation_label(validation_set()$used), ")"),
-      y_title = paste("Share of", v$result$spec$response), dark = dark(), ylim = c(0, 1)
-    )
-  }, bg = "transparent", res = 96, alt = "Lorenz curve of the model's predictions, with its Gini coefficient")
-
-  # the stored model to compare with, fitted again to the same rows
-  double_lift <- reactive({
-    v <- validation_rows()
-    choice <- or_default(input$validation_compare, "none")
-    validate(need(choice %in% c("1", "2"), "Choose a stored model to compare this model with."))
-    stored <- stored_models[[as.integer(choice)]]()
-    validate(need(!is.null(stored), paste0("Model ", choice, " is empty: store a model in it on the Model tab.")))
-    result <- v$result
-    validate(need(!model_outdated(), "The data was imported again since this model was fitted: fit it again first."))
-    same_rows <- identical(stored$import$id, result$import$id) &&
-      identical(or_default(stored$spec$holdout, "0"), result$spec$holdout) && identical(or_default(stored$spec$seed, 1L), result$spec$seed)
-    validate(need(same_rows, paste0("Model ", choice, " was fitted to other data or other rows held out, so the two cannot be compared row by row.")))
-    other <- tryCatch(glm_fit_model(stored$spec, isolate(imported()$data)), error = function(e) NULL)
-    validate(need(!is.null(other), paste0("Model ", choice, " could not be fitted again.")))
-    other_predicted <- model_predictions(other)
-    r <- validation_set()$rows
-    table <- glm_lift_table(v$actual[r], v$predicted[r], v$predicted[r] / other_predicted[r], v$exposure[r], v$weight[r],
-                            bands = validation_bands(), others = list(other = other_predicted[r]))
-    validate(need(!is.null(table), "No row has the response and both predictions."))
-    list(table = table, name = paste("Model", choice))
-  })
-
-  output$double_lift_plot <- netsimr_render_plot({
-    v <- validation_rows()
-    d <- double_lift()
-    table <- d$table
-    netsimr_category_chart(
-      as.character(table$band),
-      bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
-      lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
-                   list(name = "This model", values = table$predicted, colour = netsimr_palette[2]),
-                   list(name = d$name, values = table$other, colour = netsimr_palette[1])),
-      x_title = paste0("Band of the ratio to ", d$name, " (", validation_label(validation_set()$used), ")"),
-      y_title = validation_y_title(v), dark = dark()
-    )
-  }, bg = "transparent", res = 96, alt = "Double lift chart: actual and both models' predictions per band of their ratio")
-
-  output$double_lift_note <- renderUI({
-    tagList(
-      set_note(validation_set()),
-      netsimr_help("The rows are sorted by the ratio of this model's prediction to the stored model's, and cut into bands. ",
-               "Where the two disagree most, at either end, the model whose line is nearer the actual line is the better one.")
-    )
-  })
-
-  ######################
-  #variable selection
-  ######################
+# The variable selection tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_selection <- function(input, output, session, tool) {
+  dark <- tool$dark
+  fit_result <- tool$fit_result
+  has_holdout <- tool$has_holdout
+  hold_spec_input <- tool$hold_spec_input
+  model_outdated <- tool$model_outdated
+  selected_data <- tool$selected_data
 
   # the columns a selection may add, offered once data is imported
   observeEvent(selected_data(), {
@@ -1195,9 +1306,21 @@ GLMFittingToolServer <- function(input, output, session) {
     showNotification("The suggested terms are in the formula. Click Fit model to fit them.", type = "message", duration = 6)
   })
 
-  ######################
-  #save and load settings
-  ######################
+  list(selection = selection, penalised_result = penalised_result)
+}
+
+# The save and load settings tab of the GLM fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+glm_server_settings <- function(input, output, session, tool) {
+  chosen_family <- tool$chosen_family
+  chosen_link <- tool$chosen_link
+  data_columns <- tool$data_columns
+  hold_spec_input <- tool$hold_spec_input
+  import_failed <- tool$import_failed
+  imported <- tool$imported
+  next_import <- tool$next_import
+  pending_columns <- tool$pending_columns
+  pending_link <- tool$pending_link
 
   #save configurations as a text file: the import options and model choices, never the password
   #or files; the database connection details only when the box is ticked
@@ -1317,9 +1440,8 @@ GLMFittingToolServer <- function(input, output, session) {
     apply_settings(list(data_source = "Example", glm_distribution = "poisson", link_function = "log",
                         response_variable = "claim_count", offset = "exposure", offset_log = TRUE, weights = "None",
                         formula = "ns(age, df = 4) + region + vehicle + log(vehicle_value)", visualize_variable = "age"))
-    imports <<- imports + 1L
     import_failed(FALSE)
-    imported(list(data = NetSimR::motor_policies, source = "Example: motor policies", id = imports))
+    imported(list(data = NetSimR::motor_policies, source = "Example: motor policies", id = next_import()))
     bslib::nav_select("main_navbar", "model", session = session)
     showNotification("The example motor policies are imported, with a Poisson model of their claim counts: click Fit model.",
                      type = "message", duration = 8)
@@ -1330,4 +1452,6 @@ GLMFittingToolServer <- function(input, output, session) {
   for (id in c("data_overview", "model_stats", "formula_columns", "formula_lhs", "validation_stats", "rate_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
+
+  list(apply_settings = apply_settings)
 }
