@@ -250,19 +250,13 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   #draw each chart once per theme into a temporary PNG at twice screen resolution and embed
   #both as data URIs; the page shows the one that matches the current theme. The device
   #arguments (R/plot_device.R) ask Windows for the cairo device, which anti-aliases
-  chart_image <- function(draw, height, alt, width = 9) {
-    images <- lapply(names(palettes), function(theme) {
-      path <- tempfile(fileext = ".png")
-      on.exit(unlink(path), add = TRUE)
-      pal <<- palettes[[theme]]
-      res <- 192
-      do.call(grDevices::png, c(list(path, width = width * res, height = height * res, res = res, bg = pal$bg),
-                                png_device_args()))
-      tryCatch(draw(), finally = grDevices::dev.off())
-      tags$img(class = paste0("chart-", theme), src = base64enc::dataURI(file = path, mime = "image/png"), alt = alt)
-    })
-    pal <<- palettes$light
-    shiny::tagList(images)
+  #a chart of the report (netsimr_report_chart()), each theme's copy drawn with its palette
+  chart_card <- function(draw, title, note, alt, height = 4.2, width = 9) {
+    netsimr_report_chart(function(dark) {
+      pal <<- palettes[[if (dark) "dark" else "light"]]
+      on.exit(pal <<- palettes$light)
+      draw()
+    }, alt, title = title, note = note, height = height, width = width)
   }
 
   #a chart with nothing finite to draw shows a short message instead
@@ -404,23 +398,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   }
 
   # ---------- building blocks ----------
-  tile <- function(label, value, note = NULL, class = "kpi") {
-    div(class = class,
-        div(class = "kpi-label", label),
-        div(class = "kpi-value", value),
-        if (!is.null(note)) div(class = "kpi-note", note))
-  }
-
   off <- function(text = "Not applied") tags$span(class = "setting-off", text)
-
-  setting_card <- function(title, rows) {
-    rows <- rows[!vapply(rows, is.null, logical(1))]
-    div(
-      class = "setting-card",
-      div(class = "setting-title", title),
-      tags$dl(lapply(names(rows), function(key) shiny::tagList(tags$dt(key), tags$dd(rows[[key]]))))
-    )
-  }
 
   report_table <- function(df, numeric_cols = integer(0), explain_cols = integer(0)) {
     cell_class <- function(j) {
@@ -437,7 +415,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     )
   }
 
-  report_section <- function(id, title, ...) tags$section(id = id, tags$h2(title), ...)
+  #a section of the page (netsimr_write_report())
+  report_section <- function(id, title, ...) list(id = id, title = title, content = tagList(...))
 
   has_deductible <- function(structure) isTRUE(structure %in% c("Unlimited Layer", "Limited Layer", "Exclude Layer"))
   has_limit <- function(structure) isTRUE(structure %in% c("Limited Layer", "Exclude Layer"))
@@ -468,16 +447,15 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       ". This happens when claim draws overflow, e.g. with ",
       if (any(claims == -Inf)) "a Normal severity with a huge standard deviation." else "a very small Pareto alpha."
     )),
-    div(
-      class = "kpi-grid",
-      tile("Mean", fmt_amount(claims_mean),
-           if (n_undefined > 0) paste(fmt_int(n), "of", count_of(n + n_undefined, "simulation")) else count_of(n, "simulation")),
-      tile("Median", fmt_amount(st$median)),
-      tile("Standard deviation", fmt_amount(claims_sd), if (cv_text != dash) paste("CV", cv_text)),
-      tile("VaR 99.5%", fmt_amount(var995), fmt_return_period(0.995), class = "kpi kpi-tail"),
-      tile("TVaR 99.5%", fmt_amount(tvar995), "Average of the worst 0.5%", class = "kpi kpi-tail"),
-      tile("Maximum", fmt_amount(st$max), "Largest simulated total")
-    )
+    netsimr_report_tiles(list(
+      Mean = list(value = fmt_amount(claims_mean),
+                  note = if (n_undefined > 0) paste(fmt_int(n), "of", count_of(n + n_undefined, "simulation")) else count_of(n, "simulation")),
+      Median = fmt_amount(st$median),
+      `Standard deviation` = list(value = fmt_amount(claims_sd), note = if (cv_text != dash) paste("CV", cv_text)),
+      `VaR 99.5%` = list(value = fmt_amount(var995), note = fmt_return_period(0.995)),
+      `TVaR 99.5%` = list(value = fmt_amount(tvar995), note = "Average of the worst 0.5%"),
+      Maximum = list(value = fmt_amount(st$max), note = "Largest simulated total")
+    ), tail = c("VaR 99.5%", "TVaR 99.5%"))
   )
 
   # ---------- model settings ----------
@@ -498,9 +476,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
 
   model_settings <- report_section(
     "model-settings", "Model settings",
-    div(
-      class = "settings-grid",
-      setting_card("Simulation", list(
+    netsimr_report_settings(list(
+      Simulation = list(
         "Simulations" = fmt_int(s$numOfSimulations),
         "Seed" = if (isTRUE(s$seedSetBinary)) paste("Fixed at", fmt_int(s$seedValue)) else off("Random"),
         "Processing" = if (!isTRUE(s$multiprocessing)) {
@@ -510,22 +487,22 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         } else {
           "Parallel"
         }
-      )),
-      setting_card("Frequency", list(
+      ),
+      Frequency = list(
         "Distribution" = distr_label(freq_dist_options, s$freqDistr),
         "Parameters" = param_text(s$freq_params, freq_dist_options, s$freqDistr)
-      )),
-      setting_card("Severity", list(
+      ),
+      Severity = list(
         "Distribution" = distr_label(sev_dist_options, s$sevDistr),
         "Parameters" = param_text(s$sev_params, sev_dist_options, s$sevDistr),
         #only the Normal distribution can be truncated at zero; older settings lists lack the field
         "Negative claims" = if (isTRUE(s$sevTruncateAtZero) && identical(s$sevDistr, "Normal")) "Truncated at zero"
-      )),
-      setting_card("Tail adjustments", c(
+      ),
+      `Tail adjustments` = c(
         slice_rows,
         list("Severity cap" = if (isTRUE(s$sevCapBinary)) fmt_setting(s$sev_cap_amount) else off())
-      )),
-      setting_card("Each & every loss (EEL)", list(
+      ),
+      `Each & every loss (EEL)` = list(
         "Structure" = if (no_structure(eel)) off("None") else eel,
         #the limit first, as a layer is quoted ("limit xs deductible")
         "Limit" = if (has_limit(eel)) fmt_setting(s$reinsurance_structure_eel_limit_amount),
@@ -544,13 +521,13 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
           if (is.null(rates)) rates <- 1
           paste(paste0(signif(100 * rates, 6), "%"), collapse = ", ")
         }
-      )),
-      setting_card("Aggregate layer (AL)", list(
+      ),
+      `Aggregate layer (AL)` = list(
         "Structure" = if (no_structure(al)) off("None") else al,
         "Limit" = if (has_limit(al)) fmt_setting(s$reinsurance_structure_al_limit_amount),
         "Deductible" = if (has_deductible(al)) fmt_setting(s$reinsurance_structure_al_deductible_amount)
-      ))
-    )
+      )
+    ))
   )
 
   # ---------- gross, ceded and net ----------
@@ -621,10 +598,10 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         lapply(seq_along(columns), function(i) c(list(values = columns[[i]]), styles[[i]])),
         names(columns)
       )[known]
-      div(class = "chart-card",
-          tags$h3(paste(paste(names(comparison_series), collapse = ", "), "by return period")),
-          tags$p(class = "chart-note", "How the structures change the loss at each return period, on a log scale."),
-          chart_image(function() draw_return_periods(comparison_series, "Loss"), 4.2, "Gross, ceded and net losses by return period"))
+      chart_card(function() draw_return_periods(comparison_series, "Loss"),
+                 paste(paste(names(comparison_series), collapse = ", "), "by return period"),
+                 "How the structures change the loss at each return period, on a log scale.",
+                 "Gross, ceded and net losses by return period")
     }
     gross_section <- report_section(
       "gross-net", "Gross, ceded and net",
@@ -800,9 +777,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       div(
         class = "two-col",
         div(class = "table-card", report_table(frequency_stats, 2)),
-        div(class = "chart-card",
-            tags$h3("Claims per period"),
-            chart_image(draw_counts, 3.6, "Bar chart of claims per period", width = 6))
+        chart_card(draw_counts, "Claims per period", NULL, "Bar chart of claims per period", height = 3.6, width = 6)
       )
     )
   }
@@ -819,17 +794,16 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         "Largest single claim (OEP)" = list(values = largest, col = "navy", lty = 2, lwd = 2)
       )
     }
-    div(class = "chart-card",
-        tags$h3("Losses by return period"),
-        tags$p(class = "chart-note", paste0(
-          "The loss expected once in each number of periods, on a log scale.",
-          " Return periods are shown up to ", fmt_return_period(1 - 1 / max_return_period), ".",
-          if (!is.null(largest)) paste(
-            " The largest single claim is after the each-and-every-loss structure, before the",
-            "reinstatement limit and the aggregate layer, which act on the period's total."
-          )
-        )),
-        chart_image(function() draw_return_periods(modelled_series, modelled_label), 4.2, "Losses by return period"))
+    chart_card(function() draw_return_periods(modelled_series, modelled_label), "Losses by return period",
+               paste0(
+                 "The loss expected once in each number of periods, on a log scale.",
+                 " Return periods are shown up to ", fmt_return_period(1 - 1 / max_return_period), ".",
+                 if (!is.null(largest)) paste(
+                   " The largest single claim is after the each-and-every-loss structure, before the",
+                   "reinstatement limit and the aggregate layer, which act on the period's total."
+                 )
+               ),
+               "Losses by return period")
   }
 
   charts <- report_section(
@@ -840,15 +814,12 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
       " left out of the charts."
     )),
     if (!is.null(infinite_note)) div(class = "callout callout-warning", infinite_note),
-    div(class = "chart-card",
-        tags$h3("Distribution of total claims"),
-        tags$p(class = "chart-note", paste0("Dashed lines mark the mean and the 99.5% VaR of all simulations.", zero_note)),
-        chart_image(draw_histogram, 4.2, "Histogram of total claims")),
+    chart_card(draw_histogram, "Distribution of total claims",
+               paste0("Dashed lines mark the mean and the 99.5% VaR of all simulations.", zero_note),
+               "Histogram of total claims"),
     return_period_card,
-    div(class = "chart-card",
-        tags$h3("Cumulative distribution"),
-        tags$p(class = "chart-note", "Share of simulations with total claims at or below each amount."),
-        chart_image(draw_cdf, 4.2, "Cumulative distribution of total claims"))
+    chart_card(draw_cdf, "Cumulative distribution", "Share of simulations with total claims at or below each amount.",
+               "Cumulative distribution of total claims")
   )
 
   # ---------- reading guide ----------
@@ -872,72 +843,8 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   )
 
   # ---------- page ----------
-  sections <- list(
-    c("key-results", "Key results"),
-    c("model-settings", "Model settings"),
-    if (!is.null(gross_section)) c("gross-net", "Gross, ceded and net"),
-    if (!is.null(layer_section)) c("layer-metrics", "Layer metrics"),
-    c("statistics", "Statistics and tail risk"),
-    if (!is.null(frequency_section)) c("frequency", "Claim frequency"),
-    c("charts", "Charts"),
-    c("how-to-read", "How to read this report")
-  )
-  sections <- Filter(Negate(is.null), sections)
-  nav <- tags$nav(
-    class = "report-nav",
-    `aria-label` = "Contents",
-    div(class = "report-nav-title", "Contents"),
-    tags$ul(lapply(sections, function(x) tags$li(tags$a(href = paste0("#", x[1]), x[2]))))
-  )
-
-  generated_text <- format(generated, "%d %B %Y, %H:%M")
-
-  body <- tags$body(
-    div(
-      class = "report-layout",
-      nav,
-      tags$main(
-        tags$header(
-          class = "report-header",
-          div(
-            class = "report-header-top",
-            tags$p(class = "report-eyebrow", "NetSimulator by NetSimR"),
-            netsimr_report_theme_switch()
-          ),
-          tags$h1("Simulation Report"),
-          tags$p(class = "report-date", paste("Generated", generated_text))
-        ),
-        key_results,
-        model_settings,
-        gross_section,
-        layer_section,
-        statistics,
-        frequency_section,
-        charts,
-        reading_guide,
-        netsimr_report_footer(generated_text)
-      )
-    )
-  )
-
-  #the head is written by hand: rendering tags to text moves tags$head() content out,
-  #which would drop the title and the styles
-  html <- enc2utf8(paste0(
-    "<!DOCTYPE html>\n",
-    "<html lang=\"en\">\n",
-    "<head>\n",
-    "<meta charset=\"utf-8\">\n",
-    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n",
-    "<title>Simulation Report</title>\n",
-    "<style>", netsimr_css("report"), netsimr_report_theme_css, "</style>\n",
-    #runs before the page is drawn, so the chosen theme applies without a flash of the other one
-    "<script>", netsimr_report_theme_js, "</script>\n",
-    "</head>\n",
-    as.character(body), "\n",
-    "</html>\n"
-  ))
-  con <- file(file, open = "wb")
-  on.exit(close(con), add = TRUE)
-  writeLines(html, con, useBytes = TRUE)
-  invisible(file)
+  netsimr_write_report(file, "Simulation Report", "NetSimulator by NetSimR",
+                       list(key_results, model_settings, gross_section, layer_section, statistics, frequency_section,
+                            charts, reading_guide),
+                       generated = generated)
 }
