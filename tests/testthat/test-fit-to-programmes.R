@@ -122,10 +122,11 @@ test_that("the reinsurance pricing tool loads a fitted model and compares its pr
     expect_equal(prog_slices(), data.frame(threshold = c(5e5, 2e6), alpha = c(1.6, 2.4)))
     expect_match(as.character(output$prog_tail$html), "alpha 1.6 above 500,000; alpha 2.4 above 2,000,000", fixed = TRUE)
     # (the page sets the inputs the server updates)
-    expect_true(prog_keep$frequency && prog_keep$severity)
+    expect_identical(own_updates$waiting("prog_frequency"), "Zero-inflated Poisson")
+    expect_identical(own_updates$waiting("prog_severity"), "LogNormal")
     session$setInputs(prog_frequency = "Zero-inflated Poisson", prog_f1 = 150, prog_f2 = 0.1, prog_severity = "LogNormal",
                       prog_s1 = 11, prog_s2 = 1.4, run_programmes = 1)
-    expect_false(prog_keep$frequency || prog_keep$severity)
+    expect_length(c(own_updates$waiting("prog_frequency"), own_updates$waiting("prog_severity")), 0)
     cmp <- current_programmes()
     direct <- compare_reinsurance("Zero_Inflated_Poisson", c(150, 0.1), "LogNormal", c(11, 1.4), programme_list(),
                                   premium = 6e7, n = 2000, seed = 1, pareto_thresholds = c(5e5, 2e6), pareto_alphas = c(1.6, 2.4))

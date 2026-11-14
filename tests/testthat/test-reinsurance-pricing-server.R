@@ -248,9 +248,9 @@ test_that("the settings file keeps the layer, the options and each year's values
     expect_equal(saved$premium[10], 5e7)
     expect_false(saved$include[10])
     #the claim size distribution changed with the file: its defaults do not overwrite the file's parameters
-    expect_true(get("skip_severity_defaults", envir = environment(year_defaults)))
+    expect_identical(own_updates$waiting("severity"), "Gamma")
     session$setInputs(deductible = 2e6, curve = "Y4", severity = "Gamma", severity_p1 = 0.5, severity_p2 = 2e5)
-    expect_false(get("skip_severity_defaults", envir = environment(year_defaults)))
+    expect_length(own_updates$waiting("severity"), 0)
     #new years take their defaults from the file
     session$setInputs(first_year = 2016)
     expect_equal(year_values()$premium[9], 5e7)

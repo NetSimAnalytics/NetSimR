@@ -55,3 +55,30 @@ netsimr_read_upload <- function(input, file, ids, missing, min_columns = 1) {
 # or a method the data is too thin for), the error that says why, which the report lists in its
 # section of what it leaves out (netsimr_report_omitted()) instead of leaving it out unsaid.
 netsimr_report_part <- function(expr) tryCatch(expr, error = function(e) e)
+
+# The values a tool sets in its own inputs (loading a settings file, say), so that an observer of
+# such an input can tell the input reporting a value the tool set, which it must not act on as
+# if the user had chosen it, from a change the user made. expect(id, value) notes a value the
+# tool sets; is_echo(id, value), when the input reports a value, is TRUE for the first value
+# expected (which it then forgets) and FALSE for any other, after which nothing more is expected
+# of that input: the user changed it; waiting(id) gives the values still expected. Values are
+# compared as text, as the page sends them.
+netsimr_own_updates <- function() {
+  expected <- list()
+  list(
+    expect = function(id, value) {
+      expected[[id]] <<- c(expected[[id]], as.character(value))
+      invisible(NULL)
+    },
+    is_echo = function(id, value) {
+      queue <- expected[[id]]
+      if (length(queue) > 0 && length(value) == 1 && identical(queue[1], as.character(value))) {
+        expected[[id]] <<- queue[-1]
+        return(TRUE)
+      }
+      expected[[id]] <<- NULL
+      FALSE
+    },
+    waiting = function(id) expected[[id]]
+  )
+}

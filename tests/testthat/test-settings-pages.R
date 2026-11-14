@@ -74,3 +74,17 @@ test_that("the values saved are each input's single value, with empty columns le
   expect_identical(collect_setting_values(input, kinds),
                    list(sep = ";", quote = "", value_col = "paid", prior = NA_real_))
 })
+
+test_that("a tool tells the values it set in an input from a change the user made", {
+  own <- netsimr_own_updates()
+  expect_false(own$is_echo("severity", "Gamma"))
+  own$expect("severity", "Pareto")
+  #the user chose another before the page reported the tool's value: nothing is skipped after
+  expect_false(own$is_echo("severity", "Gamma"))
+  expect_false(own$is_echo("severity", "Pareto"))
+  own$expect("prior", 0.65)
+  own$expect("prior", 0.7)
+  expect_true(own$is_echo("prior", 0.65))
+  expect_true(own$is_echo("prior", "0.7"))
+  expect_false(own$is_echo("prior", 0.7))
+})

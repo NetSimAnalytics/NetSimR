@@ -85,9 +85,9 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   loaded_years <- NULL
   # each year's premium, rate index, development and inclusion from a loaded settings file
   loaded_by_year <- reactiveVal(NULL)
-  # set when a loaded file changes the claim size distribution, whose defaults must then
-  # not overwrite the file's parameters
-  skip_severity_defaults <- FALSE
+  # the distributions a loaded file sets (the claim sizes, and those of the gross portfolio),
+  # whose defaults must then not overwrite the file's parameters
+  own_updates <- netsimr_own_updates()
 
   read_upload <- function(file, prefix) {
     netsimr_read_upload(input, file, list(header = paste0(prefix, "_header"), sep = paste0(prefix, "_sep"),
@@ -423,8 +423,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   observeEvent(input$severity, {
     s <- xlp_severities[[input$severity]]
     if (is.null(s)) return()
-    if (skip_severity_defaults) {
-      skip_severity_defaults <<- FALSE
+    if (own_updates$is_echo("severity", input$severity)) {
       updateNumericInput(session, "severity_p1", label = s$params[1])
       if (length(s$params) > 1) updateNumericInput(session, "severity_p2", label = s$params[2])
       return()
@@ -886,20 +885,13 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   prog_models <- list(frequency = xlp_prog_frequencies, severity = xlp_prog_severities)
   prog_param_id <- function(what, j) paste0(if (what == "frequency") "prog_f" else "prog_s", j)
   prog_slices <- reactiveVal(NULL)
-  # set when a loaded file changes a distribution, whose defaults must then not overwrite
-  # the file's parameters
-  prog_keep <- new.env()
-  prog_keep$frequency <- FALSE
-  prog_keep$severity <- FALSE
-
   # a distribution chosen: its parameters' names, and their defaults unless a file gave them
   for (kind in names(prog_models)) local({
     what <- kind
     observeEvent(input[[paste0("prog_", what)]], {
       d <- prog_models[[what]][[input[[paste0("prog_", what)]]]]
       if (is.null(d)) return()
-      keep <- prog_keep[[what]]
-      prog_keep[[what]] <- FALSE
+      keep <- own_updates$is_echo(paste0("prog_", what), input[[paste0("prog_", what)]])
       for (j in seq_along(d$params)) {
         if (keep) {
           updateNumericInput(session, prog_param_id(what, j), label = d$params[j])
@@ -913,7 +905,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   # sets a distribution and its parameters, from a file
   set_prog_model <- function(what, name, params) {
     id <- paste0("prog_", what)
-    prog_keep[[what]] <- !identical(name, input[[id]])
+    if (!identical(name, input[[id]])) own_updates$expect(id, name)
     updateSelectInput(session, id, selected = name)
     labels <- prog_models[[what]][[name]]$params
     for (j in seq_along(labels)) updateNumericInput(session, prog_param_id(what, j), label = labels[j], value = params[j])
@@ -1256,10 +1248,12 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     # the choices of the radio buttons and selects, as the page offers them
     choices <- tool_input_choices("reinsurance", reinsurance_pricing_tool_UI)
     usable <- function(id) setting_usable(v[[id]], xlp_settings_inputs[[id]], choices[[id]])
-    skip_severity_defaults <<- usable("severity") && !identical(v$severity, input$severity)
+    if (usable("severity") && !identical(v$severity, input$severity)) own_updates$expect("severity", v$severity)
     # (the gross portfolio's distributions too; a file without a Pareto tail has none)
-    prog_keep$frequency <- usable("prog_frequency") && !identical(v$prog_frequency, input$prog_frequency)
-    prog_keep$severity <- usable("prog_severity") && !identical(v$prog_severity, input$prog_severity)
+    for (what in c("frequency", "severity")) {
+      id <- paste0("prog_", what)
+      if (usable(id) && !identical(v[[id]], input[[id]])) own_updates$expect(id, v[[id]])
+    }
     thresholds <- suppressWarnings(as.numeric(v$prog_tail_thresholds))
     alphas <- suppressWarnings(as.numeric(v$prog_tail_alphas))
     prog_slices(if (length(thresholds) > 0 && length(alphas) == length(thresholds) && !anyNA(c(thresholds, alphas)) &&

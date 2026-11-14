@@ -117,9 +117,9 @@ reserving_tool_Server <- function(input, output, session) {
   pending <- NULL
   # each origin's premium, a priori loss ratio and method from a loaded settings file, by label
   loaded_origins <- reactiveVal(NULL)
-  # set when a loaded file changes the loss ratio or method for all origins, which must then
+  # the loss ratio and method for all origins that a loaded file sets, which must then
   # not overwrite the file's values of each origin
-  skip_push <- list(prior = FALSE, method = FALSE)
+  own_updates <- netsimr_own_updates()
 
   # each new triangle starts with every link ratio included (or those of a loaded settings
   # file left out), with the period choices it allows, and with new inputs for its origins;
@@ -333,18 +333,12 @@ reserving_tool_Server <- function(input, output, session) {
   })
 
   observeEvent(input$prior_loss_ratio, {
-    if (skip_push$prior) {
-      skip_push$prior <<- FALSE
-      return()
-    }
+    if (own_updates$is_echo("prior_loss_ratio", input$prior_loss_ratio)) return()
     loaded_origins(NULL)
     for (i in seq_len(nrow(triangle()))) updateNumericInput(session, origin_id("prior", i), value = input$prior_loss_ratio)
   }, ignoreInit = TRUE)
   observeEvent(input$method_all, {
-    if (skip_push$method) {
-      skip_push$method <<- FALSE
-      return()
-    }
+    if (own_updates$is_echo("method_all", input$method_all)) return()
     loaded_origins(NULL)
     for (i in seq_len(nrow(triangle()))) updateSelectInput(session, origin_id("method", i), selected = input$method_all)
   }, ignoreInit = TRUE)
@@ -1000,8 +994,10 @@ reserving_tool_Server <- function(input, output, session) {
     changes <- vapply(data_ids, function(id) usable(id) && !identical(as.character(v[[id]]), as.character(input[[id]])), logical(1))
     new_triangle <- any(changes) || (identical(v$data_source, "upload") && is.null(input$file1))
 
-    skip_push$prior <<- usable("prior_loss_ratio") && !identical(as.numeric(v$prior_loss_ratio), as.numeric(input$prior_loss_ratio))
-    skip_push$method <<- usable("method_all") && !identical(v$method_all, input$method_all)
+    if (usable("prior_loss_ratio") && !identical(as.numeric(v$prior_loss_ratio), as.numeric(input$prior_loss_ratio))) {
+      own_updates$expect("prior_loss_ratio", v$prior_loss_ratio)
+    }
+    if (usable("method_all") && !identical(v$method_all, input$method_all)) own_updates$expect("method_all", v$method_all)
     for (id in names(rsv_settings_inputs)) {
       if (usable(id) && !id %in% c("periods", "tail_from")) update_setting_input(session, id, rsv_settings_inputs[[id]], v[[id]])
     }
