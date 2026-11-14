@@ -18,18 +18,6 @@ glm_formula_chips_js <- "
 })();
 "
 
-#' Links offered for each GLM family, the first being the family's default
-#'
-#' @noRd
-glm_family_links <- list(
-  gaussian = c("identity", "log", "inverse"),
-  poisson = c("log", "identity", "sqrt"),
-  binomial = c("logit", "probit", "cloglog", "cauchit", "log"),
-  Gamma = c("inverse", "log", "identity"),
-  inverse.gaussian = c("1/mu^2", "inverse", "log", "identity"),
-  tweedie = c("log", "identity", "sqrt", "inverse")
-)
-
 #' User interface of the Shiny GLM fitting tool
 #'
 #' @description Builds the pages of the GLM fitting tool: Welcome, Data, Model,

@@ -17,12 +17,8 @@ GLMFittingToolServer <- function(input, output, session) {
   #help functions
   ######################
 
-
   # the chart is drawn in the colours of the theme the page reports
   dark <- netsimr_dark(input)
-
-  # a column name as it must be written in a formula
-  term <- function(column) if (identical(make.names(column), column)) column else paste0("`", gsub("`", "\\\\`", column), "`")
 
   ######################
   #import data
@@ -240,21 +236,15 @@ GLMFittingToolServer <- function(input, output, session) {
   output$formula_columns <- renderUI({
     columns <- setdiff(req(data_columns()), c(input$response_variable, input$offset, input$weights))
     lapply(columns, function(column) {
-      tags$button(type = "button", class = "glm-chip", `data-term` = term(column), column)
+      tags$button(type = "button", class = "glm-chip", `data-term` = glm_term(column), column)
     })
   })
-
-  # the left-hand side of the formula that the tool adds to the terms
-  offset_term <- function(offset, offset_log) {
-    if (is.null(offset) || identical(offset, "None")) return(NULL)
-    if (isTRUE(offset_log)) paste0("offset(log(", term(offset), "))") else paste0("offset(", term(offset), ")")
-  }
 
   output$formula_lhs <- renderUI({
     req(input$response_variable, input$response_variable != "")
     div(class = "glm-formula-lhs",
-        paste(c(paste(term(input$response_variable), "~"), offset_term(input$offset, input$offset_log)), collapse = " "),
-        if (!is.null(offset_term(input$offset, input$offset_log))) " +", " ...")
+        paste(c(paste(glm_term(input$response_variable), "~"), glm_offset_term(input$offset, input$offset_log)), collapse = " "),
+        if (!is.null(glm_offset_term(input$offset, input$offset_log))) " +", " ...")
   })
 
   ######################
@@ -278,156 +268,11 @@ GLMFittingToolServer <- function(input, output, session) {
     )
   }
 
-  fit_glm <- function(spec, model_data) {
-    if (is.null(model_data)) stop("import data on the Data tab first")
-    columns <- names(model_data)
-    if (is.null(spec$response) || !spec$response %in% columns) stop("choose the response column")
-    for (column in c(spec$offset, spec$weights)) {
-      if (column != "None" && !column %in% columns) stop("the column '", column, "' is not in the data")
-    }
-    links <- glm_family_links[[spec$family]]
-    if (is.null(links)) stop("unknown family '", spec$family, "'")
-    link <- if (!is.null(spec$link) && spec$link %in% links) spec$link else links[1]
-    if (spec$offset != "None") {
-      offset_values <- model_data[[spec$offset]]
-      if (!is.numeric(offset_values)) stop("the offset column must be numeric")
-      if (spec$offset_log && any(offset_values <= 0, na.rm = TRUE)) {
-        stop("the log of the offset needs positive values; '", spec$offset, "' has zero or negative values")
-      }
-    }
-    if (grepl("~", spec$formula, fixed = TRUE)) {
-      stop("enter only the terms after ~; the response is chosen above")
-    }
-    terms_text <- if (spec$formula == "") "1" else spec$formula
-    rhs <- paste(c(offset_term(spec$offset, spec$offset_log), terms_text), collapse = " + ")
-    model_formula <- tryCatch(
-      stats::as.formula(paste(term(spec$response), "~", rhs), env = glm_formula_env()),
-      error = function(e) {
-        # the parser's message starts with "<text>:2:0:" and repeats the text on more lines
-        stop("the formula could not be read: ", sub("^<text>:[0-9]+:[0-9]+: ", "", strsplit(conditionMessage(e), "\n")[[1]][1]),
-             call. = FALSE)
-      }
-    )
-    # model.frame() and glm() run whatever the formula calls: only the data's columns and the
-    # formula functions are allowed (see glm_formula_problem()), I() included
-    problem <- glm_formula_problem(model_formula, columns)
-    if (!is.null(problem)) stop(problem, call. = FALSE)
-    warnings <- character(0)
-    left_out <- character(0)
-    if ("." %in% all.vars(model_formula)) {
-      # "." is every other column except the offset and weights columns, and the columns that
-      # cannot be predictors: no values, a single text value, or text with too many values
-      candidates <- setdiff(columns, c(spec$response, spec$offset, spec$weights))
-      left_out <- unlist(lapply(candidates, function(column) {
-        x <- model_data[[column]]
-        present <- x[!is.na(x)]
-        reason <- if (length(present) == 0) {
-          "no values"
-        } else if ((is.character(x) || is.factor(x) || is.logical(x)) && length(unique(present)) < 2) {
-          "a single value"
-        } else if (glm_many_values(x)) {
-          paste(format(length(unique(present)), big.mark = ",", scientific = FALSE), "different values")
-        }
-        if (!is.null(reason)) stats::setNames(reason, column)
-      }))
-      # a column the formula names (". - id", "id + .") is not left out: terms() needs it in the data
-      left_out <- left_out[!names(left_out) %in% all.vars(model_formula)]
-      allowed <- setdiff(columns, c(spec$offset, spec$weights, names(left_out)))
-      model_formula <- stats::formula(stats::terms(model_formula, data = model_data[allowed]))
-      environment(model_formula) <- glm_formula_env()
-    }
-    # text columns named in the formula are used, however many values they have
-    labels <- attr(stats::terms(model_formula), "term.labels")
-    predictors <- if (length(labels) > 0) all.vars(str2lang(paste(labels, collapse = " + "))) else character(0)
-    for (column in setdiff(intersect(predictors, columns), spec$response)) {
-      if (glm_many_values(model_data[[column]])) {
-        warnings <- c(warnings, paste0("'", column, "' is text with ", format(length(unique(stats::na.omit(model_data[[column]]))), big.mark = ",", scientific = FALSE),
-                                       " different values, each with its own coefficient"))
-      }
-    }
-    response_values <- model_data[[spec$response]]
-    if (spec$family == "tweedie" && is.numeric(response_values) && any(response_values < 0, na.rm = TRUE)) {
-      stop("the Tweedie family needs zero or positive responses; '", spec$response, "' has negative values")
-    }
-    if (spec$family != "binomial" && !is.numeric(response_values) && !is.logical(response_values)) {
-      stop("the response '", spec$response, "' has text values, such as '", stats::na.omit(response_values)[1],
-           "'; the ", spec$family, " family needs numbers (only a binomial response can be text)")
-    }
-    # the rows the fit can use have every column of the model, and the weight, present
-    used_columns <- intersect(c(all.vars(model_formula), if (spec$weights != "None") spec$weights), columns)
-    complete <- stats::complete.cases(model_data[used_columns])
-    if (!any(complete)) {
-      empty <- used_columns[vapply(model_data[used_columns], function(x) all(is.na(x)), logical(1))]
-      stop("no row has a value in every column the model uses",
-           if (length(empty) > 0) paste0(": ", paste0("'", empty, "'", collapse = ", "), if (length(empty) == 1) " has" else " have", " no values"))
-    }
-    # the rows held out for testing: the model is fitted to the others, the training rows
-    test <- glm_holdout_rows(nrow(model_data), or_default(spec$holdout, "0"), or_default(spec$seed, 1L))
-    if (!any(complete & !test)) stop("no training row has a value in every column the model uses")
-    # a text predictor with a single value in those rows has no contrasts, which glm() reports as
-    # "contrasts can be applied only to factors with 2 or more levels" without naming it
-    frame <- stats::model.frame(model_formula, data = model_data[complete & !test, used_columns, drop = FALSE])
-    for (column in names(frame)[-1]) {
-      x <- frame[[column]]
-      if ((is.character(x) || is.factor(x) || is.logical(x)) && length(unique(x)) < 2) {
-        stop("'", column, "' has a single value ('", x[1], "') in the rows the model uses, so it cannot be a predictor; ",
-             "remove it from the formula")
-      }
-    }
-    # a text response of a binomial model is a factor: glm() takes its first level as failure and
-    # every other level as success; a logical response is left as it is, TRUE being success
-    if (spec$family == "binomial" && is.character(model_data[[spec$response]])) {
-      model_data[[spec$response]] <- factor(model_data[[spec$response]])
-      outcomes <- levels(model_data[[spec$response]])
-      if (length(outcomes) > 2) {
-        warnings <- c(warnings, paste0("the response has ", length(outcomes), " values: '", outcomes[1],
-                                       "' is failure and every other value is success"))
-      }
-    }
-    # the call is written out, so that the summary shows the real formula, family and weights; it
-    # refers to the data as model_data, so update() on a downloaded model needs the data assigned to
-    # model_data or passed as data =. The weights are a column of the data, so the rows left out
-    # for missing values leave out their weight too
-    family_call <- if (spec$family == "tweedie") {
-      # NetSimR's own family, so that update() on a downloaded model finds it
-      as.call(list(quote(NetSimR::tweedie_family), power = glm_tweedie_power(spec$power), link = link))
-    } else {
-      call(spec$family, link = link)
-    }
-    weights_arg <- if (spec$weights != "None") as.name(spec$weights) else NULL
-    fit_call <- if (is.null(weights_arg)) {
-      bquote(stats::glm(.(model_formula), family = family_object, data = model_data, na.action = stats::na.exclude))
-    } else {
-      bquote(stats::glm(.(model_formula), family = family_object, data = model_data, weights = .(weights_arg),
-                        na.action = stats::na.exclude))
-    }
-    if (spec$offset != "None" && spec$offset_log && link != "log") {
-      warnings <- c(warnings, "an exposure offset only multiplies the mean with the log link")
-    }
-    # nothing of the server may be reachable from the model, which is saved to a file with
-    # everything it refers to: the call is evaluated where only the data and the family (built
-    # apart, see glm_family_object()) are, and the formula's environment is the global one with
-    # the spline bases (glm_formula_env())
-    fit_env <- new.env(parent = globalenv())
-    fit_env$model_data <- model_data[!test, , drop = FALSE]
-    fit_env$family_object <- glm_family_object(spec$family, link, spec$power)
-    model <- withCallingHandlers(
-      eval(fit_call, fit_env),
-      warning = function(w) {
-        warnings <<- c(warnings, conditionMessage(w))
-        invokeRestart("muffleWarning")
-      }
-    )
-    model$call$family <- family_call
-    spec$link <- link
-    list(model = model, spec = spec, data = model_data, test = test, warnings = unique(warnings), left_out = left_out, error = NULL)
-  }
-
   fit_result <- eventReactive(input$fit_model, {
     spec <- current_spec()
     import <- imported()
     result <- tryCatch(
-      fit_glm(spec, import$data),
+      glm_fit_model(spec, import$data),
       error = function(e) {
         showNotification(paste("Model fitting failed:", conditionMessage(e)), type = "error", duration = 10)
         list(model = NULL, spec = spec, error = conditionMessage(e))
@@ -672,9 +517,9 @@ GLMFittingToolServer <- function(input, output, session) {
       other$n == stored$n && identical(other$spec$weights, spec$weights) &&
       identical(or_default(other$spec$holdout, "0"), or_default(spec$holdout, "0")) &&
       identical(or_default(other$spec$seed, 1L), or_default(spec$seed, 1L))
-    lhs <- paste(c(paste(term(spec$response), "~"), offset_term(spec$offset, spec$offset_log)), collapse = " ")
+    lhs <- paste(c(paste(glm_term(spec$response), "~"), glm_offset_term(spec$offset, spec$offset_log)), collapse = " ")
     tagList(
-      div(class = "glm-slot-formula", paste(lhs, if (!is.null(offset_term(spec$offset, spec$offset_log))) "+", if (spec$formula == "") "1" else spec$formula)),
+      div(class = "glm-slot-formula", paste(lhs, if (!is.null(glm_offset_term(spec$offset, spec$offset_log))) "+", if (spec$formula == "") "1" else spec$formula)),
       div(class = "sim-muted", paste0(glm_family_label(spec), " (", spec$link, " link)",
                                       if (spec$weights != "None") paste0(", weights ", spec$weights), ", ",
                                       format(stored$n, big.mark = ",", scientific = FALSE), " observations",
@@ -1207,7 +1052,7 @@ GLMFittingToolServer <- function(input, output, session) {
     same_rows <- identical(stored$import$id, result$import$id) &&
       identical(or_default(stored$spec$holdout, "0"), result$spec$holdout) && identical(or_default(stored$spec$seed, 1L), result$spec$seed)
     validate(need(same_rows, paste0("Model ", choice, " was fitted to other data or other rows held out, so the two cannot be compared row by row.")))
-    other <- tryCatch(fit_glm(stored$spec, isolate(imported()$data)), error = function(e) NULL)
+    other <- tryCatch(glm_fit_model(stored$spec, isolate(imported()$data)), error = function(e) NULL)
     validate(need(!is.null(other), paste0("Model ", choice, " could not be fitted again.")))
     other_predicted <- model_predictions(other)
     r <- validation_set()$rows

@@ -130,9 +130,6 @@ glm_lift_table <- function(actual, predicted, sort_by, exposure = 1, weight = 1,
   table[is.finite(table$exposure) & table$exposure > 0, , drop = FALSE]
 }
 
-# A column name as it must be written in a formula.
-glm_term <- function(column) if (identical(make.names(column), column)) column else paste0("`", gsub("`", "\\\\`", column), "`")
-
 # Stepwise selection of a model's terms, by AIC or BIC, in both directions: from the
 # model's terms, each step adds one of the candidate columns or drops a term, whichever
 # lowers the criterion most, until none does (stats::step()). The steps are fitted to the
@@ -149,7 +146,7 @@ glm_stepwise <- function(model, data, candidates, criterion = c("AIC", "BIC"), t
          "on the rows held out, on the Validation tab")
   }
   call <- model$call
-  # the call refers to the data and the family as model_data and family_object (see fit_glm())
+  # the call refers to the data and the family as model_data and family_object (see glm_fit_model())
   call$family <- quote(family_object)
   weights <- if (!is.null(call$weights)) as.character(call$weights)
   start_formula <- stats::formula(model)
