@@ -24,7 +24,7 @@ if (interactive()) {
 }
 \seealso{
 \code{\link{run_shiny_simulator}} and
-  \code{\link{run_shiny_glm_fitting_tool}}, the other two applications;
+  \code{\link{run_shiny_glm_fitting_tool}}, two of the package's other applications;
   \code{\link{SlicedLNormParetoMean}}, \code{\link{SlicedLNormParetoCappedMean}},
   \code{\link{SlicedGammaParetoMean}} and \code{\link{SlicedGammaParetoCappedMean}}
   for the moments of the sliced distributions the tool fits.
