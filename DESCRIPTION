@@ -52,7 +52,7 @@ URL: https://netsimanalytics.github.io/NetSimR/, https://github.com/NetSimAnalyt
 BugReports: https://github.com/NetSimAnalytics/NetSimR/issues
 Encoding: UTF-8
 Language: en-GB
-Depends: R (>= 2.10)
+Depends: R (>= 3.6.0)
 Imports: shiny (>= 1.8.1), base64enc, bslib (>= 0.9.0), parallel, methods, splines, stats, utils, graphics, grDevices
 Suggests: knitr, rmarkdown, testthat (>= 3.0.0), shinytest2, chromote, pkgload, htmltools, DBI, RODBC, RPostgres, RSQLite, glmnet, readxl, writexl
 VignetteBuilder: knitr

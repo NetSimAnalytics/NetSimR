@@ -46,9 +46,6 @@ xlp_severities <- list(
   Pareto = list(label = "Pareto", params = c("alpha", "x_m (minimum)"), defaults = c(1.5, 100000))
 )
 
-# The colours of the methods in the Pricing tab's chart.
-xlp_method_colours <- c("Burning cost" = "#3b82f6", "Pareto" = "#10b981", "Exposure" = "#8b5cf6", "Blended" = "#e11d48")
-
 # The colours of the pricing charts, for the light or dark theme.
 xlp_chart_colours <- function(dark = FALSE) {
   if (isTRUE(dark)) {
