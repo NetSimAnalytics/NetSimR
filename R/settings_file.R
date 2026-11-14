@@ -27,7 +27,7 @@ settings_literal <- function(expr) {
       if (!all(vapply(parts, function(x) is.null(x) || is.atomic(x), logical(1)))) stop("not a literal value")
       # ranges are held to a million values each; so is what they are joined into, or a file
       # could ask for tens of millions and hold the session while they are built
-      if (sum(vapply(parts, length, numeric(1))) > 1e6) stop("not a literal value")
+      if (sum(lengths(parts)) > 1e6) stop("not a literal value")
       return(do.call(c, parts))
     }
     if (fun %in% c("-", "+") && length(args) == 1) {

@@ -319,23 +319,22 @@ sim_server_reinsurance <- function(input, output, session, tool) {
   })
 
   output$reinsuranceStructureReinstatementLimit_ui <- renderUI({
+    #(req() leaves the fields out while limited reinstatements are off)
     req(input$reinsuranceStructureLimitedReinstatements)
     if (input$reinsuranceStructureEEL %in% c('Limited Layer')) {
-      if(input$reinsuranceStructureLimitedReinstatements) {
-        tagList(
-          numericInput('reinsuranceStructureReinstatementLimit', 'Number of Reinstatements',
-                       value = last_typed('reinsuranceStructureReinstatementLimit'), min = 0),
-          #an optional upfront premium prices the reinstatements used
-          div(
-            class = "param-grid",
-            netsimr_amount_input('reinsurance_structure_eel_premium', 'Upfront premium (optional)',
-                             value = last_typed('reinsurance_structure_eel_premium'), min = 0),
-            numericInput('reinsurance_structure_eel_reinstatement_rate_pct', 'Reinstatement rate (% of upfront)',
-                         value = last_typed('reinsurance_structure_eel_reinstatement_rate_pct', 100), min = 0)
-          ),
-          helpText("With an upfront premium, the results price the reinstatements used, pro rata to the amount reinstated.")
-        )
-      }
+      tagList(
+        numericInput('reinsuranceStructureReinstatementLimit', 'Number of Reinstatements',
+                     value = last_typed('reinsuranceStructureReinstatementLimit'), min = 0),
+        #an optional upfront premium prices the reinstatements used
+        div(
+          class = "param-grid",
+          netsimr_amount_input('reinsurance_structure_eel_premium', 'Upfront premium (optional)',
+                           value = last_typed('reinsurance_structure_eel_premium'), min = 0),
+          numericInput('reinsurance_structure_eel_reinstatement_rate_pct', 'Reinstatement rate (% of upfront)',
+                       value = last_typed('reinsurance_structure_eel_reinstatement_rate_pct', 100), min = 0)
+        ),
+        helpText("With an upfront premium, the results price the reinstatements used, pro rata to the amount reinstated.")
+      )
     }
   })
 

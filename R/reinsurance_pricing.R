@@ -395,9 +395,7 @@ pricing_experience <- function(losses, premium, inflation, rating_year, developm
   development <- pricing_by_year(development, years, "development")
   premium_index <- pricing_by_year(premium_index, years, "premium_index")
   if (any(premium_index <= 0)) stop("premium_index must be positive.", call. = FALSE)
-  if (!is.null(exclude)) {
-    if (!is.numeric(exclude) || anyNA(exclude)) stop("exclude must be years.", call. = FALSE)
-  }
+  if (!is.null(exclude) && (!is.numeric(exclude) || anyNA(exclude))) stop("exclude must be years.", call. = FALSE)
   included <- !(years %in% exclude)
   if (!any(included)) stop("exclude leaves no years.", call. = FALSE)
   at <- match(losses$year, years)

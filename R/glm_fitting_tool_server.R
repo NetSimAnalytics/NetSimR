@@ -469,7 +469,7 @@ glm_server_model <- function(input, output, session, tool) {
       note = paste0(
         "Significance: *** 0.001, ** 0.01, * 0.05, . 0.1.",
         if (!is.null(relativity_label)) paste0(" ", relativity_label, " = exp(estimate)."),
-        if (any(is.na(estimates))) " A dash marks a term that is aliased with others and was not estimated." else ""
+        if (anyNA(estimates)) " A dash marks a term that is aliased with others and was not estimated." else ""
       )
     )
   })

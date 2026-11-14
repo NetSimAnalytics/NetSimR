@@ -129,7 +129,7 @@ rsv_server_data <- function(input, output, session, tool) {
       netsimr_stat_tile("Development periods", format(ncol(tri), big.mark = ",", scientific = FALSE), icon_name = "arrow-right"),
       netsimr_stat_tile("Latest diagonal", netsimr_amount(sum(latest)), icon_name = "layer-group"),
       netsimr_stat_tile("Premium", if (all(is.na(premium))) "None" else netsimr_amount(sum(premium, na.rm = TRUE)), icon_name = "coins",
-                    note = if (any(is.na(premium)) && !all(is.na(premium))) "Some origins have none")
+                    note = if (anyNA(premium) && !all(is.na(premium))) "Some origins have none")
     )
   })
 

@@ -91,7 +91,7 @@ rsv_upload_input <- function(df, layout, origin, development = NULL, value = NUL
     if (!has(development) || !has(value)) stop("Choose the development period and value columns.", call. = FALSE)
     incurred_column <- if (has(incurred)) incurred
     chosen <- c(origin, development, value, incurred_column, premium_column)
-    if (length(unique(chosen)) < length(chosen)) {
+    if (anyDuplicated(chosen)) {
       stop("Choose a different column for each of the origin, development period, amounts and premium.", call. = FALSE)
     }
     triangle <- reserving_long_triangle(df[[origin]], number(development), number(value), cumulative)
