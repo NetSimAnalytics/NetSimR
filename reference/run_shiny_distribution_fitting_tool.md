@@ -22,7 +22,7 @@ at the console, opens the application; it can also be passed to
 [`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
 and
 [`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md),
-the other two applications;
+two of the package's other applications;
 [`SlicedLNormParetoMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoMean.md),
 [`SlicedLNormParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md),
 [`SlicedGammaParetoMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoMean.md)
