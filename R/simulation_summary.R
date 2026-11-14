@@ -38,6 +38,44 @@ display_digits <- function(x) {
   min(10, 2 - floor(log10(largest)))
 }
 
+#' How the simulator's report and its Compare tab write amounts
+#'
+#' With thousands separators and \code{digits} decimals (the report sets them for all its
+#' amounts from the scale of the totals, \code{display_digits()}); -0 as 0; from 1e15 in
+#' scientific notation, where the fixed format would be a long run of digits (a Pareto
+#' severity with a tiny alpha); infinite amounts as Inf or -Inf; and missing or undefined (NaN)
+#' ones as a dash. Vectorised.
+#' @noRd
+sim_fmt_amount <- function(x, digits = 2) {
+  dash <- intToUtf8(8212)
+  if (is.null(x) || length(x) == 0 || all(is.na(x))) return(dash)
+  #adding zero turns -0 (e.g. no claims under a Normal severity with a negative mean) into 0
+  x <- as.numeric(x) + 0
+  out <- formatC(x, format = "f", digits = digits, big.mark = ",")
+  huge <- is.finite(x) & abs(x) >= 1e15
+  out[huge] <- formatC(x[huge], format = "e", digits = 3)
+  out[is.na(x)] <- dash
+  out
+}
+
+#' How the simulator's report and its Compare tab write shares as percentages
+#'
+#' As \code{sim_fmt_amount()}: from 1e15 per cent in scientific notation (a loss on line of a
+#' huge expected loss on a small limit), infinite shares as Inf or -Inf and undefined ones as
+#' a dash. Vectorised.
+#' @noRd
+sim_fmt_percent <- function(x, digits = 1) {
+  dash <- intToUtf8(8212)
+  if (is.null(x) || length(x) == 0) return(dash)
+  x <- as.numeric(x)
+  out <- paste0(formatC(100 * x, format = "f", digits = digits), "%")
+  huge <- is.finite(x) & abs(100 * x) >= 1e15
+  out[huge] <- paste0(formatC(100 * x[huge], format = "e", digits = 3), "%")
+  out[is.infinite(x)] <- ifelse(x[is.infinite(x)] > 0, "Inf", "-Inf")
+  out[is.na(x)] <- dash
+  out
+}
+
 #' Return periods marked on the x axis of the return-period charts
 #'
 #' Shared by the report and the Compare tab; each chart keeps the ticks up to its own

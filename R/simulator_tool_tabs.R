@@ -45,13 +45,8 @@ sim_tab_open_simulator_button <- function() {
 #' @noRd
 sim_tab_fmt_amount <- function(x, digits = NULL) {
   if (is.null(x) || length(x) == 0 || is.na(x[1]) || !is.numeric(x)) return(intToUtf8(8212))
-  #adding zero turns -0 (e.g. no claims under a Normal severity with a negative mean) into 0
-  x <- as.numeric(x[1]) + 0
-  if (is.infinite(x)) return(sim_tab_fmt_infinite(x))
-  #amounts too large for a readable fixed format (a Pareto severity with a tiny alpha)
-  if (is.finite(x) && abs(x) >= 1e15) return(formatC(x, format = "e", digits = 3))
-  if (is.null(digits)) digits <- display_digits(x)
-  formatC(x, format = "f", digits = digits, big.mark = ",")
+  if (is.null(digits)) digits <- display_digits(x[1])
+  sim_fmt_amount(x[1], digits)
 }
 
 #' Show an infinite number as signed infinity
@@ -74,13 +69,9 @@ sim_tab_fmt_int <- function(x) {
 sim_tab_fmt_pct <- function(p, digits = 1) {
   if (is.null(p) || length(p) == 0 || is.na(p[1])) return(intToUtf8(8212))
   p <- as.numeric(p[1])
-  #e.g. a loss on line of an infinite expected loss
-  if (is.infinite(p)) return(sim_tab_fmt_infinite(p))
-  #e.g. a loss on line of a huge expected loss on a small limit
-  if (is.finite(p) && abs(100 * p) >= 1e15) return(paste0(formatC(100 * p, format = "e", digits = 3), "%"))
   #small probabilities get an extra decimal so they do not round to zero
-  if (p > 0 && p < 0.01 && digits < 2) digits <- 2
-  paste0(formatC(100 * p, format = "f", digits = digits), "%")
+  if (is.finite(p) && p > 0 && p < 0.01 && digits < 2) digits <- 2
+  sim_fmt_percent(p, digits)
 }
 
 #' Short description of a run's settings, e.g. for the compare tab

@@ -91,29 +91,10 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
 
   # ---------- formatting helpers ----------
   is_blank <- function(x) is.null(x) || length(x) == 0 || all(is.na(x))
-  fmt_num <- function(x, digits = 2) {
-    if (is_blank(x)) return(dash)
-    #adding zero turns -0 (e.g. no claims under a Normal severity with a negative mean) into 0
-    x <- as.numeric(x) + 0
-    out <- formatC(x, format = "f", digits = digits, big.mark = ",")
-    #amounts too large for a readable fixed format (a Pareto severity with a tiny alpha)
-    huge <- is.finite(x) & abs(x) >= 1e15
-    out[huge] <- formatC(x[huge], format = "e", digits = 3)
-    #infinite amounts show as Inf or -Inf; undefined ones (NaN) as a dash
-    out[is.na(x)] <- dash
-    out
-  }
+  #amounts and shares as the Compare tab writes them
+  fmt_num <- sim_fmt_amount
   fmt_int <- function(x) if (is_blank(x)) dash else formatC(round(as.numeric(x)), format = "d", big.mark = ",")
-  fmt_pct <- function(x, digits = 1) {
-    out <- paste0(formatC(100 * x, format = "f", digits = digits), "%")
-    #e.g. a loss on line of a huge expected loss on a small limit
-    huge <- is.finite(x) & abs(100 * x) >= 1e15
-    out[huge] <- paste0(formatC(100 * x[huge], format = "e", digits = 3), "%")
-    #infinite shares show as signed infinity, like the amounts, and undefined ones as a dash
-    out[is.infinite(x)] <- ifelse(x[is.infinite(x)] > 0, "Inf", "-Inf")
-    out[is.na(x)] <- dash
-    out
-  }
+  fmt_pct <- sim_fmt_percent
   #small probabilities get an extra decimal so they do not round to zero
   fmt_prob <- function(p) {
     if (is_blank(p)) return(dash)
