@@ -21,9 +21,9 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   dark <- netsimr_dark(input)
   # each chart is drawn for a theme: on the page in the colours of the theme showing, and in
   # the report in both
-  charts <- list()
+  charts <- new.env(parent = emptyenv())
   add_chart <- function(id, draw, alt) {
-    charts[[id]] <<- list(draw = draw, alt = alt)
+    charts[[id]] <- list(draw = draw, alt = alt)
     output[[id]] <- netsimr_chart(function() draw(isTRUE(dark())), alt)
   }
 
@@ -42,9 +42,36 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     result
   }
 
-  ######################
-  #Layer
-  ######################
+  # what a loaded settings file sets once its data shows: the columns of an uploaded file
+  # (loaded$columns), and the first and last years (loaded$years)
+  loaded <- new.env(parent = emptyenv())
+  loaded$columns <- list()
+  loaded$years <- NULL
+  # each year's premium, rate index, development and inclusion from a loaded settings file
+  loaded_by_year <- reactiveVal(NULL)
+  # the distributions a loaded file sets (the claim sizes, and those of the gross portfolio),
+  # whose defaults must then not overwrite the file's parameters
+  own_updates <- netsimr_own_updates()
+
+  # the tabs, each a function of its own (below), in the order of what they use of each other
+  tool <- list(number = number, dark = dark, charts = charts, add_chart = add_chart, attempt = attempt,
+               loaded = loaded, loaded_by_year = loaded_by_year, own_updates = own_updates)
+  tool <- c(tool, xlp_server_layer(input, output, session, tool))
+  tool <- c(tool, xlp_server_experience(input, output, session, tool))
+  tool <- c(tool, xlp_server_exposure(input, output, session, tool))
+  tool <- c(tool, xlp_server_pricing(input, output, session, tool))
+  tool <- c(tool, xlp_server_programmes(input, output, session, tool))
+  tool <- c(tool, xlp_server_report(input, output, session, tool))
+  tool <- c(tool, xlp_server_settings(input, output, session, tool))
+  # every reactive of the tabs under its own name here too, where tests of the server find it
+  list2env(tool, environment())
+  invisible(NULL)
+}
+
+# The Layer tab of the reinsurance pricing tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+xlp_server_layer <- function(input, output, session, tool) {
+  number <- tool$number
 
   layer <- reactive({
     deductible <- number(input$deductible)
@@ -75,19 +102,19 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     list(year = year, premium = premium, loading = loading / 100)
   })
 
-  ######################
-  #Experience
-  ######################
+  list(layer = layer, rating = rating)
+}
 
-  # what a loaded settings file sets once its data shows: the columns of an uploaded
-  # file, and the first and last years
-  loaded_columns <- list()
-  loaded_years <- NULL
-  # each year's premium, rate index, development and inclusion from a loaded settings file
-  loaded_by_year <- reactiveVal(NULL)
-  # the distributions a loaded file sets (the claim sizes, and those of the gross portfolio),
-  # whose defaults must then not overwrite the file's parameters
-  own_updates <- netsimr_own_updates()
+# The Experience tab of the reinsurance pricing tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+xlp_server_experience <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  attempt <- tool$attempt
+  layer <- tool$layer
+  loaded <- tool$loaded
+  loaded_by_year <- tool$loaded_by_year
+  number <- tool$number
+  rating <- tool$rating
 
   read_upload <- function(file, prefix) {
     netsimr_read_upload(input, file, list(header = paste0(prefix, "_header"), sep = paste0(prefix, "_sep"),
@@ -97,7 +124,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
 
   # a column named in a loaded settings file, then the one the user chose, then a guess
   keep_column <- function(id, columns, guess) {
-    wanted <- loaded_columns[[id]]
+    wanted <- loaded$columns[[id]]
     if (!is.null(wanted) && wanted %in% c("none", columns)) return(wanted)
     current <- input[[id]]
     if (!is.null(current) && current %in% columns) current else guess
@@ -131,9 +158,9 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   # gives them
   observeEvent(losses(), {
     years <- range(losses()$year)
-    if (!is.null(loaded_years)) {
-      years <- c(or_default(loaded_years$first, years[1]), or_default(loaded_years$last, years[2]))
-      loaded_years <<- NULL
+    if (!is.null(loaded$years)) {
+      years <- c(or_default(loaded$years$first, years[1]), or_default(loaded$years$last, years[2]))
+      loaded$years <- NULL
     }
     updateNumericInput(session, "first_year", value = years[1])
     updateNumericInput(session, "last_year", value = years[2])
@@ -381,9 +408,23 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     content = function(file) utils::write.csv(csv_safe(bc()$losses), file, row.names = FALSE)
   )
 
-  ######################
-  #Exposure
-  ######################
+  list(read_upload = read_upload, keep_column = keep_column, loss_upload = loss_upload, losses = losses,
+       years = years, generation = generation, year_id = year_id, year_defaults = year_defaults,
+       year_values = year_values, experience = experience, bc = bc, pareto = pareto, bc_table = bc_table,
+       losses_chart = losses_chart, pareto_text = pareto_text)
+}
+
+# The Exposure tab of the reinsurance pricing tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+xlp_server_exposure <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  attempt <- tool$attempt
+  keep_column <- tool$keep_column
+  layer <- tool$layer
+  number <- tool$number
+  own_updates <- tool$own_updates
+  rating <- tool$rating
+  read_upload <- tool$read_upload
 
   profile_upload <- reactive(read_upload(input$profile_file, "profile"))
 
@@ -552,9 +593,23 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     content = function(file) utils::write.csv(csv_safe(exposure()$bands), file, row.names = FALSE)
   )
 
-  ######################
-  #Pricing
-  ######################
+  list(profile_upload = profile_upload, profile = profile, curve = curve, severity = severity,
+       exposure = exposure, exposure_table = exposure_table)
+}
+
+# The Pricing tab of the reinsurance pricing tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+xlp_server_pricing <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  bc <- tool$bc
+  experience <- tool$experience
+  exposure <- tool$exposure
+  layer <- tool$layer
+  losses <- tool$losses
+  number <- tool$number
+  pareto <- tool$pareto
+  rating <- tool$rating
+  years <- tool$years
 
   # the rate of each method, NA (with the reason) when it cannot be found
   method_rates <- reactive({
@@ -775,9 +830,23 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     )
   })
 
-  ######################
-  #Programmes
-  ######################
+  list(method_rates = method_rates, past_years = past_years, reinstated_share = reinstated_share,
+       pricing = pricing, pricing_rows = pricing_rows, pricing_notes = pricing_notes,
+       pricing_table = pricing_table)
+}
+
+# The Programmes tab of the reinsurance pricing tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+xlp_server_programmes <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  attempt <- tool$attempt
+  layer <- tool$layer
+  loaded <- tool$loaded
+  number <- tool$number
+  own_updates <- tool$own_updates
+  profile <- tool$profile
+  rating <- tool$rating
+  severity <- tool$severity
 
   # the programmes of the grid: by default a quota share, the Layer tab's layer, a stop loss,
   # a quota share with the layer, and a surplus treaty on the Exposure tab's risk profile
@@ -1059,9 +1128,35 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     content = function(file) utils::write.csv(csv_safe(current_programmes()$summary), file, row.names = FALSE)
   )
 
-  ######################
-  #Report
-  ######################
+  list(prog_defaults = prog_defaults, prog_fields = prog_fields, prog_rows = prog_rows, prog_id = prog_id,
+       loaded_programmes = loaded_programmes, prog_value = prog_value, programme_list = programme_list,
+       prog_models = prog_models, prog_param_id = prog_param_id, prog_slices = prog_slices,
+       set_prog_model = set_prog_model, prog_model = prog_model, prog_tail_text = prog_tail_text,
+       programmes_run = programmes_run, current_programmes = current_programmes,
+       programme_table = programme_table)
+}
+
+# The Report tab of the reinsurance pricing tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+xlp_server_report <- function(input, output, session, tool) {
+  bc <- tool$bc
+  bc_table <- tool$bc_table
+  charts <- tool$charts
+  current_programmes <- tool$current_programmes
+  curve <- tool$curve
+  experience <- tool$experience
+  exposure <- tool$exposure
+  exposure_table <- tool$exposure_table
+  layer <- tool$layer
+  number <- tool$number
+  pareto <- tool$pareto
+  pareto_text <- tool$pareto_text
+  pricing <- tool$pricing
+  pricing_table <- tool$pricing_table
+  profile <- tool$profile
+  programme_table <- tool$programme_table
+  rating <- tool$rating
+  severity <- tool$severity
 
   # what the report shows: the layer and its pricing, and each part of the tool that can be
   # found (a part that cannot, such as a Pareto rating without enough losses, is left out)
@@ -1208,9 +1303,26 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     content = function(file) write_reinsurance_report(file, report_data())
   )
 
-  ######################
-  #Settings file
-  ######################
+  list(report_data = report_data)
+}
+
+# The Settings file tab of the reinsurance pricing tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+xlp_server_settings <- function(input, output, session, tool) {
+  loaded <- tool$loaded
+  loaded_by_year <- tool$loaded_by_year
+  loaded_programmes <- tool$loaded_programmes
+  number <- tool$number
+  own_updates <- tool$own_updates
+  prog_fields <- tool$prog_fields
+  prog_id <- tool$prog_id
+  prog_rows <- tool$prog_rows
+  prog_slices <- tool$prog_slices
+  prog_value <- tool$prog_value
+  severity <- tool$severity
+  year_id <- tool$year_id
+  year_values <- tool$year_values
+  years <- tool$years
 
   output$save_settings <- downloadHandler(
     filename = function() "reinsurance_pricing_settings.txt",
@@ -1263,12 +1375,12 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     for (id in names(xlp_settings_inputs)) {
       if (usable(id)) update_setting_input(session, id, xlp_settings_inputs[[id]], v[[id]])
     }
-    loaded_columns <<- v[intersect(names(v), names(xlp_settings_inputs)[xlp_settings_inputs == "column"])]
+    loaded$columns <- v[intersect(names(v), names(xlp_settings_inputs)[xlp_settings_inputs == "column"])]
     # the first and last years apply once the file's losses show (new losses reset them)
     new_losses <- (usable("loss_source") && !identical(v$loss_source, input$loss_source)) ||
       (identical(v$loss_source, "upload") && is.null(input$loss_file))
     if (new_losses) {
-      loaded_years <<- list(first = if (usable("first_year")) v$first_year, last = if (usable("last_year")) v$last_year)
+      loaded$years <- list(first = if (usable("first_year")) v$first_year, last = if (usable("last_year")) v$last_year)
     }
     labels <- suppressWarnings(as.numeric(v$year_labels))
     if (length(labels) > 0 && !anyNA(labels)) {
@@ -1318,4 +1430,6 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   for (id in c("layer_stats", "experience_stats", "exposure_stats", "pricing_stats", "profile_type", "programme_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
+
+  list()
 }
