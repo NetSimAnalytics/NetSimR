@@ -152,8 +152,66 @@ update_setting_input <- function(session, id, kind, x) {
          radio = updateRadioButtons(session, id, selected = x),
          select = updateSelectInput(session, id, selected = x),
          switch = bslib::update_switch(id, value = x, session = session),
+         checkbox = updateCheckboxInput(session, id, value = x),
          numeric = updateNumericInput(session, id, value = if (is.logical(x)) NA else x),
          slider = updateSliderInput(session, id, value = x),
-         text = updateTextInput(session, id, value = x))
+         text = updateTextInput(session, id, value = x),
+         column = NULL,
+         stop("Unknown input kind: ", kind))
   invisible(NULL)
 }
+
+# The values of a tool's settings inputs to save, from `kinds` (the ids and kinds of its
+# settings inputs): each input that holds one value. An empty column select (no file read yet)
+# is left out; an empty radio value is kept, as it is a choice (the quote option None).
+collect_setting_values <- function(input, kinds) {
+  values <- list()
+  for (id in names(kinds)) {
+    x <- input[[id]]
+    if (is.null(x) || !is.atomic(x) || length(x) != 1) next
+    if (kinds[[id]] == "column" && (is.na(x) || !nzchar(x))) next
+    values[[id]] <- x
+  }
+  values
+}
+
+# The choices of the radio buttons and selects of a page (a tag tree), by input id: the values a
+# loaded setting is checked against, read from the page so that the two cannot differ. A select
+# whose choices the server sets has those of the page when it starts.
+page_input_choices <- function(page) {
+  found <- list()
+  unescape <- function(x) {
+    x <- gsub("&quot;", "\"", x, fixed = TRUE)
+    x <- gsub("&#39;", "'", x, fixed = TRUE)
+    x <- gsub("&lt;", "<", x, fixed = TRUE)
+    x <- gsub("&gt;", ">", x, fixed = TRUE)
+    gsub("&amp;", "&", x, fixed = TRUE)
+  }
+  walk <- function(x) {
+    if (inherits(x, "shiny.tag")) {
+      attribs <- x$attribs
+      if (identical(x$name, "input") && identical(attribs$type, "radio")) {
+        found[[attribs$name]] <<- c(found[[attribs$name]], attribs$value)
+      } else if (identical(x$name, "select")) {
+        # (selectInput() writes its options as one piece of HTML)
+        html <- paste(vapply(x$children, as.character, character(1)), collapse = "")
+        options <- regmatches(html, gregexpr("<option value=\"[^\"]*\"", html))[[1]]
+        found[[attribs$id]] <<- unescape(sub("^<option value=\"(.*)\"$", "\\1", options))
+      }
+      lapply(x$children, walk)
+    } else if (is.list(x)) {
+      lapply(x, walk)
+    }
+    invisible(NULL)
+  }
+  walk(page)
+  found
+}
+
+# The choices of a tool's page (page_input_choices()), read once for each tool: `tool` names it
+# and `ui` is the function that builds its page.
+tool_input_choices <- function(tool, ui) {
+  if (is.null(tool_input_choices_read[[tool]])) tool_input_choices_read[[tool]] <- page_input_choices(ui(NULL))
+  tool_input_choices_read[[tool]]
+}
+tool_input_choices_read <- new.env(parent = emptyenv())

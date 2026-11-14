@@ -1231,12 +1231,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   output$save_settings <- downloadHandler(
     filename = function() "reinsurance_pricing_settings.txt",
     content = function(file) {
-      values <- list()
-      for (id in names(xlp_settings_inputs)) {
-        x <- input[[id]]
-        #(a column select is empty until a file is uploaded)
-        if (!is.null(x) && is.atomic(x) && length(x) == 1 && !identical(x, "")) values[[id]] <- x
-      }
+      values <- collect_setting_values(input, xlp_settings_inputs)
       v <- tryCatch(year_values(), error = function(e) NULL)
       if (!is.null(v)) {
         values$year_labels <- v$year
@@ -1266,13 +1261,8 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   observeEvent(input$load_settings, {
     v <- load_settings_values(input$load_settings$datapath, xlp_settings_tool, xlp_settings_version)
     if (is.null(v)) return()
-    choices <- list(loss_source = c("example", "upload"), loss_sep = c(",", ";", "\t"), loss_dec = c(".", ","),
-                    weights = c("premium", "equal"), profile_source = c("example", "upload"),
-                    profile_example = unname(xlp_profile_examples), profile_type = c("property", "casualty"),
-                    profile_sep = c(",", ";", "\t"), profile_dec = c(".", ","), curve = unname(xlp_curves),
-                    severity = names(xlp_severities), experience_method = c("burning_cost", "pareto"),
-                    prog_frequency = names(xlp_prog_frequencies), prog_severity = names(xlp_prog_severities),
-                    prog_level = c("0.995", "0.99", "0.9"))
+    # the choices of the radio buttons and selects, as the page offers them
+    choices <- tool_input_choices("reinsurance", reinsurance_pricing_tool_UI)
     usable <- function(id) setting_usable(v[[id]], xlp_settings_inputs[[id]], choices[[id]])
     skip_severity_defaults <<- usable("severity") && !identical(v$severity, input$severity)
     # (the gross portfolio's distributions too; a file without a Pareto tail has none)

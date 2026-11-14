@@ -183,16 +183,14 @@ sim_settings_values_match <- function(current, target) {
 #' @param value The value to set.
 #' @noRd
 sim_settings_apply_update <- function(session, id, kind, value) {
-  switch(
+  value <- switch(
     kind
-    ,radio = updateRadioButtons(session, id, selected = as.character(value))
-    ,switch = bslib::update_switch(id, value = isTRUE(as.logical(value)), session = session)
-    ,checkbox = updateCheckboxInput(session, id, value = isTRUE(as.logical(value)))
-    ,select = updateSelectInput(session, id, selected = as.character(value))
-    ,numeric = updateNumericInput(session, id, value = suppressWarnings(as.numeric(value)))
+    ,radio = , select = as.character(value)
+    ,switch = , checkbox = isTRUE(as.logical(value))
+    ,numeric = suppressWarnings(as.numeric(value))
     ,stop("Unknown input kind: ", kind)
   )
-  invisible(NULL)
+  update_setting_input(session, id, kind, value)
 }
 
 #' Plan how to restore a list of saved inputs

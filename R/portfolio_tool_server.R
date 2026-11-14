@@ -559,11 +559,7 @@ portfolio_tool_Server <- function(input, output, session) {
   output$save_settings <- downloadHandler(
     filename = function() "portfolio_settings.txt",
     content = function(file) {
-      values <- list()
-      for (id in names(pfo_settings_inputs)) {
-        x <- input[[id]]
-        if (!is.null(x) && is.atomic(x) && length(x) == 1 && !identical(x, "")) values[[id]] <- x
-      }
+      values <- collect_setting_values(input, pfo_settings_inputs)
       k <- n_lines()
       for (field in names(pfo_default_lines)) {
         values[[paste0("line_", field)]] <- if (field %in% c("name", "frequency", "severity")) {
@@ -590,8 +586,8 @@ portfolio_tool_Server <- function(input, output, session) {
   observeEvent(input$load_settings, {
     v <- load_settings_values(input$load_settings$datapath, pfo_settings_tool, pfo_settings_version)
     if (is.null(v)) return()
-    choices <- list(line_source = c("model", "upload"), upload_sep = c(",", ";", "\t"), upload_dec = c(".", ","),
-                    copula = c("gaussian", "t"), corr_mode = c("all", "matrix"), level = unname(pfo_levels))
+    # the choices of the radio buttons and selects, as the page offers them
+    choices <- tool_input_choices("portfolio", portfolio_tool_UI)
     usable <- function(id) setting_usable(v[[id]], pfo_settings_inputs[[id]], choices[[id]])
     # the lines: the distributions first, so their parameters are not reset to the defaults
     labels <- v$line_name

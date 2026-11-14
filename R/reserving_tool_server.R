@@ -981,12 +981,7 @@ reserving_tool_Server <- function(input, output, session) {
   output$save_settings <- downloadHandler(
     filename = function() "reserving_settings.txt",
     content = function(file) {
-      values <- list()
-      for (id in names(rsv_settings_inputs)) {
-        x <- input[[id]]
-        #(a column select is empty until a file is uploaded)
-        if (!is.null(x) && is.atomic(x) && length(x) == 1 && !identical(x, "")) values[[id]] <- x
-      }
+      values <- collect_setting_values(input, rsv_settings_inputs)
       tri <- triangle()
       ex <- excluded()
       if (identical(dim(ex), dim(reserving_link_ratios(tri)))) {
@@ -1006,15 +1001,8 @@ reserving_tool_Server <- function(input, output, session) {
   observeEvent(input$load_settings, {
     v <- load_settings_values(input$load_settings$datapath, rsv_settings_tool, rsv_settings_version)
     if (is.null(v)) return()
-    choices <- list(data_source = c("example", "upload"), example = unname(rsv_examples), sep = c(",", ";", "\t"),
-                    dec = c(".", ","), quote = c("\"", "'", ""), layout = c("long", "wide"),
-                    cumulative = c("cumulative", "incremental"), average = c("volume", "simple", "regression"),
-                    tail_method = c("none", "exponential", "inverse power", "factor"), sigma = c("log-linear", "Mack"),
-                    method_all = unname(rsv_methods), boot_process = c("gamma", "odp"),
-                    clark_curve = c("loglogistic", "weibull"), clark_method = c("ldf", "cape cod"),
-                    period_length = c("1", "0.5", "0.25", "0.0833333333333333"), payment_timing = c("0.5", "0", "1"),
-                    ra_method = c("percentile", "cost of capital"), ra_capital = c("sii", "bootstrap"),
-                    sii_segment = as.character(sii_nonlife_segments$segment))
+    # the choices of the radio buttons and selects, as the page offers them
+    choices <- tool_input_choices("reserving", reserving_tool_UI)
     usable <- function(id) setting_usable(v[[id]], rsv_settings_inputs[[id]], choices[[id]])
     # the data shows another triangle once these are set, which then takes the periods, tail and
     # link ratios of the file; otherwise they are set on the triangle showing

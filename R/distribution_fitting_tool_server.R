@@ -1220,14 +1220,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   output$save_settings <- downloadHandler(
     filename = function() "distribution_fitting_settings.txt",
     content = function(file) {
-      values <- list()
-      for (id in names(dft_settings_inputs)) {
-        x <- input[[id]]
-        if (!is.atomic(x) || length(x) != 1) next
-        # (an empty column is none chosen; an empty quote is the option None)
-        if (dft_settings_inputs[[id]] == "column" && !nzchar(x)) next
-        values[[id]] <- x
-      }
+      values <- collect_setting_values(input, dft_settings_inputs)
       points <- c(input$slicing_point_left, input$slicing_point_right)
       if (!is.null(slicing_range()) && length(points) == 2) values$slicing_points <- points
       n <- or_default(input$num_pareto_slices, 0)
@@ -1240,13 +1233,8 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   observeEvent(input$load_settings, {
     v <- load_settings_values(input$load_settings$datapath, dft_settings_tool, dft_settings_version)
     if (is.null(v)) return()
-    choices <- list(
-      data_source = c("upload", "example"), example = unname(dft_examples), sep = c(",", ";", "\t"), dec = c(".", ","),
-      quote = c("\"", "'", ""), FreqDistri = c("Poisson", "NegativeBinomial", "ZIPoisson", "ZINegativeBinomial"),
-      sev_limit_source = c("none", "value", "column"),
-      export_frequency = c("none", names(dft_export_frequency_models)),
-      export_severity = c("none", names(dft_export_severity_models))
-    )
+    # the choices of the radio buttons and selects, as the page offers them
+    choices <- tool_input_choices("distribution", distribution_fitting_tool_UI)
     ok <- Filter(function(id) setting_usable(v[[id]], dft_settings_inputs[[id]], choices[[id]]), names(dft_settings_inputs))
     for (id in ok) update_setting_input(session, id, dft_settings_inputs[[id]], v[[id]])
 
