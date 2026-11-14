@@ -34,28 +34,45 @@
   --bs-link-hover-color-rgb: 221, 214, 254;
 }
 
+/* the accent of the navbar, the welcome card, the run button and the focus rings: the rules
+   below read these colours, the distribution fitting tool's, which the other tools' style
+   sheets set to their own */
+:root {
+  --tool-navbar-bg: linear-gradient(90deg, #1e1b4b 0%, #3b1f78 100%);
+  --tool-mark-bg: linear-gradient(135deg, #a78bfa, #7c3aed);
+  --tool-mark-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+  --tool-on-accent: #1e1b4b;
+  --tool-focus-outline: #c4b5fd;
+  --tool-focus-ring: rgba(124, 58, 237, 0.18);
+  --tool-run-bg: linear-gradient(135deg, #7c3aed, #6d28d9);
+  --tool-run-hover-bg: linear-gradient(135deg, #6d28d9, #5b21b6);
+  --tool-hero-bg: radial-gradient(circle at 85% 20%, rgba(167, 139, 250, 0.38), transparent 45%),
+    linear-gradient(135deg, #1e1b4b 0%, #3b1f78 55%, #7c3aed 130%);
+  --tool-eyebrow: #c4b5fd;
+}
+
 /* ---------- Accent ---------- */
 .navbar {
-  background: linear-gradient(90deg, #1e1b4b 0%, #3b1f78 100%) !important;
+  background: var(--tool-navbar-bg) !important;
 }
 
 .sim-brand-mark {
-  background: linear-gradient(135deg, #a78bfa, #7c3aed);
-  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+  background: var(--tool-mark-bg);
+  box-shadow: var(--tool-mark-shadow);
 }
 
 .theme-btn.active {
-  color: #1e1b4b;
+  color: var(--tool-on-accent);
 }
 
 .theme-btn:focus-visible,
 .pill-radio .radio-inline:has(input:focus-visible) {
-  outline-color: #c4b5fd !important;
+  outline-color: var(--tool-focus-outline) !important;
 }
 
 .form-control:focus, .form-select:focus, .selectize-input.focus {
   border-color: var(--dft-accent) !important;
-  box-shadow: 0 0 0 0.2rem rgba(124, 58, 237, 0.18) !important;
+  box-shadow: 0 0 0 0.2rem var(--tool-focus-ring) !important;
 }
 
 .pill-radio .radio-inline:hover {
@@ -71,26 +88,24 @@
 }
 
 .btn-run {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  background: var(--tool-run-bg);
   box-shadow: 0 8px 20px var(--dft-accent-shadow);
 }
 
 .btn-run:hover, .btn-run:focus {
-  background: linear-gradient(135deg, #6d28d9, #5b21b6);
+  background: var(--tool-run-hover-bg);
 }
 
 .sim-hero {
-  background:
-    radial-gradient(circle at 85% 20%, rgba(167, 139, 250, 0.38), transparent 45%),
-    linear-gradient(135deg, #1e1b4b 0%, #3b1f78 55%, #7c3aed 130%);
+  background: var(--tool-hero-bg);
 }
 
 .sim-hero-eyebrow {
-  color: #c4b5fd;
+  color: var(--tool-eyebrow);
 }
 
 .sim-hero .btn-light {
-  color: #1e1b4b;
+  color: var(--tool-on-accent);
 }
 
 .form-check-input:checked {
@@ -100,7 +115,7 @@
 
 .form-check-input:focus {
   border-color: var(--dft-accent);
-  box-shadow: 0 0 0 0.2rem rgba(124, 58, 237, 0.18);
+  box-shadow: 0 0 0 0.2rem var(--tool-focus-ring) !important;
 }
 
 /* ---------- Settings panel ---------- */

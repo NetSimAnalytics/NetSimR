@@ -29,48 +29,21 @@
   --bs-link-hover-color-rgb: 254, 215, 170;
 }
 
-/* ---------- Accent ---------- */
-.navbar {
-  background: linear-gradient(90deg, #431407 0%, #7c2d12 100%) !important;
-}
-
-.sim-brand-mark {
-  background: linear-gradient(135deg, #fb923c, #c2410c);
-  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
-}
-
-.theme-btn.active,
-.sim-hero .btn-light {
-  color: #431407;
-}
-
-.theme-btn:focus-visible,
-.pill-radio .radio-inline:has(input:focus-visible) {
-  outline-color: #fdba74 !important;
-}
-
-.form-control:focus, .form-select:focus, .selectize-input.focus,
-.form-check-input:focus {
-  box-shadow: 0 0 0 0.2rem rgba(234, 88, 12, 0.18) !important;
-}
-
-/* white on the button: the darker oranges, as white on #ea580c is under 4.5:1 */
-.btn-run {
-  background: linear-gradient(135deg, #c2410c, #9a3412);
-}
-
-.btn-run:hover, .btn-run:focus {
-  background: linear-gradient(135deg, #9a3412, #7c2d12);
-}
-
-.sim-hero {
-  background:
-    radial-gradient(circle at 85% 20%, rgba(251, 146, 60, 0.34), transparent 45%),
+/* the accent of the navbar, the welcome card, the run button and the focus rings (see
+   analysis.css) */
+:root {
+  --tool-navbar-bg: linear-gradient(90deg, #431407 0%, #7c2d12 100%);
+  --tool-mark-bg: linear-gradient(135deg, #fb923c, #c2410c);
+  --tool-mark-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
+  --tool-on-accent: #431407;
+  --tool-focus-outline: #fdba74;
+  --tool-focus-ring: rgba(234, 88, 12, 0.18);
+  /* white on the button: the darker oranges, as white on #ea580c is under 4.5:1 */
+  --tool-run-bg: linear-gradient(135deg, #c2410c, #9a3412);
+  --tool-run-hover-bg: linear-gradient(135deg, #9a3412, #7c2d12);
+  --tool-hero-bg: radial-gradient(circle at 85% 20%, rgba(251, 146, 60, 0.34), transparent 45%),
     linear-gradient(135deg, #431407 0%, #7c2d12 55%, #c2410c 130%);
-}
-
-.sim-hero-eyebrow {
-  color: #fdba74;
+  --tool-eyebrow: #fdba74;
 }
 
 .btn-outline-rsv {
