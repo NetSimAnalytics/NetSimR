@@ -177,24 +177,33 @@ shiny_simulator_server <- function(input, output, session) {
   #slice j has its alpha in slice_pareto_param_(2j - 1) and its threshold in slice_pareto_param_(2j)
   slice_input_id <- function(slice, part) paste0("slice_pareto_param_", 2 * slice - (part == "alpha"))
 
-  #the number of slices last sent to the browser, until the browser reports it back: a click
-  #that arrives before then (two quick clicks) builds on it instead of on the old input value;
-  #after a couple of seconds the input is trusted again. Loaded settings send their number of
-  #slices the same way, so a click before the browser reports it builds on the loaded number
-  slice_count_sent <- NULL
-  slice_count_sent_at <- NULL
-  current_slice_count <- function() {
-    recent <- !is.null(slice_count_sent) &&
-      as.numeric(difftime(Sys.time(), slice_count_sent_at, units = "secs")) < 2
-    if (recent) slice_count_sent else pareto_slice_count()
-  }
+  #the number of slices is the server's (slices()): the add and remove buttons and loaded
+  #settings change it and send it to the hidden input, which reports each number back a little
+  #later. The numbers sent are queued until they come back, in the order sent, so that a click
+  #before then (two quick clicks) builds on the number sent, and the report of an older number
+  #does not undo a newer one; a number the input reports that was not sent (typed, as tests do)
+  #is taken as it is
+  slices <- reactiveVal(0)
+  slice_counts_sent <- numeric(0)
+  current_slice_count <- function() isolate(slices())
   set_slice_count <- function(n) {
-    slice_count_sent <<- n
-    slice_count_sent_at <<- Sys.time()
-    updateNumericInput(session, "pareto_slice_times", value = n)
+    #the number the input shows once the numbers already sent arrive; sending it again would not
+    #come back, as the input reports only a change
+    showing <- if (length(slice_counts_sent) > 0) slice_counts_sent[length(slice_counts_sent)] else isolate(pareto_slice_count())
+    slices(n)
+    if (n != showing) {
+      slice_counts_sent <<- c(slice_counts_sent, n)
+      updateNumericInput(session, "pareto_slice_times", value = n)
+    }
   }
   observeEvent(input$pareto_slice_times, {
-    if (!is.null(slice_count_sent) && pareto_slice_count() == slice_count_sent) slice_count_sent <<- NULL
+    n <- pareto_slice_count()
+    if (length(slice_counts_sent) > 0 && n == slice_counts_sent[1]) {
+      slice_counts_sent <<- slice_counts_sent[-1]
+    } else {
+      slice_counts_sent <<- numeric(0)
+      slices(n)
+    }
   })
 
   #clicks are counted by how far the button's value moved, so clicks that reach the server
@@ -318,7 +327,7 @@ shiny_simulator_server <- function(input, output, session) {
   #the browser disables the button and shows "Running..." on click; this message re-enables it
   #the settings of a run, from the inputs
   collect_run_settings <- function() {
-    slice_count <- pareto_slice_count()
+    slice_count <- slices()
     #sapply on purpose: it gives a numeric vector when every field is filled in, and a list
     #when a field is still empty (NULL), which find_missing_simulation_settings() reports by name
     new_settings <- list(

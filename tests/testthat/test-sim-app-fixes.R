@@ -369,57 +369,67 @@ test_that("fields built after loading settings start from the loaded values, eve
 test_that("quick Add slice clicks each add a slice", {
   skip_server_on_cran()
   shiny::testServer(shiny_simulator_server, {
-    sent <- function() get("slice_count_sent", envir = environment(set_slice_count))
+    queued <- function() get("slice_counts_sent", envir = environment(set_slice_count))
     set_page_inputs(session)
-    #two clicks before the browser has reported the first new count
+    #two clicks before the browser has reported the first new number
     session$setInputs(add_pareto_slice = 1)
-    expect_equal(sent(), 1)
+    expect_equal(slices(), 1)
     session$setInputs(add_pareto_slice = 2)
-    expect_equal(sent(), 2)
-    #the browser reports the count back; later clicks build on the input again
+    expect_equal(slices(), 2)
+    expect_equal(queued(), c(1, 2))
+    #the browser reports the first number back late: it does not undo the second click
+    session$setInputs(pareto_slice_times = 1)
+    expect_equal(slices(), 2)
     session$setInputs(pareto_slice_times = 2)
-    expect_null(sent())
+    expect_equal(slices(), 2)
+    expect_length(queued(), 0)
     #two clicks that reach the server together: the button's value jumps by two
     session$setInputs(add_pareto_slice = 4)
-    expect_equal(sent(), 4)
+    expect_equal(slices(), 4)
     #never beyond the maximum
     session$setInputs(pareto_slice_times = 4, add_pareto_slice = 10)
-    expect_equal(sent(), max_number_of_pareto_slices)
+    expect_equal(slices(), max_number_of_pareto_slices)
     session$setInputs(pareto_slice_times = max_number_of_pareto_slices)
-    expect_null(sent())
-    #quick removals also build on the count just sent
+    expect_length(queued(), 0)
+    #quick removals also build on the number just sent
     session$setInputs(remove_pareto_slice_1 = 1)
-    expect_equal(sent(), max_number_of_pareto_slices - 1)
+    expect_equal(slices(), max_number_of_pareto_slices - 1)
     session$setInputs(remove_pareto_slice_1 = 2)
-    expect_equal(sent(), max_number_of_pareto_slices - 2)
+    expect_equal(slices(), max_number_of_pareto_slices - 2)
+    #a number typed into the input (not one the server sent) is taken as it is
+    session$setInputs(pareto_slice_times = max_number_of_pareto_slices - 1)
+    session$setInputs(pareto_slice_times = max_number_of_pareto_slices - 2)
+    session$setInputs(pareto_slice_times = 1)
+    expect_equal(slices(), 1)
+    expect_length(queued(), 0)
   })
 })
 
 test_that("loaded settings replace the number of slices a click sent just before", {
   skip_server_on_cran()
-  #the count sent by a click was kept until the browser echoed exactly it, so a click after
-  #loading settings built on it (Add, Add, load an example without slices, Add gave 3)
+  #a click after loading settings builds on the loaded number, not on one a click sent before
+  #(Add, Add, load an example without slices, Add gave 3)
   local_mocked_bindings(sim_settings_notify = function(message, type = "message") NULL)
   shiny::testServer(shiny_simulator_server, {
-    sent <- function() get("slice_count_sent", envir = environment(set_slice_count))
     set_page_inputs(session)
     session$setInputs(add_pareto_slice = 1)
     session$setInputs(pareto_slice_times = 1)
-    expect_null(sent())
     #a second click that the browser has not reported back when the example loads
     session$setInputs(add_pareto_slice = 2)
-    expect_equal(sent(), 2)
+    expect_equal(slices(), 2)
     session$setInputs(settingsIO_example = "Motor: excess of loss layer", settingsIO_load_example = 1)
-    expect_equal(sent(), 0)
+    expect_equal(slices(), 0)
+    #the late reports of the click's number and of the loaded one
+    session$setInputs(pareto_slice_times = 2)
     session$setInputs(pareto_slice_times = 0)
-    expect_null(sent())
+    expect_equal(slices(), 0)
     session$setInputs(add_pareto_slice = 3)
-    expect_equal(sent(), 1)
+    expect_equal(slices(), 1)
     #an example with slices sends its number the same way, so a click at once builds on it
     session$setInputs(settingsIO_example = "Property: aggregate cover", settingsIO_load_example = 2)
-    expect_equal(sent(), 1)
+    expect_equal(slices(), 1)
     session$setInputs(add_pareto_slice = 4)
-    expect_equal(sent(), 2)
+    expect_equal(slices(), 2)
   })
 })
 
