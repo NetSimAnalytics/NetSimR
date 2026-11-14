@@ -29,7 +29,7 @@ test_that("in a web browser the simulator runs without workers, even when a sett
     expect_null(get("workers", envir = environment(stop_parallel_workers)))
     session$setInputs(RunSimulations = 1)
     expect_false(last_run()$settings$multiprocessing)
-    expect_equal(nrow(simulated_data$data), 500)
+    expect_equal(nrow(last_run()$data), 500)
   })
 })
 

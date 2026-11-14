@@ -25,10 +25,6 @@ run_failing <- function(session, run) {
   )
 }
 
-#testServer() copies plain server variables when it starts; read the current value through
-#the environment of a function defined in the server
-current_settings <- function(server_function) get("simulation_settings", envir = environment(server_function))
-
 #the socket connections open in this session (the workers' ones), by number and description
 open_sockets <- function() {
   connections <- showConnections(all = TRUE)
@@ -50,19 +46,16 @@ test_that("a failed run keeps the previous results", {
     session$setInputs(RunSimulations = 1)
     first <- last_run()
     expect_equal(first$id, 1L)
-    expect_equal(nrow(simulated_data$data), 500)
-    expect_identical(current_settings(stop_parallel_workers), first$settings)
+    expect_equal(nrow(first$data), 500)
 
+    #the results tabs and the downloads keep the first run
     run_failing(session, run = 2)
     expect_identical(last_run(), first)
-    expect_identical(simulated_data$data, first$data)
-    expect_identical(current_settings(stop_parallel_workers), first$settings)
 
     #the next successful run replaces them
     session$setInputs(lamda = 2, RunSimulations = 3)
     expect_equal(last_run()$id, 2L)
-    expect_equal(current_settings(stop_parallel_workers)$freq_params, 2)
-    expect_identical(simulated_data$data, last_run()$data)
+    expect_equal(last_run()$settings$freq_params, 2)
   })
 })
 
@@ -99,10 +92,10 @@ test_that("workers started by the app stay warm through a failed run and are shu
     expect_identical(open_sockets(), worker_sockets)
     #the next run reuses the same workers and gives the results of a sequential run
     session$setInputs(lamda = 3, RunSimulations = 2)
-    expect_equal(nrow(simulated_data$data), 500)
+    expect_equal(nrow(last_run()$data), 500)
     expect_identical(worker_pids(cluster), pids)
     sequential <- do.call(simulate_function, utils::modifyList(last_run()$settings, list(multiprocessing = FALSE)))
-    expect_identical(simulated_data$data, sequential)
+    expect_identical(last_run()$data, sequential)
     expect_identical(open_sockets(), worker_sockets)
   })
   #the end of the session shuts the workers down
@@ -135,7 +128,7 @@ test_that("Auto keeps small runs in the session and starts the workers once a ru
     expect_true(last_run()$settings$multiprocessing)
     expect_identical(last_run()$settings$workers, 2L)
     sequential <- do.call(simulate_function, utils::modifyList(last_run()$settings, list(multiprocessing = FALSE)))
-    expect_identical(simulated_data$data, sequential)
+    expect_identical(last_run()$data, sequential)
     #the next run reuses them
     pids <- worker_pids(cluster)
     session$setInputs(RunSimulations = 3)
@@ -173,7 +166,7 @@ test_that("a worker that dies during a run is replaced by fresh workers on the n
     expect_no_warning(gc(), message = "closing unused connection")
     #the next run starts fresh workers and succeeds on them
     session$setInputs(RunSimulations = 2)
-    expect_equal(nrow(simulated_data$data), 500)
+    expect_equal(nrow(last_run()$data), 500)
     cluster <- session_workers(stop_parallel_workers)
     expect_length(cluster, 2)
     expect_false(any(worker_pids(cluster) %in% pids))

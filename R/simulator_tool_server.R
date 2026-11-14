@@ -15,6 +15,26 @@
 #' @import stats
 #' @import utils
 shiny_simulator_server <- function(input, output, session) {
+  # the parts of the server, each a function of its own (below), in the order of what they use of
+  # each other: `tool` holds what the earlier parts define
+  tool <- list()
+  tool <- c(tool, sim_server_processing(input, output, session, tool))
+  tool <- c(tool, sim_server_remembered(input, output, session, tool))
+  tool <- c(tool, sim_server_distributions(input, output, session, tool))
+  tool <- c(tool, sim_server_slices(input, output, session, tool))
+  tool <- c(tool, sim_server_reinsurance(input, output, session, tool))
+  tool <- c(tool, sim_server_settings(input, output, session, tool))
+  tool <- c(tool, sim_server_run(input, output, session, tool))
+  tool <- c(tool, sim_server_downloads(input, output, session, tool))
+  sim_server_output_options(output)
+  # every reactive of the parts under its own name here too, where tests of the server find it
+  list2env(tool, environment())
+  invisible(NULL)
+}
+
+# The processing part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_processing <- function(input, output, session, tool) {
   #the parallel workers of the session (a socket cluster of the parallel package): started
   #once, when Parallel is chosen or an Auto run first finds them worth starting, so that
   #every later run reuses the warm workers
@@ -38,6 +58,8 @@ shiny_simulator_server <- function(input, output, session) {
   }
   #the processing chosen: "auto" (the default), "single" or "parallel"; in a web browser no
   #worker processes can be started, so everything runs in the session
+  #the workers running now, NULL when none are
+  current_workers <- function() workers
   processing_choice <- function() {
     if (netsimr_in_browser()) return("single")
     choice <- input$processing
@@ -51,6 +73,14 @@ shiny_simulator_server <- function(input, output, session) {
     }
   })
 
+  list(workers = workers, stop_parallel_workers = stop_parallel_workers,
+       start_parallel_workers = start_parallel_workers, current_workers = current_workers,
+       processing_choice = processing_choice)
+}
+
+# The remembered values part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_remembered <- function(input, output, session, tool) {
   #the last value of each input that the server rebuilds (distribution parameters, the seed,
   #the cap and the layer fields): a rebuilt field starts from it, so switching an option away
   #and back (Poisson -> Binomial -> Poisson), or between options that share a field (a limited
@@ -76,6 +106,14 @@ shiny_simulator_server <- function(input, output, session) {
     value <- isolate(typed[[id]])
     if (is.null(value)) default else value
   }
+
+  list(typed = typed, remembered_ids = remembered_ids, last_typed = last_typed)
+}
+
+# The distributions part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_distributions <- function(input, output, session, tool) {
+  last_typed <- tool$last_typed
 
   #seed input
   output$seed_value <- renderUI({
@@ -167,6 +205,14 @@ shiny_simulator_server <- function(input, output, session) {
     })
   })
 
+  list(distribution_inputs = distribution_inputs, freq_moments = freq_moments, sev_moments = sev_moments,
+       format_moment = format_moment, render_implied_moments = render_implied_moments,
+       render_UI_param = render_UI_param)
+}
+
+# The pareto slices part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_slices <- function(input, output, session, tool) {
   #Pareto slices: the hidden input pareto_slice_times holds the number of slices and decides
   #which slice rows the UI shows; the add and remove buttons change it, and saved settings
   #restore it like any other number
@@ -233,6 +279,16 @@ shiny_simulator_server <- function(input, output, session) {
     }, ignoreInit = TRUE)
   })
 
+  list(pareto_slice_count = pareto_slice_count, slice_input_id = slice_input_id, slices = slices,
+       slice_counts_sent = slice_counts_sent, current_slice_count = current_slice_count,
+       set_slice_count = set_slice_count, add_clicks_seen = add_clicks_seen)
+}
+
+# The cap and reinsurance part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_reinsurance <- function(input, output, session, tool) {
+  last_typed <- tool$last_typed
+
   #render severity cap amount
   output$sev_cap_amount_ui <- renderUI({
     if (input$sevCapBinary) {
@@ -298,6 +354,16 @@ shiny_simulator_server <- function(input, output, session) {
     }
   })
 
+  list()
+}
+
+# The settings files part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_settings <- function(input, output, session, tool) {
+  remembered_ids <- tool$remembered_ids
+  set_slice_count <- tool$set_slice_count
+  typed <- tool$typed
+
   #save and load of the simulator settings, with built-in examples; loaded values of the
   #rebuilt fields are remembered at once, so a field built after the load starts from them,
   #and the loaded number of slices replaces any number sent by a click just before the load
@@ -311,11 +377,21 @@ shiny_simulator_server <- function(input, output, session) {
     }
   )
 
-  #create simulation data dataFrame reactive to enable download buttons & simulation settings list
-  simulated_data <- reactiveValues(data=NULL)
-  simulation_settings <- list()
+  list()
+}
 
-  #the latest successful run (id, settings, data, finished), for the results tabs
+# The run part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_run <- function(input, output, session, tool) {
+  current_workers <- tool$current_workers
+  freq_moments <- tool$freq_moments
+  processing_choice <- tool$processing_choice
+  slice_input_id <- tool$slice_input_id
+  slices <- tool$slices
+  start_parallel_workers <- tool$start_parallel_workers
+  stop_parallel_workers <- tool$stop_parallel_workers
+
+  #the latest successful run (id, settings, data, finished), for the results tabs and the downloads
   last_run <- reactiveVal(NULL)
   run_counter <- 0L
 
@@ -441,9 +517,9 @@ shiny_simulator_server <- function(input, output, session) {
         }
         #Auto starts the workers only for a run that is faster with them, and keeps them;
         #a run on the workers shows the number of workers, a run in the session its chunks
-        run_workers <- if (!is.null(workers)) workers else function() {
+        run_workers <- if (!is.null(current_workers())) current_workers() else function() {
           start_parallel_workers()
-          workers
+          current_workers()
         }
         shiny::withProgress(message = "Simulating", value = 0, {
           do.call(simulate_function, c(new_settings, list(
@@ -474,22 +550,30 @@ shiny_simulator_server <- function(input, output, session) {
     #workers, whatever the choice was
     new_settings$multiprocessing <- isTRUE(netsimr_last_run$parallel)
     new_settings$workers <- if (new_settings$multiprocessing) netsimr_last_run$workers
-    simulation_settings <<- new_settings
-    simulated_data$data <- results
     run_counter <<- run_counter + 1L
     last_run(list(
       id = run_counter
-      ,settings = simulation_settings
-      ,data = simulated_data$data
+      ,settings = new_settings
+      ,data = results
       ,finished = Sys.time()
     ))
     #a run started from the foot of the settings on a narrow screen then opens the Report tab
     session$sendCustomMessage("netsimr-run-succeeded", run_counter)
   })
 
+  list(last_run = last_run, run_counter = run_counter, collect_run_settings = collect_run_settings,
+       missing_notice = missing_notice, show_missing_notice = show_missing_notice,
+       hide_missing_notice = hide_missing_notice)
+}
+
+# The downloads part of the simulator's server: its outputs and observers. `tool` holds what the
+# earlier parts define; the part returns what it defines, for the parts after it.
+sim_server_downloads <- function(input, output, session, tool) {
+  last_run <- tool$last_run
+
   #the browser shows "Preparing report..." on click; the report handler re-enables the button
   output$downloadReportButton <- renderUI({
-    req(simulated_data$data)
+    req(last_run())
     downloadButton('downloadReportHandler', 'Report', icon = icon("file-lines"), class = "btn-outline-primary")
   })
 
@@ -503,12 +587,12 @@ shiny_simulator_server <- function(input, output, session) {
         duration = 2
       )
       #the data are unrounded and write.csv keeps 15 significant digits; only the screen rounds
-      write.csv(simulated_data$data, file, row.names = FALSE)
+      write.csv(last_run()$data, file, row.names = FALSE)
     }
   )
 
   output$downloadDataButton <- renderUI({
-    req(simulated_data$data)
+    req(last_run())
     downloadButton('DownloadDataHandler', 'CSV data', icon = icon("file-csv"), class = "btn-outline-primary")
   })
 
@@ -524,13 +608,14 @@ shiny_simulator_server <- function(input, output, session) {
         duration = 3
       )
 
+      run <- last_run()
       shiny::withProgress(message = "Preparing report", value = 0.3, detail = "Building report", {
         #the report is assembled in R (see write_simulation_report), so no pandoc is needed
         tryCatch(
           write_simulation_report(
             file = file,
-            settings = simulation_settings,
-            results = simulated_data$data
+            settings = run$settings,
+            results = run$data
           ),
           error = function(cond) {
             #without this the download just fails, with the reason only in the R console
@@ -548,6 +633,12 @@ shiny_simulator_server <- function(input, output, session) {
     }
   )
 
+  list()
+}
+
+# Keeps the outputs that the settings build rendering while the page hides them, once every
+# part of the server has defined its outputs.
+sim_server_output_options <- function(output) {
   #keep dynamic outputs rendering even while their empty containers are collapsed by the UI styles
   dynamic_outputs <- c(
     freq_dist_parameter_placeholders$param_id
@@ -560,4 +651,5 @@ shiny_simulator_server <- function(input, output, session) {
   for (output_name in dynamic_outputs) {
     outputOptions(output, output_name, suspendWhenHidden = FALSE)
   }
+  invisible(NULL)
 }
