@@ -19,9 +19,27 @@ portfolio_tool_Server <- function(input, output, session) {
   # the charts are drawn in the colours of the theme the page reports
   dark <- netsimr_dark(input)
 
-  ######################
-  #Lines
-  ######################
+  # the columns of an uploaded file that a loaded settings file chose, set once the file is read
+  loaded <- new.env(parent = emptyenv())
+  loaded$columns <- NULL
+
+  # the tabs, each a function of its own (below), in the order of what they use of each other
+  tool <- list(number = number, dark = dark, loaded = loaded)
+  tool <- c(tool, pfo_server_lines(input, output, session, tool))
+  tool <- c(tool, pfo_server_dependence(input, output, session, tool))
+  tool <- c(tool, pfo_server_capital(input, output, session, tool))
+  tool <- c(tool, pfo_server_standard_formula(input, output, session, tool))
+  tool <- c(tool, pfo_server_settings(input, output, session, tool))
+  # every reactive of the tabs under its own name here too, where tests of the server find it
+  list2env(tool, environment())
+  invisible(NULL)
+}
+
+# The Lines tab of the portfolio tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+pfo_server_lines <- function(input, output, session, tool) {
+  loaded <- tool$loaded
+  number <- tool$number
 
   n_lines <- reactive({
     k <- number(input$n_lines)
@@ -134,12 +152,11 @@ portfolio_tool_Server <- function(input, output, session) {
     netsimr_read_upload(input, input$upload_file, list(header = "upload_header", sep = "upload_sep", dec = "upload_dec"),
                         "Upload a file of simulated losses, a column per line.", min_columns = 2)
   })
-  loaded_columns <- NULL
   observeEvent(upload_data(), {
     df <- upload_data()
     numbers <- netsimr_numeric_columns(df, or_default(input$upload_dec, "."))
-    wanted <- if (!is.null(loaded_columns)) intersect(loaded_columns, names(df)) else intersect(input$upload_columns, names(df))
-    loaded_columns <<- NULL
+    wanted <- if (!is.null(loaded$columns)) intersect(loaded$columns, names(df)) else intersect(input$upload_columns, names(df))
+    loaded$columns <- NULL
     # without a choice, every numeric column but a simulation number, at most the most lines
     guess <- setdiff(numbers, numbers[grepl("^(sim|simulation|year|id|index|row)", numbers, ignore.case = TRUE)])
     selected <- if (length(wanted) > 0) wanted else utils::head(guess, pfo_max_lines)
@@ -202,9 +219,18 @@ portfolio_tool_Server <- function(input, output, session) {
               note = "The expected loss of a line is its expected number of claims times its expected claim size.")
   })
 
-  ######################
-  #Dependence
-  ######################
+  list(n_lines = n_lines, line_id = line_id, loaded_lines = loaded_lines, line_default = line_default,
+       line_value = line_value, shown_distribution = shown_distribution, model_lines = model_lines,
+       line_means = line_means, upload_data = upload_data, upload_lines = upload_lines,
+       uploading = uploading, line_names = line_names, line_names_slow = line_names_slow)
+}
+
+# The Dependence tab of the portfolio tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+pfo_server_dependence <- function(input, output, session, tool) {
+  line_names <- tool$line_names
+  line_names_slow <- tool$line_names_slow
+  number <- tool$number
 
   corr_id <- function(i, j) paste0("corr_", i, "_", j)
   loaded_corr <- reactiveVal(NULL)
@@ -278,9 +304,21 @@ portfolio_tool_Server <- function(input, output, session) {
                       accent = !valid, note = if (valid) paste(k, "lines") else "Not positive definite: change a correlation"))
   })
 
-  ######################
-  #Capital
-  ######################
+  list(corr_id = corr_id, loaded_corr = loaded_corr, corr_value = corr_value, correlation = correlation,
+       copula_settings = copula_settings)
+}
+
+# The Capital tab of the portfolio tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+pfo_server_capital <- function(input, output, session, tool) {
+  copula_settings <- tool$copula_settings
+  correlation <- tool$correlation
+  dark <- tool$dark
+  line_names <- tool$line_names
+  model_lines <- tool$model_lines
+  number <- tool$number
+  upload_lines <- tool$upload_lines
+  uploading <- tool$uploading
 
   # what a run needs, from the three tabs
   run_spec <- reactive({
@@ -422,9 +460,15 @@ portfolio_tool_Server <- function(input, output, session) {
     }
   )
 
-  ######################
-  #Standard formula
-  ######################
+  list(run_spec = run_spec, result = result, current = current, stale = stale)
+}
+
+# The Standard formula tab of the portfolio tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+pfo_server_standard_formula <- function(input, output, session, tool) {
+  current <- tool$current
+  dark <- tool$dark
+  number <- tool$number
 
   # the inputs of each segment; by default the example's: a motor and property insurer
   sf_defaults <- data.frame(segment = 1:12, premium = c(40e6, 25e6, 0, 30e6, 10e6, rep(0, 7)),
@@ -539,9 +583,28 @@ portfolio_tool_Server <- function(input, output, session) {
     }
   )
 
-  ######################
-  #Settings file
-  ######################
+  list(sf_defaults = sf_defaults, sf_id = sf_id, loaded_sf = loaded_sf, sf_value = sf_value,
+       sf_result = sf_result)
+}
+
+# The Settings file tab of the portfolio tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+pfo_server_settings <- function(input, output, session, tool) {
+  corr_id <- tool$corr_id
+  corr_value <- tool$corr_value
+  line_id <- tool$line_id
+  line_names <- tool$line_names
+  line_value <- tool$line_value
+  loaded <- tool$loaded
+  loaded_corr <- tool$loaded_corr
+  loaded_lines <- tool$loaded_lines
+  loaded_sf <- tool$loaded_sf
+  n_lines <- tool$n_lines
+  number <- tool$number
+  sf_id <- tool$sf_id
+  sf_value <- tool$sf_value
+  shown_distribution <- tool$shown_distribution
+  upload_data <- tool$upload_data
 
   output$save_settings <- downloadHandler(
     filename = function() "portfolio_settings.txt",
@@ -615,12 +678,12 @@ portfolio_tool_Server <- function(input, output, session) {
       for (i in seq_len(k - 1)) for (j in (i + 1):k) updateNumericInput(session, corr_id(i, j), value = R[i, j])
     }
     if (is.character(v$upload_columns)) {
-      loaded_columns <<- v$upload_columns
+      loaded$columns <- v$upload_columns
       if (!is.null(input$upload_file)) {
         df <- tryCatch(upload_data(), error = function(e) NULL)
         if (!is.null(df)) {
           updateSelectizeInput(session, "upload_columns", selected = intersect(v$upload_columns, names(df)))
-          loaded_columns <<- NULL
+          loaded$columns <- NULL
         }
       }
     }
@@ -648,4 +711,6 @@ portfolio_tool_Server <- function(input, output, session) {
   for (id in c("lines_stats", "dependence_stats", "capital_stats", "sf_stats")) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
+
+  list()
 }
