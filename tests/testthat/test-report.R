@@ -1,8 +1,9 @@
-#writes a report to a temporary file and returns its text
+#writes a report to a temporary file and returns its text; every chart must draw (one that
+#fails warns, see netsimr_report_chart())
 report_text <- function(settings, results) {
   file <- tempfile(fileext = ".html")
   on.exit(unlink(file), add = TRUE)
-  write_simulation_report(file, settings, results)
+  expect_no_warning(write_simulation_report(file, settings, results))
   expect_true(file.exists(file))
   paste(readLines(file, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
 }
@@ -167,4 +168,11 @@ test_that("the report says how a run was processed", {
   expect_match(report_text(utils::modifyList(settings, list(multiprocessing = TRUE, workers = 12L)), results),
                "Parallel, 12 workers", fixed = TRUE)
   expect_match(report_text(utils::modifyList(settings, list(multiprocessing = TRUE)), results), "Parallel<", fixed = TRUE)
+})
+
+test_that("a chart that fails shows its message in the report, and warns", {
+  expect_warning(card <- netsimr_report_chart(function(dark) stop("nothing to draw"), "A chart"), "nothing to draw")
+  html <- as.character(card)
+  #still a light and a dark image
+  expect_identical(lengths(regmatches(html, gregexpr("<img", html, fixed = TRUE))), 2L)
 })

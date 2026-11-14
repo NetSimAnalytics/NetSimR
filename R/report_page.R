@@ -17,13 +17,23 @@ netsimr_report_chart <- function(draw, alt, title = NULL, note = NULL, height = 
     res <- 192
     do.call(grDevices::png, c(list(path, width = width * res, height = height * res, res = res, bg = backgrounds[[theme]]),
                               png_device_args()))
-    # a chart that fails shows its error message in its place
-    tryCatch(draw(theme == "dark"), error = function(e) {
+    # a chart that fails shows its error message in its place, so the rest of the report is
+    # still written
+    problem <- tryCatch({
+      draw(theme == "dark")
+      NULL
+    }, error = function(e) {
       graphics::plot.new()
       graphics::text(0.5, 0.5, conditionMessage(e), col = "#64748b", cex = 0.9)
+      conditionMessage(e)
     }, finally = grDevices::dev.off())
-    tags$img(class = paste0("chart-", theme), src = base64enc::dataURI(file = path, mime = "image/png"), alt = alt)
+    list(img = tags$img(class = paste0("chart-", theme), src = base64enc::dataURI(file = path, mime = "image/png"), alt = alt),
+         problem = problem)
   })
+  # and warns, once, so the failure is not silent
+  problems <- unique(unlist(lapply(images, `[[`, "problem")))
+  if (length(problems)) warning("A chart of the report could not be drawn: ", problems[1], call. = FALSE)
+  images <- lapply(images, `[[`, "img")
   div(class = "chart-card",
       if (!is.null(title)) tags$h3(title),
       if (!is.null(note)) tags$p(class = "chart-note", note),

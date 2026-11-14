@@ -44,6 +44,176 @@ sim_report_histogram_totals <- function(x, zero_share = mean(x == 0)) {
   list(values = if (zeros_dropped) x[x != 0] else x, zeros_dropped = zeros_dropped)
 }
 
+#' The colours of the report's charts, in each theme
+#'
+#' @noRd
+sim_report_palettes <- list(
+  light = list(bg = "#ffffff", blue = "#3b82f6", blue_dark = "#1d4ed8", navy = "#0f172a", red = "#dc2626",
+               grey = "#94a3b8", grid = "#e2e8f0", muted = "#64748b", label = "#334155"),
+  dark = list(bg = "#111a2b", blue = "#60a5fa", blue_dark = "#93c5fd", navy = "#e2e8f0", red = "#f87171",
+              grey = "#8391a7", grid = "#26324a", muted = "#94a3b8", label = "#cbd5e1")
+)
+
+# The report's charts below each draw in `pal`, the palette of the theme being drawn
+# (sim_report_palettes), and take what they draw as arguments.
+
+# The graphical parameters of a chart of the report.
+sim_report_par <- function(pal, mar = c(4.2, 5.6, 1, 1)) {
+  graphics::par(mar = mar, mgp = c(3.4, 0.7, 0), las = 1, col.axis = pal$muted,
+                col.lab = pal$label, fg = pal$muted, cex.axis = 0.85, cex.lab = 0.95)
+}
+
+# An x axis of amounts, at `at`.
+sim_report_x_axis <- function(pal, at) {
+  graphics::axis(1, at = at, labels = axis_amount_labels(at), col = pal$grid, col.ticks = pal$grid)
+}
+
+# In place of a chart with nothing finite to draw: a short message.
+sim_report_no_data <- function(pal, message) {
+  sim_report_par(pal)
+  graphics::plot.new()
+  graphics::text(0.5, 0.5, message, col = pal$muted, cex = 0.95)
+}
+
+# The histogram of the totals `x` (see sim_report_histogram_totals()), with dashed lines at their
+# mean and their VaR 99.5% where these are finite, whose legend writes them with `fmt_amount`;
+# `label` names the totals.
+sim_report_draw_histogram <- function(pal, x, mean_total, var995, label, fmt_amount) {
+  if (length(x) == 0) return(sim_report_no_data(pal, "Every total is infinite, so there is nothing to draw."))
+  sim_report_par(pal)
+  x_lim <- sim_report_amount_range(x)
+  #every total equal: one bar a twelfth of the axis wide
+  breaks <- if (diff(range(x)) == 0 && diff(x_lim) > 0) mean(x_lim) + c(-1, 1) * diff(x_lim) / 24 else 80
+  h <- graphics::hist(x, breaks = breaks, plot = FALSE)
+  if (length(breaks) == 1) x_lim <- range(h$breaks)
+  y_top <- max(h$counts) * 1.1
+  graphics::plot(h, col = NA, border = NA, main = "", xlab = label, ylab = "Simulations",
+                 axes = FALSE, xlim = x_lim, ylim = c(0, y_top))
+  y_at <- sim_report_count_ticks(y_top)
+  graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
+  graphics::plot(h, col = pal$blue, border = pal$bg, add = TRUE)
+  sim_report_x_axis(pal, pretty(x_lim))
+  graphics::axis(2, at = y_at, labels = formatC(y_at, format = "d", big.mark = ","), lwd = 0)
+  #an infinite mean or VaR has no place on the axis; the legend still gives it
+  if (is.finite(mean_total)) graphics::abline(v = mean_total, col = pal$navy, lty = 2, lwd = 1.8)
+  if (is.finite(var995)) graphics::abline(v = var995, col = pal$red, lty = 2, lwd = 1.8)
+  graphics::legend("topright", bty = "n", cex = 0.85, text.col = pal$label, lty = 2, lwd = 1.8,
+                   col = c(pal$navy, pal$red),
+                   legend = c(paste("Mean", fmt_amount(mean_total)), paste("VaR 99.5%", fmt_amount(var995))))
+}
+
+# Losses by return period, from 2 up to `max_return_period`. `series` is a named list of
+# list(values, col, lty, lwd), where col names a colour of the palette, so each theme's copy
+# uses its own colours, and the names are the legend's labels; `ylab` names what the losses
+# are, as the other charts' axes do (e.g. "Ceded", not "Total claims"); `quantile_of(x, p)`
+# gives the quantiles of a series.
+sim_report_draw_return_periods <- function(pal, series, ylab, max_return_period, quantile_of) {
+  rps <- exp(seq(log(2), log(max_return_period), length.out = 300))
+  ys <- lapply(series, function(x) quantile_of(x$values, 1 - 1 / rps))
+  #infinite losses are left out of the limits; the curves stop where they start
+  y_range <- range(c(0, unlist(ys)), finite = TRUE)
+  #totals that are all zero still need an axis
+  if (y_range[1] == y_range[2]) y_range[2] <- 1
+  y_at <- pretty(y_range)
+  y_labels <- axis_amount_labels(y_at)
+  #widen the left margin for long axis labels so the axis title does not overlap them
+  left <- max(5.6, 1.6 + 0.62 * max(nchar(y_labels)))
+  sim_report_par(pal, mar = c(4.2, left, 1, 1))
+  graphics::plot(range(rps), y_range, type = "n", log = "x", axes = FALSE, main = "",
+                 xlab = "Return period", ylab = "", ylim = y_range)
+  graphics::title(ylab = ylab, line = left - 1.3)
+  ticks <- return_period_axis_ticks[return_period_axis_ticks <= max_return_period]
+  graphics::abline(v = ticks, col = pal$grid, lwd = 0.8)
+  graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
+  show_200 <- 200 <= max_return_period
+  if (show_200) graphics::abline(v = 200, col = pal$red, lty = 2, lwd = 1.5)
+  for (i in rev(seq_along(series))) {
+    finite <- is.finite(ys[[i]])
+    graphics::lines(rps[finite], ys[[i]][finite], col = pal[[series[[i]]$col]], lwd = series[[i]]$lwd, lty = series[[i]]$lty)
+  }
+  if (!any(is.finite(unlist(ys)))) {
+    #centred on the log scale of the x axis
+    graphics::text(sqrt(2 * max_return_period), mean(y_range), "The losses are infinite at every return period shown.",
+                   col = pal$muted, cex = 0.95)
+  }
+  graphics::axis(1, at = ticks, labels = paste("1 in", formatC(ticks, format = "d", big.mark = ",")),
+                 col = pal$grid, col.ticks = pal$grid, cex.axis = 0.8)
+  graphics::axis(2, at = y_at, labels = y_labels, lwd = 0)
+  graphics::legend("topleft", bty = "n", cex = 0.85, text.col = pal$label,
+                   legend = c(names(series), if (show_200) "1 in 200 (99.5%)"),
+                   col = c(vapply(series, function(x) pal[[x$col]], ""), if (show_200) pal$red),
+                   lty = c(vapply(series, function(x) x$lty, 1), if (show_200) 2),
+                   lwd = c(vapply(series, function(x) x$lwd, 1), if (show_200) 1.5))
+}
+
+# The cumulative distribution of the totals `claims`, with a dashed line at their VaR 99.5%
+# where it is finite; `label` names the totals and `quantile_of(x, p)` gives their quantiles.
+sim_report_draw_cdf <- function(pal, claims, var995, label, quantile_of) {
+  cdf_probs <- seq(0, 1, length.out = 1001)
+  cdf_x <- quantile_of(claims, cdf_probs)
+  #with infinite totals the curve stops below 100%, at the share of finite totals
+  finite <- is.finite(cdf_x)
+  if (!any(finite)) return(sim_report_no_data(pal, "Every total is infinite, so there is nothing to draw."))
+  cdf_x <- cdf_x[finite]
+  cdf_probs <- cdf_probs[finite]
+  x_lim <- sim_report_amount_range(cdf_x)
+  sim_report_par(pal)
+  graphics::plot(cdf_x, cdf_probs, type = "n", axes = FALSE, main = "",
+                 xlab = label, ylab = "Cumulative probability", xlim = x_lim, ylim = c(0, 1))
+  graphics::abline(h = seq(0, 1, 0.25), col = pal$grid, lwd = 0.8)
+  if (is.finite(var995)) graphics::abline(v = var995, col = pal$red, lty = 2, lwd = 1.5)
+  #the step runs from the left edge of the chart to the right one, so a single total
+  #reads as a step at that total; totals of -Inf lie left of every amount drawn
+  graphics::lines(c(x_lim[1], cdf_x, x_lim[2]), c(mean(claims == -Inf), cdf_probs, cdf_probs[length(cdf_probs)]),
+                  type = "s", col = pal$blue, lwd = 2.4)
+  sim_report_x_axis(pal, pretty(x_lim))
+  graphics::axis(2, at = seq(0, 1, 0.25), labels = paste0(seq(0, 100, 25), "%"), lwd = 0)
+}
+
+# The simulations' claim counts `counts`: a bar for each count up to the 99.5th percentile
+# (the rarer highest counts grouped into the last bar), or a histogram when that is above 60;
+# `quantile_of(x, p)` gives their quantiles.
+sim_report_draw_counts <- function(pal, counts, quantile_of) {
+  sim_report_par(pal, mar = c(4.2, 5.6, 1, 1))
+  whole_counts <- round(counts)
+  top <- max(1, ceiling(quantile_of(whole_counts, 0.995)))
+  if (top <= 60) {
+    grouped <- pmin(whole_counts, top)
+    #(tabulate() counts a million whole numbers far faster than table(), which makes a factor)
+    heights <- if (all(grouped >= 0)) {
+      as.numeric(tabulate(grouped + 1, nbins = top + 1))
+    } else {
+      as.numeric(table(factor(grouped, levels = 0:top)))
+    }
+    bar_labels <- as.character(0:top)
+    if (any(whole_counts > top)) bar_labels[length(bar_labels)] <- paste0(top, "+")
+    y_top <- max(heights) * 1.1
+    y_at <- sim_report_count_ticks(y_top)
+    graphics::barplot(heights, col = NA, border = NA, axes = FALSE, ylim = c(0, y_top),
+                      xlab = "Claims per period", ylab = "Simulations")
+    graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
+    centres <- graphics::barplot(heights, col = pal$blue, border = NA, axes = FALSE,
+                                 ylim = c(0, y_top), add = TRUE, axisnames = FALSE)
+    #label every few bars, and always the last one so a grouped "k+" bar is named
+    step <- max(1, ceiling(length(heights) / 16))
+    shown <- seq(1, length(heights), by = step)
+    #R drops axis labels that would overlap, so leave room before the last one
+    if (length(heights) - max(shown) < step) shown <- shown[-length(shown)]
+    shown <- c(shown, length(heights))
+    graphics::axis(1, at = centres[shown], labels = bar_labels[shown], tick = FALSE, cex.axis = 0.8)
+  } else {
+    h <- graphics::hist(whole_counts, breaks = 40, plot = FALSE)
+    y_top <- max(h$counts) * 1.1
+    y_at <- sim_report_count_ticks(y_top)
+    graphics::plot(h, col = NA, border = NA, main = "", axes = FALSE, ylim = c(0, y_top),
+                   xlab = "Claims per period", ylab = "Simulations")
+    graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
+    graphics::plot(h, col = pal$blue, border = pal$bg, add = TRUE)
+    sim_report_x_axis(pal, pretty(h$breaks))
+  }
+  graphics::axis(2, at = y_at, labels = formatC(y_at, format = "d", big.mark = ","), lwd = 0)
+}
+
 #' Write the simulation report as a self-contained HTML file
 #'
 #' Builds the page with shiny's HTML tag functions and embeds the charts as PNG images, so the
@@ -161,24 +331,6 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   has_gross <- !is.null(summary$gross)
 
   # ---------- charts ----------
-  #each chart is drawn once per theme; pal holds the palette currently being drawn
-  palettes <- list(
-    light = list(bg = "#ffffff", blue = "#3b82f6", blue_dark = "#1d4ed8", navy = "#0f172a", red = "#dc2626",
-                 grey = "#94a3b8", grid = "#e2e8f0", muted = "#64748b", label = "#334155"),
-    dark = list(bg = "#111a2b", blue = "#60a5fa", blue_dark = "#93c5fd", navy = "#e2e8f0", red = "#f87171",
-                grey = "#8391a7", grid = "#26324a", muted = "#94a3b8", label = "#cbd5e1")
-  )
-  pal <- palettes$light
-
-  chart_par <- function(mar = c(4.2, 5.6, 1, 1)) {
-    graphics::par(mar = mar, mgp = c(3.4, 0.7, 0), las = 1, col.axis = pal$muted,
-                  col.lab = pal$label, fg = pal$muted, cex.axis = 0.85, cex.lab = 0.95)
-  }
-  axis_labels <- axis_amount_labels
-  x_axis <- function(at) graphics::axis(1, at = at, labels = axis_labels(at), col = pal$grid, col.ticks = pal$grid)
-  count_ticks <- sim_report_count_ticks
-  amount_range <- sim_report_amount_range
-
   #infinite totals (draws that overflow, e.g. from a Pareto severity with a tiny alpha)
   #cannot be drawn: the histogram leaves them out and the curves stop where they start
   finite_claims <- claims[is.finite(claims)]
@@ -226,154 +378,20 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     ""
   }
 
-  #draw each chart once per theme into a temporary PNG at twice screen resolution and embed
-  #both as data URIs; the page shows the one that matches the current theme. The device
-  #arguments (R/plot_device.R) ask Windows for the cairo device, which anti-aliases
-  #a chart of the report (netsimr_report_chart()), each theme's copy drawn with its palette
-  chart_card <- function(draw, title, note, alt, height = 4.2, width = 9) {
-    netsimr_report_chart(function(dark) {
-      pal <<- palettes[[if (dark) "dark" else "light"]]
-      on.exit(pal <<- palettes$light)
-      draw()
-    }, alt, title = title, note = note, height = height, width = width)
-  }
-
-  #a chart with nothing finite to draw shows a short message instead
-  draw_no_data <- function(message) {
-    chart_par()
-    graphics::plot.new()
-    graphics::text(0.5, 0.5, message, col = pal$muted, cex = 0.95)
-  }
-
-  draw_histogram <- function() {
-    if (length(plot_claims) == 0) return(draw_no_data("Every total is infinite, so there is nothing to draw."))
-    chart_par()
-    x_lim <- amount_range(plot_claims)
-    #every total equal: one bar a twelfth of the axis wide
-    breaks <- if (diff(range(plot_claims)) == 0 && diff(x_lim) > 0) mean(x_lim) + c(-1, 1) * diff(x_lim) / 24 else 80
-    h <- graphics::hist(plot_claims, breaks = breaks, plot = FALSE)
-    if (length(breaks) == 1) x_lim <- range(h$breaks)
-    y_top <- max(h$counts) * 1.1
-    graphics::plot(h, col = NA, border = NA, main = "", xlab = modelled_label, ylab = "Simulations",
-                   axes = FALSE, xlim = x_lim, ylim = c(0, y_top))
-    y_at <- count_ticks(y_top)
-    graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
-    graphics::plot(h, col = pal$blue, border = pal$bg, add = TRUE)
-    x_axis(pretty(x_lim))
-    graphics::axis(2, at = y_at, labels = formatC(y_at, format = "d", big.mark = ","), lwd = 0)
-    #an infinite mean or VaR has no place on the axis; the legend still gives it
-    if (is.finite(claims_mean)) graphics::abline(v = claims_mean, col = pal$navy, lty = 2, lwd = 1.8)
-    if (is.finite(var995)) graphics::abline(v = var995, col = pal$red, lty = 2, lwd = 1.8)
-    graphics::legend("topright", bty = "n", cex = 0.85, text.col = pal$label, lty = 2, lwd = 1.8,
-                     col = c(pal$navy, pal$red),
-                     legend = c(paste("Mean", fmt_amount(claims_mean)), paste("VaR 99.5%", fmt_amount(var995))))
-  }
-
   #return periods are only drawn where at least 10 simulations lie beyond them
   max_return_period <- n / 10
-  #series: a named list of list(values, col, lty, lwd); the names become the legend labels.
-  #ylab names what the losses are, as the other charts' axes do (e.g. "Ceded", not "Total claims")
-  draw_return_periods <- function(series, ylab) {
-    rps <- exp(seq(log(2), log(max_return_period), length.out = 300))
-    ys <- lapply(series, function(x) quantile_of_vec(x$values, 1 - 1 / rps))
-    #infinite losses are left out of the limits; the curves stop where they start
-    y_range <- range(c(0, unlist(ys)), finite = TRUE)
-    #totals that are all zero still need an axis
-    if (y_range[1] == y_range[2]) y_range[2] <- 1
-    y_at <- pretty(y_range)
-    y_labels <- axis_labels(y_at)
-    #widen the left margin for long axis labels so the axis title does not overlap them
-    left <- max(5.6, 1.6 + 0.62 * max(nchar(y_labels)))
-    chart_par(mar = c(4.2, left, 1, 1))
-    graphics::plot(range(rps), y_range, type = "n", log = "x", axes = FALSE, main = "",
-                   xlab = "Return period", ylab = "", ylim = y_range)
-    graphics::title(ylab = ylab, line = left - 1.3)
-    ticks <- return_period_axis_ticks[return_period_axis_ticks <= max_return_period]
-    graphics::abline(v = ticks, col = pal$grid, lwd = 0.8)
-    graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
-    show_200 <- 200 <= max_return_period
-    if (show_200) graphics::abline(v = 200, col = pal$red, lty = 2, lwd = 1.5)
-    for (i in rev(seq_along(series))) {
-      finite <- is.finite(ys[[i]])
-      graphics::lines(rps[finite], ys[[i]][finite], col = pal[[series[[i]]$col]], lwd = series[[i]]$lwd, lty = series[[i]]$lty)
-    }
-    if (!any(is.finite(unlist(ys)))) {
-      #centred on the log scale of the x axis
-      graphics::text(sqrt(2 * max_return_period), mean(y_range), "The losses are infinite at every return period shown.",
-                     col = pal$muted, cex = 0.95)
-    }
-    graphics::axis(1, at = ticks, labels = paste("1 in", formatC(ticks, format = "d", big.mark = ",")),
-                   col = pal$grid, col.ticks = pal$grid, cex.axis = 0.8)
-    graphics::axis(2, at = y_at, labels = y_labels, lwd = 0)
-    graphics::legend("topleft", bty = "n", cex = 0.85, text.col = pal$label,
-                     legend = c(names(series), if (show_200) "1 in 200 (99.5%)"),
-                     col = c(vapply(series, function(x) pal[[x$col]], ""), if (show_200) pal$red),
-                     lty = c(vapply(series, function(x) x$lty, 1), if (show_200) 2),
-                     lwd = c(vapply(series, function(x) x$lwd, 1), if (show_200) 1.5))
-  }
 
-  draw_cdf <- function() {
-    cdf_probs <- seq(0, 1, length.out = 1001)
-    cdf_x <- quantile_of_vec(claims, cdf_probs)
-    #with infinite totals the curve stops below 100%, at the share of finite totals
-    finite <- is.finite(cdf_x)
-    if (!any(finite)) return(draw_no_data("Every total is infinite, so there is nothing to draw."))
-    cdf_x <- cdf_x[finite]
-    cdf_probs <- cdf_probs[finite]
-    x_lim <- amount_range(cdf_x)
-    chart_par()
-    graphics::plot(cdf_x, cdf_probs, type = "n", axes = FALSE, main = "",
-                   xlab = modelled_label, ylab = "Cumulative probability", xlim = x_lim, ylim = c(0, 1))
-    graphics::abline(h = seq(0, 1, 0.25), col = pal$grid, lwd = 0.8)
-    if (is.finite(var995)) graphics::abline(v = var995, col = pal$red, lty = 2, lwd = 1.5)
-    #the step runs from the left edge of the chart to the right one, so a single total
-    #reads as a step at that total; totals of -Inf lie left of every amount drawn
-    graphics::lines(c(x_lim[1], cdf_x, x_lim[2]), c(mean(claims == -Inf), cdf_probs, cdf_probs[length(cdf_probs)]),
-                    type = "s", col = pal$blue, lwd = 2.4)
-    x_axis(pretty(x_lim))
-    graphics::axis(2, at = seq(0, 1, 0.25), labels = paste0(seq(0, 100, 25), "%"), lwd = 0)
+  #a chart of the report: `draw(pal)` draws it in a theme's palette (sim_report_palettes), once
+  #for each theme
+  chart_card <- function(draw, title, note, alt, height = 4.2, width = 9) {
+    netsimr_report_chart(function(dark) draw(sim_report_palettes[[if (dark) "dark" else "light"]]),
+                         alt, title = title, note = note, height = height, width = width)
   }
-
-  draw_counts <- function() {
-    chart_par(mar = c(4.2, 5.6, 1, 1))
-    whole_counts <- round(counts)
-    top <- max(1, ceiling(quantile_of_vec(whole_counts, 0.995)))
-    if (top <= 60) {
-      #one bar per claim count, with the rare highest counts grouped into the last bar
-      grouped <- pmin(whole_counts, top)
-      #(tabulate() counts a million whole numbers far faster than table(), which makes a factor)
-      heights <- if (all(grouped >= 0)) {
-        as.numeric(tabulate(grouped + 1, nbins = top + 1))
-      } else {
-        as.numeric(table(factor(grouped, levels = 0:top)))
-      }
-      bar_labels <- as.character(0:top)
-      if (any(whole_counts > top)) bar_labels[length(bar_labels)] <- paste0(top, "+")
-      y_top <- max(heights) * 1.1
-      y_at <- count_ticks(y_top)
-      graphics::barplot(heights, col = NA, border = NA, axes = FALSE, ylim = c(0, y_top),
-                        xlab = "Claims per period", ylab = "Simulations")
-      graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
-      centres <- graphics::barplot(heights, col = pal$blue, border = NA, axes = FALSE,
-                                   ylim = c(0, y_top), add = TRUE, axisnames = FALSE)
-      #label every few bars, and always the last one so a grouped "k+" bar is named
-      step <- max(1, ceiling(length(heights) / 16))
-      shown <- seq(1, length(heights), by = step)
-      #R drops axis labels that would overlap, so leave room before the last one
-      if (length(heights) - max(shown) < step) shown <- shown[-length(shown)]
-      shown <- c(shown, length(heights))
-      graphics::axis(1, at = centres[shown], labels = bar_labels[shown], tick = FALSE, cex.axis = 0.8)
-    } else {
-      h <- graphics::hist(whole_counts, breaks = 40, plot = FALSE)
-      y_top <- max(h$counts) * 1.1
-      y_at <- count_ticks(y_top)
-      graphics::plot(h, col = NA, border = NA, main = "", axes = FALSE, ylim = c(0, y_top),
-                     xlab = "Claims per period", ylab = "Simulations")
-      graphics::abline(h = y_at, col = pal$grid, lwd = 0.8)
-      graphics::plot(h, col = pal$blue, border = pal$bg, add = TRUE)
-      x_axis(pretty(h$breaks))
-    }
-    graphics::axis(2, at = y_at, labels = formatC(y_at, format = "d", big.mark = ","), lwd = 0)
+  draw_histogram <- function(pal) sim_report_draw_histogram(pal, plot_claims, claims_mean, var995, modelled_label, fmt_amount)
+  draw_cdf <- function(pal) sim_report_draw_cdf(pal, claims, var995, modelled_label, quantile_of_vec)
+  draw_counts <- function(pal) sim_report_draw_counts(pal, counts, quantile_of_vec)
+  draw_return_periods <- function(pal, series, ylab) {
+    sim_report_draw_return_periods(pal, series, ylab, max_return_period, quantile_of_vec)
   }
 
   # ---------- building blocks ----------
@@ -577,7 +595,7 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         lapply(seq_along(columns), function(i) c(list(values = columns[[i]]), styles[[i]])),
         names(columns)
       )[known]
-      chart_card(function() draw_return_periods(comparison_series, "Loss"),
+      chart_card(function(pal) draw_return_periods(pal, comparison_series, "Loss"),
                  paste(paste(names(comparison_series), collapse = ", "), "by return period"),
                  "How the structures change the loss at each return period, on a log scale.",
                  "Gross, ceded and net losses by return period")
@@ -773,16 +791,14 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
         "Largest single claim (OEP)" = list(values = largest, col = "navy", lty = 2, lwd = 2)
       )
     }
-    chart_card(function() draw_return_periods(modelled_series, modelled_label), "Losses by return period",
-               paste0(
-                 "The loss expected once in each number of periods, on a log scale.",
-                 " Return periods are shown up to ", fmt_return_period(1 - 1 / max_return_period), ".",
-                 if (!is.null(largest)) paste(
-                   " The largest single claim is after the each-and-every-loss structure, before the",
-                   "reinstatement limit and the aggregate layer, which act on the period's total."
-                 )
-               ),
-               "Losses by return period")
+    chart_card(function(pal) draw_return_periods(pal, modelled_series, modelled_label), "Losses by return period", paste0(
+      "The loss expected once in each number of periods, on a log scale.",
+      " Return periods are shown up to ", fmt_return_period(1 - 1 / max_return_period), ".",
+      if (!is.null(largest)) paste(
+        " The largest single claim is after the each-and-every-loss structure, before the",
+        "reinstatement limit and the aggregate layer, which act on the period's total."
+      )
+    ), "Losses by return period")
   }
 
   charts <- report_section(
