@@ -602,10 +602,8 @@ xlp_server_exposure <- function(input, output, session, tool) {
 xlp_server_pricing <- function(input, output, session, tool) {
   add_chart <- tool$add_chart
   bc <- tool$bc
-  experience <- tool$experience
   exposure <- tool$exposure
   layer <- tool$layer
-  losses <- tool$losses
   number <- tool$number
   pareto <- tool$pareto
   rating <- tool$rating
@@ -1143,8 +1141,6 @@ xlp_server_report <- function(input, output, session, tool) {
   bc_table <- tool$bc_table
   charts <- tool$charts
   current_programmes <- tool$current_programmes
-  curve <- tool$curve
-  experience <- tool$experience
   exposure <- tool$exposure
   exposure_table <- tool$exposure_table
   layer <- tool$layer
@@ -1156,7 +1152,6 @@ xlp_server_report <- function(input, output, session, tool) {
   profile <- tool$profile
   programme_table <- tool$programme_table
   rating <- tool$rating
-  severity <- tool$severity
 
   # what the report shows: the layer and its pricing, and each part of the tool that can be
   # found (a part that cannot, such as a Pareto rating without enough losses, is left out)
@@ -1319,7 +1314,6 @@ xlp_server_settings <- function(input, output, session, tool) {
   prog_rows <- tool$prog_rows
   prog_slices <- tool$prog_slices
   prog_value <- tool$prog_value
-  severity <- tool$severity
   year_id <- tool$year_id
   year_values <- tool$year_values
   years <- tool$years

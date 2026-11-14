@@ -966,7 +966,6 @@ rsv_server_paid_incurred <- function(input, output, session, tool) {
 # earlier tabs define; the tab returns what it defines, for the tabs after it.
 rsv_server_report <- function(input, output, session, tool) {
   ave <- tool$ave
-  boot <- tool$boot
   cl <- tool$cl
   clark <- tool$clark
   current_boot <- tool$current_boot
@@ -980,7 +979,6 @@ rsv_server_report <- function(input, output, session, tool) {
   results <- tool$results
   sii_reserve <- tool$sii_reserve
   tail_options <- tool$tail_options
-  triangle <- tool$triangle
 
   # the choices behind the figures, for the report
   report_settings <- function() {

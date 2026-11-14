@@ -78,7 +78,6 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
     if (!length(largest)) largest <- NULL
   }
   results <- results[!is.na(results$total_claims), , drop = FALSE]
-  gross <- column_or_null("gross_claims")
 
   div <- shiny::div
   tags <- shiny::tags
@@ -87,7 +86,6 @@ write_simulation_report <- function(file, settings, results, generated = Sys.tim
   dash <- intToUtf8(8212)
   nbsp <- intToUtf8(160)
   alpha <- intToUtf8(945)
-  middot <- intToUtf8(183)
 
   # ---------- formatting helpers ----------
   is_blank <- function(x) is.null(x) || length(x) == 0 || all(is.na(x))

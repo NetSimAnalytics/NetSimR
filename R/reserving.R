@@ -804,7 +804,6 @@ reserving_long_triangle <- function(origin, development, value, cumulative) {
 # The triangle of a table with a row per origin and a column per development period.
 reserving_wide_triangle <- function(values, labels, ages, cumulative) {
   storage.mode(values) <- "double"
-  m <- nrow(values)
   d <- ncol(values)
   if (d < 2) stop("The table needs at least two development period columns.", call. = FALSE)
   observed <- !is.na(values)

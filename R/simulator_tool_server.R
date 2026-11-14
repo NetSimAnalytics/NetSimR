@@ -323,14 +323,12 @@ shiny_simulator_server <- function(input, output, session) {
   sim_report_tab_server("report", last_run, reactive(input$sim_navbar))
   sim_compare_tab_server("compare", last_run)
 
-  #run simulation button
-  #the browser disables the button and shows "Running..." on click; this message re-enables it
   #the settings of a run, from the inputs
   collect_run_settings <- function() {
     slice_count <- slices()
     #sapply on purpose: it gives a numeric vector when every field is filled in, and a list
     #when a field is still empty (NULL), which find_missing_simulation_settings() reports by name
-    new_settings <- list(
+    list(
       freq_params = unname(sapply(
         freq_dist_options[[input$freqDistr]]@paramIDs
         ,function(x) input[[x]]
@@ -416,6 +414,8 @@ shiny_simulator_server <- function(input, output, session) {
     })
   })
 
+  #run simulation button: the browser disables the button and shows "Running..." on click;
+  #the message sent at the end re-enables it
   observeEvent(input$RunSimulations,{
     on.exit(session$sendCustomMessage("netsimr-run-finished", TRUE), add = TRUE)
 

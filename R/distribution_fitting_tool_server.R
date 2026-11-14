@@ -797,7 +797,6 @@ dft_server_severity <- function(input, output, session, tool) {
 dft_server_sliced <- function(input, output, session, tool) {
   add_chart <- tool$add_chart
   claim_sizes <- tool$claim_sizes
-  data <- tool$data
   failed_fit <- tool$failed_fit
   fit_lnorm_mle <- tool$fit_lnorm_mle
   fit_slice_pareto <- tool$fit_slice_pareto
@@ -1294,7 +1293,6 @@ dft_server_export <- function(input, output, session, tool) {
 dft_server_settings <- function(input, output, session, tool) {
   data <- tool$data
   pending <- tool$pending
-  slicing_points <- tool$slicing_points
   slicing_range <- tool$slicing_range
 
   # the choices of the session: the data options, each tab's columns and options, the slicing

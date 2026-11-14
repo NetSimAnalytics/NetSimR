@@ -158,7 +158,6 @@ rsv_triangle_table <- function(values, projected = NULL, format = netsimr_amount
 # calendar periods used.
 rsv_link_ratio_table <- function(cl, excluded, outside) {
   ratios <- cl$link_ratios
-  m <- nrow(ratios)
   d <- ncol(ratios)
   available <- !is.na(ratios)
   # (an origin with no link ratios, such as the latest, has no row)

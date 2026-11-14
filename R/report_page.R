@@ -2,10 +2,9 @@
 #Reports of the tools
 ##############
 
-# The reports of the reserving and portfolio tools are pages in the style of the
-# simulation report (R/simulator_report.R), whose styles, theme switch and script they
-# share: one HTML file that holds its charts as images, with a light and a dark copy of
-# each, and needs neither pandoc nor rmarkdown.
+# The reports of the six tools share these parts, their styles (inst/css/report.css), theme
+# switch and script: each is one HTML file that holds its charts as images, with a light and
+# a dark copy of each, and needs neither pandoc nor rmarkdown.
 
 # A chart of the report: `draw(dark)` draws it with a tool's chart functions, once for each
 # theme, into PNG images at twice screen resolution embedded in the page; the page shows the
@@ -18,13 +17,10 @@ netsimr_report_chart <- function(draw, alt, title = NULL, note = NULL, height = 
     res <- 192
     do.call(grDevices::png, c(list(path, width = width * res, height = height * res, res = res, bg = backgrounds[[theme]]),
                               png_device_args()))
-    drawn <- tryCatch({
-      draw(theme == "dark")
-      TRUE
-    }, error = function(e) {
+    # a chart that fails shows its error message in its place
+    tryCatch(draw(theme == "dark"), error = function(e) {
       graphics::plot.new()
       graphics::text(0.5, 0.5, conditionMessage(e), col = "#64748b", cex = 0.9)
-      FALSE
     }, finally = grDevices::dev.off())
     tags$img(class = paste0("chart-", theme), src = base64enc::dataURI(file = path, mime = "image/png"), alt = alt)
   })
@@ -139,7 +135,7 @@ netsimr_write_report <- function(file, title, eyebrow, sections, accent = NULL, 
   invisible(file)
 }
 
-#' Light colour variables for the simulation report
+#' Light colour variables of the reports
 #'
 #' @noRd
 netsimr_report_light_vars <- "
@@ -162,7 +158,7 @@ netsimr_report_light_vars <- "
   --r-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 18px rgba(15, 23, 42, 0.05);
 "
 
-#' Dark colour variables for the simulation report
+#' Dark colour variables of the reports
 #'
 #' @noRd
 netsimr_report_dark_vars <- "
@@ -185,7 +181,7 @@ netsimr_report_dark_vars <- "
   --r-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
 "
 
-#' Theme styles for the simulation report (light, dark and the theme switch)
+#' Theme styles of the reports (light, dark and the theme switch)
 #'
 #' @noRd
 netsimr_report_theme_css <- paste0("
