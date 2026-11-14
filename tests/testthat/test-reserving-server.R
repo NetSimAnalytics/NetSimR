@@ -3,10 +3,6 @@
 #the server sends to inputs go nowhere; where the page would set an input in return, the test
 #sets it
 
-#the server's plain variables, read through the environment of a function defined in it
-#(testServer() copies them when it starts)
-server_variable <- function(server_function, name) get(name, envir = environment(server_function))
-
 #the text of a rendered UI output
 ui_text <- function(x) gsub("\\s+", " ", gsub("<[^>]+>", " ", as.character(x$html)))
 
@@ -236,14 +232,14 @@ test_that("a loaded settings file sets the triangle it names, its link ratios an
     cl()
     session$setInputs(load_settings = list(datapath = file, name = "motor.txt"))
     #another triangle is to come: its periods and link ratios wait for it
-    pending <- server_variable(origin_defaults, "pending")
+    pending <- loaded$pending
     expect_identical(pending$exclusions, "2021 | 1-2")
     expect_identical(pending$periods, "6")
     #the page sets the inputs the server updated
     session$setInputs(example = "motor", average = "simple", tail_method = "exponential", prior_loss_ratio = 65)
     cl()
     expect_true(excluded()["2021", "1-2"])
-    expect_null(server_variable(origin_defaults, "pending"))
+    expect_null(loaded$pending)
     session$setInputs(periods = "6")
     exclude <- matrix(FALSE, 12, 11)
     exclude[8, 1] <- TRUE
@@ -279,7 +275,7 @@ test_that("a loaded settings file for the triangle showing sets its link ratios 
     session$setInputs(load_settings = list(datapath = file, name = "raa.txt"))
     #(the 1990 label names no link ratio and is passed over)
     expect_identical(which(excluded()), 2L)
-    expect_null(server_variable(origin_defaults, "pending"))
+    expect_null(loaded$pending)
     #a file of another tool, or of a newer version, changes nothing
     session$setInputs(load_settings = list(datapath = bad, name = "simulator.txt"))
     expect_identical(which(excluded()), 2L)

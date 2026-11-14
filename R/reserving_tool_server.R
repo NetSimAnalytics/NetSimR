@@ -14,7 +14,6 @@
 #' @import shiny
 reserving_tool_Server <- function(input, output, session) {
 
-
   # the charts are drawn in the colours of the theme the page reports
   dark <- netsimr_dark(input)
 
@@ -22,9 +21,41 @@ reserving_tool_Server <- function(input, output, session) {
   # warnings about a thin triangle are left out: the tool says what it can do with one)
   checked <- function(expr) netsimr_checked(suppressWarnings(expr))
 
-  ######################
-  #Data
-  ######################
+  # what a loaded settings file sets once its triangle shows: the columns of an uploaded file
+  # (loaded$columns), and the periods used, the tail curve's first factor and the link ratios
+  # left out (loaded$pending)
+  loaded <- new.env(parent = emptyenv())
+  loaded$columns <- list()
+  loaded$pending <- NULL
+  # each origin's premium, a priori loss ratio and method from a loaded settings file, by label
+  loaded_origins <- reactiveVal(NULL)
+  # the loss ratio and method for all origins that a loaded file sets, which must then
+  # not overwrite the file's values of each origin
+  own_updates <- netsimr_own_updates()
+
+  # the tabs, each a function of its own (below), in the order of what they use of each other
+  tool <- list(dark = dark, checked = checked, loaded = loaded, loaded_origins = loaded_origins,
+               own_updates = own_updates)
+  tool <- c(tool, rsv_server_data(input, output, session, tool))
+  tool <- c(tool, rsv_server_development(input, output, session, tool))
+  tool <- c(tool, rsv_server_ultimates(input, output, session, tool))
+  tool <- c(tool, rsv_server_more_methods(input, output, session, tool))
+  tool <- c(tool, rsv_server_one_year(input, output, session, tool))
+  tool <- c(tool, rsv_server_uncertainty(input, output, session, tool))
+  tool <- c(tool, rsv_server_ifrs17(input, output, session, tool))
+  tool <- c(tool, rsv_server_paid_incurred(input, output, session, tool))
+  tool <- c(tool, rsv_server_report(input, output, session, tool))
+  tool <- c(tool, rsv_server_settings(input, output, session, tool))
+  # every reactive of the tabs under its own name here too, where tests of the server find it
+  list2env(tool, environment())
+  invisible(NULL)
+}
+
+# The Data tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_data <- function(input, output, session, tool) {
+  checked <- tool$checked
+  loaded <- tool$loaded
 
   upload_data <- reactive({
     netsimr_read_upload(input, input$file1, list(header = "data_includes_header", sep = "sep", dec = "dec", quote = "quote"),
@@ -38,7 +69,7 @@ reserving_tool_Server <- function(input, output, session) {
     columns <- names(df)
     numbers <- netsimr_numeric_columns(df, or_default(input$dec, "."))
     # a column named in a loaded settings file, then the one the user chose, then a guess
-    wanted <- loaded_columns
+    wanted <- loaded$columns
     keep <- function(id, guess) {
       if (!is.null(wanted[[id]]) && wanted[[id]] %in% c("none", columns)) return(wanted[[id]])
       current <- input[[id]]
@@ -107,19 +138,16 @@ reserving_tool_Server <- function(input, output, session) {
                                                           note = "Each period's claims: the change in the cumulative claims."))
   output$data_table <- renderUI(netsimr_data_preview(data_input()$data, 100))
 
-  ######################
-  #Development factors
-  ######################
+  list(upload_data = upload_data, data_input = data_input, triangle = triangle, data_premium = data_premium)
+}
 
-  # what a loaded settings file sets once its triangle shows: the columns of an uploaded file,
-  # the periods used, the tail curve's first factor and the link ratios left out
-  loaded_columns <- list()
-  pending <- NULL
-  # each origin's premium, a priori loss ratio and method from a loaded settings file, by label
-  loaded_origins <- reactiveVal(NULL)
-  # the loss ratio and method for all origins that a loaded file sets, which must then
-  # not overwrite the file's values of each origin
-  own_updates <- netsimr_own_updates()
+# The Development factors tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_development <- function(input, output, session, tool) {
+  checked <- tool$checked
+  dark <- tool$dark
+  loaded <- tool$loaded
+  triangle <- tool$triangle
 
   # each new triangle starts with every link ratio included (or those of a loaded settings
   # file left out), with the period choices it allows, and with new inputs for its origins;
@@ -138,8 +166,8 @@ reserving_tool_Server <- function(input, output, session) {
     recent <- seq_len(max(diagonals - 1, 0))
     period_choices <- c("All" = "all", stats::setNames(recent, paste("Latest", recent)))
     tail_choices <- stats::setNames(seq_len(ncol(ratios)), colnames(ratios))
-    wanted <- pending
-    pending <<- NULL
+    wanted <- loaded$pending
+    loaded$pending <- NULL
     choose <- function(value, choices, default) if (!is.null(value) && as.character(value) %in% choices) as.character(value) else default
     excluded(rsv_exclusion_matrix(if (is.null(wanted)) character(0) else wanted$exclusions, ratios))
     updateSelectInput(session, "periods", choices = period_choices, selected = choose(wanted$periods, period_choices, "all"))
@@ -286,9 +314,21 @@ reserving_tool_Server <- function(input, output, session) {
                                                      rsv_ratio(fit$tail, 4), "."))
   })
 
-  ######################
-  #Ultimates
-  ######################
+  list(excluded = excluded, last_triangle = last_triangle, generation = generation,
+       periods_used = periods_used, tail_setting = tail_setting, cl = cl, tail_periods = tail_periods,
+       tail_options = tail_options)
+}
+
+# The Ultimates tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_ultimates <- function(input, output, session, tool) {
+  cl <- tool$cl
+  dark <- tool$dark
+  data_premium <- tool$data_premium
+  generation <- tool$generation
+  loaded_origins <- tool$loaded_origins
+  own_updates <- tool$own_updates
+  triangle <- tool$triangle
 
   # the inputs of each origin get new ids with each triangle, so values typed for another
   # triangle are never read for this one
@@ -456,82 +496,19 @@ reserving_tool_Server <- function(input, output, session) {
     }
   )
 
-  ######################
-  #Report
-  ######################
+  list(origin_id = origin_id, origin_defaults = origin_defaults, origin_values = origin_values,
+       results = results, method_ultimates = method_ultimates)
+}
 
-  # the choices behind the figures, for the report
-  report_settings <- function() {
-    fit <- cl()
-    tri <- fit$triangle
-    r <- results()
-    periods <- periods_used()
-    tail_text <- if (!is.null(fit$tail_curve)) {
-      paste0(if (fit$tail_curve$curve == "exponential") "Exponential" else "Inverse power", " curve from factor ",
-             fit$tail_curve$from, ", ", rsv_ratio(fit$tail, 4))
-    } else if (fit$tail == 1) "None" else paste("Entered,", rsv_ratio(fit$tail, 4))
-    counts <- table(factor(r$method, levels = names(rsv_methods)))
-    counts <- counts[counts > 0]
-    list(
-      Data = list(Source = data_input()$source, Origins = paste(rownames(tri)[1], "to", rownames(tri)[nrow(tri)]),
-                  `Development periods` = format(ncol(tri)),
-                  Premiums = if (all(is.na(r$premium))) "None" else netsimr_amount(sum(r$premium, na.rm = TRUE)),
-                  `Incurred claims` = if (is.null(data_input()$incurred)) "No" else "Yes"),
-      Development = list(Average = c(volume = "Volume-weighted", simple = "Simple", regression = "Regression")[[fit$average]],
-                         `Calendar periods` = if (is.null(periods)) "All" else paste("Latest", periods),
-                         `Link ratios left out` = format(sum(!is.na(fit$link_ratios) & !fit$used)),
-                         Tail = tail_text,
-                         `Single link ratio sigma` = if (identical(input$sigma, "Mack")) "Mack's rule" else "Log-linear"),
-      Ultimates = list(Methods = paste(paste(counts, names(counts)), collapse = ", "),
-                       `Cape Cod decay` = format(or_default(input$decay, 1)),
-                       `Cape Cod loss ratio` = netsimr_percent(attr(r, "cape_cod_loss_ratio")))
-    )
-  }
-
-  output$download_report <- downloadHandler(
-    filename = function() "reserving_report.html",
-    content = function(file) {
-      write_reserving_report(file, list(
-        source = data_input()$source, settings = report_settings(), cl = cl(), results = results(),
-        one_year = netsimr_report_part(one_year()), ave = netsimr_report_part(ave()), clark = netsimr_report_part(clark()),
-        inflation = netsimr_report_part(inflation()), munich = netsimr_report_part(munich()),
-        boot = netsimr_report_part(current_boot()), tails = netsimr_report_part(tail_options()),
-        discounted = netsimr_report_part(discounted()), risk_adjustment = netsimr_report_part(ra()),
-        sii = netsimr_report_part(sii_reserve())
-      ))
-    }
-  )
-
-  # every table of the tool in one workbook: the ultimates, the factors, the projected
-  # triangle, Mack's standard errors and, when they can be found, the other methods
-  output$download_excel <- downloadHandler(
-    filename = function() "reserving_results.xlsx",
-    content = function(file) {
-      fit <- cl()
-      r <- results()
-      full <- fit$full_triangle
-      boot <- quiet(current_boot())
-      netsimr_write_excel(list(
-        Ultimates = r,
-        `Development factors` = data.frame(factor = c(names(fit$factors), "tail"), selected = c(fit$factors, fit$tail),
-                                           to_ultimate = fit$cdf, check.names = FALSE),
-        `Projected triangle` = data.frame(origin = rownames(full), full, check.names = FALSE),
-        `Mack standard errors` = fit$by_origin,
-        `Actual vs expected` = quiet(ave()$by_origin),
-        Clark = quiet(clark()$by_origin),
-        `Claims inflation` = quiet(inflation()$by_origin),
-        `Tail factors` = quiet(tail_options()),
-        `One-year view` = quiet(one_year()$by_origin),
-        Bootstrap = if (!is.null(boot)) boot$by_origin,
-        `Discounted reserves` = quiet(discounted()$by_origin),
-        `Cash flows` = quiet(discounted()$cash_flows)
-      ), file)
-    }
-  )
-
-  ######################
-  #More methods
-  ######################
+# The More methods tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_more_methods <- function(input, output, session, tool) {
+  checked <- tool$checked
+  cl <- tool$cl
+  dark <- tool$dark
+  origin_values <- tool$origin_values
+  periods_used <- tool$periods_used
+  triangle <- tool$triangle
 
   # the latest calendar period against the chain ladder of the triangle before it, with the
   # averaging and periods of the Development tab
@@ -651,9 +628,45 @@ reserving_tool_Server <- function(input, output, session) {
                 "With the same rate for both, the result is close to the chain ladder's."))
   })
 
-  ######################
-  #Uncertainty
-  ######################
+  list(ave = ave, clark = clark, inflation = inflation)
+}
+
+# The One-year view tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_one_year <- function(input, output, session, tool) {
+  checked <- tool$checked
+  triangle <- tool$triangle
+
+  one_year <- reactive(checked(merz_wuthrich(triangle(), sigma = or_default(input$sigma, "log-linear"))))
+
+  output$one_year_table <- renderUI({
+    mw <- one_year()
+    b <- mw$by_origin
+    rows <- lapply(seq_len(nrow(b)), function(i) {
+      list(b$origin[i], netsimr_amount(b$ibnr[i]), netsimr_amount(b$one_year_se[i]), netsimr_amount(b$mack_se[i]),
+           netsimr_percent(if (b$mack_se[i] > 0) b$one_year_se[i] / b$mack_se[i] else NA_real_))
+    })
+    t <- mw$total
+    total <- list("Total", netsimr_amount(t[["ibnr"]]), netsimr_amount(t[["one_year_se"]]), netsimr_amount(t[["mack_se"]]),
+                  netsimr_percent(t[["one_year_se"]] / t[["mack_se"]]))
+    netsimr_table(c("Origin", "IBNR", "One-year standard error", "Until ultimate", "One-year share"), rows, total,
+              paste("How much the ultimate can move over the next year, as its claims emerge and the factors are",
+                    "estimated again: the reserve risk over one year that Solvency II measures, against Mack's standard",
+                    "error until the claims are all paid. Merz and W\u00fcthrich's formulas use the volume-weighted chain",
+                    "ladder of every link ratio without a tail, whatever the Development tab's choices."))
+  })
+
+  list(one_year = one_year)
+}
+
+# The Uncertainty tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_uncertainty <- function(input, output, session, tool) {
+  checked <- tool$checked
+  cl <- tool$cl
+  dark <- tool$dark
+  one_year <- tool$one_year
+  triangle <- tool$triangle
 
   output$mack_table <- renderUI({
     fit <- cl()
@@ -742,32 +755,16 @@ reserving_tool_Server <- function(input, output, session) {
                         c(`75th percentile` = b$total[["p75"]], `99.5th percentile` = b$total[["p99.5"]]), dark())
   }, alt = "Distribution of the simulated total IBNR, with its mean and percentiles")
 
-  ######################
-  #One-year view
-  ######################
+  list(boot = boot, current_boot = current_boot)
+}
 
-  one_year <- reactive(checked(merz_wuthrich(triangle(), sigma = or_default(input$sigma, "log-linear"))))
-
-  output$one_year_table <- renderUI({
-    mw <- one_year()
-    b <- mw$by_origin
-    rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], netsimr_amount(b$ibnr[i]), netsimr_amount(b$one_year_se[i]), netsimr_amount(b$mack_se[i]),
-           netsimr_percent(if (b$mack_se[i] > 0) b$one_year_se[i] / b$mack_se[i] else NA_real_))
-    })
-    t <- mw$total
-    total <- list("Total", netsimr_amount(t[["ibnr"]]), netsimr_amount(t[["one_year_se"]]), netsimr_amount(t[["mack_se"]]),
-                  netsimr_percent(t[["one_year_se"]] / t[["mack_se"]]))
-    netsimr_table(c("Origin", "IBNR", "One-year standard error", "Until ultimate", "One-year share"), rows, total,
-              paste("How much the ultimate can move over the next year, as its claims emerge and the factors are",
-                    "estimated again: the reserve risk over one year that Solvency II measures, against Mack's standard",
-                    "error until the claims are all paid. Merz and W\u00fcthrich's formulas use the volume-weighted chain",
-                    "ladder of every link ratio without a tail, whatever the Development tab's choices."))
-  })
-
-  ######################
-  #IFRS 17 and Solvency II
-  ######################
+# The IFRS 17 and Solvency II tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_ifrs17 <- function(input, output, session, tool) {
+  checked <- tool$checked
+  cl <- tool$cl
+  current_boot <- tool$current_boot
+  dark <- tool$dark
 
   # the spot rates typed, as shares
   yield_curve <- reactive({
@@ -887,9 +884,16 @@ reserving_tool_Server <- function(input, output, session) {
                                                                        netsimr_percent(r$confidence_level), " quantile of the bootstrap.")))
   })
 
-  ######################
-  #Paid and incurred
-  ######################
+  list(yield_curve = yield_curve, discounted = discounted, sii_reserve = sii_reserve, ra = ra)
+}
+
+# The Paid and incurred tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_paid_incurred <- function(input, output, session, tool) {
+  checked <- tool$checked
+  dark <- tool$dark
+  data_input <- tool$data_input
+  triangle <- tool$triangle
 
   munich <- reactive({
     incurred <- data_input()$incurred
@@ -955,9 +959,115 @@ reserving_tool_Server <- function(input, output, session) {
     content = function(file) utils::write.csv(csv_safe(munich()$by_origin), file, row.names = FALSE)
   )
 
-  ######################
-  #Settings file
-  ######################
+  list(munich = munich, munich_colours = munich_colours)
+}
+
+# The Report tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_report <- function(input, output, session, tool) {
+  ave <- tool$ave
+  boot <- tool$boot
+  cl <- tool$cl
+  clark <- tool$clark
+  current_boot <- tool$current_boot
+  data_input <- tool$data_input
+  discounted <- tool$discounted
+  inflation <- tool$inflation
+  munich <- tool$munich
+  one_year <- tool$one_year
+  periods_used <- tool$periods_used
+  ra <- tool$ra
+  results <- tool$results
+  sii_reserve <- tool$sii_reserve
+  tail_options <- tool$tail_options
+  triangle <- tool$triangle
+
+  # the choices behind the figures, for the report
+  report_settings <- function() {
+    fit <- cl()
+    tri <- fit$triangle
+    r <- results()
+    periods <- periods_used()
+    tail_text <- if (!is.null(fit$tail_curve)) {
+      paste0(if (fit$tail_curve$curve == "exponential") "Exponential" else "Inverse power", " curve from factor ",
+             fit$tail_curve$from, ", ", rsv_ratio(fit$tail, 4))
+    } else if (fit$tail == 1) "None" else paste("Entered,", rsv_ratio(fit$tail, 4))
+    counts <- table(factor(r$method, levels = names(rsv_methods)))
+    counts <- counts[counts > 0]
+    list(
+      Data = list(Source = data_input()$source, Origins = paste(rownames(tri)[1], "to", rownames(tri)[nrow(tri)]),
+                  `Development periods` = format(ncol(tri)),
+                  Premiums = if (all(is.na(r$premium))) "None" else netsimr_amount(sum(r$premium, na.rm = TRUE)),
+                  `Incurred claims` = if (is.null(data_input()$incurred)) "No" else "Yes"),
+      Development = list(Average = c(volume = "Volume-weighted", simple = "Simple", regression = "Regression")[[fit$average]],
+                         `Calendar periods` = if (is.null(periods)) "All" else paste("Latest", periods),
+                         `Link ratios left out` = format(sum(!is.na(fit$link_ratios) & !fit$used)),
+                         Tail = tail_text,
+                         `Single link ratio sigma` = if (identical(input$sigma, "Mack")) "Mack's rule" else "Log-linear"),
+      Ultimates = list(Methods = paste(paste(counts, names(counts)), collapse = ", "),
+                       `Cape Cod decay` = format(or_default(input$decay, 1)),
+                       `Cape Cod loss ratio` = netsimr_percent(attr(r, "cape_cod_loss_ratio")))
+    )
+  }
+
+  output$download_report <- downloadHandler(
+    filename = function() "reserving_report.html",
+    content = function(file) {
+      write_reserving_report(file, list(
+        source = data_input()$source, settings = report_settings(), cl = cl(), results = results(),
+        one_year = netsimr_report_part(one_year()), ave = netsimr_report_part(ave()), clark = netsimr_report_part(clark()),
+        inflation = netsimr_report_part(inflation()), munich = netsimr_report_part(munich()),
+        boot = netsimr_report_part(current_boot()), tails = netsimr_report_part(tail_options()),
+        discounted = netsimr_report_part(discounted()), risk_adjustment = netsimr_report_part(ra()),
+        sii = netsimr_report_part(sii_reserve())
+      ))
+    }
+  )
+
+  # every table of the tool in one workbook: the ultimates, the factors, the projected
+  # triangle, Mack's standard errors and, when they can be found, the other methods
+  output$download_excel <- downloadHandler(
+    filename = function() "reserving_results.xlsx",
+    content = function(file) {
+      fit <- cl()
+      r <- results()
+      full <- fit$full_triangle
+      boot <- quiet(current_boot())
+      netsimr_write_excel(list(
+        Ultimates = r,
+        `Development factors` = data.frame(factor = c(names(fit$factors), "tail"), selected = c(fit$factors, fit$tail),
+                                           to_ultimate = fit$cdf, check.names = FALSE),
+        `Projected triangle` = data.frame(origin = rownames(full), full, check.names = FALSE),
+        `Mack standard errors` = fit$by_origin,
+        `Actual vs expected` = quiet(ave()$by_origin),
+        Clark = quiet(clark()$by_origin),
+        `Claims inflation` = quiet(inflation()$by_origin),
+        `Tail factors` = quiet(tail_options()),
+        `One-year view` = quiet(one_year()$by_origin),
+        Bootstrap = if (!is.null(boot)) boot$by_origin,
+        `Discounted reserves` = quiet(discounted()$by_origin),
+        `Cash flows` = quiet(discounted()$cash_flows)
+      ), file)
+    }
+  )
+
+  list(report_settings = report_settings)
+}
+
+# The Settings file tab of the reserving tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+rsv_server_settings <- function(input, output, session, tool) {
+  current_boot <- tool$current_boot
+  dark <- tool$dark
+  data_premium <- tool$data_premium
+  excluded <- tool$excluded
+  loaded <- tool$loaded
+  loaded_origins <- tool$loaded_origins
+  origin_defaults <- tool$origin_defaults
+  origin_id <- tool$origin_id
+  origin_values <- tool$origin_values
+  own_updates <- tool$own_updates
+  triangle <- tool$triangle
 
   output$save_settings <- downloadHandler(
     filename = function() "reserving_settings.txt",
@@ -1001,7 +1111,7 @@ reserving_tool_Server <- function(input, output, session) {
     for (id in names(rsv_settings_inputs)) {
       if (usable(id) && !id %in% c("periods", "tail_from")) update_setting_input(session, id, rsv_settings_inputs[[id]], v[[id]])
     }
-    loaded_columns <<- v[intersect(names(v), names(rsv_settings_inputs)[rsv_settings_inputs == "column"])]
+    loaded$columns <- v[intersect(names(v), names(rsv_settings_inputs)[rsv_settings_inputs == "column"])]
     labels <- v$origin_labels
     if (is.character(labels) && length(labels) > 0) {
       take <- function(x, numeric = TRUE) {
@@ -1014,7 +1124,7 @@ reserving_tool_Server <- function(input, output, session) {
     wanted <- list(periods = v$periods, tail_from = v$tail_from,
                    exclusions = if (is.character(v$excluded_ratios)) v$excluded_ratios else character(0))
     if (new_triangle) {
-      pending <<- wanted
+      loaded$pending <- wanted
     } else {
       # the triangle showing is the file's: set its periods, tail, link ratios and origins now
       tri <- triangle()
@@ -1046,4 +1156,6 @@ reserving_tool_Server <- function(input, output, session) {
   output$residual_origin_plot <- residual_chart("origin")
   output$residual_development_plot <- residual_chart("development")
   output$residual_calendar_plot <- residual_chart("calendar")
+
+  list(residual_chart = residual_chart)
 }
