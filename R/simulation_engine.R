@@ -672,34 +672,45 @@ simulate_function <- function(
     run_here(remaining)
   }
 
-  data <- data.frame(
-    claim_counts = unlist(lapply(chunk_results, `[[`, "claim_counts"), use.names = FALSE)
-    ,total_claims = unlist(lapply(chunk_results, `[[`, "total_claims"), use.names = FALSE)
-  )
-  if (isTRUE(gross)) {
-    data$gross_claims <- unlist(lapply(chunk_results, `[[`, "gross_claims"), use.names = FALSE)
-  }
-  if (isTRUE(largest_claims)) {
-    data$largest_claim <- unlist(lapply(chunk_results, `[[`, "largest_claim"), use.names = FALSE)
-  }
+  data <- sim_bind_chunks(chunk_results, gross = gross, largest_claims = largest_claims)
   rm(chunk_results)
 
-  #the aggregate step, on each simulation's total after the EEL structure (see Details);
-  #a limited EEL layer with limited reinstatements pays at most (reinstatements + 1) limits
-  reinstatements_limited <- identical(reinsuranceStructureEEL, 'Limited Layer') &&
-    isTRUE(reinsuranceStructureLimitedReinstatements)
-  capacity <- if (reinstatements_limited) {
-    (reinsuranceStructureReinstatementLimit + 1) * reinsurance_structure_eel_limit_amount
-  } else {
-    Inf
-  }
-  apply_al <- function(x) apply_deductible_limit(
-    x
-    ,reinsuranceStructureAL
-    ,reinsurance_structure_al_deductible_amount
-    ,reinsurance_structure_al_limit_amount
+  sim_apply_aggregate(
+    data
+    ,al = reinsuranceStructureAL
+    ,al_deductible = reinsurance_structure_al_deductible_amount
+    ,al_limit = reinsurance_structure_al_limit_amount
+    ,limited_reinstatements = identical(reinsuranceStructureEEL, 'Limited Layer') &&
+      isTRUE(reinsuranceStructureLimitedReinstatements)
+    ,reinstatement_limit = reinsuranceStructureReinstatementLimit
+    ,eel_limit = reinsurance_structure_eel_limit_amount
+    ,premium = reinsurance_structure_eel_premium
+    ,reinstatement_rates = reinsurance_structure_eel_reinstatement_rates
   )
-  if (reinsuranceStructureAL %in% c('Unlimited Layer', 'Limited Layer')) {
+}
+
+# The simulations of simulate_function(), from the results of its chunks: their claim counts and
+# totals after the EEL structure, with the gross totals and each one's largest claim when these
+# were drawn.
+sim_bind_chunks <- function(chunk_results, gross = FALSE, largest_claims = FALSE) {
+  column <- function(name) unlist(lapply(chunk_results, `[[`, name), use.names = FALSE)
+  data <- data.frame(claim_counts = column("claim_counts"), total_claims = column("total_claims"))
+  if (isTRUE(gross)) data$gross_claims <- column("gross_claims")
+  if (isTRUE(largest_claims)) data$largest_claim <- column("largest_claim")
+  data
+}
+
+# The aggregate step of simulate_function(), on each simulation's total after the EEL structure
+# (data$total_claims, see its Details): the aggregate layer or exclusion `al`, with its deductible
+# and limit, and a limited EEL layer's limited reinstatements, which cap its recoveries at
+# (reinstatement_limit + 1) limits, give the number of reinstatements used and, with an upfront
+# premium, their premium. Returns `data` with the totals after the step and those columns.
+sim_apply_aggregate <- function(data, al, al_deductible = NULL, al_limit = NULL, limited_reinstatements = FALSE,
+                                reinstatement_limit = NULL, eel_limit = NULL, premium = NULL,
+                                reinstatement_rates = NULL) {
+  capacity <- if (limited_reinstatements) (reinstatement_limit + 1) * eel_limit else Inf
+  apply_al <- function(x) apply_deductible_limit(x, al, al_deductible, al_limit)
+  if (al %in% c('Unlimited Layer', 'Limited Layer')) {
     #aggregate layer: its deductible comes off the period's EEL recoveries first, then the
     #aggregate limit and the reinstatement capacity cap what is left
     data$total_claims <- pmin(apply_al(data$total_claims), capacity)
@@ -711,20 +722,14 @@ simulate_function <- function(
     layer_recoveries <- data$total_claims
     data$total_claims <- apply_al(data$total_claims)
   }
-  if (reinstatements_limited) {
+  if (limited_reinstatements) {
     #reinstatements are used pro rata to the amount the layer recovers
-    data$number_of_reinstatements_used <- pmin(
-      layer_recoveries / reinsurance_structure_eel_limit_amount
-      ,reinsuranceStructureReinstatementLimit
-    )
+    data$number_of_reinstatements_used <- pmin(layer_recoveries / eel_limit, reinstatement_limit)
     #and priced, given an upfront premium, pro rata to the amount reinstated
-    if (!is.null(reinsurance_structure_eel_premium) && !is.na(reinsurance_structure_eel_premium[1])) {
-      data$reinstatement_premium <- reinstatement_premium(
-        data$number_of_reinstatements_used
-        ,reinsurance_structure_eel_premium
-        ,reinsurance_structure_eel_reinstatement_rates
-      )
+    if (!is.null(premium) && !is.na(premium[1])) {
+      data$reinstatement_premium <- reinstatement_premium(data$number_of_reinstatements_used, premium,
+                                                          reinstatement_rates)
     }
   }
-  return(data)
+  data
 }

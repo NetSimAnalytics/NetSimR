@@ -177,3 +177,25 @@ test_that("simulate_function agrees with a naive reference simulator on the aggr
     }
   }
 })
+
+test_that("the aggregate step caps a limited layer at its reinstatements, and an aggregate layer acts first", {
+  data <- data.frame(total_claims = c(0, 50, 150, 400))
+  out <- sim_apply_aggregate(data, "No Reinsurance Structure", limited_reinstatements = TRUE,
+                             reinstatement_limit = 1, eel_limit = 100, premium = 10, reinstatement_rates = 1)
+  #one reinstatement of a limit of 100: at most 200 recovered, the reinstatements used pro rata
+  expect_equal(out$total_claims, c(0, 50, 150, 200))
+  expect_equal(out$number_of_reinstatements_used, c(0, 0.5, 1, 1))
+  expect_equal(out$reinstatement_premium, reinstatement_premium(c(0, 0.5, 1, 1), 10, 1))
+  #without an upfront premium the reinstatements are counted, not priced
+  expect_null(sim_apply_aggregate(data, "No Reinsurance Structure", limited_reinstatements = TRUE,
+                                  reinstatement_limit = 1, eel_limit = 100)$reinstatement_premium)
+  #an aggregate layer takes its deductible off the totals before the cap
+  al <- sim_apply_aggregate(data, "Limited Layer", al_deductible = 100, al_limit = 1000,
+                            limited_reinstatements = TRUE, reinstatement_limit = 1, eel_limit = 100)
+  expect_equal(al$total_claims, c(0, 0, 50, 200))
+  expect_equal(al$number_of_reinstatements_used, c(0, 0, 0.5, 1))
+  #and with no limited reinstatements nothing is capped or counted
+  plain <- sim_apply_aggregate(data, "Limited Layer", al_deductible = 100, al_limit = 1000)
+  expect_equal(plain$total_claims, c(0, 0, 50, 300))
+  expect_null(plain$number_of_reinstatements_used)
+})
