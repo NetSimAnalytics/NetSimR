@@ -14,11 +14,6 @@
 
 distribution_fitting_tool_Server <- function(input, output, session) {
 
-  ######################
-  #help functions
-  ######################
-
-
   # the charts are drawn in the colours of the theme the page reports
   dark <- netsimr_dark(input)
 
@@ -83,9 +78,9 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   # the charts of the analyses, each drawn for a theme: on the page once its analysis has
   # run, in the colours of the theme showing (it is redrawn when the theme changes), and in
   # the report in both
-  charts <- list()
+  charts <- new.env(parent = emptyenv())
   add_chart <- function(id, button, what, draw, alt) {
-    charts[[id]] <<- list(draw = draw, alt = alt)
+    charts[[id]] <- list(draw = draw, alt = alt)
     output[[id]] <- netsimr_chart(function() {
       need_run(button, what)
       draw(isTRUE(dark()))
@@ -99,10 +94,27 @@ distribution_fitting_tool_Server <- function(input, output, session) {
          colours = netsimr_palette[which(has_cdf)])
   }
 
-  ######################
-  #Data input
-  ######################
+  # the tabs, each a function of its own (below), in the order of what they use of each other
+  tool <- list(dark = dark, failed_fit = failed_fit, need_run = need_run, claim_sizes = claim_sizes,
+               rows_left_out_note = rows_left_out_note, fit_lnorm_mle = fit_lnorm_mle,
+               fit_slice_pareto = fit_slice_pareto, charts = charts, add_chart = add_chart,
+               model_cdfs = model_cdfs)
+  tool <- c(tool, dft_server_data(input, output, session, tool))
+  tool <- c(tool, dft_server_frequency(input, output, session, tool))
+  tool <- c(tool, dft_server_severity(input, output, session, tool))
+  tool <- c(tool, dft_server_sliced(input, output, session, tool))
+  tool <- c(tool, dft_server_piecewise(input, output, session, tool))
+  tool <- c(tool, dft_server_export(input, output, session, tool))
+  tool <- c(tool, dft_server_settings(input, output, session, tool))
+  tool <- c(tool, dft_server_report(input, output, session, tool))
+  # every reactive of the tabs under its own name here too, where tests of the server find it
+  list2env(tool, environment())
+  invisible(NULL)
+}
 
+# The Data input tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_data <- function(input, output, session, tool) {
   # an example data set is chosen, or a file uploaded
   using_example <- reactive(identical(input$data_source, "example"))
   has_data <- function() using_example() || isTruthy(input$file1)
@@ -228,9 +240,19 @@ distribution_fitting_tool_Server <- function(input, output, session) {
                      type = "message", duration = 10)
   })
 
-  ######################
-  #Frequency analysis
-  ######################
+  list(using_example = using_example, has_data = has_data, data_name = data_name, data = data,
+       numeric_columns = numeric_columns, column_choices = column_choices, pending = pending,
+       preview_rows = preview_rows)
+}
+
+# The Frequency analysis tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_frequency <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  data <- tool$data
+  failed_fit <- tool$failed_fit
+  need_run <- tool$need_run
+  rows_left_out_note <- tool$rows_left_out_note
 
   # counts and weights are cleaned together, so that each count keeps the weight of its own row
   freq_input <- eventReactive(input$execute_freq_analysis, {
@@ -411,9 +433,25 @@ distribution_fitting_tool_Server <- function(input, output, session) {
                    in_dark, ylim = c(0, 1.02))
   }, alt = "Empirical and fitted cumulative distributions of the claim counts")
 
-  ######################
-  #Severity analysis
-  ######################
+  list(freq_input = freq_input, counts_data = counts_data, weights_data = weights_data,
+       fit_counts = fit_counts, freq_po_fit = freq_po_fit, freq_nb_fit = freq_nb_fit,
+       freq_zip_fit = freq_zip_fit, freq_zinb_fit = freq_zinb_fit, freq_fits = freq_fits,
+       count_cdfs = count_cdfs, freq_moments = freq_moments, fit_value = fit_value, fit_stat = fit_stat,
+       freq_suggested = freq_suggested, freq_table = freq_table)
+}
+
+# The Severity analysis tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_severity <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  claim_sizes <- tool$claim_sizes
+  data <- tool$data
+  failed_fit <- tool$failed_fit
+  fit_lnorm_mle <- tool$fit_lnorm_mle
+  has_data <- tool$has_data
+  model_cdfs <- tool$model_cdfs
+  need_run <- tool$need_run
+  rows_left_out_note <- tool$rows_left_out_note
 
   # the policy limit of each claim of the rows kept: one for all, a column (a row without a
   # positive limit has none), or none (Inf)
@@ -741,9 +779,25 @@ distribution_fitting_tool_Server <- function(input, output, session) {
                    x_log = log_scale, ylim = c(0, 1.02))
   }, alt = "Empirical and fitted cumulative distributions of the claim sizes")
 
-  ######################
-  #Sliced Sev analysis
-  ######################
+  list(severity_limits = severity_limits, sev_input = sev_input, severity_data = severity_data,
+       sev_threshold = sev_threshold, sev_censored = sev_censored, sev_has_censoring = sev_has_censoring,
+       sev_km = sev_km, sev_norm_fit = sev_norm_fit, sev_lnorm_fit = sev_lnorm_fit,
+       sev_gamma_fit = sev_gamma_fit, sev_weibull_fit = sev_weibull_fit, sev_pareto_xm = sev_pareto_xm,
+       sev_pareto_alpha = sev_pareto_alpha, sev_truncated_models = sev_truncated_models,
+       sev_models = sev_models, sev_table = sev_table, sev_cte = sev_cte, sev_hill_text = sev_hill_text)
+}
+
+# The Sliced Sev analysis tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_sliced <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  claim_sizes <- tool$claim_sizes
+  data <- tool$data
+  failed_fit <- tool$failed_fit
+  fit_lnorm_mle <- tool$fit_lnorm_mle
+  fit_slice_pareto <- tool$fit_slice_pareto
+  need_run <- tool$need_run
+  pending <- tool$pending
 
   sliced_input <- eventReactive(input$execute_sliced_sev_analysis, claim_sizes(input$sliced_sev_var))
   sliced_sev_data <- reactive(sliced_input()$claims)
@@ -935,9 +989,21 @@ distribution_fitting_tool_Server <- function(input, output, session) {
                    "Mean excess over the threshold", in_dark, x_log = isTRUE(input$sev_cens_fit_log_scale), vlines = points_ok)
   }, alt = "Empirical mean excess function of the claim sizes, with the slicing points")
 
-  ######################
-  #piecewise pareto
-  ######################
+  list(sliced_input = sliced_input, sliced_sev_data = sliced_sev_data, slicing_range = slicing_range,
+       slicing_points = slicing_points, slc_sev_lnorm_fit = slc_sev_lnorm_fit,
+       slc_sev_censored_lnorm_fit = slc_sev_censored_lnorm_fit, zGreaterThanXm1 = zGreaterThanXm1,
+       zGreaterThanXm2 = zGreaterThanXm2, paretoX1Alpha = paretoX1Alpha, paretoX2AlphaMod = paretoX2AlphaMod,
+       paretoX2Alpha = paretoX2Alpha, sliced_cdfs = sliced_cdfs, sliced_table = sliced_table)
+}
+
+# The piecewise pareto tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_piecewise <- function(input, output, session, tool) {
+  add_chart <- tool$add_chart
+  claim_sizes <- tool$claim_sizes
+  need_run <- tool$need_run
+  pending <- tool$pending
+  rows_left_out_note <- tool$rows_left_out_note
 
   piecewise_input <- eventReactive(input$execute_piecewise_sev_analysis, claim_sizes(input$piecewise_pareto_var))
   piecewise_sev_data <- reactive(sort(piecewise_input()$claims))
@@ -1054,9 +1120,29 @@ distribution_fitting_tool_Server <- function(input, output, session) {
                    x_log = log_scale, ylim = c(0, 1.02), vlines = mu)
   }, alt = "Empirical and fitted piecewise Pareto cumulative distributions of the claim sizes, with the thresholds")
 
-  ######################
-  #to the simulator
-  ######################
+  list(piecewise_input = piecewise_input, piecewise_sev_data = piecewise_sev_data,
+       dynamic_sliders = dynamic_sliders, piecwise_pareto_mu = piecwise_pareto_mu,
+       piecwise_pareto_alpha = piecwise_pareto_alpha, piecewise_ready = piecewise_ready,
+       empirical_piecwise_cdf = empirical_piecwise_cdf, predicted_piecwise_cdf = predicted_piecwise_cdf,
+       piecewise_table = piecewise_table)
+}
+
+# The to the simulator tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_export <- function(input, output, session, tool) {
+  fit_value <- tool$fit_value
+  freq_fits <- tool$freq_fits
+  has_data <- tool$has_data
+  paretoX1Alpha <- tool$paretoX1Alpha
+  paretoX2Alpha <- tool$paretoX2Alpha
+  paretoX2AlphaMod <- tool$paretoX2AlphaMod
+  piecewise_ready <- tool$piecewise_ready
+  piecwise_pareto_alpha <- tool$piecwise_pareto_alpha
+  piecwise_pareto_mu <- tool$piecwise_pareto_mu
+  sev_models <- tool$sev_models
+  sev_threshold <- tool$sev_threshold
+  slc_sev_censored_lnorm_fit <- tool$slc_sev_censored_lnorm_fit
+  slicing_points <- tool$slicing_points
 
   # the run of a model's tab, with a message naming the tab when it has not been run
   need_tab_run <- function(button, tab, model) {
@@ -1194,9 +1280,17 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     }
   )
 
-  ######################
-  #settings file
-  ######################
+  list(need_tab_run = need_tab_run, export_frequency = export_frequency, export_severity = export_severity,
+       export_share = export_share, export_values = export_values)
+}
+
+# The settings file tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_settings <- function(input, output, session, tool) {
+  data <- tool$data
+  pending <- tool$pending
+  slicing_points <- tool$slicing_points
+  slicing_range <- tool$slicing_range
 
   # the choices of the session: the data options, each tab's columns and options, the slicing
   # points and thresholds, and the models chosen on the Export tab (not the data file itself)
@@ -1254,9 +1348,33 @@ distribution_fitting_tool_Server <- function(input, output, session) {
                      type = "message", duration = 8)
   })
 
-  ######################
-  #report
-  ######################
+  list()
+}
+
+# The report tab of the distribution fitting tool: its outputs and observers. `tool` holds what the
+# earlier tabs define; the tab returns what it defines, for the tabs after it.
+dft_server_report <- function(input, output, session, tool) {
+  charts <- tool$charts
+  data <- tool$data
+  data_name <- tool$data_name
+  freq_input <- tool$freq_input
+  freq_moments <- tool$freq_moments
+  freq_suggested <- tool$freq_suggested
+  freq_table <- tool$freq_table
+  has_data <- tool$has_data
+  piecewise_input <- tool$piecewise_input
+  piecewise_ready <- tool$piecewise_ready
+  piecewise_sev_data <- tool$piecewise_sev_data
+  piecewise_table <- tool$piecewise_table
+  piecwise_pareto_alpha <- tool$piecwise_pareto_alpha
+  piecwise_pareto_mu <- tool$piecwise_pareto_mu
+  sev_cte <- tool$sev_cte
+  sev_hill_text <- tool$sev_hill_text
+  sev_input <- tool$sev_input
+  sev_table <- tool$sev_table
+  sliced_input <- tool$sliced_input
+  sliced_table <- tool$sliced_table
+  slicing_points <- tool$slicing_points
 
   analyses <- c(frequency = "execute_freq_analysis", severity = "execute_sev_analysis",
                 sliced = "execute_sliced_sev_analysis", piecewise = "execute_piecewise_sev_analysis")
@@ -1356,4 +1474,5 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     content = function(file) write_distribution_report(file, report_data())
   )
 
+  list(analyses = analyses, ran = ran, report_data = report_data)
 }
