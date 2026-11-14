@@ -3,7 +3,7 @@
 ##############
 
 # The reports of the reserving and portfolio tools are pages in the style of the
-# simulation report (R/ShinySimulatorReport.R), whose styles, theme switch and script they
+# simulation report (R/simulator_report.R), whose styles, theme switch and script they
 # share: one HTML file that holds its charts as images, with a light and a dark copy of
 # each, and needs neither pandoc nor rmarkdown.
 

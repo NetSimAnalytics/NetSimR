@@ -310,7 +310,7 @@ shiny_simulator_server <- function(input, output, session) {
   last_run <- reactiveVal(NULL)
   run_counter <- 0L
 
-  #in-app Report and Compare tabs (R/ShinySimulatorTabs.R); both follow last_run
+  #in-app Report and Compare tabs (R/simulator_tool_tabs.R); both follow last_run
   sim_report_tab_server("report", last_run, reactive(input$sim_navbar))
   sim_compare_tab_server("compare", last_run)
 

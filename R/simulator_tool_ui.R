@@ -1378,7 +1378,7 @@ shiny_simulator_ui <- function(request) {
                   "Run a simulation to enable the downloads.")
             ),
 
-            #save and load settings, and built-in examples (R/ShinySimulatorSettingsIO.R)
+            #save and load settings, and built-in examples (R/simulator_tool_settings.R)
             tags$hr(class = "sim-divider"),
             sim_settings_io_ui()
           )
@@ -1509,7 +1509,7 @@ shiny_simulator_ui <- function(request) {
     ),
 
     # ------------------------------------------------ Report and Compare tabs
-    #defined in R/ShinySimulatorTabs.R
+    #defined in R/simulator_tool_tabs.R
     sim_report_tab_ui("report"),
     sim_compare_tab_ui("compare"),
 
