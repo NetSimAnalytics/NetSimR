@@ -1078,14 +1078,21 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     count <- function(n) format(n, big.mark = ",", scientific = FALSE)
     lay <- layer()
     rt <- rating()
-    p <- quiet(pricing())
+    # each part the report cannot have is listed in its section of what it leaves out, with why
+    omitted <- list()
+    part <- function(name, expr) {
+      x <- netsimr_report_part(expr)
+      if (!inherits(x, "error")) return(x)
+      omitted[[name]] <<- x
+      NULL
+    }
+    p <- part("Pricing", pricing())
     blended <- if (!is.null(p)) p[p$method == "Blended", ]
     ok <- !is.null(blended) && is.finite(blended$rate)
-    b <- quiet(bc())
-    pa <- quiet(pareto())
-    if (inherits(pa, "error")) pa <- NULL
-    e <- quiet(exposure())
-    cmp <- if (isTruthy(input$run_programmes)) quiet(current_programmes())
+    b <- part("Burning cost", bc())
+    pa <- part("Pareto rating", pareto())
+    e <- part("Exposure rating", exposure())
+    cmp <- if (isTruthy(input$run_programmes)) part("Reinsurance programmes", current_programmes())
     reinstatements <- if (is.finite(lay$reinstatements)) format(lay$reinstatements) else "Unlimited"
 
     r <- list()
@@ -1150,7 +1157,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       }
     )
 
-    if (!is.null(p)) r$pricing <- quiet(list(
+    if (!is.null(p)) r$pricing <- part("The pricing section", list(
       tiles = list(`Expected layer loss` = if (ok) netsimr_amount(blended$expected_loss) else netsimr_dash,
                    `Technical premium` = if (ok) netsimr_amount(blended$upfront_premium) else netsimr_dash,
                    `Rate on line` = if (ok) netsimr_percent(blended$rate_on_line, 2) else netsimr_dash,
@@ -1161,7 +1168,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       charts = list(figure("method_plot", "Expected loss by method"))
     ))
 
-    if (!is.null(b)) r$experience <- quiet(list(
+    if (!is.null(b)) r$experience <- part("The experience section", list(
       tiles = list(Years = list(value = as.character(length(used)), note = paste(min(used), "to", max(used))),
                    `Losses in the layer` = count(b$n_layer_losses),
                    `Burning cost` = list(value = netsimr_percent(b$rate, 2), note = "Of subject premium"),
@@ -1174,7 +1181,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
                     if (!is.null(pa)) figure("pareto_plot", "Pareto fit", note = pareto_text(), wide = TRUE))
     ))
 
-    if (!is.null(e)) r$exposure <- quiet(list(
+    if (!is.null(e)) r$exposure <- part("The exposure section", list(
       tiles = list(Bands = list(value = as.character(nrow(e$bands)),
                                 note = paste0(if (property) "Property" else "Casualty", "; ",
                                               if (property) e$curve$label else e$severity$label)),
@@ -1186,7 +1193,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
                     figure("curve_plot", if (property) "Exposure curve" else "Limited expected value"))
     ))
 
-    if (!is.null(cmp)) r$programmes <- quiet({
+    if (!is.null(cmp)) r$programmes <- part("The programmes section", {
       s <- cmp$summary
       best <- s[-1, ][which.max(s$value[-1]), ]
       list(
@@ -1200,6 +1207,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
                       figure("programme_return_plot", "Net result by return period", wide = TRUE))
       )
     })
+    r$omitted <- omitted
     r
   }
 

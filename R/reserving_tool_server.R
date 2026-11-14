@@ -499,9 +499,11 @@ reserving_tool_Server <- function(input, output, session) {
     content = function(file) {
       write_reserving_report(file, list(
         source = data_input()$source, settings = report_settings(), cl = cl(), results = results(),
-        one_year = quiet(one_year()), ave = quiet(ave()), clark = quiet(clark()), inflation = quiet(inflation()),
-        munich = quiet(munich()), boot = quiet(current_boot()), tails = quiet(tail_options()),
-        discounted = quiet(discounted()), risk_adjustment = quiet(ra()), sii = quiet(sii_reserve())
+        one_year = netsimr_report_part(one_year()), ave = netsimr_report_part(ave()), clark = netsimr_report_part(clark()),
+        inflation = netsimr_report_part(inflation()), munich = netsimr_report_part(munich()),
+        boot = netsimr_report_part(current_boot()), tails = netsimr_report_part(tail_options()),
+        discounted = netsimr_report_part(discounted()), risk_adjustment = netsimr_report_part(ra()),
+        sii = netsimr_report_part(sii_reserve())
       ))
     }
   )

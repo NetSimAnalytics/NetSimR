@@ -76,6 +76,25 @@ netsimr_report_settings <- function(cards) {
   }))
 }
 
+# The section of a report that lists the parts it leaves out, and why: `parts` is a named list
+# (the names are what the report calls the parts) of the results of netsimr_report_part(), of
+# which those that are errors are listed with their messages. NULL when nothing is left out.
+netsimr_report_omitted <- function(parts) {
+  missing <- Filter(function(x) inherits(x, "error"), parts)
+  if (!length(missing)) return(NULL)
+  reasons <- vapply(missing, function(e) {
+    message <- trimws(conditionMessage(e))
+    if (nzchar(message)) message else "not available."
+  }, character(1))
+  list(id = "not-included", title = "Not in this report",
+       content = tagList(
+         tags$p(class = "section-intro", "These parts of the tool are not in this report:"),
+         tags$ul(lapply(names(missing), function(name) {
+           tags$li(HTML(paste0("<strong>", netsimr_escape(name), ":</strong> ", netsimr_escape(reasons[[name]]))))
+         }))
+       ))
+}
+
 # Writes a report: `sections` is a list of lists with an id, a title and the content; the
 # header shows the eyebrow and the title, in the colours of `accent` (the dark, middle and
 # bright colours of the banner and the eyebrow's).

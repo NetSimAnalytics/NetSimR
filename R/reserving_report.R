@@ -11,7 +11,8 @@
 # values), cl (chain_ladder()), results (rsv_method_results()), and optionally one_year
 # (merz_wuthrich()), ave (actual_vs_expected()), clark (clark_growth()), inflation
 # (inflation_adjusted_chain_ladder()), munich (munich_chain_ladder()), boot
-# (bootstrap_chain_ladder()) and tails (the tail comparison), NULL or an error when missing.
+# (bootstrap_chain_ladder()) and tails (the tail comparison), NULL or an error when missing;
+# the report lists the parts that are errors, and why, in its section of what it leaves out.
 write_reserving_report <- function(file, r, generated = Sys.time()) {
   ok <- function(x) !is.null(x) && !inherits(x, "error")
   cl <- r$cl
@@ -218,8 +219,14 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
     tags$li("Figures follow the choices of the tool when the report was made: the factors, the tail and each origin's method.")
   )))
 
+  omitted <- netsimr_report_omitted(list(
+    `Tail factors` = r$tails, `One-year view` = r$one_year,
+    `Actual against expected` = r$ave, `Clark's growth curves` = r$clark, `Chain ladder with claims inflation` = r$inflation,
+    `Munich chain ladder` = r$munich, `Discounted reserves` = r$discounted, `Risk adjustment` = r$risk_adjustment,
+    `Reserve risk (Solvency II)` = r$sii
+  ))
   netsimr_write_report(file, "Reserving Report", "NetReserve by NetSimR",
-                       list(key, settings, development, ultimates, uncertainty, ifrs, more, munich, guide),
+                       list(key, settings, development, ultimates, uncertainty, ifrs, more, munich, omitted, guide),
                        accent = c(glow = "rgba(251, 146, 60, 0.35)", dark = "#431407", middle = "#7c2d12", bright = "#ea580c",
                                   eyebrow = "#fdba74"),
                        generated = generated)

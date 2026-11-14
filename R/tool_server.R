@@ -44,3 +44,8 @@ netsimr_read_upload <- function(input, file, ids, missing, min_columns = 1) {
   }
   df
 }
+
+# A part of a report: its value or, when the tool cannot work it out (an analysis not run yet,
+# or a method the data is too thin for), the error that says why, which the report lists in its
+# section of what it leaves out (netsimr_report_omitted()) instead of leaving it out unsaid.
+netsimr_report_part <- function(expr) tryCatch(expr, error = function(e) e)

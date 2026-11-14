@@ -40,3 +40,27 @@ test_that("the report holds the figures of the tool, with the bootstrap once it 
     expect_match(html, netsimr_amount(current_boot()$total[["p99.5"]]), fixed = TRUE)
   })
 })
+
+test_that("the report says which parts it leaves out, and why", {
+  skip_server_on_cran()
+  testServer(reserving_tool_Server, {
+    #the RAA triangle has no incurred claims, and the bootstrap has not run
+    session$setInputs(data_source = "example", example = "raa", tail_method = "none", tail_from = "1",
+                      average = "volume", sigma = "log-linear")
+    html <- paste(readLines(output$download_report, warn = FALSE), collapse = "\n")
+    expect_match(html, "Not in this report", fixed = TRUE)
+    expect_match(html, "Munich chain ladder:</strong> The Munich chain ladder needs incurred claims", fixed = TRUE)
+    expect_match(html, "Risk adjustment:</strong> The percentile risk adjustment needs the bootstrap", fixed = TRUE)
+  })
+})
+
+test_that("the section of what a report leaves out lists the errors among its parts", {
+  expect_null(netsimr_report_omitted(list(Clark = 1, Munich = NULL)))
+  section <- netsimr_report_omitted(list(Clark = 1, Munich = simpleError("needs incurred claims"),
+                                         Bootstrap = netsimr_report_part(stop(""))))
+  html <- as.character(section$content)
+  expect_identical(section$id, "not-included")
+  expect_match(html, "<strong>Munich:</strong> needs incurred claims", fixed = TRUE)
+  expect_match(html, "<strong>Bootstrap:</strong> not available.", fixed = TRUE)
+  expect_no_match(html, "Clark", fixed = TRUE)
+})
