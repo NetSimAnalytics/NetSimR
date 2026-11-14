@@ -234,7 +234,8 @@ Changes in Version 0.4.0
     parallel::makeCluster() to reuse across calls; a future plan set with
     future::plan() is no longer used. Seeded results are unchanged, and the
     simulator app still keeps its workers running between runs.
-  o NetSimR now needs R 4.0.0 or later, the versions it is tested on.
+  o NetSimR now needs R 4.1.0 or later, as the packages that shiny depends
+    on do.
   o Parallel runs can choose themselves: multiprocessing = "auto" in
     simulate_function() (parallel = "auto" in simulate_claims()) runs the
     chunks on workers only when that is expected to be at least a quarter
