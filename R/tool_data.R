@@ -166,3 +166,11 @@ netsimr_guess_column <- function(columns, pattern, exclude = NULL) {
   hits <- setdiff(columns[grepl(pattern, columns, ignore.case = TRUE)], exclude)
   if (length(hits) > 0) hits[1]
 }
+
+# A data frame with its text columns that are mostly numbers (netsimr_numeric_columns(), such as
+# "1,200" with a thousands separator) converted to numbers.
+netsimr_convert_number_columns <- function(df, dec = ".") {
+  text_columns <- names(df)[vapply(df, is.character, logical(1))]
+  for (column in netsimr_numeric_columns(df[text_columns], dec)) df[[column]] <- netsimr_as_numeric(df[[column]], dec)
+  df
+}

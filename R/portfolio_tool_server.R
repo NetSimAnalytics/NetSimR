@@ -17,13 +17,7 @@ portfolio_tool_Server <- function(input, output, session) {
   number <- function(x) if (length(x) == 1 && is.numeric(x)) as.numeric(x) else NA_real_
 
   # the charts are drawn in the colours of the theme the page reports
-  dark <- reactive(identical(input$app_theme, "dark"))
-  chart <- function(draw, alt) netsimr_render_plot(draw(), bg = "transparent", res = 96, alt = alt)
-  checked <- function(expr) {
-    result <- tryCatch(expr, error = function(e) e)
-    validate(need(!inherits(result, "error"), if (inherits(result, "error")) conditionMessage(result)))
-    result
-  }
+  dark <- netsimr_dark(input)
 
   ######################
   #Lines
@@ -137,15 +131,8 @@ portfolio_tool_Server <- function(input, output, session) {
 
   # an uploaded file of simulated losses, a column per line
   upload_data <- reactive({
-    file <- input$upload_file
-    validate(need(file, "Upload a file of simulated losses, a column per line."))
-    df <- tryCatch(netsimr_read_data(file$datapath, header = isTRUE(input$upload_header), sep = or_default(input$upload_sep, ","),
-                                 quote = "\"", dec = or_default(input$upload_dec, ".")),
-                   error = function(e) e)
-    validate(need(!inherits(df, "error"), if (inherits(df, "error")) paste0("The file could not be read (", conditionMessage(df),
-                                                                            "). Check the separator.")))
-    validate(need(ncol(df) >= 2 && nrow(df) > 0, "The file needs at least two columns and one row."))
-    df
+    netsimr_read_upload(input, input$upload_file, list(header = "upload_header", sep = "upload_sep", dec = "upload_dec"),
+                        "Upload a file of simulated losses, a column per line.", min_columns = 2)
   })
   loaded_columns <- NULL
   observeEvent(upload_data(), {
@@ -161,7 +148,7 @@ portfolio_tool_Server <- function(input, output, session) {
   upload_lines <- reactive({
     df <- upload_data()
     validate(need(length(input$upload_columns) <= pfo_max_lines, paste("Choose at most", pfo_max_lines, "columns.")))
-    checked(pfo_upload_lines(df, input$upload_columns, or_default(input$upload_dec, ".")))
+    netsimr_checked(pfo_upload_lines(df, input$upload_columns, or_default(input$upload_dec, ".")))
   })
 
   uploading <- reactive(identical(input$line_source, "upload"))
@@ -313,7 +300,7 @@ portfolio_tool_Server <- function(input, output, session) {
   result <- eventReactive(input$run, {
     spec <- run_spec()
     out <- withProgress(message = "Simulating the portfolio", value = 0.2, {
-      checked(simulate_portfolio(spec$lines, correlation = spec$correlation, copula = spec$copula, df = spec$df, n = spec$n,
+      netsimr_checked(simulate_portfolio(spec$lines, correlation = spec$correlation, copula = spec$copula, df = spec$df, n = spec$n,
                                  level = spec$level, seed = spec$seed))
     })
     list(portfolio = out, spec = spec)
@@ -376,18 +363,18 @@ portfolio_tool_Server <- function(input, output, session) {
                             "diversification benefit is the sum of the lines' VaR less the total's."))
   })
 
-  output$capital_plot <- chart(function() {
+  output$capital_plot <- netsimr_chart(function() {
     p <- current()$portfolio
     pfo_capital_chart(p$summary, p$level, dark())
   }, alt = "Each line's value at risk on its own and its allocated capital")
 
-  output$total_plot <- chart(function() {
+  output$total_plot <- netsimr_chart(function() {
     p <- current()$portfolio
     total <- p$summary[p$summary$line == "total", ]
     pfo_total_chart(p$losses$total, total$var, total$tvar, dark())
   }, alt = "Distribution of the portfolio's total losses, with its mean, VaR and TVaR")
 
-  output$rank_plot <- chart(function() {
+  output$rank_plot <- netsimr_chart(function() {
     p <- current()$portfolio
     x <- input$rank_x
     y <- input$rank_y
@@ -490,7 +477,7 @@ portfolio_tool_Server <- function(input, output, session) {
     used <- v[v$premium + v$reserve > 0, ]
     validate(need(nrow(used) > 0, "Enter the premium or reserve volume of at least one segment."))
     np <- used$segment[used$np]
-    checked(sii_premium_reserve_risk(used[c("segment", "premium", "reserve", "diversification")],
+    netsimr_checked(sii_premium_reserve_risk(used[c("segment", "premium", "reserve", "diversification")],
                                      np_adjustment = if (length(np)) np))
   })
 
@@ -529,7 +516,7 @@ portfolio_tool_Server <- function(input, output, session) {
                            "joins the segments with the correlations of Annex IV."))
   })
 
-  output$sf_plot <- chart(function() {
+  output$sf_plot <- netsimr_chart(function() {
     s <- sf_result()
     b <- s$by_segment
     labels <- c(paste0(b$segment, ". ", substr(b$name, 1, 18)), "Total")

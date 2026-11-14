@@ -19,7 +19,7 @@ GLMFittingToolServer <- function(input, output, session) {
 
 
   # the chart is drawn in the colours of the theme the page reports
-  dark <- reactive(identical(input$app_theme, "dark"))
+  dark <- netsimr_dark(input)
 
   # a column name as it must be written in a formula
   term <- function(column) if (identical(make.names(column), column)) column else paste0("`", gsub("`", "\\\\`", column), "`")
@@ -111,10 +111,7 @@ GLMFittingToolServer <- function(input, output, session) {
         # numbers with thousands separators ("1,200") are read as text: text columns that are
         # mostly numbers become numbers, as in the distribution fitting tool
         dec <- or_default(input$csv_dec, ".")
-        text_columns <- names(df_input)[vapply(df_input, is.character, logical(1))]
-        for (column in netsimr_numeric_columns(df_input[text_columns], dec)) {
-          df_input[[column]] <- netsimr_as_numeric(df_input[[column]], dec)
-        }
+        df_input <- netsimr_convert_number_columns(df_input, dec)
       }
       if (!is.data.frame(df_input) || ncol(df_input) == 0 || nrow(df_input) == 0) {
         return(import_error("The file or query returned no rows."))
@@ -901,8 +898,7 @@ GLMFittingToolServer <- function(input, output, session) {
       dec <- or_default(input$csv_dec, ".")
       df <- netsimr_read_data(file$datapath, header = !isFALSE(input$csv_header), sep = or_default(input$csv_sep, ","),
                           quote = or_default(input$csv_quote, "\""), dec = dec)
-      text_columns <- names(df)[vapply(df, is.character, logical(1))]
-      for (column in netsimr_numeric_columns(df[text_columns], dec)) df[[column]] <- netsimr_as_numeric(df[[column]], dec)
+      df <- netsimr_convert_number_columns(df, dec)
       if (nrow(df) == 0) stop("it has no rows")
       glm_score(model, df, response = fit_result()$spec$response)
     }, error = function(e) e)

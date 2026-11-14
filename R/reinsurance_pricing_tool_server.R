@@ -18,17 +18,16 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   number <- function(x) if (length(x) == 1 && is.numeric(x)) as.numeric(x) else NA_real_
 
   # the charts are drawn in the colours of the theme the page reports
-  dark <- reactive(identical(input$app_theme, "dark"))
-  chart <- function(draw, alt) netsimr_render_plot(draw(), bg = "transparent", res = 96, alt = alt)
+  dark <- netsimr_dark(input)
   # each chart is drawn for a theme: on the page in the colours of the theme showing, and in
   # the report in both
   charts <- list()
   add_chart <- function(id, draw, alt) {
     charts[[id]] <<- list(draw = draw, alt = alt)
-    output[[id]] <- chart(function() draw(isTRUE(dark())), alt)
+    output[[id]] <- netsimr_chart(function() draw(isTRUE(dark())), alt)
   }
 
-  # the value of an expression with its warnings, or an error; `checked()` shows the
+  # the value of an expression with its warnings, or an error; `netsimr_checked()` shows the
   # error in place of the outputs that use it
   attempt <- function(expr) {
     warnings <- character(0)
@@ -40,10 +39,6 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
       error = function(e) e
     )
     if (!inherits(result, "error")) attr(result, "warnings") <- warnings
-    result
-  }
-  checked <- function(result) {
-    validate(need(!inherits(result, "error"), if (inherits(result, "error")) conditionMessage(result)))
     result
   }
 
@@ -95,20 +90,9 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   skip_severity_defaults <- FALSE
 
   read_upload <- function(file, prefix) {
-    validate(need(file, "Upload a data file, or choose an example."))
-    read_error <- NULL
-    df <- tryCatch(
-      netsimr_read_data(file$datapath, header = isTRUE(input[[paste0(prefix, "_header")]]),
-                    sep = or_default(input[[paste0(prefix, "_sep")]], ","), quote = "\"",
-                    dec = or_default(input[[paste0(prefix, "_dec")]], ".")),
-      error = function(e) {
-        read_error <<- conditionMessage(e)
-        NULL
-      }
-    )
-    validate(need(is.null(read_error), paste0("The file could not be read (", read_error, "). Check the separator.")))
-    validate(need(ncol(df) > 1 && nrow(df) > 0, "The file needs at least two columns and one row of data."))
-    df
+    netsimr_read_upload(input, file, list(header = paste0(prefix, "_header"), sep = paste0(prefix, "_sep"),
+                                          dec = paste0(prefix, "_dec")),
+                        "Upload a data file, or choose an example.", min_columns = 2)
   }
 
   # a column named in a loaded settings file, then the one the user chose, then a guess
@@ -137,7 +121,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
   losses <- reactive({
     if (identical(input$loss_source, "upload")) {
       df <- loss_upload()
-      checked(attempt(xlp_upload_losses(df, input$loss_year_col, input$loss_amount_col, or_default(input$loss_dec, "."))))
+      netsimr_checked(attempt(xlp_upload_losses(df, input$loss_year_col, input$loss_amount_col, or_default(input$loss_dec, "."))))
     } else {
       NetSimR::xl_large_losses
     }
@@ -261,7 +245,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     lay <- layer()
     r <- rating()
     threshold <- number(input$threshold)
-    checked(attempt(burning_cost(
+    netsimr_checked(attempt(burning_cost(
       ex$losses, ex$premium, lay$deductible, lay$limit, aggregate_deductible = lay$aggregate_deductible,
       aggregate_limit = lay$aggregate_limit, inflation = ex$inflation, rating_year = r$year, development = ex$development,
       premium_index = ex$index, threshold = if (is.finite(threshold) && threshold > 0) threshold,
@@ -425,7 +409,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     if (identical(input$profile_source, "upload")) {
       df <- profile_upload()
       type <- or_default(input$profile_type, "property")
-      result <- checked(attempt(xlp_upload_profile(df, type, input$size_col, input$premium_col, input$loss_ratio_col,
+      result <- netsimr_checked(attempt(xlp_upload_profile(df, type, input$size_col, input$premium_col, input$loss_ratio_col,
                                                    input$band_col, or_default(input$profile_dec, "."))))
       list(profile = result, type = type, description = NULL)
     } else {
@@ -483,9 +467,9 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     loss_ratio <- if (has_ratio) NULL else lr / 100
     if (identical(pr$type, "casualty")) {
       s <- severity()
-      checked(attempt(casualty_exposure_rating(pr$profile, lay$deductible, lay$limit, s$id, s$params, loss_ratio = loss_ratio)))
+      netsimr_checked(attempt(casualty_exposure_rating(pr$profile, lay$deductible, lay$limit, s$id, s$params, loss_ratio = loss_ratio)))
     } else {
-      checked(attempt(property_exposure_rating(pr$profile, lay$deductible, lay$limit, curve(), loss_ratio = loss_ratio)))
+      netsimr_checked(attempt(property_exposure_rating(pr$profile, lay$deductible, lay$limit, curve(), loss_ratio = loss_ratio)))
     }
   })
 
@@ -1004,7 +988,7 @@ reinsurance_pricing_tool_Server <- function(input, output, session) {
     validate(need(is.finite(loading) && loading >= 0 && loading < 100, "The loading must be from 0% to below 100%."),
              need(is.finite(coc) && coc >= 0, "Enter the cost of capital, at least 0%."))
     withProgress(message = "Simulating the programmes", value = 0.3, {
-      cmp <- checked(attempt(compare_reinsurance(
+      cmp <- netsimr_checked(attempt(compare_reinsurance(
         frequency$name, fp, severity$name, sp, programme_list(), premium = rating()$premium, n = round(n),
         level = as.numeric(or_default(input$prog_level, "0.995")), loading = loading / 100, coc_rate = coc / 100,
         seed = if (is.finite(seed)) round(seed), pareto_thresholds = tail$threshold, pareto_alphas = tail$alpha

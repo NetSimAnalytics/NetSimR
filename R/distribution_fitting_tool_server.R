@@ -20,7 +20,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
 
 
   # the charts are drawn in the colours of the theme the page reports
-  dark <- reactive(identical(input$app_theme, "dark"))
+  dark <- netsimr_dark(input)
 
   # reports a failed fit to the user (instead of the console) and returns NULL,
   # so that the dependent outputs show a dash rather than an error
@@ -79,7 +79,6 @@ distribution_fitting_tool_Server <- function(input, output, session) {
 
   # a chart, drawn as a PNG image on a transparent background; it is redrawn when resized,
   # so that its legend is laid out for the new width
-  chart <- function(draw, alt) netsimr_render_plot(draw(), bg = "transparent", res = 96, alt = alt)
 
   # the charts of the analyses, each drawn for a theme: on the page once its analysis has
   # run, in the colours of the theme showing (it is redrawn when the theme changes), and in
@@ -87,7 +86,7 @@ distribution_fitting_tool_Server <- function(input, output, session) {
   charts <- list()
   add_chart <- function(id, button, what, draw, alt) {
     charts[[id]] <<- list(draw = draw, alt = alt)
-    output[[id]] <- chart(function() {
+    output[[id]] <- netsimr_chart(function() {
       need_run(button, what)
       draw(isTRUE(dark()))
     }, alt)
@@ -115,24 +114,8 @@ distribution_fitting_tool_Server <- function(input, output, session) {
     if (using_example()) {
       return(switch(or_default(input$example, "motor"), liability = NetSimR::liability_claims, NetSimR::motor_policies))
     }
-    validate(need(input$file1, "Upload a data file to see a preview here, or choose an example."))
-    read_error <- NULL
-    df <- tryCatch(
-      netsimr_read_data(
-        input$file1$datapath,
-        header = isTRUE(input$data_includes_header),
-        sep = or_default(input$sep, ","),
-        quote = or_default(input$quote, "\""),
-        dec = or_default(input$dec, ".")
-      ),
-      error = function(e) {
-        read_error <<- conditionMessage(e)
-        NULL
-      }
-    )
-    validate(need(is.null(read_error), paste0("The file could not be read (", read_error, "). Check the separator and quote settings.")))
-    validate(need(ncol(df) > 0 && nrow(df) > 0, "The file has no data rows."))
-    df
+    netsimr_read_upload(input, input$file1, list(header = "data_includes_header", sep = "sep", dec = "dec", quote = "quote"),
+                        "Upload a data file to see a preview here, or choose an example.")
   })
 
   numeric_columns <- reactive(netsimr_numeric_columns(data(), or_default(input$dec, ".")))

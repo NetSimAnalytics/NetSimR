@@ -16,34 +16,19 @@ reserving_tool_Server <- function(input, output, session) {
 
 
   # the charts are drawn in the colours of the theme the page reports
-  dark <- reactive(identical(input$app_theme, "dark"))
-  chart <- function(draw, alt) netsimr_render_plot(draw(), bg = "transparent", res = 96, alt = alt)
+  dark <- netsimr_dark(input)
 
-  # the value of an expression, or a message in place of the outputs that use it
-  checked <- function(expr) {
-    result <- tryCatch(suppressWarnings(expr), error = function(e) e)
-    validate(need(!inherits(result, "error"), if (inherits(result, "error")) conditionMessage(result)))
-    result
-  }
+  # the value of an expression, or a message in place of the outputs that use it (the methods'
+  # warnings about a thin triangle are left out: the tool says what it can do with one)
+  checked <- function(expr) netsimr_checked(suppressWarnings(expr))
 
   ######################
   #Data
   ######################
 
   upload_data <- reactive({
-    validate(need(input$file1, "Upload a data file, or choose an example."))
-    read_error <- NULL
-    df <- tryCatch(
-      netsimr_read_data(input$file1$datapath, header = isTRUE(input$data_includes_header), sep = or_default(input$sep, ","),
-                    quote = or_default(input$quote, "\""), dec = or_default(input$dec, ".")),
-      error = function(e) {
-        read_error <<- conditionMessage(e)
-        NULL
-      }
-    )
-    validate(need(is.null(read_error), paste0("The file could not be read (", read_error, "). Check the separator and quote settings.")))
-    validate(need(ncol(df) > 1 && nrow(df) > 0, "The file needs at least two columns and one row of data."))
-    df
+    netsimr_read_upload(input, input$file1, list(header = "data_includes_header", sep = "sep", dec = "dec", quote = "quote"),
+                        "Upload a data file, or choose an example.", min_columns = 2)
   })
 
   # offer the file's columns, guessing each from the names (a column the user chose is kept
@@ -283,11 +268,11 @@ reserving_tool_Server <- function(input, output, session) {
     p(class = "dft-table-note", paste(c(text, fit$notes), collapse = " "))
   })
 
-  output$development_plot <- chart(function() rsv_development_chart(cl(), dark()),
+  output$development_plot <- netsimr_chart(function() rsv_development_chart(cl(), dark()),
                                    alt = "Cumulative claims of each origin by development period, observed and projected")
-  output$link_ratio_plot <- chart(function() rsv_link_ratio_chart(cl(), dark()),
+  output$link_ratio_plot <- netsimr_chart(function() rsv_link_ratio_chart(cl(), dark()),
                                   alt = "Link ratios of each development period, with the selected factors")
-  output$tail_plot <- chart(function() {
+  output$tail_plot <- netsimr_chart(function() {
     fit <- cl()
     validate(need(!is.null(fit$tail_curve), "Choose an exponential or inverse power tail curve to see it here."))
     rsv_tail_chart(fit, dark())
@@ -445,12 +430,12 @@ reserving_tool_Server <- function(input, output, session) {
     all_methods[vapply(all_methods, function(x) any(is.finite(x)), logical(1))]
   }
 
-  output$ultimate_plot <- chart(function() {
+  output$ultimate_plot <- netsimr_chart(function() {
     r <- results()
     rsv_ultimate_chart(r$origin, r$latest, r$ibnr, method_ultimates(r), dark())
   }, alt = "Latest claims and IBNR of each origin, with the ultimate of each method")
 
-  output$loss_ratio_plot <- chart(function() {
+  output$loss_ratio_plot <- netsimr_chart(function() {
     r <- results()
     validate(need(any(is.finite(r$premium)), "Enter premiums, in the By origin card or the data, to see the loss ratios."))
     ratios <- lapply(method_ultimates(r), function(u) u / r$premium)
@@ -615,7 +600,7 @@ reserving_tool_Server <- function(input, output, session) {
                 "The oldest origin has no factor for its last step, and the newest a single value, so neither has an expected development."))
   })
 
-  output$ave_plot <- chart(function() {
+  output$ave_plot <- netsimr_chart(function() {
     b <- ave()$by_origin
     netsimr_category_chart(b$origin, lines = list(list(name = "Expected", values = b$expected, colour = rsv_method_colours[["Chain ladder"]]),
                                               list(name = "Actual", values = b$actual, colour = "empirical")),
@@ -640,7 +625,7 @@ reserving_tool_Server <- function(input, output, session) {
                 "The standard error has a process part (over-dispersed Poisson) and a parameter part (the curve and the ultimates)."))
   })
 
-  output$clark_plot <- chart(function() {
+  output$clark_plot <- netsimr_chart(function() {
     k <- clark()
     chain <- cl()
     n <- ncol(chain$triangle)
@@ -755,7 +740,7 @@ reserving_tool_Server <- function(input, output, session) {
     }
   )
 
-  output$bootstrap_plot <- chart(function() {
+  output$bootstrap_plot <- netsimr_chart(function() {
     b <- current_boot()
     rsv_bootstrap_chart(b$total_reserves, b$total[["ibnr"]],
                         c(`75th percentile` = b$total[["p75"]], `99.5th percentile` = b$total[["p99.5"]]), dark())
@@ -867,7 +852,7 @@ reserving_tool_Server <- function(input, output, session) {
                            "with the spot rate of the term of each payment."))
   })
 
-  output$cash_flow_plot <- chart(function() {
+  output$cash_flow_plot <- netsimr_chart(function() {
     cf <- discounted()$cash_flows
     netsimr_category_chart(as.character(cf$period),
                        bars = list(name = "Payments", values = cf$payments, colour = rsv_method_colours[["Chain ladder"]]),
@@ -954,14 +939,14 @@ reserving_tool_Server <- function(input, output, session) {
 
   munich_colours <- c(`Chain ladder, paid` = "#3b82f6", `Chain ladder, incurred` = "#8b5cf6",
                       `Munich, paid` = "#10b981", `Munich, incurred` = "#ec4899")
-  output$munich_plot <- chart(function() {
+  output$munich_plot <- netsimr_chart(function() {
     b <- munich()$by_origin
     values <- list(`Chain ladder, paid` = b$chain_ladder_paid, `Chain ladder, incurred` = b$chain_ladder_incurred,
                    `Munich, paid` = b$ultimate_paid, `Munich, incurred` = b$ultimate_incurred)
     lines <- unname(Map(function(name, y) list(name = name, values = y, colour = munich_colours[[name]]), names(values), values))
     netsimr_category_chart(b$origin, lines = lines, x_title = "Origin", y_title = "Ultimate claims", dark = dark())
   }, alt = "Paid and incurred ultimates of each origin by the chain ladders and the Munich chain ladder")
-  output$munich_ratio_plot <- chart(function() {
+  output$munich_ratio_plot <- netsimr_chart(function() {
     b <- munich()$by_origin
     lines <- list(list(name = "Latest", values = b$latest_ratio, colour = "empirical"),
                   list(name = "Munich ultimate", values = b$ultimate_ratio, colour = munich_colours[["Munich, paid"]]),
@@ -1058,7 +1043,7 @@ reserving_tool_Server <- function(input, output, session) {
     outputOptions(output, id, suspendWhenHidden = FALSE)
   }
 
-  residual_chart <- function(by) chart(function() rsv_residual_chart(current_boot()$residuals, by, dark()),
+  residual_chart <- function(by) netsimr_chart(function() rsv_residual_chart(current_boot()$residuals, by, dark()),
                                        alt = paste("Scaled Pearson residuals of the chain ladder by", by, "period"))
   output$residual_origin_plot <- residual_chart("origin")
   output$residual_development_plot <- residual_chart("development")
