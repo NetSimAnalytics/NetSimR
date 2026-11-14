@@ -1,0 +1,822 @@
+/* The styles of NetSimR's six Shiny tools: the colour variables of the light and dark themes
+   (--sim-*), the navbar and its theme switch, cards, inputs, buttons and the welcome page. The
+   tools that analyse data add analysis.css after these, and each tool then its own style sheet
+   (netsimr_tool_head() in R/tool_ui.R). */
+
+:root, [data-bs-theme='light'] {
+  --sim-page-bg: #f1f5f9;
+  --sim-card-bg: #ffffff;
+  --sim-card-header-bg: #ffffff;
+  --sim-border: rgba(148, 163, 184, 0.30);
+  --sim-border-strong: #cbd5e1;
+  --sim-muted: #64748b;
+  --sim-heading: #0f172a;
+  --sim-label: #334155;
+  --sim-accent-soft: #eff6ff;
+  --sim-accent-text: #1d4ed8;
+  --sim-input-bg: #ffffff;
+  --sim-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --sim-radius: 16px;
+}
+
+[data-bs-theme='dark'] {
+  --sim-page-bg: #0b1220;
+  --sim-card-bg: #111a2b;
+  --sim-card-header-bg: #111a2b;
+  --sim-border: rgba(148, 163, 184, 0.16);
+  --sim-border-strong: #334155;
+  --sim-muted: #94a3b8;
+  --sim-heading: #f1f5f9;
+  --sim-label: #cbd5e1;
+  --sim-accent-soft: rgba(59, 130, 246, 0.16);
+  --sim-accent-text: #93c5fd;
+  --sim-input-bg: #0d1526;
+  --sim-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  --bs-body-bg: #0d1526;
+  --bs-body-bg-rgb: 13, 21, 38;
+  --bs-body-color: #e2e8f0;
+  --bs-body-color-rgb: 226, 232, 240;
+  --bs-secondary-bg: #16213a;
+  --bs-tertiary-bg: #131d33;
+  --bs-border-color: #334155;
+  --bs-emphasis-color: #f8fafc;
+  --bs-link-color: #93c5fd;
+  --bs-link-color-rgb: 147, 197, 253;
+  --bs-link-hover-color: #bfdbfe;
+  --bs-link-hover-color-rgb: 191, 219, 254;
+}
+
+html, body {
+  background-color: var(--sim-page-bg) !important;
+}
+
+body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ---------- Navbar ---------- */
+.navbar {
+  background: linear-gradient(90deg, #0b1f3d 0%, #13315c 100%) !important;
+  box-shadow: 0 2px 16px rgba(15, 23, 42, 0.18);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* the brand keeps a gap after it, so the nav links never touch its subtitle; the gap is a
+   margin on .sim-brand, inside .navbar-brand. Where room is short the brand shrinks, its
+   title and subtitle ending in an ellipsis: beside the menu button on a narrow screen, and
+   beside the nav links on a wide one, which stay on one row (see Responsive) */
+.navbar .navbar-header {
+  min-width: 0;
+}
+
+.navbar .navbar-toggle {
+  flex-shrink: 0;
+}
+
+.navbar-brand {
+  display: block;
+  min-width: 0;
+  margin-right: 0 !important;
+}
+
+.sim-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 2rem;
+  min-width: 0;
+}
+
+.sim-brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 18px;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+  flex-shrink: 0;
+}
+
+.sim-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sim-brand-title,
+.sim-brand-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-brand-title {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.sim-brand-subtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+.navbar .navbar-nav {
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.navbar .nav-link {
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.55rem 0.95rem !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link:focus-visible {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+.navbar .nav-link.active {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* ---------- Theme switch ---------- */
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.theme-btn:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.theme-btn.active {
+  background: #ffffff;
+  color: #0b1f3d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- Page ---------- */
+.tab-content {
+  padding-top: 0.5rem;
+}
+
+.sim-page-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0.25rem 0 1rem 0;
+}
+
+.sim-page-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--sim-heading);
+  margin: 0;
+}
+
+.sim-page-subtitle {
+  color: var(--sim-muted);
+  margin: 0.2rem 0 0 0;
+}
+
+/* ---------- Cards ---------- */
+.card {
+  --bs-card-bg: var(--sim-card-bg);
+  --bs-card-cap-bg: var(--sim-card-header-bg);
+  --bs-card-border-color: var(--sim-border);
+  border-radius: var(--sim-radius) !important;
+  box-shadow: var(--sim-shadow);
+  overflow: visible;
+}
+
+.card-header.sim-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--sim-border);
+  border-top-left-radius: var(--sim-radius) !important;
+  border-top-right-radius: var(--sim-radius) !important;
+}
+
+.sim-card-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+  font-size: 15px;
+}
+
+.sim-card-title {
+  font-weight: 700;
+  color: var(--sim-heading);
+  line-height: 1.2;
+}
+
+.sim-card-subtitle {
+  font-size: 0.82rem;
+  color: var(--sim-muted);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.card-body {
+  padding: 1.1rem;
+}
+
+.sim-section-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sim-muted);
+  margin: 0 0 0.6rem 0;
+}
+
+.sim-divider {
+  border: 0;
+  border-top: 1px solid var(--sim-border);
+  margin: 1rem 0;
+  opacity: 1;
+}
+
+/* ---------- Inputs ---------- */
+.shiny-input-container:not(.shiny-input-container-inline) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.control-label, .form-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--sim-label);
+  margin-bottom: 0.35rem;
+}
+
+.form-control, .form-select {
+  border-radius: 10px;
+  border-color: var(--sim-border-strong);
+  background-color: var(--sim-input-bg);
+  color: var(--bs-body-color);
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.18);
+}
+
+.help-block, .form-text {
+  color: var(--sim-muted);
+  font-size: 0.82rem;
+}
+
+.form-switch .form-check-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sim-label);
+}
+
+/* The knob of a switch that is off: Bootstrap draws it in a 25% tint, 1.8:1 against the page in
+   the light theme and 2.2:1 in the dark, too faint to see that a switch is off; these greys are
+   well over the 3:1 a control needs. A focused switch keeps Bootstrap's focus colour. All three
+   tools load these styles. */
+.form-switch .form-check-input:not(:checked):not(:focus) {
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%2364748b'/%3e%3c/svg%3e");
+}
+:root[data-bs-theme='dark'] .form-switch .form-check-input:not(:checked):not(:focus) {
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%2394a3b8'/%3e%3c/svg%3e");
+}
+
+.bslib-input-switch {
+  margin-bottom: 0.5rem;
+}
+
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0 0.75rem;
+  /* (a label on two lines keeps its input level with the others) */
+  align-items: end;
+}
+
+.param-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 0.75rem;
+}
+
+.param-grid > .shiny-html-output:empty,
+.param-grid-2 > .shiny-html-output:empty {
+  display: none;
+}
+
+/* Pill-style radio buttons */
+.pill-radio .shiny-options-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.pill-radio.pill-radio-grid .shiny-options-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.pill-radio .radio-inline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 0.42rem 0.85rem !important;
+  border: 1px solid var(--sim-border-strong);
+  border-radius: 999px;
+  background: var(--sim-input-bg);
+  color: var(--bs-body-color);
+  font-weight: 600;
+  font-size: 0.86rem;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pill-radio .radio-inline:hover {
+  border-color: #3b82f6;
+}
+
+@supports selector(:has(*)) {
+  .pill-radio .radio-inline input[type='radio'] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0 !important;
+    pointer-events: none;
+  }
+
+  .pill-radio .radio-inline:has(input:checked) {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+
+  .pill-radio .radio-inline:has(input:focus-visible) {
+    outline: 2px solid #93c5fd;
+    outline-offset: 2px;
+  }
+}
+
+/* Implied moments under the distribution parameters */
+.sim-implied {
+  font-size: 0.85rem;
+  color: var(--sim-muted);
+  margin: -0.25rem 0 0.5rem 0;
+}
+
+.sim-implied strong {
+  font-weight: 700;
+  color: var(--sim-heading);
+}
+
+.sim-implied-empty {
+  font-style: italic;
+}
+
+.sim-truncate {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--sim-border);
+}
+
+/* Expected gross claims in the simulation panel */
+#expected_gross_claims:empty {
+  display: none;
+}
+
+.sim-expected {
+  background: var(--sim-accent-soft);
+  border: 1px solid var(--sim-border);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.sim-expected-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sim-accent-text);
+}
+
+.sim-expected-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--sim-heading);
+  line-height: 1.3;
+}
+
+.sim-expected-note {
+  font-size: 0.78rem;
+  color: var(--sim-muted);
+}
+
+/* Select inputs */
+[data-bs-theme='dark'] .selectize-input,
+[data-bs-theme='dark'] .selectize-input.full,
+[data-bs-theme='dark'] .selectize-dropdown {
+  background: var(--sim-input-bg) !important;
+  color: var(--bs-body-color) !important;
+  border-color: var(--sim-border-strong) !important;
+}
+
+[data-bs-theme='dark'] .selectize-dropdown .active {
+  background: var(--sim-accent-soft) !important;
+  color: #ffffff !important;
+}
+
+.selectize-input {
+  border-radius: 10px !important;
+}
+
+/* Pareto slices */
+.sim-slices-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.sim-slices-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sim-label);
+}
+
+.sim-hidden-input {
+  display: none;
+}
+
+.sim-slice-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem 0;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--sim-border);
+  border-radius: 12px;
+  background: var(--sim-input-bg);
+}
+
+.sim-slice-badge {
+  flex: 0 0 28px;
+  height: 28px;
+  margin-bottom: 1.35rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+}
+
+.sim-slice-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sim-slice-remove {
+  margin-bottom: 1.2rem;
+}
+
+.sim-slices-note {
+  font-size: 0.85rem;
+  color: var(--sim-muted);
+  font-style: italic;
+  margin: 0.25rem 0 0.6rem 0;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-run {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
+}
+
+.btn-run:hover, .btn-run:focus {
+  color: #ffffff;
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+}
+
+.sim-downloads {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.sim-downloads .shiny-html-output:empty {
+  display: none;
+}
+
+.sim-downloads .btn {
+  width: 100%;
+}
+
+.sim-downloads-hint {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--sim-muted);
+  padding: 0.65rem 0.8rem;
+  border: 1px dashed var(--sim-border-strong);
+  border-radius: 10px;
+}
+
+.sim-downloads:has(.shiny-download-link) .sim-downloads-hint {
+  display: none;
+}
+
+/* ---------- Welcome ---------- */
+.sim-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--sim-radius);
+  padding: 2.25rem 2rem;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(96, 165, 250, 0.35), transparent 45%),
+    linear-gradient(135deg, #0b1f3d 0%, #13315c 55%, #1d4ed8 130%);
+  box-shadow: var(--sim-shadow);
+}
+
+.sim-hero-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  margin-bottom: 0.6rem;
+}
+
+.sim-hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 0.75rem;
+}
+
+.sim-hero-text {
+  font-size: 1.02rem;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 640px;
+  margin-bottom: 1.4rem;
+}
+
+.sim-hero .btn-light {
+  align-self: flex-start;
+  font-weight: 700;
+  color: #0b1f3d;
+  padding: 0.6rem 1.1rem;
+}
+
+.sim-steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: 0;
+}
+
+.sim-steps li {
+  counter-increment: step;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.55rem 0;
+}
+
+.sim-steps li + li {
+  border-top: 1px solid var(--sim-border);
+}
+
+.sim-steps li::before {
+  content: counter(step);
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+}
+
+.sim-step-title {
+  font-weight: 700;
+  color: var(--sim-heading);
+  line-height: 1.3;
+}
+
+.sim-step-text {
+  font-size: 0.85rem;
+  color: var(--sim-muted);
+}
+
+.sim-stat {
+  background: var(--sim-card-bg);
+  border: 1px solid var(--sim-border);
+  border-radius: var(--sim-radius);
+  box-shadow: var(--sim-shadow);
+  padding: 1rem 1.1rem;
+  height: 100%;
+}
+
+.sim-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--sim-muted);
+  margin-bottom: 0.4rem;
+}
+
+.sim-stat-value {
+  font-weight: 600;
+  color: var(--sim-heading);
+  line-height: 1.45;
+}
+
+.sim-muted {
+  color: var(--sim-muted);
+}
+
+/* ---------- Notifications ---------- */
+.shiny-notification {
+  background: var(--sim-card-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--sim-border);
+  border-radius: 12px;
+  box-shadow: var(--sim-shadow);
+}
+
+/* ---------- Responsive ---------- */
+@media (min-width: 992px) {
+  .sim-layout > :first-child {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+  }
+}
+
+/* the expanded header is one row: the nav links and the theme switch never wrap, and the
+   brand gives way to them instead */
+@media (min-width: 992px) {
+  .navbar .navbar-nav {
+    flex-wrap: nowrap;
+  }
+
+  /* the brand is a block (so it can shrink), whose padding would add to the header's
+     height, as it did not when it was an inline span */
+  .navbar-brand {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .navbar .nav-link {
+    white-space: nowrap;
+  }
+}
+
+/* below 1500 px there is no room for every part at full size (the fitting tools have six
+   or seven tabs): the theme switch shows its icons only and the nav links sit closer */
+@media (min-width: 992px) and (max-width: 1499.98px) {
+  .theme-btn-label {
+    display: none;
+  }
+
+  .navbar .nav-link {
+    padding: 0.55rem 0.5rem !important;
+  }
+}
+
+/* and below 1300 px the brand subtitle and the nav link icons are left out too */
+@media (min-width: 992px) and (max-width: 1299.98px) {
+  .sim-brand-subtitle,
+  .navbar .nav-link > i {
+    display: none;
+  }
+}
+
+/* and below 1100 px the nav links sit closer still */
+@media (min-width: 992px) and (max-width: 1099.98px) {
+  .navbar .nav-link {
+    padding: 0.55rem 0.35rem !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .theme-switch {
+    margin: 0.5rem 0;
+  }
+
+  /* the gap before the menu button */
+  .sim-brand {
+    margin-right: 0.75rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .theme-btn-label {
+    display: none;
+  }
+
+  .pill-radio.pill-radio-grid .shiny-options-group,
+  .param-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .sim-hero {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .sim-hero-title {
+    font-size: 1.5rem;
+  }
+}

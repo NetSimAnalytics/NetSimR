@@ -89,18 +89,7 @@ simulate_portfolio <- function(lines, correlation = 0, copula = c("gaussian", "t
     if (!is.numeric(seed) || length(seed) != 1 || !is.finite(seed) || seed != round(seed)) {
       stop("seed must be a whole number, or NULL.", call. = FALSE)
     }
-    global <- globalenv()
-    saved <- if (exists(".Random.seed", envir = global, inherits = FALSE)) get(".Random.seed", envir = global)
-    kind <- RNGkind()
-    on.exit({
-      suppressWarnings(RNGkind(kind[1], kind[2], kind[3]))
-      if (is.null(saved)) {
-        if (exists(".Random.seed", envir = global, inherits = FALSE)) rm(".Random.seed", envir = global)
-      } else {
-        assign(".Random.seed", saved, envir = global)
-      }
-    }, add = TRUE)
-    set.seed(seed, kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
+    netsimr_local_seed(seed)
   }
 
   # each line's losses, on their own (a line's own seed comes from this stream)

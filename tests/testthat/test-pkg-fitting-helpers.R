@@ -84,46 +84,46 @@ test_that("ks_distance matches stats::ks.test", {
 })
 
 test_that("data columns are converted to numbers and uploaded files read cleanly", {
-  expect_equal(dft_as_numeric(c(" 1,234.5", "12", "abc", "", "1,23", "-3")), c(1234.5, 12, NA, NA, NA, -3))
-  expect_equal(dft_as_numeric(c("1,5", "2"), dec = ","), c(1.5, 2))
+  expect_equal(netsimr_as_numeric(c(" 1,234.5", "12", "abc", "", "1,23", "-3")), c(1234.5, 12, NA, NA, NA, -3))
+  expect_equal(netsimr_as_numeric(c("1,5", "2"), dec = ","), c(1.5, 2))
   #with a decimal comma, points separate thousands
-  expect_equal(dft_as_numeric(c("1.234", "2.500", "15.000,5", "-1.234.567,25", "1,5", "0,001", "0.5"), dec = ","),
+  expect_equal(netsimr_as_numeric(c("1.234", "2.500", "15.000,5", "-1.234.567,25", "1,5", "0,001", "0.5"), dec = ","),
                c(1234, 2500, 15000.5, -1234567.25, 1.5, 0.001, 0.5))
-  expect_equal(dft_as_numeric(c(TRUE, FALSE)), c(1, 0))
+  expect_equal(netsimr_as_numeric(c(TRUE, FALSE)), c(1, 0))
   df <- data.frame(a = c("1", "2", "x"), b = c("1", "2", "3"), c = c("q", "w", "e"))
-  expect_equal(dft_numeric_columns(df), "b")
+  expect_equal(netsimr_numeric_columns(df), "b")
   #a byte order mark, a blank name and a repeated name
   path <- tempfile(fileext = ".csv")
   con <- file(path, "wb")
   writeBin(as.raw(c(0xef, 0xbb, 0xbf)), con)
   writeBin(charToRaw("Claim Amount,,Claim Amount\n1,2,3\n4,5,6\n"), con)
   close(con)
-  expect_equal(names(dft_read_data(path)), c("Claim Amount", "V2", "Claim Amount_1"))
+  expect_equal(names(netsimr_read_data(path)), c("Claim Amount", "V2", "Claim Amount_1"))
   #a decimal comma with a semicolon separator
   path <- tempfile(fileext = ".csv")
   writeLines(c("sev;n", "1,5;2", "2,25;3"), path)
-  expect_equal(dft_read_data(path, sep = ";", dec = ",")$sev, c(1.5, 2.25))
+  expect_equal(netsimr_read_data(path, sep = ";", dec = ",")$sev, c(1.5, 2.25))
   #a separator at the end of each data row: read.csv() made the first column the row names and
   #shifted the others (sev got the values of n), or failed on repeated values
   path <- tempfile(fileext = ".csv")
   writeLines(c("sev,n", "100,1,", "100,2,", "250,3,"), path)
-  df <- dft_read_data(path)
+  df <- netsimr_read_data(path)
   expect_equal(names(df), c("sev", "n", "V3"))
   expect_equal(df$sev, c(100, 100, 250))
   expect_equal(df$n, 1:3)
   #a header longer than the rows, blank lines before the header, a header only, and no header
   path <- tempfile(fileext = ".csv")
   writeLines(c("", "a,b,c", "1,2", "3,4"), path)
-  df <- dft_read_data(path)
+  df <- netsimr_read_data(path)
   expect_equal(names(df), c("a", "b", "c"))
   expect_equal(df$b, c(2, 4))
   expect_true(all(is.na(df$c)))
   path <- tempfile(fileext = ".csv")
   writeLines("a,b", path)
-  expect_equal(dim(dft_read_data(path)), c(0, 2))
+  expect_equal(dim(netsimr_read_data(path)), c(0, 2))
   path <- tempfile(fileext = ".csv")
   writeLines(c("1,2", "3,4"), path)
-  expect_equal(dft_read_data(path, header = FALSE), data.frame(V1 = c(1L, 3L), V2 = c(2L, 4L)))
+  expect_equal(netsimr_read_data(path, header = FALSE), data.frame(V1 = c(1L, 3L), V2 = c(2L, 4L)))
 })
 
 test_that("the top of a slicing slider is the 99.5th percentile, rounded up", {
@@ -141,13 +141,13 @@ test_that("the top of a slicing slider is the 99.5th percentile, rounded up", {
   expect_equal(dft_slider_top(rep(1, 10)), 1)
 })
 
-test_that("dft_fmt writes huge and tiny numbers in scientific notation", {
+test_that("netsimr_fmt writes huge and tiny numbers in scientific notation", {
   dash <- intToUtf8(8212)
-  expect_equal(dft_fmt(c(4.987e42, 1e-300, -2.5e20, 1e15, 1.234e14, 1234.5678, 0, 0.001234, NA, Inf)),
+  expect_equal(netsimr_fmt(c(4.987e42, 1e-300, -2.5e20, 1e15, 1.234e14, 1234.5678, 0, 0.001234, NA, Inf)),
                c("4.987e+42", "1e-300", "-2.5e+20", "1e+15", "123,400,000,000,000", "1,235", "0", "0.001234", dash, dash))
   #counts and total weights in full, not 1.61e+09
-  expect_equal(dft_fmt_count(1.61e9), "1,610,000,000")
-  expect_equal(dft_fmt_count(1e20), "1e+20")
+  expect_equal(netsimr_fmt_count(1.61e9), "1,610,000,000")
+  expect_equal(netsimr_fmt_count(1e20), "1e+20")
 })
 
 test_that("fit_gamma_mle fits claims far below 1", {

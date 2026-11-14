@@ -17,7 +17,6 @@ GLMFittingToolServer <- function(input, output, session) {
   #help functions
   ######################
 
-  or_default <- function(x, default) if (is.null(x) || length(x) == 0) default else x
 
   # the chart is drawn in the colours of the theme the page reports
   dark <- reactive(identical(input$app_theme, "dark"))
@@ -102,7 +101,7 @@ GLMFittingToolServer <- function(input, output, session) {
         if (is.null(file)) {
           return(import_error("Choose a CSV file first."))
         }
-        df_input <- dft_read_data(
+        df_input <- netsimr_read_data(
           file$datapath,
           header = !isFALSE(input$csv_header),
           sep = or_default(input$csv_sep, ","),
@@ -113,8 +112,8 @@ GLMFittingToolServer <- function(input, output, session) {
         # mostly numbers become numbers, as in the distribution fitting tool
         dec <- or_default(input$csv_dec, ".")
         text_columns <- names(df_input)[vapply(df_input, is.character, logical(1))]
-        for (column in dft_numeric_columns(df_input[text_columns], dec)) {
-          df_input[[column]] <- dft_as_numeric(df_input[[column]], dec)
+        for (column in netsimr_numeric_columns(df_input[text_columns], dec)) {
+          df_input[[column]] <- netsimr_as_numeric(df_input[[column]], dec)
         }
       }
       if (!is.data.frame(df_input) || ncol(df_input) == 0 || nrow(df_input) == 0) {
@@ -151,11 +150,11 @@ GLMFittingToolServer <- function(input, output, session) {
     df <- req(selected_data())
     div(
       class = "dft-stats",
-      dft_stat_tile("Source", div(class = "dft-file-name", imported()$source), icon_name = "database",
+      netsimr_stat_tile("Source", div(class = "dft-file-name", imported()$source), icon_name = "database",
                     note = if (import_failed()) "The last import failed: this is the data imported before"),
-      dft_stat_tile("Rows", format(nrow(df), big.mark = ",", scientific = FALSE), icon_name = "bars",
+      netsimr_stat_tile("Rows", format(nrow(df), big.mark = ",", scientific = FALSE), icon_name = "bars",
                     note = if (nrow(df) > preview_rows) paste("The preview shows the first", format(preview_rows, big.mark = ",", scientific = FALSE))),
-      dft_stat_tile("Columns", format(ncol(df), big.mark = ",", scientific = FALSE), icon_name = "table-columns",
+      netsimr_stat_tile("Columns", format(ncol(df), big.mark = ",", scientific = FALSE), icon_name = "table-columns",
                     note = if (ncol(df) == 1) "Only one column: check the separator" else paste(length(numeric_columns()), "numeric"))
     )
   })
@@ -165,7 +164,7 @@ GLMFittingToolServer <- function(input, output, session) {
     validate(need(input$submit, "Import data to see a preview here."))
     df <- selected_data()
     validate(need(!is.null(df), "No data has been imported."))
-    dft_data_preview(df, preview_rows)
+    netsimr_data_preview(df, preview_rows)
   })
 
   ######################
@@ -504,7 +503,7 @@ GLMFittingToolServer <- function(input, output, session) {
 
   outdated_note <- function(then) {
     result <- fit_result()
-    dft_help(paste0("This model was fitted to '", result$import$source, "' (", format(nrow(result$data), big.mark = ",", scientific = FALSE),
+    netsimr_help(paste0("This model was fitted to '", result$import$source, "' (", format(nrow(result$data), big.mark = ",", scientific = FALSE),
                     " rows), imported before the data now on the Data tab ('", imported()$source, "', ",
                     format(nrow(selected_data()), big.mark = ",", scientific = FALSE), " rows). ", then))
   }
@@ -542,19 +541,19 @@ GLMFittingToolServer <- function(input, output, session) {
       if (model_outdated()) outdated_note("Click Fit model to fit it to the new data."),
       div(
         class = "dft-stats",
-        dft_stat_tile("Observations", format(facts$n, big.mark = ",", scientific = FALSE), icon_name = "hashtag",
+        netsimr_stat_tile("Observations", format(facts$n, big.mark = ",", scientific = FALSE), icon_name = "hashtag",
                       note = paste(c(
                         if (has_holdout(fit_result())) paste(format(sum(fit_result()$test), big.mark = ",", scientific = FALSE), "rows held out for testing"),
                         if (facts$dropped > 0) paste(format(facts$dropped, big.mark = ",", scientific = FALSE), "rows with missing values left out")
                       ), collapse = "; ")),
-        dft_stat_tile("Parameters", facts$parameters, icon_name = "list-ol"),
-        dft_stat_tile("AIC", dft_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE,
+        netsimr_stat_tile("Parameters", facts$parameters, icon_name = "list-ol"),
+        netsimr_stat_tile("AIC", netsimr_fmt(facts$aic, 7), icon_name = "scale-balanced", accent = TRUE,
                       note = if (!is.finite(facts$aic) && identical(model$family$family, "Tweedie")) {
                         "None for a Tweedie model: compare the test deviance on the Validation tab"
                       }),
-        dft_stat_tile("Deviance explained", if (is.finite(facts$deviance_explained)) paste0(dft_fmt(100 * facts$deviance_explained, 3), "%") else dft_dash,
+        netsimr_stat_tile("Deviance explained", if (is.finite(facts$deviance_explained)) paste0(netsimr_fmt(100 * facts$deviance_explained, 3), "%") else netsimr_dash,
                       icon_name = "chart-pie"),
-        dft_stat_tile(if (fixed) "Pearson dispersion" else "Dispersion", dft_fmt(if (fixed) pearson else dispersion, 4),
+        netsimr_stat_tile(if (fixed) "Pearson dispersion" else "Dispersion", netsimr_fmt(if (fixed) pearson else dispersion, 4),
                       icon_name = "wave-square",
                       note = if (fixed) {
                         if (is.finite(pearson) && pearson > 1.5) "Well above 1: the data is overdispersed" else "Pearson chi-squared / residual df"
@@ -581,16 +580,16 @@ GLMFittingToolServer <- function(input, output, session) {
       value <- function(column) if (present) table[name, column] else NA_real_
       cells <- list(
         name,
-        dft_fmt(estimates[[name]], 5),
-        dft_fmt(value(2), 4),
-        dft_fmt(value(3), 4),
-        tagList(if (present) format.pval(value(4), digits = 3, eps = 1e-4) else dft_dash, stars(value(4)))
+        netsimr_fmt(estimates[[name]], 5),
+        netsimr_fmt(value(2), 4),
+        netsimr_fmt(value(3), 4),
+        tagList(if (present) format.pval(value(4), digits = 3, eps = 1e-4) else netsimr_dash, stars(value(4)))
       )
-      if (!is.null(relativity_label)) cells <- c(cells, list(if (name == "(Intercept)") dft_dash else dft_fmt(exp(estimates[[name]]), 4)))
+      if (!is.null(relativity_label)) cells <- c(cells, list(if (name == "(Intercept)") netsimr_dash else netsimr_fmt(exp(estimates[[name]]), 4)))
       cells
     })
     statistic <- colnames(table)[3]
-    dft_html_table(
+    netsimr_html_table(
       c("Term", "Estimate", "Std. error", statistic, "p-value", relativity_label), rows,
       note = paste0(
         "Significance: *** 0.001, ** 0.01, * 0.05, . 0.1.",
@@ -685,7 +684,7 @@ GLMFittingToolServer <- function(input, output, session) {
                                       if (!identical(or_default(spec$holdout, "0"), "0")) {
                                         paste0(", ", names(glm_holdout_choices)[glm_holdout_choices == spec$holdout], " held out (seed ", spec$seed, ")")
                                       })),
-      div(class = "glm-slot-aic", paste("AIC", dft_fmt(stored$aic, 7)),
+      div(class = "glm-slot-aic", paste("AIC", netsimr_fmt(stored$aic, 7)),
           if (comparable && isTRUE(stored$aic < other$aic)) tags$span(class = "glm-better", " lower")),
       if (!is.null(other) && !comparable) div(class = "sim-muted", "Not comparable with the other model: different data, response, observations, weights or rows held out.")
     )
@@ -711,7 +710,7 @@ GLMFittingToolServer <- function(input, output, session) {
       downloadButton("download_data_with_predictions", "Data with predictions (CSV)", class = "btn-outline-glm"),
       downloadButton("download_relativities", "Rating factors (CSV)", class = "btn-outline-glm"),
       downloadButton("download_glm_report", "Report (HTML)", class = "btn-outline-glm"),
-      dft_help("The model refers to its data as model_data: to update() it in R, assign the data to ",
+      netsimr_help("The model refers to its data as model_data: to update() it in R, assign the data to ",
                "model_data first, or pass it to update() as data =. The predictions are added to the data ",
                "as the column prediction (model_prediction when the data has a column of that name). ",
                "The rating factors list the intercept, every level of each factor (its base level with a ",
@@ -819,14 +818,14 @@ GLMFittingToolServer <- function(input, output, session) {
     exposure <- model_exposure(result)$name
     div(
       class = "dft-stats",
-      dft_stat_tile(if (is.na(rates$relativity)) "Base prediction" else "Base rate", dft_fmt(rates$base_rate, 5),
+      netsimr_stat_tile(if (is.na(rates$relativity)) "Base prediction" else "Base rate", netsimr_fmt(rates$base_rate, 5),
                     icon_name = "tag", accent = TRUE,
                     note = paste0(if (!is.null(exposure) && rates$link == "log") paste0("Per unit of ", exposure, "; ") else "",
                                   "at the base value of every factor")),
-      dft_stat_tile("Rating factors", length(rates$factors), icon_name = "table-list",
+      netsimr_stat_tile("Rating factors", length(rates$factors), icon_name = "table-list",
                     note = if (rates$exact) "Every prediction is the base rate times the relativities" else
                       "Numbers with many values are shown at quantiles"),
-      dft_stat_tile("Scored", if (is.null(score)) dft_dash else format(score$predicted, big.mark = ",", scientific = FALSE), icon_name = "file-import",
+      netsimr_stat_tile("Scored", if (is.null(score)) netsimr_dash else format(score$predicted, big.mark = ",", scientific = FALSE), icon_name = "file-import",
                     note = if (is.null(score)) "Upload a file of policies to score it" else
                       paste("of", format(score$total, big.mark = ",", scientific = FALSE), "rows of", score$name))
     )
@@ -839,9 +838,9 @@ GLMFittingToolServer <- function(input, output, session) {
     vars <- setdiff(names(f), c("effect", "relativity", "base", "rows"))
     has_relativity <- !is.na(rates$relativity)
     rows <- lapply(seq_len(nrow(f)), function(i) {
-      c(lapply(vars, function(v) if (is.numeric(f[[v]])) dft_fmt(f[[v]][i], 6) else as.character(f[[v]][i])),
-        list(if (is.na(f$rows[i])) dft_dash else format(f$rows[i], big.mark = ",", scientific = FALSE), dft_fmt(f$effect[i], 4)),
-        if (has_relativity) list(dft_fmt(f$relativity[i], 4)))
+      c(lapply(vars, function(v) if (is.numeric(f[[v]])) netsimr_fmt(f[[v]][i], 6) else as.character(f[[v]][i])),
+        list(if (is.na(f$rows[i])) netsimr_dash else format(f$rows[i], big.mark = ",", scientific = FALSE), netsimr_fmt(f$effect[i], 4)),
+        if (has_relativity) list(netsimr_fmt(f$relativity[i], 4)))
     })
     base <- which(f$base)
     note <- c(
@@ -856,7 +855,7 @@ GLMFittingToolServer <- function(input, output, session) {
       },
       if (!isTRUE(attr(f, "exact"))) "The numbers are shown at quantiles: a value between two rows has a relativity between theirs."
     )
-    dft_html_table(c(vars, "Rows", "Effect", if (has_relativity) rate_label(rates)), rows,
+    netsimr_html_table(c(vars, "Rows", "Effect", if (has_relativity) rate_label(rates)), rows,
                    best = if (length(base)) base[1], best_label = "Base", note = paste(note, collapse = " "),
                    class = "dft-table-scroll")
   })
@@ -900,10 +899,10 @@ GLMFittingToolServer <- function(input, output, session) {
     if (is.null(model)) return(fail("fit a model on the Model tab first."))
     result <- tryCatch({
       dec <- or_default(input$csv_dec, ".")
-      df <- dft_read_data(file$datapath, header = !isFALSE(input$csv_header), sep = or_default(input$csv_sep, ","),
+      df <- netsimr_read_data(file$datapath, header = !isFALSE(input$csv_header), sep = or_default(input$csv_sep, ","),
                           quote = or_default(input$csv_quote, "\""), dec = dec)
       text_columns <- names(df)[vapply(df, is.character, logical(1))]
-      for (column in dft_numeric_columns(df[text_columns], dec)) df[[column]] <- dft_as_numeric(df[[column]], dec)
+      for (column in netsimr_numeric_columns(df[text_columns], dec)) df[[column]] <- netsimr_as_numeric(df[[column]], dec)
       if (nrow(df) == 0) stop("it has no rows")
       glm_score(model, df, response = fit_result()$spec$response)
     }, error = function(e) e)
@@ -919,10 +918,10 @@ GLMFittingToolServer <- function(input, output, session) {
 
   output$score_result <- renderUI({
     s <- scored()
-    if (is.null(s)) return(dft_help("The file needs the columns of the model's terms (and its offset); its other columns are kept."))
+    if (is.null(s)) return(netsimr_help("The file needs the columns of the model's terms (and its offset); its other columns are kept."))
     tagList(
       downloadButton("download_scored", "Scored data (CSV)", class = "btn-outline-glm"),
-      dft_help(paste0(format(s$predicted, big.mark = ",", scientific = FALSE), " of ", format(s$total, big.mark = ",", scientific = FALSE), " rows of ", s$name,
+      netsimr_help(paste0(format(s$predicted, big.mark = ",", scientific = FALSE), " of ", format(s$total, big.mark = ",", scientific = FALSE), " rows of ", s$name,
                       " scored, in the column ", s$column, ".",
                       if (s$unseen > 0) paste0(" ", format(s$unseen, big.mark = ",", scientific = FALSE), " with a level the model has not seen.") else "",
                       if (s$incomplete > 0) paste0(" ", format(s$incomplete, big.mark = ",", scientific = FALSE), " with a missing value.") else ""))
@@ -1040,7 +1039,7 @@ GLMFittingToolServer <- function(input, output, session) {
     tagList(
       if (model_outdated()) outdated_note("The chart is of that data; click Fit model to fit it to the new data."),
       if (isTRUE(dropped > 0)) {
-        dft_help(format(dropped, big.mark = ",", scientific = FALSE), if (dropped == 1) " row is" else " rows are",
+        netsimr_help(format(dropped, big.mark = ",", scientific = FALSE), if (dropped == 1) " row is" else " rows are",
                  " left out: the response, the prediction or the variable is missing.")
       }
     )
@@ -1053,11 +1052,11 @@ GLMFittingToolServer <- function(input, output, session) {
     validate(need(input$execute_visualization, "Choose a variable and click Draw chart."))
     plot_data <- fitness_data()
     labels <- fitness_labels()
-    dft_category_chart(
+    netsimr_category_chart(
       plot_data$band,
       bars = list(name = labels$bars, values = plot_data$exposure, colour = "band_bar", y2 = labels$bars),
       lines = list(list(name = "Actual", values = plot_data$actual, colour = "empirical"),
-                   list(name = "Predicted", values = plot_data$predicted, colour = dft_model_palette[2])),
+                   list(name = "Predicted", values = plot_data$predicted, colour = netsimr_palette[2])),
       x_title = labels$x, y_title = labels$y, dark = dark()
     )
   }, bg = "transparent", res = 96, alt = function() {
@@ -1117,20 +1116,20 @@ GLMFittingToolServer <- function(input, output, session) {
     training <- validation_measures(v, !v$test)
     test <- if (any(v$test)) validation_measures(v, v$test)
     both <- function(f) if (is.null(test)) f(training) else paste(f(training), "/", f(test))
-    fmt <- function(x, digits) if (is.finite(x)) dft_fmt(x, digits) else dft_dash
+    fmt <- function(x, digits) if (is.finite(x)) netsimr_fmt(x, digits) else netsimr_dash
     tagList(
       if (model_outdated()) outdated_note("Click Fit model to fit it to the new data."),
-      if (is.null(test)) dft_help("No rows were held out: the figures are of the rows the model was fitted to. ",
+      if (is.null(test)) netsimr_help("No rows were held out: the figures are of the rows the model was fitted to. ",
                                   "Hold out rows on the Model tab to see how it does on rows it has not seen."),
       div(
         class = "dft-stats",
-        dft_stat_tile(if (is.null(test)) "Training rows" else "Training / test rows",
+        netsimr_stat_tile(if (is.null(test)) "Training rows" else "Training / test rows",
                       both(function(m) format(m$rows, big.mark = ",", scientific = FALSE)), icon_name = "table-list"),
-        dft_stat_tile(if (is.null(test)) "Deviance per row" else "Deviance per row, training / test",
+        netsimr_stat_tile(if (is.null(test)) "Deviance per row" else "Deviance per row, training / test",
                       both(function(m) fmt(m$deviance, 4)), icon_name = "scale-balanced", accent = TRUE,
                       note = if (!is.null(test) && is.finite(test$deviance) && is.finite(training$deviance) &&
                                  test$deviance > 1.2 * training$deviance) "Much higher on the test rows: the model may be overfitted"),
-        dft_stat_tile(if (is.null(test)) "Gini" else "Gini, training / test", both(function(m) fmt(m$gini, 3)),
+        netsimr_stat_tile(if (is.null(test)) "Gini" else "Gini, training / test", both(function(m) fmt(m$gini, 3)),
                       icon_name = "chart-area", note = "How well the predictions rank the rows: 0 is no better than chance")
       )
     )
@@ -1151,7 +1150,7 @@ GLMFittingToolServer <- function(input, output, session) {
   }
 
   set_note <- function(set) {
-    if (identical(set$wanted, "test") && set$used != "test") dft_help("No rows were held out, so the chart is of the training rows.")
+    if (identical(set$wanted, "test") && set$used != "test") netsimr_help("No rows were held out, so the chart is of the training rows.")
   }
 
   lift_table <- reactive({
@@ -1167,11 +1166,11 @@ GLMFittingToolServer <- function(input, output, session) {
   output$lift_plot <- netsimr_render_plot({
     v <- validation_rows()
     table <- lift_table()
-    dft_category_chart(
+    netsimr_category_chart(
       as.character(table$band),
       bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
       lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
-                   list(name = "Predicted", values = table$predicted, colour = dft_model_palette[2])),
+                   list(name = "Predicted", values = table$predicted, colour = netsimr_palette[2])),
       x_title = paste0("Band of predicted rate, lowest to highest (", validation_label(validation_set()$used), ")"),
       y_title = validation_y_title(v), dark = dark()
     )
@@ -1180,7 +1179,7 @@ GLMFittingToolServer <- function(input, output, session) {
   output$lift_note <- renderUI({
     tagList(
       set_note(validation_set()),
-      dft_help("The rows are sorted by their predicted rate and cut into bands of about the same exposure. ",
+      netsimr_help("The rows are sorted by their predicted rate and cut into bands of about the same exposure. ",
                "A good model's actual line rises steeply from the first band to the last, and its predicted ",
                "line follows it.")
     )
@@ -1192,8 +1191,8 @@ GLMFittingToolServer <- function(input, output, session) {
     curve <- glm_gini_curve(v$actual[r], v$predicted[r], v$exposure[r], v$weight[r])
     validate(need(!is.null(curve), "No row has both the response and a prediction."))
     curve <- glm_thin_curve(curve)
-    dft_line_chart(
-      list(list(x = curve$x, y = curve$y, name = paste0("Model (Gini ", dft_fmt(curve$gini, 3), ")"), colour = dft_model_palette[2]),
+    netsimr_line_chart(
+      list(list(x = curve$x, y = curve$y, name = paste0("Model (Gini ", netsimr_fmt(curve$gini, 3), ")"), colour = netsimr_palette[2]),
            list(x = c(0, 1), y = c(0, 1), name = "No better than chance", colour = "muted", lwd = 1.4)),
       x_title = paste0("Share of exposure, lowest predicted rate first (", validation_label(validation_set()$used), ")"),
       y_title = paste("Share of", v$result$spec$response), dark = dark(), ylim = c(0, 1)
@@ -1226,12 +1225,12 @@ GLMFittingToolServer <- function(input, output, session) {
     v <- validation_rows()
     d <- double_lift()
     table <- d$table
-    dft_category_chart(
+    netsimr_category_chart(
       as.character(table$band),
       bars = list(name = validation_bar_name(v), values = table$exposure, colour = "band_bar", y2 = validation_bar_name(v)),
       lines = list(list(name = "Actual", values = table$actual, colour = "empirical"),
-                   list(name = "This model", values = table$predicted, colour = dft_model_palette[2]),
-                   list(name = d$name, values = table$other, colour = dft_model_palette[1])),
+                   list(name = "This model", values = table$predicted, colour = netsimr_palette[2]),
+                   list(name = d$name, values = table$other, colour = netsimr_palette[1])),
       x_title = paste0("Band of the ratio to ", d$name, " (", validation_label(validation_set()$used), ")"),
       y_title = validation_y_title(v), dark = dark()
     )
@@ -1240,7 +1239,7 @@ GLMFittingToolServer <- function(input, output, session) {
   output$double_lift_note <- renderUI({
     tagList(
       set_note(validation_set()),
-      dft_help("The rows are sorted by the ratio of this model's prediction to the stored model's, and cut into bands. ",
+      netsimr_help("The rows are sorted by the ratio of this model's prediction to the stored model's, and cut into bands. ",
                "Where the two disagree most, at either end, the model whose line is nearer the actual line is the better one.")
     )
   })
@@ -1283,8 +1282,8 @@ GLMFittingToolServer <- function(input, output, session) {
     s <- selection()
     req(identical(s$kind, "penalised"))
     path <- s$path
-    dft_line_chart(
-      list(list(x = path$log_lambda, y = path$cv_deviance, name = "Cross-validated deviance", colour = dft_model_palette[2]),
+    netsimr_line_chart(
+      list(list(x = path$log_lambda, y = path$cv_deviance, name = "Cross-validated deviance", colour = netsimr_palette[2]),
            list(x = path$log_lambda, y = path$upper, name = "One standard error", colour = "muted", lwd = 1),
            list(x = path$log_lambda, y = path$lower, name = "One standard error", colour = "muted", lwd = 1)),
       x_title = "log(lambda), the penalty: weaker to the left", y_title = "Deviance per row", dark = dark(),
@@ -1294,56 +1293,56 @@ GLMFittingToolServer <- function(input, output, session) {
 
   output$selection_result <- renderUI({
     s <- selection()
-    if (!is.null(s$error)) return(dft_help(s$error))
+    if (!is.null(s$error)) return(netsimr_help(s$error))
     if (identical(s$kind, "penalised")) return(penalised_result(s))
     with_test <- any(is.finite(s$path$test_deviance))
     best_test <- if (with_test) which.min(s$path$test_deviance)
     rows <- lapply(seq_len(nrow(s$path)), function(i) {
-      cells <- list(as.character(i - 1), s$path$change[i], dft_fmt(s$path$criterion[i], 7))
-      if (with_test) cells <- c(cells, list(dft_fmt(s$path$test_deviance[i], 5)))
+      cells <- list(as.character(i - 1), s$path$change[i], netsimr_fmt(s$path$criterion[i], 7))
+      if (with_test) cells <- c(cells, list(netsimr_fmt(s$path$test_deviance[i], 5)))
       cells
     })
     tagList(
-      dft_html_table(c("Step", "Change", s$criterion, if (with_test) "Test deviance per row"), rows,
+      netsimr_html_table(c("Step", "Change", s$criterion, if (with_test) "Test deviance per row"), rows,
                      best = best_test, best_label = "Lowest", align = c("left", "left", "right", "right")),
       div(class = "sim-section-label mt-2", "Suggested terms"),
       div(class = "glm-slot-formula", s$terms),
       actionButton("use_selection", "Use these terms", icon = icon("arrow-up"), class = "btn-outline-glm mt-1"),
-      dft_help(
+      netsimr_help(
         "Each step adds a column or drops a term, whichever lowers the ", s$criterion, " most, until none does. ",
         if (s$left_out > 0) paste0(format(s$left_out, big.mark = ",", scientific = FALSE), " rows with a candidate column missing were left out of the selection. "),
         if (with_test) "The test deviance is measured on the rows held out: if it rises at a step, that step fits noise. ",
         "Fit the suggested terms with Fit model, and check them on the Validation tab."
       ),
-      if (length(s$warnings) > 0) dft_help(paste("The fits warned:", paste(s$warnings, collapse = "; ")))
+      if (length(s$warnings) > 0) netsimr_help(paste("The fits warned:", paste(s$warnings, collapse = "; ")))
     )
   })
 
   penalised_result <- function(s) {
     with_test <- any(is.finite(s$summary$test_deviance))
     rows <- lapply(seq_len(nrow(s$summary)), function(i) {
-      cells <- list(s$summary$choice[i], dft_fmt(s$summary$lambda[i], 4), as.character(s$summary$terms[i]),
-                    dft_fmt(s$summary$cv_deviance[i], 5))
-      if (with_test) cells <- c(cells, list(dft_fmt(s$summary$test_deviance[i], 5)))
+      cells <- list(s$summary$choice[i], netsimr_fmt(s$summary$lambda[i], 4), as.character(s$summary$terms[i]),
+                    netsimr_fmt(s$summary$cv_deviance[i], 5))
+      if (with_test) cells <- c(cells, list(netsimr_fmt(s$summary$test_deviance[i], 5)))
       cells
     })
     name <- c(lasso = "lasso", elastic = "elastic net", ridge = "ridge regression")[[s$penalty]]
     tagList(
-      dft_html_table(c("Penalty", "lambda", "Terms", "CV deviance per row", if (with_test) "Test deviance per row"), rows,
+      netsimr_html_table(c("Penalty", "lambda", "Terms", "CV deviance per row", if (with_test) "Test deviance per row"), rows,
                      align = c("left", "right", "right", "right", "right")),
-      dft_plot_output("selection_plot", height = "320px"),
+      netsimr_plot_output("selection_plot", height = "320px"),
       div(class = "sim-section-label mt-2", "Suggested terms (within one standard error)"),
       div(class = "glm-slot-formula", s$terms),
       if (length(s$dropped) > 0) div(class = "sim-muted", paste("Dropped:", paste(s$dropped, collapse = ", "))),
       actionButton("use_selection", "Use these terms", icon = icon("arrow-up"), class = "btn-outline-glm mt-1"),
-      dft_help(paste0(
+      netsimr_help(paste0(
         "The ", name, " shrinks the coefficients towards zero by a penalty chosen by 5-fold cross-validation on the training rows",
         if (s$penalty != "ridge") ", and drops the terms whose coefficients reach zero" else "; ridge shrinks every term but drops none",
         ". The larger penalty within one standard error of the lowest cross-validated deviance keeps fewer terms. ",
         if (s$left_out > 0) paste0(format(s$left_out, big.mark = ",", scientific = FALSE), " rows with a column missing were left out. "),
         "Use the terms to fit an ordinary GLM, whose relativities and standard errors the Coefficients table gives."
       )),
-      if (length(s$warnings) > 0) dft_help(paste("The fit warned:", paste(unique(s$warnings), collapse = "; ")))
+      if (length(s$warnings) > 0) netsimr_help(paste("The fit warned:", paste(unique(s$warnings), collapse = "; ")))
     )
   }
 

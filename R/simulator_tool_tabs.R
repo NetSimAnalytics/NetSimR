@@ -90,7 +90,6 @@ sim_tab_fmt_pct <- function(p, digits = 1) {
 #'   "Poisson (lamda = 5) / Log-Normal (mu = 8, sigma = 1.5), EEL Limited Layer 200,000 xs 50,000, AL none".
 #' @noRd
 sim_tab_describe_settings <- function(s) {
-  is_number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
   #values too large for a readable fixed format (e.g. 1e308) use the report's scientific
   #format, "1.000e+308", instead of printing hundreds of digits
   huge <- function(x) is.finite(x) & abs(x) >= 1e15
@@ -466,241 +465,6 @@ sim_tab_return_period_plot <- function(entries, names, dark = FALSE) {
 
 # ---------------------------------------------------------------- styles and scripts
 
-#' Styles shared by the Report and Compare tabs
-#'
-#' The colours come from the --sim-* variables of the app, so both themes match.
-#' @noRd
-sim_tab_css <- "
-.sim-tab-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin: 0.25rem 0 1rem 0;
-}
-
-.sim-tab-header .shiny-html-output:empty {
-  display: none;
-}
-
-/* ---------- empty states ---------- */
-.sim-empty-card .card-body {
-  text-align: center;
-  padding: 3rem 1.5rem;
-}
-
-.sim-empty-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  margin: 0 auto 1rem auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--sim-accent-soft);
-  color: var(--sim-accent-text);
-  font-size: 22px;
-}
-
-.sim-empty-title {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--sim-heading);
-}
-
-.sim-empty-text {
-  color: var(--sim-muted);
-  max-width: 520px;
-  margin: 0.35rem auto 1rem auto;
-}
-
-.sim-empty-card .sim-run-desc {
-  margin: 0 auto 1rem auto;
-  max-width: 520px;
-}
-
-/* ---------- report frame ---------- */
-.sim-report-frame-wrap {
-  border: 1px solid var(--sim-border);
-  border-radius: var(--sim-radius);
-  box-shadow: var(--sim-shadow);
-  background: var(--sim-card-bg);
-  overflow: hidden;
-}
-
-.sim-report-frame {
-  display: block;
-  width: 100%;
-  min-height: 480px;
-  border: 0;
-  background: transparent;
-}
-
-.sim-report-building {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  min-height: 200px;
-  color: var(--sim-muted);
-  border: 1px dashed var(--sim-border-strong);
-  border-radius: var(--sim-radius);
-}
-
-/* ---------- compare: stored runs ---------- */
-.sim-run-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.sim-run-item {
-  border: 1px solid var(--sim-border);
-  border-radius: 12px;
-  padding: 0.7rem 0.8rem;
-  background: var(--sim-card-bg);
-}
-
-.sim-run-item-top {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.sim-run-item .shiny-input-container,
-.sim-run-item .bslib-input-switch {
-  margin-bottom: 0;
-  width: auto;
-}
-
-.sim-run-item .sim-run-name-input {
-  flex: 1 1 120px;
-  min-width: 0;
-}
-
-.sim-run-item .sim-run-name-input .form-control {
-  padding: 0.3rem 0.6rem;
-  font-weight: 600;
-}
-
-.sim-run-item .form-switch .form-check-label {
-  font-size: 0.8rem;
-}
-
-.sim-run-id {
-  flex: 0 0 auto;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--sim-accent-text);
-  background: var(--sim-accent-soft);
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-}
-
-.sim-run-remove {
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: var(--sim-muted);
-  border-color: var(--sim-border-strong);
-  padding: 0.2rem 0.5rem;
-}
-
-.sim-run-remove:hover {
-  color: #ffffff;
-  background: #dc2626;
-  border-color: #dc2626;
-}
-
-.sim-run-desc {
-  font-size: 0.8rem;
-  font-weight: 400;
-  color: var(--sim-muted);
-  margin-top: 0.35rem;
-  line-height: 1.35;
-}
-
-.sim-run-list-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 0.75rem;
-}
-
-/* ---------- compare: table and chart ---------- */
-.sim-compare-main {
-  display: grid;
-  gap: 1rem;
-}
-
-.sim-compare-table-wrap {
-  overflow-x: auto;
-}
-
-.sim-compare-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.sim-compare-table th,
-.sim-compare-table td {
-  padding: 0.55rem 0.75rem;
-  border-bottom: 1px solid var(--sim-border);
-  text-align: right;
-  vertical-align: bottom;
-}
-
-.sim-compare-table th {
-  color: var(--sim-heading);
-  font-weight: 700;
-  min-width: 140px;
-}
-
-.sim-compare-table th:first-child,
-.sim-compare-table td:first-child {
-  text-align: left;
-  min-width: 0;
-}
-
-.sim-compare-table td {
-  font-variant-numeric: tabular-nums;
-}
-
-.sim-compare-table td:first-child {
-  color: var(--sim-label);
-  font-weight: 600;
-  /* labels such as 'Chance the layers are hit' stay on one line; the table scrolls instead */
-  white-space: nowrap;
-}
-
-.sim-compare-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.sim-compare-table .sim-run-desc {
-  font-size: 0.75rem;
-}
-
-.sim-compare-chart .shiny-output-error-validation {
-  color: var(--sim-muted);
-  padding: 2rem 1rem;
-  text-align: center;
-}
-
-.sim-compare-note {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  font-size: 0.85rem;
-  color: var(--sim-muted);
-  padding: 0.65rem 0.8rem;
-  border: 1px dashed var(--sim-border-strong);
-  border-radius: 10px;
-}
-"
-
 #' Script that sizes the in-app report frame and keeps its theme in step with the app
 #'
 #' The report is shown in a srcdoc iframe, which is same-origin, so the frame document
@@ -801,35 +565,6 @@ sim_report_frame_js <- "
 })();
 "
 
-#' Script that tells the compare module which theme the app is showing
-#'
-#' The chart is drawn on the server with colours for that theme, on a transparent
-#' background, and redrawn when the theme changes.
-#' @param input_id The namespaced id of the theme input.
-#' @noRd
-sim_compare_theme_js <- function(input_id) {
-  paste0("
-(function () {
-  var inputId = '", input_id, "';
-  function send() {
-    if (!window.Shiny || !window.Shiny.setInputValue) return;
-    var theme = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
-    window.Shiny.setInputValue(inputId, theme);
-  }
-  if (window.jQuery) {
-    window.jQuery(document).on('shiny:connected shiny:sessioninitialized', send);
-  }
-  if (window.MutationObserver) {
-    new MutationObserver(send).observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-bs-theme']
-    });
-  }
-  send();
-})();
-")
-}
-
 #' Prepare a report file for display inside the app
 #'
 #' Reads the HTML written by write_simulation_report and adds, at the end of its head,
@@ -871,7 +606,7 @@ sim_report_tab_ui <- function(id) {
     title = "Report",
     value = "report",
     icon = icon("file-lines"),
-    shiny::singleton(tags$head(tags$style(HTML(sim_tab_css)))),
+    shiny::singleton(tags$head(tags$style(HTML(netsimr_css("simulator-tabs"))))),
     tags$script(HTML(sim_report_frame_js)),
     div(
       class = "sim-tab-header",
@@ -1026,8 +761,8 @@ sim_compare_tab_ui <- function(id) {
     title = "Compare",
     value = "compare",
     icon = icon("scale-balanced"),
-    shiny::singleton(tags$head(tags$style(HTML(sim_tab_css)))),
-    tags$script(HTML(sim_compare_theme_js(ns("app_theme")))),
+    shiny::singleton(tags$head(tags$style(HTML(netsimr_css("simulator-tabs"))))),
+    tags$script(HTML(netsimr_theme_input_js(ns("app_theme")))),
     div(
       class = "sim-tab-header",
       div(
@@ -1043,7 +778,7 @@ sim_compare_tab_ui <- function(id) {
         col_widths = bslib::breakpoints(sm = 12, lg = c(4, 8), xxl = c(3, 9)),
 
         bslib::card(
-          sim_card_header("list-check", "Stored runs", "Tick the runs to compare, rename or remove them."),
+          netsimr_card_header("list-check", "Stored runs", "Tick the runs to compare, rename or remove them."),
           bslib::card_body(
             uiOutput(ns("run_list")),
             div(
@@ -1056,11 +791,11 @@ sim_compare_tab_ui <- function(id) {
         div(
           class = "sim-compare-main",
           bslib::card(
-            sim_card_header("table-list", "Metrics side by side", "One column per included run."),
+            netsimr_card_header("table-list", "Metrics side by side", "One column per included run."),
             bslib::card_body(div(class = "sim-compare-table-wrap", uiOutput(ns("metrics_table"))))
           ),
           bslib::card(
-            sim_card_header("chart-line", "Losses by return period",
+            netsimr_card_header("chart-line", "Losses by return period",
                             "Loss exceeded once in the given number of periods, up to a tenth of the smallest run."),
             bslib::card_body(
               div(class = "sim-compare-chart", plotOutput(ns("return_period_chart"), height = "400px"))
@@ -1262,7 +997,7 @@ sim_compare_tab_server <- function(id, last_run, max_runs = 6, default_included 
               div(
                 class = "sim-run-name-input",
                 #the label is read out but not shown; the placeholder shows the default name
-                sim_hidden_label(textInput(ns(paste0("name_", entry$id)), label = paste("Name of run", entry$id),
+                netsimr_hidden_label(textInput(ns(paste0("name_", entry$id)), label = paste("Name of run", entry$id),
                                            value = isolate(state$name[[key]]), placeholder = entry$name))
               ),
               tags$button(
@@ -1294,7 +1029,7 @@ sim_compare_tab_server <- function(id, last_run, max_runs = 6, default_included 
     })
 
     #drawn in base graphics on a transparent background, in the colours of the app theme;
-    #the theme input (see sim_compare_theme_js) makes it redraw when the theme changes, and
+    #the theme input (see netsimr_theme_input_js) makes it redraw when the theme changes, and
     #netsimr_render_plot (R/plot_device.R) redraws it on resize with a device that draws the
     #semi-transparent text and gridlines of the dark theme properly on Windows
     output$return_period_chart <- netsimr_render_plot({

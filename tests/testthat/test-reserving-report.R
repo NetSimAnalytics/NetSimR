@@ -29,7 +29,7 @@ test_that("the report holds the figures of the tool, with the bootstrap once it 
                       "More methods", "Paid and incurred", "Tail factors compared")) {
       expect_match(html, section, fixed = TRUE)
     }
-    expect_match(html, rsv_amount(cl()$total[["ibnr"]]), fixed = TRUE)
+    expect_match(html, netsimr_amount(cl()$total[["ibnr"]]), fixed = TRUE)
     expect_match(html, "The bootstrap was not run", fixed = TRUE)
     #every chart in both themes
     expect_equal(lengths(regmatches(html, gregexpr("class=\"chart-light\"", html))),
@@ -37,6 +37,6 @@ test_that("the report holds the figures of the tool, with the bootstrap once it 
     session$setInputs(boot_n = 500, boot_seed = 1, boot_tail = TRUE, boot_process = "gamma", run_bootstrap = 1)
     html <- paste(readLines(output$download_report, warn = FALSE), collapse = "\n")
     expect_match(html, "Distribution of the total IBNR", fixed = TRUE)
-    expect_match(html, rsv_amount(current_boot()$total[["p99.5"]]), fixed = TRUE)
+    expect_match(html, netsimr_amount(current_boot()$total[["p99.5"]]), fixed = TRUE)
   })
 })

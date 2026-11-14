@@ -29,21 +29,6 @@ run_shiny_glm_fitting_tool <- function(){
   shinyApp(ui = GLMFittingToolUI, server = GLMFittingToolServer, onStart = shiny_tool_on_start)
 }
 
-# Maximum upload size (in bytes) accepted by the file inputs of the GLM and
-# distribution fitting tools. Shiny's default is 5 MB, which is too small for
-# claims datasets; 64 GB was the limit introduced in version 0.1.5 and is kept
-# so that no previously accepted file is rejected. In practice the available
-# memory limits what read.csv() can load, not this setting.
-shiny_tool_max_request_size <- 64 * 1024^3
-
-# onStart hook shared by the GLM and distribution fitting tools: raises the
-# upload limit only while the app runs and restores the user's option when it
-# stops, so that loading the package does not change the R session.
-shiny_tool_on_start <- function() {
-  old_options <- options(shiny.maxRequestSize = shiny_tool_max_request_size)
-  onStop(function() options(old_options))
-}
-
 # Inputs of the GLM fitting tool that its settings file keeps, with how each is
 # restored. Passwords and uploaded files are never kept; "column" inputs refer
 # to columns of the data and are applied once data with that column is imported.
@@ -334,7 +319,7 @@ glm_band_labels <- function(breaks, whole = FALSE) {
   } else {
     digits <- 2
     while (digits < 15 && anyDuplicated(signif(breaks, digits))) digits <- digits + 1
-    edges <- dft_fmt(breaks, digits)
+    edges <- netsimr_fmt(breaks, digits)
     labels <- paste0(edges[-(n + 1)], separator, edges[-1])
   }
   if (anyDuplicated(labels)) NULL else labels
@@ -344,7 +329,7 @@ glm_band_labels <- function(breaks, whole = FALSE) {
 # with thousands separators ("25,000" rather than "25000"); the values as they
 # are when two would look the same.
 glm_value_labels <- function(values) {
-  labels <- dft_fmt(values, 15)
+  labels <- netsimr_fmt(values, 15)
   if (anyDuplicated(labels)) as.character(values) else labels
 }
 

@@ -2,52 +2,6 @@
 #Report of the distribution fitting tool
 ##############
 
-# The text of a cell of the tool's tables: a string, or tags such as a parameter's name
-# with its value.
-dft_cell_text <- function(cell) {
-  if (is.null(cell)) return("")
-  if (inherits(cell, "shiny.tag")) return(dft_cell_text(cell$children))
-  if (is.list(cell)) return(paste(Filter(nzchar, vapply(cell, dft_cell_text, character(1))), collapse = " "))
-  paste(as.character(cell), collapse = " ")
-}
-
-# A table of a tool as a table of the report. `t` holds the arguments of dft_html_table()
-# or rsv_table(): the header, the rows and, optionally, a total row, the best row with its
-# label, and a note (one string or several). The best row is named at the start of the note.
-dft_report_table <- function(t, title = NULL, text_cols = 1) {
-  cells <- lapply(c(t$rows, if (!is.null(t$total)) list(t$total)),
-                  function(row) vapply(row, dft_cell_text, character(1), USE.NAMES = FALSE))
-  df <- as.data.frame(do.call(rbind, cells), stringsAsFactors = FALSE)
-  names(df) <- gsub("\n", " ", t$header, fixed = TRUE)
-  note <- t$note[nzchar(t$note)]
-  if (!is.null(t$best)) {
-    label <- if (is.null(t$best_label)) "Best fit" else t$best_label
-    note <- c(paste0(label, ": ", df[t$best, 1], "."), note)
-  }
-  netsimr_report_table(df, text_cols, title, if (length(note) > 0) paste(note, collapse = " "))
-}
-
-# The charts of a section of a report, each a list with a `draw` function of the theme, an
-# `alt` text, a `title`, a `note` and, optionally, `wide = TRUE`: the charts marked wide
-# across the page, then the rest side by side in pairs; with an odd number of those, the
-# first of them across the page too.
-dft_report_chart_rows <- function(charts) {
-  chart <- function(f, wide = TRUE) {
-    netsimr_report_chart(f$draw, f$alt, title = f$title, note = f$note, height = if (wide) 4.2 else 4,
-                         width = if (wide) 9 else 6.5)
-  }
-  charts <- Filter(Negate(is.null), charts)
-  wide <- vapply(charts, function(f) isTRUE(f$wide), logical(1))
-  odd <- sum(!wide) %% 2 == 1
-  first <- lapply(c(charts[wide], if (odd) charts[!wide][1]), chart)
-  rest <- charts[!wide]
-  if (odd) rest <- rest[-1]
-  pairs <- lapply(seq_len(length(rest) / 2), function(i) {
-    div(class = "two-col", chart(rest[[2 * i - 1]], wide = FALSE), chart(rest[[2 * i]], wide = FALSE))
-  })
-  tagList(first, pairs)
-}
-
 #' Writes the report of the distribution fitting tool
 #'
 #' @description An HTML page with the fits of each analysis that has been run: its
@@ -58,7 +12,7 @@ dft_report_chart_rows <- function(charts) {
 #'   \code{severity}, \code{sliced} and \code{piecewise}; \code{NULL} otherwise), a list
 #'   with its \code{settings} (labels and values), a \code{headline} (a \code{label}, a
 #'   \code{value} and a \code{note}) for the key results, its \code{tiles}, its
-#'   \code{table} (the arguments of \code{dft_html_table()}, with the columns of text in
+#'   \code{table} (the arguments of \code{netsimr_html_table()}, with the columns of text in
 #'   \code{text_cols}) and its \code{charts}, each a list with a \code{draw} function of
 #'   the theme (\code{TRUE} for dark), an \code{alt} text, a \code{title}, a
 #'   \code{note} and, optionally, \code{wide = TRUE} to draw it across the page. The
@@ -75,7 +29,7 @@ write_distribution_report <- function(file, r, generated = Sys.time()) {
   headlines <- lapply(unname(r[names(parts)]), function(a) a$headline)
   headlines <- Filter(Negate(is.null), headlines)
   tiles <- c(
-    list(Data = list(value = if (is.null(r$rows)) dft_dash else paste(count(r$rows), "rows"), note = r$source)),
+    list(Data = list(value = if (is.null(r$rows)) netsimr_dash else paste(count(r$rows), "rows"), note = r$source)),
     stats::setNames(lapply(headlines, function(h) list(value = h$value, note = h$note)),
                     vapply(headlines, function(h) h$label, character(1)))
   )
@@ -102,10 +56,10 @@ write_distribution_report <- function(file, r, generated = Sys.time()) {
     list(id = part, title = parts[[part]], content = tagList(
       tags$p(class = "section-intro", intros[[part]]),
       if (length(a$tiles) > 0) netsimr_report_tiles(a$tiles),
-      dft_report_table(a$table, "Fitted distributions", if (is.null(a$text_cols)) 1 else a$text_cols),
-      dft_report_chart_rows(a$charts),
-      if (!is.null(a$cte)) dft_report_table(a$cte, "Conditional tail expectations"),
-      if (!is.null(a$hill)) dft_report_chart_rows(list(c(a$hill, wide = TRUE)))
+      netsimr_report_html_table(a$table, "Fitted distributions", if (is.null(a$text_cols)) 1 else a$text_cols),
+      netsimr_report_chart_rows(a$charts),
+      if (!is.null(a$cte)) netsimr_report_html_table(a$cte, "Conditional tail expectations"),
+      if (!is.null(a$hill)) netsimr_report_chart_rows(list(c(a$hill, wide = TRUE)))
     ))
   })
 

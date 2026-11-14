@@ -85,7 +85,7 @@ pfo_correlation_matrix <- function(k, upper) {
 pfo_upload_lines <- function(df, columns, dec = ".") {
   columns <- intersect(columns, names(df))
   if (length(columns) < 2) stop("Choose at least two columns, one per line.", call. = FALSE)
-  values <- lapply(columns, function(column) dft_as_numeric(df[[column]], dec))
+  values <- lapply(columns, function(column) netsimr_as_numeric(df[[column]], dec))
   bad <- columns[vapply(values, function(v) anyNA(v) || any(!is.finite(v)), logical(1))]
   if (length(bad) > 0) {
     stop("Every row needs a loss in each line's column: ", paste0("'", bad, "'", collapse = ", "),
@@ -101,10 +101,10 @@ pfo_capital_chart <- function(summary, level, dark = FALSE) {
   colours <- pfo_chart_colours(dark)
   lines <- summary[summary$line != "total", ]
   label <- paste0(format(100 * level), "%")
-  dft_category_chart(lines$line, bars = list(name = paste("Value at risk on its own,", label), values = lines$var,
+  netsimr_category_chart(lines$line, bars = list(name = paste("Value at risk on its own,", label), values = lines$var,
                                              colour = colours$accent_soft),
                      lines = list(list(name = paste("Allocated capital (co-TVaR),", label), values = lines$capital,
-                                       colour = dft_model_palette[1])),
+                                       colour = netsimr_palette[1])),
                      x_title = "Line", y_title = "Amount", dark = dark)
 }
 
@@ -113,12 +113,12 @@ pfo_capital_chart <- function(summary, level, dark = FALSE) {
 pfo_total_chart <- function(total, var, tvar, dark = FALSE) {
   colours <- pfo_chart_colours(dark)
   h <- graphics::hist(total, breaks = 80, plot = FALSE)
-  dft_histogram_chart(h$breaks, h$counts, "Total annual loss", "Simulations", dark)
+  netsimr_histogram_chart(h$breaks, h$counts, "Total annual loss", "Simulations", dark)
   graphics::abline(v = mean(total), col = colours$muted, lty = 2, lwd = 1.5)
   graphics::abline(v = c(var, tvar), col = colours$var, lty = c(2, 3), lwd = 1.8)
-  graphics::legend("topright", bty = "n", cex = 0.8, text.col = dft_plot_colours(dark)$font, lty = c(2, 2, 3), lwd = 1.8,
+  graphics::legend("topright", bty = "n", cex = 0.8, text.col = netsimr_plot_colours(dark)$font, lty = c(2, 2, 3), lwd = 1.8,
                    col = c(colours$muted, colours$var, colours$var),
-                   legend = c(paste("Mean", rsv_amount(mean(total))), paste("VaR", rsv_amount(var)), paste("TVaR", rsv_amount(tvar))))
+                   legend = c(paste("Mean", netsimr_amount(mean(total))), paste("VaR", netsimr_amount(var)), paste("TVaR", netsimr_amount(tvar))))
   invisible(NULL)
 }
 
@@ -131,7 +131,7 @@ pfo_rank_chart <- function(x, y, x_name, y_name, dark = FALSE) {
   u <- (rank(x, ties.method = "random") - 0.5) / n
   v <- (rank(y, ties.method = "random") - 0.5) / n
   shown <- if (n > 5000) round(seq(1, n, length.out = 5000)) else seq_len(n)
-  dft_plot_frame(c(0, 1), c(0, 1), paste("Rank of", x_name), paste("Rank of", y_name), dark)
+  netsimr_plot_frame(c(0, 1), c(0, 1), paste("Rank of", x_name), paste("Rank of", y_name), dark)
   graphics::points(u[shown], v[shown], pch = 16, cex = 0.45, col = colours$points)
   graphics::rect(0.95, 0.95, 1, 1, border = colours$var, lwd = 1.2)
   invisible(NULL)

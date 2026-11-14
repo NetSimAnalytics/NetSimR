@@ -1,0 +1,163 @@
+/* The reinsurance pricing tool's styles, after tools.css and analysis.css: its rose accent and
+   the parts only it has. */
+
+:root, [data-bs-theme='light'] {
+  --dft-accent: #e11d48;
+  --dft-accent-strong: #be123c;
+  --dft-accent-shadow: rgba(225, 29, 72, 0.26);
+  --sim-accent-soft: #fff1f2;
+  --sim-accent-text: #be123c;
+  --dft-row-hover: #fff5f6;
+  /* white text on the slider's value: the darker rose in both themes */
+  --dft-slider-value: #be123c;
+}
+
+[data-bs-theme='dark'] {
+  --dft-accent: #fb7185;
+  --dft-accent-strong: #f43f5e;
+  --dft-accent-shadow: rgba(251, 113, 133, 0.28);
+  --sim-accent-soft: rgba(251, 113, 133, 0.16);
+  --sim-accent-text: #fda4af;
+  --dft-row-hover: rgba(251, 113, 133, 0.08);
+  --dft-slider-value: #be123c;
+  --bs-link-color: #fda4af;
+  --bs-link-color-rgb: 253, 164, 175;
+  --bs-link-hover-color: #fecdd3;
+  --bs-link-hover-color-rgb: 254, 205, 211;
+}
+
+/* ---------- Accent ---------- */
+.navbar {
+  background: linear-gradient(90deg, #4c0519 0%, #881337 100%) !important;
+}
+
+.sim-brand-mark {
+  background: linear-gradient(135deg, #fb7185, #be123c);
+  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.35);
+}
+
+.theme-btn.active,
+.sim-hero .btn-light {
+  color: #4c0519;
+}
+
+.theme-btn:focus-visible,
+.pill-radio .radio-inline:has(input:focus-visible) {
+  outline-color: #fda4af !important;
+}
+
+.form-control:focus, .form-select:focus, .selectize-input.focus,
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(225, 29, 72, 0.18) !important;
+}
+
+/* white on the button: the darker roses, as white on the lighter ones is under 4.5:1 */
+.btn-run {
+  background: linear-gradient(135deg, #be123c, #9f1239);
+}
+
+.btn-run:hover, .btn-run:focus {
+  background: linear-gradient(135deg, #9f1239, #881337);
+}
+
+.sim-hero {
+  background:
+    radial-gradient(circle at 85% 20%, rgba(251, 113, 133, 0.34), transparent 45%),
+    linear-gradient(135deg, #4c0519 0%, #881337 55%, #be123c 130%);
+}
+
+.sim-hero-eyebrow {
+  color: #fda4af;
+}
+
+.btn-outline-xlp {
+  border: 1px solid var(--sim-border-strong);
+  background: var(--sim-input-bg);
+  color: var(--sim-label);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.btn-outline-xlp:hover, .btn-outline-xlp:focus {
+  border-color: var(--dft-accent);
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+}
+
+.xlp-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+/* a settings column of two or three cards, one above the other */
+.xlp-settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.xlp-settings-stack > .card {
+  margin-bottom: 0;
+}
+
+/* ---------- Inputs by year ---------- */
+/* the grid scrolls sideways on a narrow screen; positioned, so that the inputs' hidden
+   labels (absolutely positioned) scroll with it instead of widening the page */
+.xlp-year-wrap {
+  overflow-x: auto;
+  position: relative;
+}
+
+.xlp-year-grid {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, auto) minmax(9rem, 1.4fr) minmax(6rem, 0.8fr) minmax(6rem, 0.8fr) minmax(4.5rem, auto);
+  gap: 0.45rem 0.75rem;
+  align-items: center;
+  min-width: 480px;
+}
+
+.xlp-year-grid .shiny-input-container {
+  margin-bottom: 0 !important;
+  width: 100% !important;
+}
+
+.xlp-year-grid .form-check {
+  margin-bottom: 0;
+}
+
+.xlp-year-head {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sim-muted);
+}
+
+.xlp-year-name {
+  font-weight: 700;
+  color: var(--sim-heading);
+}
+
+/* a programme of the Programmes tab: its cells are the grid's own on a wide screen */
+.xlp-prog-row {
+  display: contents;
+}
+
+.xlp-year-grid .form-control {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.dft-table tr.xlp-total td {
+  font-weight: 800;
+  border-top: 1px solid var(--sim-border-strong);
+  background: var(--sim-accent-soft);
+}
+
+.dft-table tr.xlp-excluded td {
+  color: var(--sim-muted);
+}

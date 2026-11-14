@@ -202,7 +202,7 @@ test_that("GLM fitting tool fits the same model as glm()", {
     expect_match(output$model_stats$html, "AIC")
     #the stored model keeps the AIC of the model it was fitted with
     session$setInputs(save_formula_1 = 1)
-    expect_match(output$aic_output_1$html, dft_fmt(AIC(reference), 7), fixed = TRUE)
+    expect_match(output$aic_output_1$html, netsimr_fmt(AIC(reference), 7), fixed = TRUE)
     session$setInputs(visualize_variable = "x1", number_of_bands_input = 10, execute_visualization = 1)
     expect_chart(output$fitness_plot)
     session$setInputs(app_theme = "dark")

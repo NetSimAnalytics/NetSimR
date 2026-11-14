@@ -14,7 +14,6 @@
 #' @import shiny
 reserving_tool_Server <- function(input, output, session) {
 
-  or_default <- function(x, default) if (is.null(x)) default else x
 
   # the charts are drawn in the colours of the theme the page reports
   dark <- reactive(identical(input$app_theme, "dark"))
@@ -35,7 +34,7 @@ reserving_tool_Server <- function(input, output, session) {
     validate(need(input$file1, "Upload a data file, or choose an example."))
     read_error <- NULL
     df <- tryCatch(
-      dft_read_data(input$file1$datapath, header = isTRUE(input$data_includes_header), sep = or_default(input$sep, ","),
+      netsimr_read_data(input$file1$datapath, header = isTRUE(input$data_includes_header), sep = or_default(input$sep, ","),
                     quote = or_default(input$quote, "\""), dec = or_default(input$dec, ".")),
       error = function(e) {
         read_error <<- conditionMessage(e)
@@ -52,7 +51,7 @@ reserving_tool_Server <- function(input, output, session) {
   observeEvent(upload_data(), {
     df <- upload_data()
     columns <- names(df)
-    numbers <- dft_numeric_columns(df, or_default(input$dec, "."))
+    numbers <- netsimr_numeric_columns(df, or_default(input$dec, "."))
     # a column named in a loaded settings file, then the one the user chose, then a guess
     wanted <- loaded_columns
     keep <- function(id, guess) {
@@ -60,14 +59,14 @@ reserving_tool_Server <- function(input, output, session) {
       current <- input[[id]]
       if (!is.null(current) && current %in% columns) current else guess
     }
-    origin <- keep("origin_col", or_default(rsv_guess_column(columns, "origin|accident|underwriting|year|period|cohort|uwy|ay"), columns[1]))
-    development <- keep("development_col", or_default(rsv_guess_column(numbers, "dev|age|lag|delay|month", origin),
+    origin <- keep("origin_col", or_default(netsimr_guess_column(columns, "origin|accident|underwriting|year|period|cohort|uwy|ay"), columns[1]))
+    development <- keep("development_col", or_default(netsimr_guess_column(numbers, "dev|age|lag|delay|month", origin),
                                                       setdiff(numbers, origin)[1]))
-    value <- keep("value_col", or_default(rsv_guess_column(numbers, "paid|incurred|amount|claim|loss|value|cost", c(origin, development)),
+    value <- keep("value_col", or_default(netsimr_guess_column(numbers, "paid|incurred|amount|claim|loss|value|cost", c(origin, development)),
                                           setdiff(numbers, c(origin, development))[1]))
-    premium_guess <- or_default(rsv_guess_column(numbers, "prem|exposure|epi", c(origin, development, value)), "none")
+    premium_guess <- or_default(netsimr_guess_column(numbers, "prem|exposure|epi", c(origin, development, value)), "none")
     premium <- keep("premium_col", premium_guess)
-    incurred <- keep("incurred_col", or_default(rsv_guess_column(numbers, "incurred|reported", c(origin, development, value, premium)),
+    incurred <- keep("incurred_col", or_default(netsimr_guess_column(numbers, "incurred|reported", c(origin, development, value, premium)),
                                                 "none"))
     updateSelectizeInput(session, "origin_col", choices = columns, selected = origin)
     updateSelectizeInput(session, "development_col", choices = columns, selected = development)
@@ -107,13 +106,13 @@ reserving_tool_Server <- function(input, output, session) {
     premium <- data_premium()
     div(
       class = "dft-stats",
-      dft_stat_tile("Source", div(class = "dft-file-name", data_input()$source), icon_name = "file-lines",
+      netsimr_stat_tile("Source", div(class = "dft-file-name", data_input()$source), icon_name = "file-lines",
                     note = if (!is.null(data_input()$incurred)) "With incurred claims"),
-      dft_stat_tile("Origins", format(nrow(tri), big.mark = ",", scientific = FALSE), icon_name = "calendar",
+      netsimr_stat_tile("Origins", format(nrow(tri), big.mark = ",", scientific = FALSE), icon_name = "calendar",
                     note = paste(rownames(tri)[1], "to", rownames(tri)[nrow(tri)])),
-      dft_stat_tile("Development periods", format(ncol(tri), big.mark = ",", scientific = FALSE), icon_name = "arrow-right"),
-      dft_stat_tile("Latest diagonal", rsv_amount(sum(latest)), icon_name = "layer-group"),
-      dft_stat_tile("Premium", if (all(is.na(premium))) "None" else rsv_amount(sum(premium, na.rm = TRUE)), icon_name = "coins",
+      netsimr_stat_tile("Development periods", format(ncol(tri), big.mark = ",", scientific = FALSE), icon_name = "arrow-right"),
+      netsimr_stat_tile("Latest diagonal", netsimr_amount(sum(latest)), icon_name = "layer-group"),
+      netsimr_stat_tile("Premium", if (all(is.na(premium))) "None" else netsimr_amount(sum(premium, na.rm = TRUE)), icon_name = "coins",
                     note = if (any(is.na(premium)) && !all(is.na(premium))) "Some origins have none")
     )
   })
@@ -121,7 +120,7 @@ reserving_tool_Server <- function(input, output, session) {
   output$triangle_table <- renderUI(rsv_triangle_table(triangle(), note = data_input()$description))
   output$incremental_table <- renderUI(rsv_triangle_table(rsv_increments(triangle()),
                                                           note = "Each period's claims: the change in the cumulative claims."))
-  output$data_table <- renderUI(dft_data_preview(data_input()$data, 100))
+  output$data_table <- renderUI(netsimr_data_preview(data_input()$data, 100))
 
   ######################
   #Development factors
@@ -237,10 +236,10 @@ reserving_tool_Server <- function(input, output, session) {
     o <- tail_options()
     fit <- cl()
     rows <- lapply(seq_len(nrow(o)), function(i) {
-      list(o$method[i], if (is.finite(o$tail[i])) rsv_ratio(o$tail[i], 4) else dft_dash,
-           if (is.finite(o$ibnr[i])) rsv_amount(o$ibnr[i]) else dft_dash, o$note[i])
+      list(o$method[i], if (is.finite(o$tail[i])) rsv_ratio(o$tail[i], 4) else netsimr_dash,
+           if (is.finite(o$ibnr[i])) netsimr_amount(o$ibnr[i]) else netsimr_dash, o$note[i])
     })
-    rsv_table(c("Tail", "Tail factor", "Chain ladder IBNR", "Note"), rows,
+    netsimr_table(c("Tail", "Tail factor", "Chain ladder IBNR", "Note"), rows,
               note = paste0("Each curve's tail beyond the last development period, the curves extrapolated over ",
                             tail_periods(), " periods; Clark's is the growth curve's share still to develop at the end ",
                             "of the triangle. The tail used now is ", rsv_ratio(fit$tail, 4), "."))
@@ -254,12 +253,12 @@ reserving_tool_Server <- function(input, output, session) {
     } else if (fit$tail == 1) "No tail" else "Entered"
     div(
       class = "dft-stats",
-      dft_stat_tile("Latest", rsv_amount(fit$total[["latest"]]), icon_name = "layer-group"),
-      dft_stat_tile("Ultimate", rsv_amount(fit$total[["ultimate"]]), icon_name = "flag-checkered"),
-      dft_stat_tile("IBNR", rsv_amount(fit$total[["ibnr"]]), icon_name = "hourglass-half", accent = TRUE,
-                    note = paste(rsv_percent(fit$total[["developed"]]), "developed")),
-      dft_stat_tile("Tail factor", rsv_ratio(fit$tail, 4), icon_name = "arrow-right-long", note = tail_note),
-      dft_stat_tile("Ratios left out", format(left_out), icon_name = "filter",
+      netsimr_stat_tile("Latest", netsimr_amount(fit$total[["latest"]]), icon_name = "layer-group"),
+      netsimr_stat_tile("Ultimate", netsimr_amount(fit$total[["ultimate"]]), icon_name = "flag-checkered"),
+      netsimr_stat_tile("IBNR", netsimr_amount(fit$total[["ibnr"]]), icon_name = "hourglass-half", accent = TRUE,
+                    note = paste(netsimr_percent(fit$total[["developed"]]), "developed")),
+      netsimr_stat_tile("Tail factor", rsv_ratio(fit$tail, 4), icon_name = "arrow-right-long", note = tail_note),
+      netsimr_stat_tile("Ratios left out", format(left_out), icon_name = "filter",
                     note = paste("of", sum(!is.na(fit$link_ratios))))
     )
   })
@@ -335,11 +334,11 @@ reserving_tool_Server <- function(input, output, session) {
       o <- rownames(tri)[i]
       tagList(
         div(class = "rsv-origin-name", o),
-        div(class = "rsv-origin-latest", rsv_amount(fit$by_origin$latest[i])),
-        sim_hidden_label(sim_amount_input(origin_id("premium", i), paste("Premium of", o), value = defaults$premium[i], min = 0)),
-        sim_hidden_label(numericInput(origin_id("prior", i), paste("A priori loss ratio of", o, "(%)"), value = defaults$prior[i],
+        div(class = "rsv-origin-latest", netsimr_amount(fit$by_origin$latest[i])),
+        netsimr_hidden_label(netsimr_amount_input(origin_id("premium", i), paste("Premium of", o), value = defaults$premium[i], min = 0)),
+        netsimr_hidden_label(numericInput(origin_id("prior", i), paste("A priori loss ratio of", o, "(%)"), value = defaults$prior[i],
                                       min = 0, step = 0.5, width = "100%")),
-        sim_hidden_label(selectInput(origin_id("method", i), paste("Method of", o), rsv_methods, selected = defaults$method[i],
+        netsimr_hidden_label(selectInput(origin_id("method", i), paste("Method of", o), rsv_methods, selected = defaults$method[i],
                                      selectize = FALSE, width = "100%"))
       )
     })
@@ -403,39 +402,39 @@ reserving_tool_Server <- function(input, output, session) {
       paste(paste(counts, names(counts)), collapse = ", ")
     div(
       class = "dft-stats",
-      dft_stat_tile("Latest", rsv_amount(sum(r$latest)), icon_name = "layer-group"),
-      dft_stat_tile("Ultimate", if (complete) rsv_amount(sum(r$ultimate)) else dft_dash, icon_name = "flag-checkered",
+      netsimr_stat_tile("Latest", netsimr_amount(sum(r$latest)), icon_name = "layer-group"),
+      netsimr_stat_tile("Ultimate", if (complete) netsimr_amount(sum(r$ultimate)) else netsimr_dash, icon_name = "flag-checkered",
                     note = if (!complete) "Some origins have no ultimate"),
-      dft_stat_tile("IBNR", if (complete) rsv_amount(sum(r$ibnr)) else dft_dash, icon_name = "hourglass-half", accent = TRUE),
-      dft_stat_tile("Ultimate loss ratio", if (complete && premium_known) rsv_percent(sum(r$ultimate) / sum(r$premium)) else dft_dash,
+      netsimr_stat_tile("IBNR", if (complete) netsimr_amount(sum(r$ibnr)) else netsimr_dash, icon_name = "hourglass-half", accent = TRUE),
+      netsimr_stat_tile("Ultimate loss ratio", if (complete && premium_known) netsimr_percent(sum(r$ultimate) / sum(r$premium)) else netsimr_dash,
                     icon_name = "percent", note = if (!premium_known) "Needs every origin's premium"),
-      dft_stat_tile("Method", if (length(counts) == 1) names(counts) else "Mixed", icon_name = "list-check", note = methods_note)
+      netsimr_stat_tile("Method", if (length(counts) == 1) names(counts) else "Mixed", icon_name = "list-check", note = methods_note)
     )
   })
 
   output$ultimate_table <- renderUI({
     r <- results()
     rows <- lapply(seq_len(nrow(r)), function(i) {
-      list(r$origin[i], rsv_amount(r$latest[i]), rsv_percent(r$developed[i]), rsv_amount(r$chain_ladder[i]),
-           rsv_amount(r$bornhuetter_ferguson[i]), rsv_amount(r$benktander[i]), rsv_amount(r$cape_cod[i]),
-           r$method[i], rsv_amount(r$ultimate[i]), rsv_amount(r$ibnr[i]), rsv_percent(r$ultimate_loss_ratio[i]))
+      list(r$origin[i], netsimr_amount(r$latest[i]), netsimr_percent(r$developed[i]), netsimr_amount(r$chain_ladder[i]),
+           netsimr_amount(r$bornhuetter_ferguson[i]), netsimr_amount(r$benktander[i]), netsimr_amount(r$cape_cod[i]),
+           r$method[i], netsimr_amount(r$ultimate[i]), netsimr_amount(r$ibnr[i]), netsimr_percent(r$ultimate_loss_ratio[i]))
     })
-    total_of <- function(x) if (all(is.finite(x))) rsv_amount(sum(x)) else dft_dash
-    total <- list("Total", total_of(r$latest), rsv_percent(sum(r$latest) / sum(r$chain_ladder)), total_of(r$chain_ladder),
+    total_of <- function(x) if (all(is.finite(x))) netsimr_amount(sum(x)) else netsimr_dash
+    total <- list("Total", total_of(r$latest), netsimr_percent(sum(r$latest) / sum(r$chain_ladder)), total_of(r$chain_ladder),
                   total_of(r$bornhuetter_ferguson), total_of(r$benktander), total_of(r$cape_cod), "",
                   total_of(r$ultimate), total_of(r$ibnr),
-                  if (all(is.finite(c(r$ultimate, r$premium)))) rsv_percent(sum(r$ultimate) / sum(r$premium)) else dft_dash)
+                  if (all(is.finite(c(r$ultimate, r$premium)))) netsimr_percent(sum(r$ultimate) / sum(r$premium)) else netsimr_dash)
     missing <- r$origin[!is.finite(r$ultimate)]
     cape_cod_ratio <- attr(r, "cape_cod_loss_ratio")
     notes <- c(
-      if (is.finite(cape_cod_ratio)) paste0("The Cape Cod loss ratio is ", rsv_percent(cape_cod_ratio),
+      if (is.finite(cape_cod_ratio)) paste0("The Cape Cod loss ratio is ", netsimr_percent(cape_cod_ratio),
                                             if (or_default(input$decay, 1) < 1) " over all origins (each origin has its own)", "."),
       if (!all(is.finite(r$premium))) "Bornhuetter-Ferguson and Benktander need the origin's premium, and Cape Cod every origin's.",
       if (!is.null(attr(r, "cape_cod_note"))) attr(r, "cape_cod_note"),
       if (length(missing) > 0) paste0("No ultimate for ", paste(missing, collapse = ", "),
                                       ": its method needs a premium and an a priori loss ratio.")
     )
-    rsv_table(c("Origin", "Latest", "Developed", "Chain ladder", "BF", "Benktander", "Cape Cod",
+    netsimr_table(c("Origin", "Latest", "Developed", "Chain ladder", "BF", "Benktander", "Cape Cod",
                 "Selected", "Ultimate", "IBNR", "Loss ratio"), rows, total,
               c("BF: Bornhuetter-Ferguson.", notes))
   })
@@ -458,7 +457,7 @@ reserving_tool_Server <- function(input, output, session) {
     ratios[["A priori"]] <- r$prior_loss_ratio
     lines <- unname(Map(function(name, values) list(name = name, values = values, colour = rsv_method_colours[[name]]),
                         names(ratios), ratios))
-    dft_category_chart(r$origin, lines = lines, x_title = "Origin", y_title = "Ultimate loss ratio", dark = dark(), y_percent = TRUE)
+    netsimr_category_chart(r$origin, lines = lines, x_title = "Origin", y_title = "Ultimate loss ratio", dark = dark(), y_percent = TRUE)
   }, alt = "Ultimate loss ratio of each origin by method, with the a priori loss ratio")
 
   output$download_results <- downloadHandler(
@@ -497,7 +496,7 @@ reserving_tool_Server <- function(input, output, session) {
     list(
       Data = list(Source = data_input()$source, Origins = paste(rownames(tri)[1], "to", rownames(tri)[nrow(tri)]),
                   `Development periods` = format(ncol(tri)),
-                  Premiums = if (all(is.na(r$premium))) "None" else rsv_amount(sum(r$premium, na.rm = TRUE)),
+                  Premiums = if (all(is.na(r$premium))) "None" else netsimr_amount(sum(r$premium, na.rm = TRUE)),
                   `Incurred claims` = if (is.null(data_input()$incurred)) "No" else "Yes"),
       Development = list(Average = c(volume = "Volume-weighted", simple = "Simple", regression = "Regression")[[fit$average]],
                          `Calendar periods` = if (is.null(periods)) "All" else paste("Latest", periods),
@@ -506,14 +505,13 @@ reserving_tool_Server <- function(input, output, session) {
                          `Single link ratio sigma` = if (identical(input$sigma, "Mack")) "Mack's rule" else "Log-linear"),
       Ultimates = list(Methods = paste(paste(counts, names(counts)), collapse = ", "),
                        `Cape Cod decay` = format(or_default(input$decay, 1)),
-                       `Cape Cod loss ratio` = rsv_percent(attr(r, "cape_cod_loss_ratio")))
+                       `Cape Cod loss ratio` = netsimr_percent(attr(r, "cape_cod_loss_ratio")))
     )
   }
 
   output$download_report <- downloadHandler(
     filename = function() "reserving_report.html",
     content = function(file) {
-      quiet <- function(expr) tryCatch(expr, error = function(e) NULL)
       write_reserving_report(file, list(
         source = data_input()$source, settings = report_settings(), cl = cl(), results = results(),
         one_year = quiet(one_year()), ave = quiet(ave()), clark = quiet(clark()), inflation = quiet(inflation()),
@@ -528,7 +526,6 @@ reserving_tool_Server <- function(input, output, session) {
   output$download_excel <- downloadHandler(
     filename = function() "reserving_results.xlsx",
     content = function(file) {
-      quiet <- function(expr) tryCatch(expr, error = function(e) NULL)
       fit <- cl()
       r <- results()
       full <- fit$full_triangle
@@ -586,17 +583,17 @@ reserving_tool_Server <- function(input, output, session) {
     chain <- cl()$total[["ibnr"]]
     div(
       class = "dft-stats",
-      dft_stat_tile("Actual vs expected", if (is.null(a)) dft_dash else rsv_percent(a$total[["actual_to_expected"]], 0),
+      netsimr_stat_tile("Actual vs expected", if (is.null(a)) netsimr_dash else netsimr_percent(a$total[["actual_to_expected"]], 0),
                     icon_name = "scale-balanced",
                     note = if (!is.null(a) && is.finite(a$total[["z"]])) {
-                      paste0(dft_fmt(a$total[["z"]], 2), " standard errors from the expected",
+                      paste0(netsimr_fmt(a$total[["z"]], 2), " standard errors from the expected",
                              if (abs(a$total[["z"]]) > 2) ": worth a look" else "")
                     }),
-      dft_stat_tile("Clark IBNR", if (is.null(k)) dft_dash else rsv_amount(k$total[["ibnr"]]), icon_name = "chart-line",
-                    accent = TRUE, note = if (!is.null(k)) paste0("Standard error ", rsv_amount(k$total[["se"]]),
-                                                                  "; chain ladder ", rsv_amount(chain))),
-      dft_stat_tile("IBNR with inflation", if (is.null(f)) dft_dash else rsv_amount(f$total[["ibnr"]]), icon_name = "arrow-trend-up",
-                    note = if (!is.null(f)) paste0(rsv_amount(f$total[["future_inflation"]]), " of future inflation"))
+      netsimr_stat_tile("Clark IBNR", if (is.null(k)) netsimr_dash else netsimr_amount(k$total[["ibnr"]]), icon_name = "chart-line",
+                    accent = TRUE, note = if (!is.null(k)) paste0("Standard error ", netsimr_amount(k$total[["se"]]),
+                                                                  "; chain ladder ", netsimr_amount(chain))),
+      netsimr_stat_tile("IBNR with inflation", if (is.null(f)) netsimr_dash else netsimr_amount(f$total[["ibnr"]]), icon_name = "arrow-trend-up",
+                    note = if (!is.null(f)) paste0(netsimr_amount(f$total[["future_inflation"]]), " of future inflation"))
     )
   })
 
@@ -604,14 +601,14 @@ reserving_tool_Server <- function(input, output, session) {
     a <- ave()
     b <- a$by_origin
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], rsv_amount(b$previous[i]), rsv_amount(b$expected[i]), rsv_amount(b$actual[i]),
-           rsv_amount(b$difference[i]), rsv_percent(b$actual_to_expected[i], 0), rsv_amount(b$se[i]), dft_fmt(b$z[i], 2))
+      list(b$origin[i], netsimr_amount(b$previous[i]), netsimr_amount(b$expected[i]), netsimr_amount(b$actual[i]),
+           netsimr_amount(b$difference[i]), netsimr_percent(b$actual_to_expected[i], 0), netsimr_amount(b$se[i]), netsimr_fmt(b$z[i], 2))
     })
     t <- a$total
-    total <- list("Total", rsv_amount(t[["previous"]]), rsv_amount(t[["expected"]]), rsv_amount(t[["actual"]]),
-                  rsv_amount(t[["difference"]]), rsv_percent(t[["actual_to_expected"]], 0), rsv_amount(t[["se"]]),
-                  dft_fmt(t[["z"]], 2))
-    rsv_table(c("Origin", "Previous", "Expected", "Actual", "Difference", "Actual / expected", "Std. error", "z"),
+    total <- list("Total", netsimr_amount(t[["previous"]]), netsimr_amount(t[["expected"]]), netsimr_amount(t[["actual"]]),
+                  netsimr_amount(t[["difference"]]), netsimr_percent(t[["actual_to_expected"]], 0), netsimr_amount(t[["se"]]),
+                  netsimr_fmt(t[["z"]], 2))
+    netsimr_table(c("Origin", "Previous", "Expected", "Actual", "Difference", "Actual / expected", "Std. error", "z"),
               rows, total,
               c("The chain ladder of the triangle without its latest diagonal predicts each origin's development in the latest period.",
                 "z is the difference over its standard error (Mack's process and parameter error): beyond about 2 either way is worth a look.",
@@ -620,7 +617,7 @@ reserving_tool_Server <- function(input, output, session) {
 
   output$ave_plot <- chart(function() {
     b <- ave()$by_origin
-    dft_category_chart(b$origin, lines = list(list(name = "Expected", values = b$expected, colour = rsv_method_colours[["Chain ladder"]]),
+    netsimr_category_chart(b$origin, lines = list(list(name = "Expected", values = b$expected, colour = rsv_method_colours[["Chain ladder"]]),
                                               list(name = "Actual", values = b$actual, colour = "empirical")),
                        x_title = "Origin", y_title = "Development in the latest period", dark = dark())
   }, alt = "Expected and actual development of each origin in the latest calendar period")
@@ -629,17 +626,17 @@ reserving_tool_Server <- function(input, output, session) {
     k <- clark()
     b <- k$by_origin
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], rsv_amount(b$latest[i]), rsv_percent(b$developed[i]), rsv_amount(b$ultimate[i]), rsv_amount(b$ibnr[i]),
-           rsv_amount(b$se[i]), rsv_percent(b$cv[i]))
+      list(b$origin[i], netsimr_amount(b$latest[i]), netsimr_percent(b$developed[i]), netsimr_amount(b$ultimate[i]), netsimr_amount(b$ibnr[i]),
+           netsimr_amount(b$se[i]), netsimr_percent(b$cv[i]))
     })
     t <- k$total
-    total <- list("Total", rsv_amount(t[["latest"]]), rsv_percent(t[["developed"]]), rsv_amount(t[["ultimate"]]),
-                  rsv_amount(t[["ibnr"]]), rsv_amount(t[["se"]]), rsv_percent(t[["cv"]]))
+    total <- list("Total", netsimr_amount(t[["latest"]]), netsimr_percent(t[["developed"]]), netsimr_amount(t[["ultimate"]]),
+                  netsimr_amount(t[["ibnr"]]), netsimr_amount(t[["se"]]), netsimr_percent(t[["cv"]]))
     p <- k$parameters
-    rsv_table(c("Origin", "Latest", "Developed", "Ultimate", "IBNR", "Std. error", "CV"), rows, total,
-              c(paste0(k$method, ": omega ", dft_fmt(p[["omega"]], 4), ", theta ", dft_fmt(p[["theta"]], 4),
-                       if ("loss_ratio" %in% names(p)) paste0(", loss ratio ", rsv_percent(p[["loss_ratio"]])),
-                       ", scale sigma^2 ", dft_fmt(p[["sigma2"]], 4), "."),
+    netsimr_table(c("Origin", "Latest", "Developed", "Ultimate", "IBNR", "Std. error", "CV"), rows, total,
+              c(paste0(k$method, ": omega ", netsimr_fmt(p[["omega"]], 4), ", theta ", netsimr_fmt(p[["theta"]], 4),
+                       if ("loss_ratio" %in% names(p)) paste0(", loss ratio ", netsimr_percent(p[["loss_ratio"]])),
+                       ", scale sigma^2 ", netsimr_fmt(p[["sigma2"]], 4), "."),
                 "The standard error has a process part (over-dispersed Poisson) and a parameter part (the curve and the ultimates)."))
   })
 
@@ -648,7 +645,7 @@ reserving_tool_Server <- function(input, output, session) {
     chain <- cl()
     n <- ncol(chain$triangle)
     ages <- seq(0.5, n + 5, by = 0.25)
-    dft_line_chart(
+    netsimr_line_chart(
       list(list(x = ages, y = k$growth(ages), name = "Clark growth curve", colour = rsv_method_colours[["Cape Cod"]]),
            list(x = seq_len(n), y = unname(1 / chain$cdf), name = "Chain ladder (1 / CDF)", colour = rsv_method_colours[["Chain ladder"]])),
       x_title = "Development period", y_title = "Share developed", dark = dark(), ylim = c(0, 1.02), vlines = n
@@ -660,13 +657,13 @@ reserving_tool_Server <- function(input, output, session) {
     chain <- cl()$by_origin
     b <- f$by_origin
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], rsv_amount(b$latest[i]), rsv_amount(chain$ibnr[i]), rsv_amount(b$ibnr_today[i]),
-           rsv_amount(b$future_inflation[i]), rsv_amount(b$ibnr[i]), rsv_amount(b$ultimate[i]))
+      list(b$origin[i], netsimr_amount(b$latest[i]), netsimr_amount(chain$ibnr[i]), netsimr_amount(b$ibnr_today[i]),
+           netsimr_amount(b$future_inflation[i]), netsimr_amount(b$ibnr[i]), netsimr_amount(b$ultimate[i]))
     })
     t <- f$total
-    total <- list("Total", rsv_amount(t[["latest"]]), rsv_amount(sum(chain$ibnr)), rsv_amount(t[["ibnr_today"]]),
-                  rsv_amount(t[["future_inflation"]]), rsv_amount(t[["ibnr"]]), rsv_amount(t[["ultimate"]]))
-    rsv_table(c("Origin", "Latest", "Chain ladder IBNR", "IBNR in today's money", "Future inflation", "IBNR", "Ultimate"),
+    total <- list("Total", netsimr_amount(t[["latest"]]), netsimr_amount(sum(chain$ibnr)), netsimr_amount(t[["ibnr_today"]]),
+                  netsimr_amount(t[["future_inflation"]]), netsimr_amount(t[["ibnr"]]), netsimr_amount(t[["ultimate"]]))
+    netsimr_table(c("Origin", "Latest", "Chain ladder IBNR", "IBNR in today's money", "Future inflation", "IBNR", "Ultimate"),
               rows, total,
               c("The chain ladder of nominal claims carries the past's average inflation into the future;",
                 "here the past is restated in today's money and the future inflated at the rate you expect.",
@@ -681,13 +678,13 @@ reserving_tool_Server <- function(input, output, session) {
     fit <- cl()
     b <- fit$by_origin
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], rsv_amount(b$latest[i]), rsv_amount(b$ultimate[i]), rsv_amount(b$ibnr[i]), rsv_amount(b$se[i]),
-           rsv_percent(b$cv[i]), rsv_amount(b$process_se[i]), rsv_amount(b$parameter_se[i]))
+      list(b$origin[i], netsimr_amount(b$latest[i]), netsimr_amount(b$ultimate[i]), netsimr_amount(b$ibnr[i]), netsimr_amount(b$se[i]),
+           netsimr_percent(b$cv[i]), netsimr_amount(b$process_se[i]), netsimr_amount(b$parameter_se[i]))
     })
     t <- fit$total
-    total <- list("Total", rsv_amount(t[["latest"]]), rsv_amount(t[["ultimate"]]), rsv_amount(t[["ibnr"]]), rsv_amount(t[["se"]]),
-                  rsv_percent(t[["cv"]]), rsv_amount(t[["process_se"]]), rsv_amount(t[["parameter_se"]]))
-    rsv_table(c("Origin", "Latest", "Ultimate", "IBNR", "Standard error", "CV", "Process", "Parameter"), rows, total,
+    total <- list("Total", netsimr_amount(t[["latest"]]), netsimr_amount(t[["ultimate"]]), netsimr_amount(t[["ibnr"]]), netsimr_amount(t[["se"]]),
+                  netsimr_percent(t[["cv"]]), netsimr_amount(t[["process_se"]]), netsimr_amount(t[["parameter_se"]]))
+    netsimr_table(c("Origin", "Latest", "Ultimate", "IBNR", "Standard error", "CV", "Process", "Parameter"), rows, total,
               "The process error is the randomness of the future claims, the parameter error that of the estimated factors; the total's parameter error counts the origins' shared factors.")
   })
 
@@ -714,18 +711,18 @@ reserving_tool_Server <- function(input, output, session) {
   output$uncertainty_stats <- renderUI({
     fit <- cl()
     b <- tryCatch(current_boot(), error = function(e) NULL)
-    percentile <- function(name) if (!is.null(b)) rsv_amount(b$total[[name]]) else dft_dash
+    percentile <- function(name) if (!is.null(b)) netsimr_amount(b$total[[name]]) else netsimr_dash
     div(
       class = "dft-stats",
-      dft_stat_tile("Chain ladder IBNR", rsv_amount(fit$total[["ibnr"]]), icon_name = "hourglass-half"),
-      dft_stat_tile("Mack standard error", rsv_amount(fit$total[["se"]]), icon_name = "arrows-left-right",
-                    note = paste("CV", rsv_percent(fit$total[["cv"]]))),
-      dft_stat_tile("One-year standard error", tryCatch(rsv_amount(one_year()$total[["one_year_se"]]), error = function(e) dft_dash),
+      netsimr_stat_tile("Chain ladder IBNR", netsimr_amount(fit$total[["ibnr"]]), icon_name = "hourglass-half"),
+      netsimr_stat_tile("Mack standard error", netsimr_amount(fit$total[["se"]]), icon_name = "arrows-left-right",
+                    note = paste("CV", netsimr_percent(fit$total[["cv"]]))),
+      netsimr_stat_tile("One-year standard error", tryCatch(netsimr_amount(one_year()$total[["one_year_se"]]), error = function(e) netsimr_dash),
                     icon_name = "calendar-check", note = "Merz-W\u00fcthrich"),
-      dft_stat_tile("Bootstrap mean", percentile("ibnr"), icon_name = "bullseye",
-                    note = if (!is.null(b)) paste("Standard deviation", rsv_amount(b$total[["se"]])) else "Not run yet"),
-      dft_stat_tile("75th percentile", percentile("p75"), icon_name = "chart-simple"),
-      dft_stat_tile("99.5th percentile", percentile("p99.5"), icon_name = "triangle-exclamation", accent = TRUE,
+      netsimr_stat_tile("Bootstrap mean", percentile("ibnr"), icon_name = "bullseye",
+                    note = if (!is.null(b)) paste("Standard deviation", netsimr_amount(b$total[["se"]])) else "Not run yet"),
+      netsimr_stat_tile("75th percentile", percentile("p75"), icon_name = "chart-simple"),
+      netsimr_stat_tile("99.5th percentile", percentile("p99.5"), icon_name = "triangle-exclamation", accent = TRUE,
                     note = "1 in 200")
     )
   })
@@ -735,13 +732,13 @@ reserving_tool_Server <- function(input, output, session) {
     o <- b$by_origin
     shares <- paste0("p", formatC(100 * b$probs, format = "fg"))
     rows <- lapply(seq_len(nrow(o)), function(i) {
-      c(list(o$origin[i], rsv_amount(o$ibnr[i]), rsv_amount(o$se[i]), rsv_percent(o$cv[i])),
-        as.list(rsv_amount(unlist(o[i, shares]))))
+      c(list(o$origin[i], netsimr_amount(o$ibnr[i]), netsimr_amount(o$se[i]), netsimr_percent(o$cv[i])),
+        as.list(netsimr_amount(unlist(o[i, shares]))))
     })
     t <- b$total
-    total <- c(list("Total", rsv_amount(t[["ibnr"]]), rsv_amount(t[["se"]]), rsv_percent(t[["cv"]])), as.list(rsv_amount(t[shares])))
-    rsv_table(c("Origin", "Mean IBNR", "Standard deviation", "CV", paste0(formatC(100 * b$probs, format = "fg"), "%")), rows, total,
-              paste0(b$method, ", with a scale parameter of ", dft_fmt(b$scale, 4),
+    total <- c(list("Total", netsimr_amount(t[["ibnr"]]), netsimr_amount(t[["se"]]), netsimr_percent(t[["cv"]])), as.list(netsimr_amount(t[shares])))
+    netsimr_table(c("Origin", "Mean IBNR", "Standard deviation", "CV", paste0(formatC(100 * b$probs, format = "fg"), "%")), rows, total,
+              paste0(b$method, ", with a scale parameter of ", netsimr_fmt(b$scale, 4),
                      if (b$tail != 1) paste0(" and the tail factor of ", rsv_ratio(b$tail, 4)), "."))
   })
 
@@ -774,13 +771,13 @@ reserving_tool_Server <- function(input, output, session) {
     mw <- one_year()
     b <- mw$by_origin
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], rsv_amount(b$ibnr[i]), rsv_amount(b$one_year_se[i]), rsv_amount(b$mack_se[i]),
-           rsv_percent(if (b$mack_se[i] > 0) b$one_year_se[i] / b$mack_se[i] else NA_real_))
+      list(b$origin[i], netsimr_amount(b$ibnr[i]), netsimr_amount(b$one_year_se[i]), netsimr_amount(b$mack_se[i]),
+           netsimr_percent(if (b$mack_se[i] > 0) b$one_year_se[i] / b$mack_se[i] else NA_real_))
     })
     t <- mw$total
-    total <- list("Total", rsv_amount(t[["ibnr"]]), rsv_amount(t[["one_year_se"]]), rsv_amount(t[["mack_se"]]),
-                  rsv_percent(t[["one_year_se"]] / t[["mack_se"]]))
-    rsv_table(c("Origin", "IBNR", "One-year standard error", "Until ultimate", "One-year share"), rows, total,
+    total <- list("Total", netsimr_amount(t[["ibnr"]]), netsimr_amount(t[["one_year_se"]]), netsimr_amount(t[["mack_se"]]),
+                  netsimr_percent(t[["one_year_se"]] / t[["mack_se"]]))
+    netsimr_table(c("Origin", "IBNR", "One-year standard error", "Until ultimate", "One-year share"), rows, total,
               paste("How much the ultimate can move over the next year, as its claims emerge and the factors are",
                     "estimated again: the reserve risk over one year that Solvency II measures, against Mack's standard",
                     "error until the claims are all paid. Merz and W\u00fcthrich's formulas use the volume-weighted chain",
@@ -842,17 +839,17 @@ reserving_tool_Server <- function(input, output, session) {
     s <- sii_reserve()
     div(
       class = "dft-stats",
-      dft_stat_tile("Reserve", rsv_amount(t[["reserve"]]), icon_name = "hourglass-half", note = "Undiscounted"),
-      dft_stat_tile("Best estimate", rsv_amount(t[["discounted"]]), icon_name = "percent", accent = TRUE,
-                    note = paste0("Discounted; mean term ", dft_fmt(t[["mean_term"]], 3), " years")),
-      dft_stat_tile("Risk adjustment", if (is.null(r)) dft_dash else rsv_amount(r$risk_adjustment), icon_name = "scale-balanced",
+      netsimr_stat_tile("Reserve", netsimr_amount(t[["reserve"]]), icon_name = "hourglass-half", note = "Undiscounted"),
+      netsimr_stat_tile("Best estimate", netsimr_amount(t[["discounted"]]), icon_name = "percent", accent = TRUE,
+                    note = paste0("Discounted; mean term ", netsimr_fmt(t[["mean_term"]], 3), " years")),
+      netsimr_stat_tile("Risk adjustment", if (is.null(r)) netsimr_dash else netsimr_amount(r$risk_adjustment), icon_name = "scale-balanced",
                     note = if (is.null(r)) "See the Risk adjustment tab" else if (is.finite(r$confidence_level)) {
-                      paste0(r$method, "; confidence level ", rsv_percent(r$confidence_level))
+                      paste0(r$method, "; confidence level ", netsimr_percent(r$confidence_level))
                     } else r$method),
-      dft_stat_tile("Liability for incurred claims", if (is.null(r)) dft_dash else rsv_amount(t[["discounted"]] + r$risk_adjustment),
+      netsimr_stat_tile("Liability for incurred claims", if (is.null(r)) netsimr_dash else netsimr_amount(t[["discounted"]] + r$risk_adjustment),
                     icon_name = "building-columns", note = "Best estimate plus risk adjustment"),
-      dft_stat_tile("Reserve risk (SII)", rsv_amount(s$capital), icon_name = "shield-halved",
-                    note = paste0("Segment ", s$segment, ", standard deviation ", rsv_percent(s$sd)))
+      netsimr_stat_tile("Reserve risk (SII)", netsimr_amount(s$capital), icon_name = "shield-halved",
+                    note = paste0("Segment ", s$segment, ", standard deviation ", netsimr_percent(s$sd)))
     )
   })
 
@@ -860,19 +857,19 @@ reserving_tool_Server <- function(input, output, session) {
     d <- discounted()
     b <- d$by_origin
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], rsv_amount(b$reserve[i]), rsv_amount(b$discounted[i]), rsv_amount(b$discount[i]), dft_fmt(b$mean_term[i], 3))
+      list(b$origin[i], netsimr_amount(b$reserve[i]), netsimr_amount(b$discounted[i]), netsimr_amount(b$discount[i]), netsimr_fmt(b$mean_term[i], 3))
     })
     t <- d$total
-    rsv_table(c("Origin", "Reserve", "Discounted", "Discount", "Mean term (years)"), rows,
-              list("Total", rsv_amount(t[["reserve"]]), rsv_amount(t[["discounted"]]), rsv_amount(t[["discount"]]),
-                   dft_fmt(t[["mean_term"]], 3)),
+    netsimr_table(c("Origin", "Reserve", "Discounted", "Discount", "Mean term (years)"), rows,
+              list("Total", netsimr_amount(t[["reserve"]]), netsimr_amount(t[["discounted"]]), netsimr_amount(t[["discount"]]),
+                   netsimr_fmt(t[["mean_term"]], 3)),
               note = paste("The chain ladder's future payments of each origin, with the tail of the Development tab, discounted",
                            "with the spot rate of the term of each payment."))
   })
 
   output$cash_flow_plot <- chart(function() {
     cf <- discounted()$cash_flows
-    dft_category_chart(as.character(cf$period),
+    netsimr_category_chart(as.character(cf$period),
                        bars = list(name = "Payments", values = cf$payments, colour = rsv_method_colours[["Chain ladder"]]),
                        lines = list(list(name = "Present value", values = cf$present_value, colour = rsv_method_colours[["Cape Cod"]])),
                        x_title = "Future calendar period", y_title = "Amount", dark = dark())
@@ -881,32 +878,32 @@ reserving_tool_Server <- function(input, output, session) {
   output$cash_flow_table <- renderUI({
     cf <- discounted()$cash_flows
     rows <- lapply(seq_len(nrow(cf)), function(i) {
-      list(format(cf$period[i]), rsv_amount(cf$payments[i]), dft_fmt(cf$term[i], 3), rsv_percent(cf$spot_rate[i], 2),
-           rsv_ratio(cf$discount_factor[i], 4), rsv_amount(cf$present_value[i]))
+      list(format(cf$period[i]), netsimr_amount(cf$payments[i]), netsimr_fmt(cf$term[i], 3), netsimr_percent(cf$spot_rate[i], 2),
+           rsv_ratio(cf$discount_factor[i], 4), netsimr_amount(cf$present_value[i]))
     })
-    rsv_table(c("Period", "Payments", "Term (years)", "Spot rate", "Discount factor", "Present value"), rows)
+    netsimr_table(c("Period", "Payments", "Term (years)", "Spot rate", "Discount factor", "Present value"), rows)
   })
 
   output$ra_table <- renderUI({
     r <- ra()
     if (identical(r$method, "Percentile")) {
-      return(rsv_table(c("Measure", "Value"),
+      return(netsimr_table(c("Measure", "Value"),
                        list(list("Method", "Percentile of the bootstrap's total reserves"),
-                            list("Confidence level", rsv_percent(r$confidence_level)),
-                            list("Risk adjustment", rsv_amount(r$risk_adjustment)),
+                            list("Confidence level", netsimr_percent(r$confidence_level)),
+                            list("Risk adjustment", netsimr_amount(r$risk_adjustment)),
                             list("Scaled for discounting by", rsv_ratio(r$scale, 4))),
                        note = "The bootstrap's quantile at the level less its mean, scaled by the discounted over the undiscounted reserve."))
     }
     ro <- r$run_off
     rows <- lapply(seq_len(nrow(ro)), function(i) {
-      list(format(ro$period[i]), rsv_amount(ro$capital[i]), rsv_ratio(ro$discount_factor[i], 4), rsv_amount(ro$cost[i]))
+      list(format(ro$period[i]), netsimr_amount(ro$capital[i]), rsv_ratio(ro$discount_factor[i], 4), netsimr_amount(ro$cost[i]))
     })
-    rsv_table(c("Period", "Capital", "Discount factor", "Cost of capital"), rows,
-              list("Total", "", "", rsv_amount(r$risk_adjustment)),
-              note = paste0("The capital of ", rsv_amount(r$capital), " now runs off with the reserve still to pay; each period's ",
-                            "capital costs ", rsv_percent(r$coc_rate), " a year, discounted.",
+    netsimr_table(c("Period", "Capital", "Discount factor", "Cost of capital"), rows,
+              list("Total", "", "", netsimr_amount(r$risk_adjustment)),
+              note = paste0("The capital of ", netsimr_amount(r$capital), " now runs off with the reserve still to pay; each period's ",
+                            "capital costs ", netsimr_percent(r$coc_rate), " a year, discounted.",
                             if (is.finite(r$confidence_level)) paste0(" The best estimate plus this risk adjustment is the ",
-                                                                       rsv_percent(r$confidence_level), " quantile of the bootstrap.")))
+                                                                       netsimr_percent(r$confidence_level), " quantile of the bootstrap.")))
   })
 
   ######################
@@ -924,16 +921,16 @@ reserving_tool_Server <- function(input, output, session) {
   output$munich_stats <- renderUI({
     mcl <- munich()
     t <- mcl$total
-    gap <- function(paid, incurred) paste0(if (paid >= incurred) "+" else "", rsv_amount(paid - incurred))
+    gap <- function(paid, incurred) paste0(if (paid >= incurred) "+" else "", netsimr_amount(paid - incurred))
     div(
       class = "dft-stats",
-      dft_stat_tile("Paid ultimate", rsv_amount(t[["ultimate_paid"]]), icon_name = "money-bill",
-                    note = paste("Chain ladder", rsv_amount(t[["chain_ladder_paid"]]))),
-      dft_stat_tile("Incurred ultimate", rsv_amount(t[["ultimate_incurred"]]), icon_name = "file-invoice",
-                    note = paste("Chain ladder", rsv_amount(t[["chain_ladder_incurred"]]))),
-      dft_stat_tile("Paid less incurred", gap(t[["ultimate_paid"]], t[["ultimate_incurred"]]), icon_name = "scale-balanced",
+      netsimr_stat_tile("Paid ultimate", netsimr_amount(t[["ultimate_paid"]]), icon_name = "money-bill",
+                    note = paste("Chain ladder", netsimr_amount(t[["chain_ladder_paid"]]))),
+      netsimr_stat_tile("Incurred ultimate", netsimr_amount(t[["ultimate_incurred"]]), icon_name = "file-invoice",
+                    note = paste("Chain ladder", netsimr_amount(t[["chain_ladder_incurred"]]))),
+      netsimr_stat_tile("Paid less incurred", gap(t[["ultimate_paid"]], t[["ultimate_incurred"]]), icon_name = "scale-balanced",
                     accent = TRUE, note = paste("Chain ladders", gap(t[["chain_ladder_paid"]], t[["chain_ladder_incurred"]]))),
-      dft_stat_tile("Lambda", paste(rsv_ratio(mcl$lambda[["paid"]], 2), "/", rsv_ratio(mcl$lambda[["incurred"]], 2)),
+      netsimr_stat_tile("Lambda", paste(rsv_ratio(mcl$lambda[["paid"]], 2), "/", rsv_ratio(mcl$lambda[["incurred"]], 2)),
                     icon_name = "arrows-left-right", note = "Paid / incurred correction")
     )
   })
@@ -942,15 +939,15 @@ reserving_tool_Server <- function(input, output, session) {
     mcl <- munich()
     b <- mcl$by_origin
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(b$origin[i], rsv_amount(b$latest_paid[i]), rsv_amount(b$latest_incurred[i]), rsv_percent(b$latest_ratio[i]),
-           rsv_amount(b$chain_ladder_paid[i]), rsv_amount(b$chain_ladder_incurred[i]), rsv_amount(b$ultimate_paid[i]),
-           rsv_amount(b$ultimate_incurred[i]), rsv_percent(b$ultimate_ratio[i]))
+      list(b$origin[i], netsimr_amount(b$latest_paid[i]), netsimr_amount(b$latest_incurred[i]), netsimr_percent(b$latest_ratio[i]),
+           netsimr_amount(b$chain_ladder_paid[i]), netsimr_amount(b$chain_ladder_incurred[i]), netsimr_amount(b$ultimate_paid[i]),
+           netsimr_amount(b$ultimate_incurred[i]), netsimr_percent(b$ultimate_ratio[i]))
     })
     t <- mcl$total
-    total <- list("Total", rsv_amount(t[["latest_paid"]]), rsv_amount(t[["latest_incurred"]]), rsv_percent(t[["latest_ratio"]]),
-                  rsv_amount(t[["chain_ladder_paid"]]), rsv_amount(t[["chain_ladder_incurred"]]), rsv_amount(t[["ultimate_paid"]]),
-                  rsv_amount(t[["ultimate_incurred"]]), rsv_percent(t[["ultimate_ratio"]]))
-    rsv_table(c("Origin", "Paid", "Incurred", "Paid / incurred", "CL paid", "CL incurred", "Munich paid", "Munich incurred",
+    total <- list("Total", netsimr_amount(t[["latest_paid"]]), netsimr_amount(t[["latest_incurred"]]), netsimr_percent(t[["latest_ratio"]]),
+                  netsimr_amount(t[["chain_ladder_paid"]]), netsimr_amount(t[["chain_ladder_incurred"]]), netsimr_amount(t[["ultimate_paid"]]),
+                  netsimr_amount(t[["ultimate_incurred"]]), netsimr_percent(t[["ultimate_ratio"]]))
+    netsimr_table(c("Origin", "Paid", "Incurred", "Paid / incurred", "CL paid", "CL incurred", "Munich paid", "Munich incurred",
                 "Munich paid / incurred"), rows, total,
               "CL: the chain ladder of each triangle on its own. The Munich ultimates of paid and incurred claims are close where the chain ladders are not.")
   })
@@ -962,7 +959,7 @@ reserving_tool_Server <- function(input, output, session) {
     values <- list(`Chain ladder, paid` = b$chain_ladder_paid, `Chain ladder, incurred` = b$chain_ladder_incurred,
                    `Munich, paid` = b$ultimate_paid, `Munich, incurred` = b$ultimate_incurred)
     lines <- unname(Map(function(name, y) list(name = name, values = y, colour = munich_colours[[name]]), names(values), values))
-    dft_category_chart(b$origin, lines = lines, x_title = "Origin", y_title = "Ultimate claims", dark = dark())
+    netsimr_category_chart(b$origin, lines = lines, x_title = "Origin", y_title = "Ultimate claims", dark = dark())
   }, alt = "Paid and incurred ultimates of each origin by the chain ladders and the Munich chain ladder")
   output$munich_ratio_plot <- chart(function() {
     b <- munich()$by_origin
@@ -970,7 +967,7 @@ reserving_tool_Server <- function(input, output, session) {
                   list(name = "Munich ultimate", values = b$ultimate_ratio, colour = munich_colours[["Munich, paid"]]),
                   list(name = "Chain ladder ultimates", values = b$chain_ladder_paid / b$chain_ladder_incurred,
                        colour = munich_colours[["Chain ladder, paid"]]))
-    dft_category_chart(b$origin, lines = lines, x_title = "Origin", y_title = "Paid / incurred", dark = dark(), y_percent = TRUE)
+    netsimr_category_chart(b$origin, lines = lines, x_title = "Origin", y_title = "Paid / incurred", dark = dark(), y_percent = TRUE)
   }, alt = "Paid to incurred ratio of each origin: latest, and at ultimate by the Munich chain ladder and the chain ladders")
   output$download_munich <- downloadHandler(
     filename = function() "paid_incurred.csv",
@@ -1007,13 +1004,8 @@ reserving_tool_Server <- function(input, output, session) {
   )
 
   observeEvent(input$load_settings, {
-    fail <- function(message) showNotification(paste("The settings could not be loaded:", message), type = "error", duration = 10)
-    settings <- tryCatch(read_settings_file(input$load_settings$datapath, rsv_settings_tool), error = function(e) e)
-    if (inherits(settings, "error")) return(fail(conditionMessage(settings)))
-    if (settings$version > rsv_settings_version) {
-      return(fail("it was saved by a newer version of NetSimR."))
-    }
-    v <- settings$values
+    v <- load_settings_values(input$load_settings$datapath, rsv_settings_tool, rsv_settings_version)
+    if (is.null(v)) return()
     choices <- list(data_source = c("example", "upload"), example = unname(rsv_examples), sep = c(",", ";", "\t"),
                     dec = c(".", ","), quote = c("\"", "'", ""), layout = c("long", "wide"),
                     cumulative = c("cumulative", "incremental"), average = c("volume", "simple", "regression"),
@@ -1023,15 +1015,7 @@ reserving_tool_Server <- function(input, output, session) {
                     period_length = c("1", "0.5", "0.25", "0.0833333333333333"), payment_timing = c("0.5", "0", "1"),
                     ra_method = c("percentile", "cost of capital"), ra_capital = c("sii", "bootstrap"),
                     sii_segment = as.character(sii_nonlife_segments$segment))
-    usable <- function(id) {
-      x <- v[[id]]
-      if (is.null(x) || length(x) != 1) return(FALSE)
-      kind <- rsv_settings_inputs[[id]]
-      if (kind %in% c("radio", "select") && !is.null(choices[[id]])) return(is.character(x) && x %in% choices[[id]])
-      if (kind %in% c("numeric", "slider")) return(is.numeric(x) || (is.logical(x) && is.na(x)))
-      if (kind == "switch") return(is.logical(x) && !is.na(x))
-      is.character(x)
-    }
+    usable <- function(id) setting_usable(v[[id]], rsv_settings_inputs[[id]], choices[[id]])
     # the data shows another triangle once these are set, which then takes the periods, tail and
     # link ratios of the file; otherwise they are set on the triangle showing
     data_ids <- c("data_source", if (identical(v$data_source, "upload")) {
@@ -1044,17 +1028,7 @@ reserving_tool_Server <- function(input, output, session) {
     skip_push$prior <<- usable("prior_loss_ratio") && !identical(as.numeric(v$prior_loss_ratio), as.numeric(input$prior_loss_ratio))
     skip_push$method <<- usable("method_all") && !identical(v$method_all, input$method_all)
     for (id in names(rsv_settings_inputs)) {
-      if (!usable(id) || id %in% c("periods", "tail_from")) next
-      x <- v[[id]]
-      switch(rsv_settings_inputs[[id]],
-        radio = updateRadioButtons(session, id, selected = x),
-        select = updateSelectInput(session, id, selected = x),
-        switch = bslib::update_switch(id, value = x, session = session),
-        numeric = updateNumericInput(session, id, value = if (is.logical(x)) NA else x),
-        slider = updateSliderInput(session, id, value = x),
-        text = updateTextInput(session, id, value = x),
-        column = NULL
-      )
+      if (usable(id) && !id %in% c("periods", "tail_from")) update_setting_input(session, id, rsv_settings_inputs[[id]], v[[id]])
     }
     loaded_columns <<- v[intersect(names(v), names(rsv_settings_inputs)[rsv_settings_inputs == "column"])]
     labels <- v$origin_labels

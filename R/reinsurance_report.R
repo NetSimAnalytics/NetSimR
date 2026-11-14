@@ -13,8 +13,8 @@
 #'   a note), the \code{settings} (cards of labels and values) and, for each part
 #'   (\code{pricing}, \code{experience}, \code{exposure} and \code{programmes};
 #'   \code{NULL} when it cannot be shown), a list with its \code{tiles}, its
-#'   \code{tables} (each a list with \code{table}, the arguments of \code{rsv_table()},
-#'   and a \code{title}) and its \code{charts} (as \code{dft_report_chart_rows()} takes
+#'   \code{tables} (each a list with \code{table}, the arguments of \code{netsimr_table()},
+#'   and a \code{title}) and its \code{charts} (as \code{netsimr_report_chart_rows()} takes
 #'   them). A part that cannot be shown may give the reason in \code{missing}.
 #' @param generated The time shown on the report.
 #' @return \code{file}, invisibly.
@@ -41,8 +41,8 @@ write_reinsurance_report <- function(file, r, generated = Sys.time()) {
     list(id = part, title = parts[[part]]$title, content = tagList(
       tags$p(class = "section-intro", parts[[part]]$intro),
       if (length(a$tiles) > 0) netsimr_report_tiles(a$tiles),
-      lapply(a$tables, function(t) dft_report_table(t$table, t$title)),
-      dft_report_chart_rows(a$charts)
+      lapply(a$tables, function(t) netsimr_report_html_table(t$table, t$title)),
+      netsimr_report_chart_rows(a$charts)
     ))
   })
 

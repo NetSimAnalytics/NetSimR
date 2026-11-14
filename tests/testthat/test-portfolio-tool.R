@@ -14,7 +14,7 @@ test_that("the tool runs the portfolio of its lines, with one correlation or a m
                                                                        "severity_params")]),
                                  correlation = 0.3, n = 5000, seed = 1)
     expect_identical(p$losses, direct$losses)
-    expect_match(output$capital_stats$html, rsv_amount(p$summary$var[4]), fixed = TRUE)
+    expect_match(output$capital_stats$html, netsimr_amount(p$summary$var[4]), fixed = TRUE)
     expect_match(output$capital_table$html, "Liability")
     expect_false(stale())
     #a matrix, and the run is then out of date until run again

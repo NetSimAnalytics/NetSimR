@@ -33,7 +33,7 @@ test_that("the server rates the example's experience with the layer and each yea
     expect_equal(bc()$by_year, expected$by_year)
     expect_identical(years(), 2015:2024)
     expect_match(xlp_ui_text(output$experience_stats), "Losses in the layer")
-    expect_match(xlp_ui_text(output$burning_cost_table), rsv_percent(expected$rate, 2), fixed = TRUE)
+    expect_match(xlp_ui_text(output$burning_cost_table), netsimr_percent(expected$rate, 2), fixed = TRUE)
     expect_match(xlp_ui_text(output$year_inputs), "Rate index")
     #the Pareto with the example's factors
     pr <- pareto_rating(xl_large_losses, xl_premium[, c("year", "premium")], 7.5e5, 1e6, 4e6, inflation = 0.04,
@@ -182,7 +182,7 @@ test_that("the pricing blends the rates and gives the technical premium", {
     session$setInputs(reinstatements = 0)
     expect_equal(pricing()$reinstatement_premium, rep(0, 4))
     session$setInputs(reinstatements = 1)
-    expect_match(xlp_ui_text(output$pricing_stats), rsv_amount(tp$upfront_premium), fixed = TRUE)
+    expect_match(xlp_ui_text(output$pricing_stats), netsimr_amount(tp$upfront_premium), fixed = TRUE)
     expect_match(xlp_ui_text(output$pricing_table), "Reinstatement premium")
     expect_match(xlp_ui_text(output$glance_table), "Burning cost")
     expect_match(xlp_ui_text(output$layer_stats), "4,000,000 xs 1,000,000")

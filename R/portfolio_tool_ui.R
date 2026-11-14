@@ -1,172 +1,3 @@
-#' Styles for the portfolio capital tool
-#'
-#' Added after the simulator styles (sim_ui_css) and the distribution fitting tool
-#' styles (dft_ui_css), whose cards, inputs, theme switch, tiles, tables and light /
-#' dark tokens the tool shares; this block gives the tool its green accent and styles
-#' the parts only it has.
-#' @noRd
-pfo_ui_css <- "
-:root, [data-bs-theme='light'] {
-  --dft-accent: #15803d;
-  --dft-accent-strong: #166534;
-  --dft-accent-shadow: rgba(21, 128, 61, 0.26);
-  --sim-accent-soft: #f0fdf4;
-  --sim-accent-text: #166534;
-  --dft-row-hover: #f3fdf6;
-  --dft-slider-value: #166534;
-}
-
-[data-bs-theme='dark'] {
-  --dft-accent: #4ade80;
-  --dft-accent-strong: #22c55e;
-  --dft-accent-shadow: rgba(74, 222, 128, 0.28);
-  --sim-accent-soft: rgba(74, 222, 128, 0.14);
-  --sim-accent-text: #86efac;
-  --dft-row-hover: rgba(74, 222, 128, 0.08);
-  --dft-slider-value: #166534;
-  --bs-link-color: #86efac;
-  --bs-link-color-rgb: 134, 239, 172;
-  --bs-link-hover-color: #bbf7d0;
-  --bs-link-hover-color-rgb: 187, 247, 208;
-}
-
-.navbar {
-  background: linear-gradient(90deg, #052e16 0%, #14532d 100%) !important;
-}
-
-.sim-brand-mark {
-  background: linear-gradient(135deg, #4ade80, #15803d);
-  box-shadow: 0 6px 18px rgba(21, 128, 61, 0.35);
-}
-
-.theme-btn.active,
-.sim-hero .btn-light {
-  color: #052e16;
-}
-
-.theme-btn:focus-visible,
-.pill-radio .radio-inline:has(input:focus-visible) {
-  outline-color: #86efac !important;
-}
-
-.form-control:focus, .form-select:focus, .selectize-input.focus,
-.form-check-input:focus {
-  box-shadow: 0 0 0 0.2rem rgba(21, 128, 61, 0.18) !important;
-}
-
-/* white on the button: the darker greens, as white on the lighter ones is under 4.5:1 */
-.btn-run {
-  background: linear-gradient(135deg, #15803d, #166534);
-}
-
-.btn-run:hover, .btn-run:focus {
-  background: linear-gradient(135deg, #166534, #14532d);
-}
-
-.sim-hero {
-  background:
-    radial-gradient(circle at 85% 20%, rgba(74, 222, 128, 0.30), transparent 45%),
-    linear-gradient(135deg, #052e16 0%, #14532d 55%, #15803d 130%);
-}
-
-.sim-hero-eyebrow {
-  color: #86efac;
-}
-
-.btn-outline-pfo {
-  border: 1px solid var(--sim-border-strong);
-  background: var(--sim-input-bg);
-  color: var(--sim-label);
-  font-size: 0.85rem;
-  padding: 0.4rem 0.75rem;
-}
-
-.btn-outline-pfo:hover, .btn-outline-pfo:focus {
-  border-color: var(--dft-accent);
-  background: var(--sim-accent-soft);
-  color: var(--sim-accent-text);
-}
-
-.pfo-downloads {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.9rem;
-}
-
-.pfo-settings-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-}
-
-.pfo-settings-stack > .card {
-  margin-bottom: 0;
-}
-
-/* ---------- The grids of lines and correlations ---------- */
-/* they scroll sideways on a narrow screen; positioned, so that the inputs' hidden labels
-   (absolutely positioned) scroll with them instead of widening the page */
-.pfo-grid-wrap {
-  overflow-x: auto;
-  position: relative;
-}
-
-.pfo-line-grid {
-  display: grid;
-  grid-template-columns: minmax(8rem, 1.3fr) minmax(11rem, 1fr) minmax(5.5rem, 0.7fr) minmax(5.5rem, 0.7fr)
-                         minmax(8rem, 1fr) minmax(5.5rem, 0.7fr) minmax(6rem, 0.8fr);
-  gap: 0.45rem 0.6rem;
-  align-items: center;
-  min-width: 800px;
-}
-
-.pfo-corr-grid {
-  display: grid;
-  gap: 0.45rem 0.6rem;
-  align-items: center;
-}
-
-.pfo-line-grid .shiny-input-container,
-.pfo-corr-grid .shiny-input-container {
-  margin-bottom: 0 !important;
-  width: 100% !important;
-}
-
-.pfo-line-grid .form-control, .pfo-line-grid .form-select,
-.pfo-corr-grid .form-control {
-  padding-top: 0.3rem;
-  padding-bottom: 0.3rem;
-  font-size: 0.88rem;
-}
-
-.pfo-head {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--sim-muted);
-}
-
-.pfo-corr-name {
-  font-weight: 700;
-  color: var(--sim-heading);
-  font-size: 0.88rem;
-}
-
-.pfo-corr-one {
-  color: var(--sim-muted);
-  text-align: center;
-}
-
-.dft-table tr.pfo-total td {
-  font-weight: 800;
-  border-top: 1px solid var(--sim-border-strong);
-  background: var(--sim-accent-soft);
-}
-"
-
 #' User interface of the Shiny portfolio capital tool
 #'
 #' @description The page of the portfolio capital application: a welcome tab, the
@@ -179,9 +10,6 @@ pfo_ui_css <- "
 #' @keywords internal
 portfolio_tool_UI <- function(request) {
   dot <- paste0(" ", intToUtf8(183), " ")
-  pill <- function(id, label, choices, selected) {
-    div(class = "pill-radio", sim_hidden_label(radioButtons(id, label, choices, selected, inline = TRUE)))
-  }
   bslib::page_navbar(
     title = div(
       class = "sim-brand",
@@ -199,42 +27,13 @@ portfolio_tool_UI <- function(request) {
 
     navbar_options = bslib::navbar_options(bg = "#052e16", theme = "dark", underline = FALSE),
 
-    theme = bslib::bs_theme(
-      version = 5,
-      primary = "#15803d",
-      secondary = "#64748b",
-      success = "#16a34a",
-      info = "#0891b2",
-      warning = "#d97706",
-      danger = "#dc2626",
-      base_font = bslib::font_collection(
-        "Inter",
-        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-      ),
-      heading_font = bslib::font_collection(
-        "Inter",
-        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-      )
-    ),
+    theme = netsimr_bs_theme("#15803d"),
 
     header = tagList(
-      tags$head(
-        tags$script(HTML(netsimr_theme_js("netsimr-portfolio-theme"))),
-        tags$style(HTML(sim_ui_css)),
-        tags$style(HTML(dft_ui_css)),
-        tags$style(HTML(pfo_ui_css)),
-        netsimr_fonts_head(),
-        netsimr_phone_head(),
-        #the binding of the amount inputs (the number of simulations)
-        tags$script(HTML(sim_amount_input_js))
-      ),
+      netsimr_tool_head("netsimr-portfolio-theme", netsimr_css(c("tools", "analysis", "portfolio"))),
       #tells the server which theme is showing, so the charts are drawn in matching colours
-      tags$script(HTML(sim_compare_theme_js("app_theme"))),
-      useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
-      busyIndicatorOptions(
-        pulse_background = "linear-gradient(90deg, #86efac, #15803d, #86efac)",
-        pulse_height = "4px"
-      )
+      tags$script(HTML(netsimr_theme_input_js("app_theme"))),
+      netsimr_busy_indicators("#86efac", "#15803d")
     ),
 
     # ---------------------------------------------------------------- Welcome
@@ -263,7 +62,7 @@ portfolio_tool_UI <- function(request) {
           )
         ),
         bslib::card(
-          sim_card_header("route", "How it works"),
+          netsimr_card_header("route", "How it works"),
           bslib::card_body(
             tags$ol(
               class = "sim-steps",
@@ -304,40 +103,36 @@ portfolio_tool_UI <- function(request) {
       value = "lines",
       icon = icon("layer-group"),
 
-      dft_page_intro("Lines", "The lines of business and the annual losses of each."),
+      netsimr_page_intro("Lines", "The lines of business and the annual losses of each."),
 
-      dft_layout(
+      netsimr_layout(
         div(class = "pfo-settings-stack",
-          dft_settings_card(
+          netsimr_settings_card(
             "layer-group", "Lines", "Where each line's losses come from.",
             div(class = "sim-section-label", "Source"),
-            pill("line_source", "Source", c("Frequency and severity" = "model", "Upload simulated losses" = "upload"), "model"),
+            netsimr_pill_radio("line_source", "Source", c("Frequency and severity" = "model", "Upload simulated losses" = "upload"), "model"),
             conditionalPanel(
               condition = "input.line_source == 'model'",
               numericInput("n_lines", "Number of lines", value = 3, min = 2, max = pfo_max_lines, step = 1),
-              dft_help("Each line's claims are simulated with simulate_claims(): a claim count and a claim size for each",
+              netsimr_help("Each line's claims are simulated with simulate_claims(): a claim count and a claim size for each",
                        "claim, every year.")
             ),
             conditionalPanel(
               condition = "input.line_source == 'upload'",
               fileInput("upload_file", "File", accept = netsimr_data_accept, placeholder = "No file selected"),
               netsimr_private_note(),
-              bslib::input_switch("upload_header", "First row holds column names", value = TRUE),
-              div(class = "sim-section-label mt-2", "Separator"),
-              pill("upload_sep", "Separator", c(Comma = ",", Semicolon = ";", Tab = "\t"), ","),
-              div(class = "sim-section-label mt-2", "Decimal mark"),
-              pill("upload_dec", "Decimal mark", c("Point (1.5)" = ".", "Comma (1,5)" = ","), "."),
+              netsimr_file_options("upload_header", "upload_sep", "upload_dec"),
               selectizeInput("upload_columns", "A column per line", choices = NULL, multiple = TRUE,
                              options = list(placeholder = "Upload a data file first")),
-              dft_help("A row per simulated year and a column per line, such as the simulations downloaded from the",
+              netsimr_help("A row per simulated year and a column per line, such as the simulations downloaded from the",
                        "claims simulator. The copula reorders each column, so each line keeps its own distribution.")
             )
           ),
-          dft_settings_card(
+          netsimr_settings_card(
             "floppy-disk", "Settings file", "Keep this session's choices and restore them later.",
             downloadButton("save_settings", "Save settings", class = "btn-outline-pfo"),
             fileInput("load_settings", "Load settings", accept = ".txt", placeholder = "No file selected"),
-            dft_help("The file keeps the lines, the dependence and the simulation settings. An uploaded file is not",
+            netsimr_help("The file keeps the lines, the dependence and the simulation settings. An uploaded file is not",
                      "kept: upload it again, and its columns are chosen as they were.")
           )
         ),
@@ -345,12 +140,12 @@ portfolio_tool_UI <- function(request) {
         conditionalPanel(
           condition = "input.line_source == 'model'",
           bslib::card(
-            sim_card_header("list-check", "By line", "Each line's name, claim count and claim size distributions."),
+            netsimr_card_header("list-check", "By line", "Each line's name, claim count and claim size distributions."),
             bslib::card_body(uiOutput("line_inputs"))
           )
         ),
         bslib::card(
-          sim_card_header("table-cells", "Expected losses", "Each line's expected annual claims and losses."),
+          netsimr_card_header("table-cells", "Expected losses", "Each line's expected annual claims and losses."),
           bslib::card_body(uiOutput("lines_table"))
         )
       )
@@ -362,39 +157,39 @@ portfolio_tool_UI <- function(request) {
       value = "dependence",
       icon = icon("link"),
 
-      dft_page_intro("Dependence", "How the lines' bad years come together."),
+      netsimr_page_intro("Dependence", "How the lines' bad years come together."),
 
-      dft_layout(
-        dft_settings_card(
+      netsimr_layout(
+        netsimr_settings_card(
           "link", "Copula", "The dependence between the lines' ranks.",
           div(class = "sim-section-label", "Copula"),
-          pill("copula", "Copula", c("Gaussian" = "gaussian", "t" = "t"), "gaussian"),
+          netsimr_pill_radio("copula", "Copula", c("Gaussian" = "gaussian", "t" = "t"), "gaussian"),
           conditionalPanel(
             condition = "input.copula == 't'",
             numericInput("copula_df", "Degrees of freedom", value = 4, min = 1, step = 1),
-            dft_help("The fewer the degrees of freedom, the more often the lines have their worst years together.")
+            netsimr_help("The fewer the degrees of freedom, the more often the lines have their worst years together.")
           ),
           tags$hr(class = "sim-divider"),
           div(class = "sim-section-label", "Correlations"),
-          pill("corr_mode", "Correlations", c("One for every pair" = "all", "A matrix" = "matrix"), "all"),
+          netsimr_pill_radio("corr_mode", "Correlations", c("One for every pair" = "all", "A matrix" = "matrix"), "all"),
           conditionalPanel(
             condition = "input.corr_mode == 'all'",
             numericInput("corr_all", "Correlation", value = 0.25, min = -0.99, max = 0.99, step = 0.05)
           ),
-          dft_help("The correlations of the copula's normal draws: their ranks' correlation is a little lower, about",
+          netsimr_help("The correlations of the copula's normal draws: their ranks' correlation is a little lower, about",
                    "6 / pi times asin(r / 2)."),
-          dft_help("A correlation of 0.25 between two lines is common for lines hit by the same economy or weather.")
+          netsimr_help("A correlation of 0.25 between two lines is common for lines hit by the same economy or weather.")
         ),
         uiOutput("dependence_stats"),
         conditionalPanel(
           condition = "input.corr_mode == 'matrix'",
           bslib::card(
-            sim_card_header("table-cells", "Correlation matrix", "Each pair's correlation, above the diagonal."),
+            netsimr_card_header("table-cells", "Correlation matrix", "Each pair's correlation, above the diagonal."),
             bslib::card_body(uiOutput("corr_inputs"))
           )
         ),
         bslib::card(
-          sim_card_header("circle-info", "How the lines are joined"),
+          netsimr_card_header("circle-info", "How the lines are joined"),
           bslib::card_body(
             p(class = "mb-2",
               "Each line is simulated on its own. The copula then draws, for every simulated year, a rank for each line,",
@@ -414,21 +209,21 @@ portfolio_tool_UI <- function(request) {
       value = "capital",
       icon = icon("scale-balanced"),
 
-      dft_page_intro("Capital", "The portfolio's value at risk, its diversification and each line's capital."),
+      netsimr_page_intro("Capital", "The portfolio's value at risk, its diversification and each line's capital."),
 
-      dft_layout(
-        dft_settings_card(
+      netsimr_layout(
+        netsimr_settings_card(
           "sliders", "Simulation", "The run and the level of the capital.",
-          sim_amount_input("n_sims", "Number of simulations", value = 20000, min = 1000, max = 1e6),
+          netsimr_amount_input("n_sims", "Number of simulations", value = 20000, min = 1000, max = 1e6),
           selectInput("level", "Level", choices = pfo_levels, selected = "0.995", selectize = FALSE),
           numericInput("seed", "Seed (optional)", value = 1, min = 0, step = 1),
           actionButton("run", "Run", icon = icon("play"), class = "btn-run"),
-          dft_help("With uploaded losses, the number of simulations is the file's rows. At least 10,000 simulations",
+          netsimr_help("With uploaded losses, the number of simulations is the file's rows. At least 10,000 simulations",
                    "are recommended for figures at 99.5%.")
         ),
         uiOutput("capital_stats"),
         bslib::card(
-          sim_card_header("table-cells", "By line", "Each line's and the total's mean, VaR, TVaR and capital."),
+          netsimr_card_header("table-cells", "By line", "Each line's and the total's mean, VaR, TVaR and capital."),
           bslib::card_body(
             uiOutput("capital_table"),
             div(class = "pfo-downloads",
@@ -438,15 +233,15 @@ portfolio_tool_UI <- function(request) {
                 netsimr_excel_button("download_excel", class = "btn-outline-pfo"))
           )
         ),
-        dft_tabs(
+        netsimr_result_tabs(
           id = "capital_tabs",
-          bslib::nav_panel("Capital by line", dft_plot_output("capital_plot")),
-          bslib::nav_panel("Total losses", dft_plot_output("total_plot")),
+          bslib::nav_panel("Capital by line", netsimr_plot_output("capital_plot")),
+          bslib::nav_panel("Total losses", netsimr_plot_output("total_plot")),
           bslib::nav_panel("Dependence",
                            div(class = "param-grid-2 mt-2",
                                selectInput("rank_x", "Line across", choices = NULL, selectize = FALSE),
                                selectInput("rank_y", "Line up", choices = NULL, selectize = FALSE)),
-                           dft_plot_output("rank_plot", height = "480px"),
+                           netsimr_plot_output("rank_plot", height = "480px"),
                            p(class = "dft-table-note",
                              "Each point is a simulated year, at the ranks of the two lines' losses. The square at the top",
                              "right holds the years in the worst 5% of both."))
@@ -460,40 +255,40 @@ portfolio_tool_UI <- function(request) {
       value = "standard",
       icon = icon("building-columns"),
 
-      dft_page_intro("Solvency II standard formula",
+      netsimr_page_intro("Solvency II standard formula",
                      "The capital for non-life premium and reserve risk, from each segment's volumes."),
 
-      dft_layout(
-        dft_settings_card(
+      netsimr_layout(
+        netsimr_settings_card(
           "circle-info", "How it works", "Articles 115 to 117 of Delegated Regulation (EU) 2015/35.",
           p(class = "mb-2",
             "Each segment's premium and reserve risk are combined with a correlation of 50%, its standard deviations",
             "those of Annex II (as amended in 2019). The segments are joined with the correlations of Annex IV, and the",
             "capital is three times the standard deviation times the volume."),
-          dft_help("The premium volume is the larger of next year's and last year's earned premium, plus the premiums of",
+          netsimr_help("The premium volume is the larger of next year's and last year's earned premium, plus the premiums of",
                    "existing and future contracts beyond next year; the reserve volume is the best estimate of the claims",
                    "provision. Both net of reinsurance."),
-          dft_help("The 80% adjustment for non-proportional reinsurance applies to segments 1, 4 and 5 where the",
+          netsimr_help("The 80% adjustment for non-proportional reinsurance applies to segments 1, 4 and 5 where the",
                    "reinsurance qualifies. Geographical diversification is 1 for business in one region.")
         ),
         uiOutput("sf_stats"),
         bslib::card(
-          sim_card_header("list-check", "Volumes by segment", "The segments written, with their premium and reserve volumes."),
+          netsimr_card_header("list-check", "Volumes by segment", "The segments written, with their premium and reserve volumes."),
           bslib::card_body(uiOutput("sf_inputs"))
         ),
         bslib::card(
-          sim_card_header("table-cells", "Capital by segment", "Each segment on its own, and the total after diversification."),
+          netsimr_card_header("table-cells", "Capital by segment", "Each segment on its own, and the total after diversification."),
           bslib::card_body(uiOutput("sf_table"),
                            div(class = "pfo-downloads", downloadButton("download_sf", "Standard formula (CSV)", class = "btn-outline-pfo")))
         ),
-        dft_tabs(
+        netsimr_result_tabs(
           id = "sf_tabs",
-          bslib::nav_panel("Capital by segment", dft_plot_output("sf_plot"))
+          bslib::nav_panel("Capital by segment", netsimr_plot_output("sf_plot"))
         )
       )
     ),
 
     bslib::nav_spacer(),
-    bslib::nav_item(sim_theme_switch())
+    bslib::nav_item(netsimr_theme_switch())
   )
 }

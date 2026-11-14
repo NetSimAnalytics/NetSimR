@@ -32,7 +32,7 @@ test_that("the reinsurance pricing tool rates the experience and the exposure, a
   on.exit(app$stop(), add = TRUE)
 
   app_goto(app, "experience")
-  xlp_wait_for_text(app, "experience_stats", rsv_percent(xlp_expected_rate(1e6, 4e6), 2))
+  xlp_wait_for_text(app, "experience_stats", netsimr_percent(xlp_expected_rate(1e6, 4e6), 2))
   expect_match(app_text(app, "#burning_cost_table"), "2015")
   xlp_wait_for_plot(app, "burning_cost_plot")
   app$set_inputs(experience_tabs = "Pareto fit", wait_ = FALSE)
@@ -42,7 +42,7 @@ test_that("the reinsurance pricing tool rates the experience and the exposure, a
   app_goto(app, "layer")
   app_set(app, deductible = 2e6)
   xlp_wait_for_text(app, "layer_stats", "4,000,000 xs 2,000,000")
-  xlp_wait_for_text(app, "glance_table", rsv_percent(xlp_expected_rate(2e6, 4e6), 2))
+  xlp_wait_for_text(app, "glance_table", netsimr_percent(xlp_expected_rate(2e6, 4e6), 2))
   xlp_wait_for_plot(app, "layer_losses_plot")
 
   #the casualty example, on its claim size distribution
@@ -51,7 +51,7 @@ test_that("the reinsurance pricing tool rates the experience and the exposure, a
   app_set(app, profile_example = "casualty")
   xlp_wait_for_text(app, "exposure_table", "(?i)policy limit")
   expected <- casualty_exposure_rating(xl_casualty_profile, 2e6, 4e6, "LogNormal", c(10, 2), 0.55)
-  xlp_wait_for_text(app, "exposure_stats", rsv_percent(expected$rate, 2))
+  xlp_wait_for_text(app, "exposure_stats", netsimr_percent(expected$rate, 2))
   app$set_inputs(exposure_tabs = "Curve", wait_ = FALSE)
   xlp_wait_for_plot(app, "curve_plot")
 

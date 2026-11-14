@@ -18,8 +18,8 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
   res <- r$results
   complete <- all(is.finite(res$ultimate))
   premium_known <- all(is.finite(res$premium))
-  amount <- rsv_amount
-  pct <- rsv_percent
+  amount <- netsimr_amount
+  pct <- netsimr_percent
   frame <- function(...) data.frame(..., check.names = FALSE, stringsAsFactors = FALSE)
   with_total <- function(df, total) {
     total <- lapply(total, as.character)
@@ -33,9 +33,9 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
                                            " development periods.")),
     netsimr_report_tiles(c(
       list(Latest = amount(sum(res$latest)),
-           `Selected ultimate` = list(value = if (complete) amount(sum(res$ultimate)) else dft_dash,
+           `Selected ultimate` = list(value = if (complete) amount(sum(res$ultimate)) else netsimr_dash,
                                       note = if (premium_known && complete) paste("Loss ratio", pct(sum(res$ultimate) / sum(res$premium)))),
-           `Selected IBNR` = if (complete) amount(sum(res$ibnr)) else dft_dash,
+           `Selected IBNR` = if (complete) amount(sum(res$ibnr)) else netsimr_dash,
            `Chain ladder IBNR` = list(value = amount(cl$total[["ibnr"]]),
                                       note = paste0("Mack standard error ", amount(cl$total[["se"]]), ", CV ", pct(cl$total[["cv"]])))),
       if (ok(r$one_year)) list(`One-year standard error` = list(value = amount(r$one_year$total[["one_year_se"]]),
@@ -77,11 +77,11 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
           BF = amount(res$bornhuetter_ferguson), Benktander = amount(res$benktander), `Cape Cod` = amount(res$cape_cod),
           Selected = res$method, Ultimate = amount(res$ultimate), IBNR = amount(res$ibnr), `Loss ratio` = pct(res$ultimate_loss_ratio)),
     list("Total", amount(sum(res$latest)), pct(sum(res$latest) / sum(res$chain_ladder)), amount(sum(res$chain_ladder)),
-         if (all(is.finite(res$bornhuetter_ferguson))) amount(sum(res$bornhuetter_ferguson)) else dft_dash,
-         if (all(is.finite(res$benktander))) amount(sum(res$benktander)) else dft_dash,
-         if (all(is.finite(res$cape_cod))) amount(sum(res$cape_cod)) else dft_dash, "",
-         if (complete) amount(sum(res$ultimate)) else dft_dash, if (complete) amount(sum(res$ibnr)) else dft_dash,
-         if (complete && premium_known) pct(sum(res$ultimate) / sum(res$premium)) else dft_dash))
+         if (all(is.finite(res$bornhuetter_ferguson))) amount(sum(res$bornhuetter_ferguson)) else netsimr_dash,
+         if (all(is.finite(res$benktander))) amount(sum(res$benktander)) else netsimr_dash,
+         if (all(is.finite(res$cape_cod))) amount(sum(res$cape_cod)) else netsimr_dash, "",
+         if (complete) amount(sum(res$ultimate)) else netsimr_dash, if (complete) amount(sum(res$ibnr)) else netsimr_dash,
+         if (complete && premium_known) pct(sum(res$ultimate) / sum(res$premium)) else netsimr_dash))
   method_ultimates <- list(`Chain ladder` = res$chain_ladder, `Bornhuetter-Ferguson` = res$bornhuetter_ferguson,
                            Benktander = res$benktander, `Cape Cod` = res$cape_cod)
   method_ultimates <- method_ultimates[vapply(method_ultimates, function(x) any(is.finite(x)), logical(1))]
@@ -142,9 +142,9 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
       a <- r$ave
       parts$ave <- netsimr_report_table(with_total(
         frame(Origin = a$by_origin$origin, Expected = amount(a$by_origin$expected), Actual = amount(a$by_origin$actual),
-              `Actual / expected` = pct(a$by_origin$actual_to_expected, 0), z = dft_fmt(a$by_origin$z, 2)),
+              `Actual / expected` = pct(a$by_origin$actual_to_expected, 0), z = netsimr_fmt(a$by_origin$z, 2)),
         list("Total", amount(a$total[["expected"]]), amount(a$total[["actual"]]), pct(a$total[["actual_to_expected"]], 0),
-             dft_fmt(a$total[["z"]], 2))),
+             netsimr_fmt(a$total[["z"]], 2))),
         title = "Actual vs expected, latest period",
         note = "z beyond about 2 either way is worth a look.")
     }
@@ -153,7 +153,7 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
       if (ok(r$clark)) rows[[length(rows) + 1]] <- c(paste("Clark", r$clark$method), amount(r$clark$total[["ibnr"]]),
                                                      amount(r$clark$total[["se"]]))
       if (ok(r$inflation)) rows[[length(rows) + 1]] <- c("Chain ladder with claims inflation", amount(r$inflation$total[["ibnr"]]),
-                                                         dft_dash)
+                                                         netsimr_dash)
       m <- do.call(rbind, rows)
       parts$methods <- netsimr_report_table(frame(Method = m[, 1], IBNR = m[, 2], `Standard error` = m[, 3]),
                                             title = "Other methods")
@@ -183,7 +183,7 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
       netsimr_report_tiles(c(
         list(`Best estimate` = list(value = amount(dt[["discounted"]]),
                                     note = paste0("Discounted from ", amount(dt[["reserve"]]), "; mean term ",
-                                                  dft_fmt(dt[["mean_term"]], 3), " years"))),
+                                                  netsimr_fmt(dt[["mean_term"]], 3), " years"))),
         if (!is.null(ra)) list(`Risk adjustment` = list(value = amount(ra$risk_adjustment),
                                                          note = paste0(ra$method, if (is.finite(ra$confidence_level))
                                                            paste0("; confidence level ", pct(ra$confidence_level)))),
@@ -202,7 +202,7 @@ write_reserving_report <- function(file, r, generated = Sys.time()) {
                             as.character(d$timing)]], " of each period of ", format(d$period), " years.")),
           netsimr_report_chart(function(dark) {
             cf <- d$cash_flows
-            dft_category_chart(as.character(cf$period),
+            netsimr_category_chart(as.character(cf$period),
                                bars = list(name = "Payments", values = cf$payments, colour = rsv_method_colours[["Chain ladder"]]),
                                lines = list(list(name = "Present value", values = cf$present_value,
                                                  colour = rsv_method_colours[["Cape Cod"]])),

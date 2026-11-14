@@ -20,11 +20,11 @@ write_portfolio_report <- function(file, portfolio, spec, generated = Sys.time()
                                            if (p$copula == "t") paste0("t copula with ", format(p$df), " degrees of freedom") else
                                              "Gaussian copula", ".")),
     netsimr_report_tiles(stats::setNames(list(
-      list(value = rsv_amount(total$mean), note = paste("Standard deviation", rsv_amount(total$sd))),
-      list(value = rsv_amount(total$var), note = "Of the total"),
-      list(value = rsv_amount(total$tvar), note = "The mean beyond the VaR"),
-      list(value = rsv_amount(d[["benefit"]]), note = paste0(rsv_percent(d[["benefit_share"]]), " of the lines' VaR")),
-      list(value = rsv_amount(d[["stand_alone_var"]]), note = "The sum of the lines' own VaR")
+      list(value = netsimr_amount(total$mean), note = paste("Standard deviation", netsimr_amount(total$sd))),
+      list(value = netsimr_amount(total$var), note = "Of the total"),
+      list(value = netsimr_amount(total$tvar), note = "The mean beyond the VaR"),
+      list(value = netsimr_amount(d[["benefit"]]), note = paste0(netsimr_percent(d[["benefit_share"]]), " of the lines' VaR")),
+      list(value = netsimr_amount(d[["stand_alone_var"]]), note = "The sum of the lines' own VaR")
     ), c("Mean total loss", paste("VaR", label), paste("TVaR", label), "Diversification benefit", "Lines' VaR")),
     tail = c(paste("VaR", label), paste("TVaR", label)))
   ))
@@ -55,12 +55,12 @@ write_portfolio_report <- function(file, portfolio, spec, generated = Sys.time()
       Seed = if (is.null(spec$seed)) "None" else format(spec$seed))))
   ))
 
-  by_line <- rbind(frame(Line = lines$line, Mean = rsv_amount(lines$mean), `Standard deviation` = rsv_amount(lines$sd),
-                         VaR = rsv_amount(lines$var), TVaR = rsv_amount(lines$tvar), Capital = rsv_amount(lines$capital),
-                         Share = rsv_percent(lines$capital_share)),
-                   frame(Line = "Total", Mean = rsv_amount(total$mean), `Standard deviation` = rsv_amount(total$sd),
-                         VaR = rsv_amount(total$var), TVaR = rsv_amount(total$tvar), Capital = rsv_amount(total$capital),
-                         Share = rsv_percent(total$capital_share)))
+  by_line <- rbind(frame(Line = lines$line, Mean = netsimr_amount(lines$mean), `Standard deviation` = netsimr_amount(lines$sd),
+                         VaR = netsimr_amount(lines$var), TVaR = netsimr_amount(lines$tvar), Capital = netsimr_amount(lines$capital),
+                         Share = netsimr_percent(lines$capital_share)),
+                   frame(Line = "Total", Mean = netsimr_amount(total$mean), `Standard deviation` = netsimr_amount(total$sd),
+                         VaR = netsimr_amount(total$var), TVaR = netsimr_amount(total$tvar), Capital = netsimr_amount(total$capital),
+                         Share = netsimr_percent(total$capital_share)))
   names(by_line)[4:5] <- paste(c("VaR", "TVaR"), label)
   capital <- list(id = "capital", title = "Capital by line", content = tagList(
     netsimr_report_table(by_line, note = paste(

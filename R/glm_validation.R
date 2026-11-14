@@ -20,18 +20,7 @@ glm_holdout_rows <- function(n, share, seed = 1) {
   test <- rep(FALSE, n)
   if (length(share) != 1 || !is.finite(share) || share <= 0 || n < 2) return(test)
   size <- min(n - 1, max(1, round(min(share, 0.5) * n)))
-  global <- globalenv()
-  saved <- if (exists(".Random.seed", envir = global, inherits = FALSE)) get(".Random.seed", envir = global)
-  kind <- RNGkind()
-  on.exit({
-    suppressWarnings(RNGkind(kind[1], kind[2], kind[3]))
-    if (is.null(saved)) {
-      if (exists(".Random.seed", envir = global, inherits = FALSE)) rm(".Random.seed", envir = global)
-    } else {
-      assign(".Random.seed", saved, envir = global)
-    }
-  }, add = TRUE)
-  set.seed(glm_holdout_seed(seed), kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
+  netsimr_local_seed(glm_holdout_seed(seed))
   test[sample.int(n, size)] <- TRUE
   test
 }
@@ -345,17 +334,6 @@ glm_penalised <- function(model, data, candidates, penalty = c("lasso", "elastic
 # The cross-validation fold of each of n rows: as even as can be, in a random order that is
 # the same for the same seed, without touching the caller's random numbers.
 glm_fold_ids <- function(n, folds, seed = 1) {
-  global <- globalenv()
-  saved <- if (exists(".Random.seed", envir = global, inherits = FALSE)) get(".Random.seed", envir = global)
-  kind <- RNGkind()
-  on.exit({
-    suppressWarnings(RNGkind(kind[1], kind[2], kind[3]))
-    if (is.null(saved)) {
-      if (exists(".Random.seed", envir = global, inherits = FALSE)) rm(".Random.seed", envir = global)
-    } else {
-      assign(".Random.seed", saved, envir = global)
-    }
-  }, add = TRUE)
-  set.seed(glm_holdout_seed(seed), kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
+  netsimr_local_seed(glm_holdout_seed(seed))
   sample(rep_len(seq_len(folds), n))
 }

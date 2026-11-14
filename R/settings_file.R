@@ -115,3 +115,45 @@ read_settings_file <- function(file, tool) {
   })
   list(tool = unname(record[["NetSimRSettings"]]), version = version, values = values)
 }
+
+# The values of a settings file loaded into a tool, or NULL after telling the user why the file
+# could not be loaded: it is not a settings file of the tool, or a newer NetSimR saved it.
+load_settings_values <- function(file, tool, version) {
+  settings <- tryCatch(read_settings_file(file, tool), error = function(e) e)
+  problem <- if (inherits(settings, "error")) {
+    conditionMessage(settings)
+  } else if (settings$version > version) {
+    "it was saved by a newer version of NetSimR."
+  }
+  if (!is.null(problem)) {
+    showNotification(paste("The settings could not be loaded:", problem), type = "error", duration = 10)
+    return(NULL)
+  }
+  settings$values
+}
+
+# Whether a loaded value can be given to an input of a kind (as a tool's settings inputs list
+# them): one value, of the input's type, and one of its choices when it has them.
+setting_usable <- function(x, kind, choices = NULL) {
+  if (is.null(x) || length(x) != 1) return(FALSE)
+  switch(kind,
+         radio = , select = is.character(x) && (is.null(choices) || x %in% choices),
+         switch = is.logical(x) && !is.na(x),
+         numeric = is.numeric(x) || (is.logical(x) && is.na(x)),
+         slider = is.numeric(x) && is.finite(x),
+         column = is.character(x) && !is.na(x) && nzchar(x),
+         is.character(x))
+}
+
+# Gives an input of a kind a loaded value. A column is chosen once the data with it is read,
+# so it is left to the tool.
+update_setting_input <- function(session, id, kind, x) {
+  switch(kind,
+         radio = updateRadioButtons(session, id, selected = x),
+         select = updateSelectInput(session, id, selected = x),
+         switch = bslib::update_switch(id, value = x, session = session),
+         numeric = updateNumericInput(session, id, value = if (is.logical(x)) NA else x),
+         slider = updateSliderInput(session, id, value = x),
+         text = updateTextInput(session, id, value = x))
+  invisible(NULL)
+}

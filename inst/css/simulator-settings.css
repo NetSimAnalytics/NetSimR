@@ -1,0 +1,65 @@
+/* The settings block of the simulator's Simulation card. */
+
+.sim-settings-io .shiny-input-container {
+  margin-bottom: 0.6rem;
+}
+
+.sim-settings-io .btn-sm {
+  font-size: 0.82rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.sim-settings-io .shiny-download-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.sim-settings-io .input-group .btn {
+  font-weight: 600;
+  font-size: 0.86rem;
+  border-color: var(--sim-border-strong);
+  border-radius: 10px 0 0 10px;
+}
+
+.sim-settings-io .input-group .form-control {
+  font-size: 0.86rem;
+  border-radius: 0 10px 10px 0;
+}
+
+.sim-settings-io .shiny-file-input-progress {
+  height: 6px;
+  margin-top: 0.3rem;
+  margin-bottom: 0;
+  border-radius: 999px;
+}
+
+.sim-settings-io .shiny-file-input-progress .progress-bar {
+  font-size: 0;
+}
+
+/* the select has the full width of the card, so example names are not cut off, and the
+   button sits under it */
+.sim-settings-example {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.sim-settings-example .shiny-input-container {
+  margin-bottom: 0;
+}
+
+.sim-settings-example .form-select {
+  font-size: 0.86rem;
+  padding: 0.42rem 2rem 0.42rem 0.75rem;
+  text-overflow: ellipsis;
+}
+
+.sim-settings-example .btn {
+  white-space: nowrap;
+  width: 100%;
+}

@@ -60,7 +60,7 @@ xlp_chart_colours <- function(dark = FALSE) {
 
 # A layer as "4,000,000 xs 1,000,000", an unlimited one as "Unlimited xs ...".
 xlp_layer_label <- function(deductible, limit) {
-  paste(if (is.finite(limit)) rsv_amount(limit) else "Unlimited", "xs", rsv_amount(deductible))
+  paste(if (is.finite(limit)) netsimr_amount(limit) else "Unlimited", "xs", netsimr_amount(deductible))
 }
 
 # The losses and their years from an uploaded table, as numbers.
@@ -68,8 +68,8 @@ xlp_upload_losses <- function(df, year, amount, dec = ".") {
   has <- function(column) !is.null(column) && nzchar(column) && column %in% names(df)
   if (!has(year) || !has(amount)) stop("Choose the year and amount columns.", call. = FALSE)
   if (identical(year, amount)) stop("Choose different columns for the year and the amount.", call. = FALSE)
-  years <- dft_as_numeric(df[[year]], dec)
-  amounts <- dft_as_numeric(df[[amount]], dec)
+  years <- netsimr_as_numeric(df[[year]], dec)
+  amounts <- netsimr_as_numeric(df[[amount]], dec)
   keep <- !is.na(years) | !is.na(amounts)
   years <- years[keep]
   amounts <- amounts[keep]
@@ -88,17 +88,17 @@ xlp_upload_profile <- function(df, type, size, premium, loss_ratio = NULL, band 
   if (!has(size) || !has(premium)) stop("Choose the ", size_label, " and premium columns.", call. = FALSE)
   chosen <- c(size, premium, if (has(loss_ratio)) loss_ratio, if (has(band)) band)
   if (anyDuplicated(chosen)) stop("Choose a different column for each of the profile's values.", call. = FALSE)
-  sizes <- dft_as_numeric(df[[size]], dec)
-  premiums <- dft_as_numeric(df[[premium]], dec)
+  sizes <- netsimr_as_numeric(df[[size]], dec)
+  premiums <- netsimr_as_numeric(df[[premium]], dec)
   keep <- !is.na(sizes) | !is.na(premiums)
   if (!any(keep)) stop("The profile has no rows.", call. = FALSE)
   if (anyNA(sizes[keep]) || any(sizes[keep] <= 0)) stop("Every row needs a positive ", size_label, ".", call. = FALSE)
   if (anyNA(premiums[keep]) || any(premiums[keep] < 0)) stop("Every row needs a premium of at least 0.", call. = FALSE)
-  out <- data.frame(band = if (has(band)) as.character(df[[band]])[keep] else rsv_amount(sizes[keep]), stringsAsFactors = FALSE)
+  out <- data.frame(band = if (has(band)) as.character(df[[band]])[keep] else netsimr_amount(sizes[keep]), stringsAsFactors = FALSE)
   out[[if (identical(type, "casualty")) "policy_limit" else "sum_insured"]] <- sizes[keep]
   out$premium <- premiums[keep]
   if (has(loss_ratio)) {
-    ratios <- dft_as_numeric(df[[loss_ratio]], dec)[keep]
+    ratios <- netsimr_as_numeric(df[[loss_ratio]], dec)[keep]
     if (anyNA(ratios) || any(ratios < 0)) stop("Every row needs a loss ratio of at least 0, as a share such as 0.65.", call. = FALSE)
     out$loss_ratio <- ratios
   }
@@ -109,7 +109,7 @@ xlp_upload_profile <- function(df, type, size, premium, loss_ratio = NULL, band 
 xlp_example_profile <- function(type) {
   if (identical(type, "casualty")) {
     profile <- NetSimR::xl_casualty_profile
-    profile <- data.frame(band = rsv_amount(profile$policy_limit), profile, stringsAsFactors = FALSE)
+    profile <- data.frame(band = netsimr_amount(profile$policy_limit), profile, stringsAsFactors = FALSE)
     return(list(profile = profile, type = "casualty",
                 description = "A simulated liability portfolio: the premium written at each policy limit."))
   }
@@ -123,14 +123,14 @@ xlp_example_profile <- function(type) {
 # filled).
 xlp_losses_chart <- function(detail, years, deductible, limit, dark = FALSE) {
   colours <- xlp_chart_colours(dark)
-  plot_colours <- dft_plot_colours(dark)
+  plot_colours <- netsimr_plot_colours(dark)
   top <- deductible + limit
   values <- detail$indexed
-  ylim <- dft_zero_range(c(values, deductible, if (is.finite(top)) top))
+  ylim <- netsimr_zero_range(c(values, deductible, if (is.finite(top)) top))
   legend <- list(list(label = "Loss in the layer", colour = colours$accent, type = "marker", pch = 19),
                  list(label = "Below the layer", colour = plot_colours$muted, type = "marker", pch = 1),
                  list(label = "Layer", colour = colours$layer, type = "bar"))
-  dft_plot_frame(c(0.4, length(years) + 0.6), ylim, "Year", "Loss in the money of the rating year", dark,
+  netsimr_plot_frame(c(0.4, length(years) + 0.6), ylim, "Year", "Loss in the money of the rating year", dark,
                  legend = legend, x_labels = years)
   graphics::rect(0, deductible, length(years) + 1, min(top, ylim[2]), col = colours$layer, border = NA)
   graphics::abline(h = deductible, col = colours$accent, lty = 2, lwd = 1.2)
@@ -150,11 +150,11 @@ xlp_pareto_chart <- function(losses, threshold, alpha, dark = FALSE) {
   n <- length(x)
   grid <- exp(seq(log(threshold), log(max(x) * 1.5), length.out = 200))
   series <- list(
-    list(name = "Losses (share above)", x = c(threshold, x), y = c(1, (n - seq_len(n)) / n), colour = dft_model_palette[1], step = TRUE),
+    list(name = "Losses (share above)", x = c(threshold, x), y = c(1, (n - seq_len(n)) / n), colour = netsimr_palette[1], step = TRUE),
     list(name = paste0("Pareto, alpha ", formatC(alpha, format = "f", digits = 2)), x = grid, y = (threshold / grid)^alpha,
          colour = xlp_chart_colours(dark)$accent)
   )
-  dft_line_chart(series, "Loss in the money of the rating year", "Share of large losses above", dark, x_log = TRUE,
+  netsimr_line_chart(series, "Loss in the money of the rating year", "Share of large losses above", dark, x_log = TRUE,
                  ylim = c(0, 1.02))
 }
 
@@ -166,7 +166,7 @@ xlp_property_curve_chart <- function(curve, dark = FALSE) {
     list(name = curve$label, x = x, y = mbbefd_curve(x, curve$b, curve$g), colour = xlp_chart_colours(dark)$accent),
     list(name = "Total losses only", x = x, y = x, colour = "muted", lwd = 1.5)
   )
-  dft_line_chart(series, "Deductible as a share of the sum insured", "Share of the expected loss below it", dark,
+  netsimr_line_chart(series, "Deductible as a share of the sum insured", "Share of the expected loss below it", dark,
                  ylim = c(0, 1.02))
 }
 
@@ -175,7 +175,7 @@ xlp_casualty_curve_chart <- function(lev, label, limits, deductible, limit, dark
   top <- max(limits, if (is.finite(limit)) deductible + limit else deductible)
   x <- seq(0, top, length.out = 201)
   series <- list(list(name = label, x = x, y = lev(x), colour = xlp_chart_colours(dark)$accent))
-  dft_line_chart(series, "Claim size cap", "Limited expected value", dark,
+  netsimr_line_chart(series, "Claim size cap", "Limited expected value", dark,
                  vlines = c(deductible, if (is.finite(limit)) deductible + limit))
 }
 

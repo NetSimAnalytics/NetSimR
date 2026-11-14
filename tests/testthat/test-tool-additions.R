@@ -18,7 +18,7 @@ test_that("Excel workbooks are read like text files, and written one sheet per t
   # Shiny keeps the extension, but the file is recognised by its first bytes
   plain <- tempfile()
   file.copy(path, plain)
-  d <- dft_read_data(plain)
+  d <- netsimr_read_data(plain)
   expect_identical(names(d), c("a", "b c"))
   expect_equal(d$a, 1:3)
   expect_identical(d$`b c`, c("x", "y", "z"))

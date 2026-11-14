@@ -13,7 +13,6 @@
 #' @import shiny
 portfolio_tool_Server <- function(input, output, session) {
 
-  or_default <- function(x, default) if (is.null(x) || length(x) == 0) default else x
   # a single number from an input, NA when it is empty or not a number
   number <- function(x) if (length(x) == 1 && is.numeric(x)) as.numeric(x) else NA_real_
 
@@ -76,7 +75,7 @@ portfolio_tool_Server <- function(input, output, session) {
     }))
     tagList(
       div(class = "pfo-grid-wrap", div(class = "pfo-line-grid", rows)),
-      dft_help("The Negative Binomial count is a Poisson whose mean is Gamma with shape r and scale beta: its mean is",
+      netsimr_help("The Negative Binomial count is a Poisson whose mean is Gamma with shape r and scale beta: its mean is",
                "r times beta. The Pareto's x_m is its smallest claim.")
     )
   })
@@ -140,7 +139,7 @@ portfolio_tool_Server <- function(input, output, session) {
   upload_data <- reactive({
     file <- input$upload_file
     validate(need(file, "Upload a file of simulated losses, a column per line."))
-    df <- tryCatch(dft_read_data(file$datapath, header = isTRUE(input$upload_header), sep = or_default(input$upload_sep, ","),
+    df <- tryCatch(netsimr_read_data(file$datapath, header = isTRUE(input$upload_header), sep = or_default(input$upload_sep, ","),
                                  quote = "\"", dec = or_default(input$upload_dec, ".")),
                    error = function(e) e)
     validate(need(!inherits(df, "error"), if (inherits(df, "error")) paste0("The file could not be read (", conditionMessage(df),
@@ -151,7 +150,7 @@ portfolio_tool_Server <- function(input, output, session) {
   loaded_columns <- NULL
   observeEvent(upload_data(), {
     df <- upload_data()
-    numbers <- dft_numeric_columns(df, or_default(input$upload_dec, "."))
+    numbers <- netsimr_numeric_columns(df, or_default(input$upload_dec, "."))
     wanted <- if (!is.null(loaded_columns)) intersect(loaded_columns, names(df)) else intersect(input$upload_columns, names(df))
     loaded_columns <<- NULL
     # without a choice, every numeric column but a simulation number, at most the most lines
@@ -176,18 +175,18 @@ portfolio_tool_Server <- function(input, output, session) {
       l <- upload_lines()
       means <- vapply(l, mean, numeric(1))
       return(div(class = "dft-stats",
-                 dft_stat_tile("Lines", length(l), icon_name = "layer-group", note = "Uploaded simulated losses"),
-                 dft_stat_tile("Simulations", format(length(l[[1]]), big.mark = ",", scientific = FALSE), icon_name = "hashtag",
+                 netsimr_stat_tile("Lines", length(l), icon_name = "layer-group", note = "Uploaded simulated losses"),
+                 netsimr_stat_tile("Simulations", format(length(l[[1]]), big.mark = ",", scientific = FALSE), icon_name = "hashtag",
                                note = input$upload_file$name),
-                 dft_stat_tile("Mean total loss", rsv_amount(sum(means)), icon_name = "coins", accent = TRUE)))
+                 netsimr_stat_tile("Mean total loss", netsimr_amount(sum(means)), icon_name = "coins", accent = TRUE)))
     }
     l <- model_lines()
     means <- vapply(l, function(x) line_means(x)[["loss"]], numeric(1))
     div(class = "dft-stats",
-        dft_stat_tile("Lines", length(l), icon_name = "layer-group", note = "Frequency and severity"),
-        dft_stat_tile("Expected claims", format(round(sum(vapply(l, function(x) line_means(x)[["count"]], numeric(1)))), big.mark = ",", scientific = FALSE),
+        netsimr_stat_tile("Lines", length(l), icon_name = "layer-group", note = "Frequency and severity"),
+        netsimr_stat_tile("Expected claims", format(round(sum(vapply(l, function(x) line_means(x)[["count"]], numeric(1)))), big.mark = ",", scientific = FALSE),
                       icon_name = "hashtag", note = "A year"),
-        dft_stat_tile("Expected total loss", if (all(is.finite(means))) rsv_amount(sum(means)) else "Infinite", icon_name = "coins",
+        netsimr_stat_tile("Expected total loss", if (all(is.finite(means))) netsimr_amount(sum(means)) else "Infinite", icon_name = "coins",
                       accent = TRUE, note = if (!all(is.finite(means))) "A Pareto with alpha of 1 or less has no mean"))
   })
 
@@ -196,9 +195,9 @@ portfolio_tool_Server <- function(input, output, session) {
       l <- upload_lines()
       rows <- lapply(names(l), function(name) {
         x <- l[[name]]
-        list(name, rsv_amount(mean(x)), rsv_amount(stats::sd(x)), rsv_amount(stats::quantile(x, 0.995, names = FALSE)))
+        list(name, netsimr_amount(mean(x)), netsimr_amount(stats::sd(x)), netsimr_amount(stats::quantile(x, 0.995, names = FALSE)))
       })
-      return(rsv_table(c("Line", "Mean", "Standard deviation", "99.5th percentile"), rows,
+      return(netsimr_table(c("Line", "Mean", "Standard deviation", "99.5th percentile"), rows,
                        note = "Each column's simulated losses, as uploaded: the copula only reorders them."))
     }
     l <- model_lines()
@@ -206,13 +205,13 @@ portfolio_tool_Server <- function(input, output, session) {
     total <- sum(vapply(m, function(x) x[["loss"]], numeric(1)))
     rows <- lapply(seq_along(l), function(i) {
       x <- l[[i]]
-      list(x$name, paste0(x$frequency, ", mean ", dft_fmt(m[[i]][["count"]], 4)),
-           paste0(x$severity, ", mean ", if (is.finite(m[[i]][["size"]])) rsv_amount(m[[i]][["size"]]) else "infinite"),
-           if (is.finite(m[[i]][["loss"]])) rsv_amount(m[[i]][["loss"]]) else "Infinite",
-           if (is.finite(total)) rsv_percent(m[[i]][["loss"]] / total) else dft_dash)
+      list(x$name, paste0(x$frequency, ", mean ", netsimr_fmt(m[[i]][["count"]], 4)),
+           paste0(x$severity, ", mean ", if (is.finite(m[[i]][["size"]])) netsimr_amount(m[[i]][["size"]]) else "infinite"),
+           if (is.finite(m[[i]][["loss"]])) netsimr_amount(m[[i]][["loss"]]) else "Infinite",
+           if (is.finite(total)) netsimr_percent(m[[i]][["loss"]] / total) else netsimr_dash)
     })
-    rsv_table(c("Line", "Claim count", "Claim size", "Expected loss", "Share"), rows,
-              total = list("Total", "", "", if (is.finite(total)) rsv_amount(total) else "Infinite", if (is.finite(total)) "100.0%" else dft_dash),
+    netsimr_table(c("Line", "Claim count", "Claim size", "Expected loss", "Share"), rows,
+              total = list("Total", "", "", if (is.finite(total)) netsimr_amount(total) else "Infinite", if (is.finite(total)) "100.0%" else netsimr_dash),
               note = "The expected loss of a line is its expected number of claims times its expected claim size.")
   })
 
@@ -237,7 +236,7 @@ portfolio_tool_Server <- function(input, output, session) {
       c(list(div(class = "pfo-corr-name", names[i])),
         lapply(seq_len(k), function(j) {
           if (j < i) div() else if (j == i) div(class = "pfo-corr-one", "1") else {
-            sim_hidden_label(numericInput(corr_id(i, j), paste("Correlation of", names[i], "and", names[j]),
+            netsimr_hidden_label(numericInput(corr_id(i, j), paste("Correlation of", names[i], "and", names[j]),
                                           value = corr_value(i, j), min = -0.99, max = 0.99, step = 0.05, width = "100%"))
           }
         }))
@@ -247,7 +246,7 @@ portfolio_tool_Server <- function(input, output, session) {
           div(class = "pfo-corr-grid", style = paste0("grid-template-columns: minmax(6rem, auto) repeat(", k, ", minmax(5rem, 1fr));",
                                                       " min-width: ", 130 + 90 * k, "px;"),
               div(), lapply(names, function(n) div(class = "pfo-head", n)), cells)),
-      dft_help("The matrix must be positive definite: the correlations must be consistent with one another (A and B",
+      netsimr_help("The matrix must be positive definite: the correlations must be consistent with one another (A and B",
                "close, B and C close, but A and C far apart is not possible).")
     )
   })
@@ -285,10 +284,10 @@ portfolio_tool_Server <- function(input, output, session) {
     }, error = function(e) FALSE)
     cs <- copula_settings()
     div(class = "dft-stats",
-        dft_stat_tile("Copula", if (cs$copula == "t") paste0("t, ", format(cs$df), " df") else "Gaussian", icon_name = "link"),
-        dft_stat_tile("Mean correlation", dft_fmt(mean(pairs), 3), icon_name = "arrows-left-right",
-                      note = paste("Rank correlation about", dft_fmt(mean(6 / pi * asin(pairs / 2)), 3))),
-        dft_stat_tile("Matrix", if (valid) "Valid" else "Not valid", icon_name = if (valid) "circle-check" else "triangle-exclamation",
+        netsimr_stat_tile("Copula", if (cs$copula == "t") paste0("t, ", format(cs$df), " df") else "Gaussian", icon_name = "link"),
+        netsimr_stat_tile("Mean correlation", netsimr_fmt(mean(pairs), 3), icon_name = "arrows-left-right",
+                      note = paste("Rank correlation about", netsimr_fmt(mean(6 / pi * asin(pairs / 2)), 3))),
+        netsimr_stat_tile("Matrix", if (valid) "Valid" else "Not valid", icon_name = if (valid) "circle-check" else "triangle-exclamation",
                       accent = !valid, note = if (valid) paste(k, "lines") else "Not positive definite: change a correlation"))
   })
 
@@ -348,14 +347,14 @@ portfolio_tool_Server <- function(input, output, session) {
     d <- p$diversification
     label <- paste0(format(100 * p$level), "%")
     tagList(
-      if (stale()) dft_help("The settings have changed since this run: click Run to simulate them."),
+      if (stale()) netsimr_help("The settings have changed since this run: click Run to simulate them."),
       div(class = "dft-stats",
-          dft_stat_tile(paste("VaR", label), rsv_amount(total$var), icon_name = "triangle-exclamation", accent = TRUE,
-                        note = paste("Of the total; mean", rsv_amount(total$mean))),
-          dft_stat_tile(paste("TVaR", label), rsv_amount(total$tvar), icon_name = "chart-area", note = "The mean beyond the VaR"),
-          dft_stat_tile("Diversification", rsv_amount(d[["benefit"]]), icon_name = "scale-balanced",
-                        note = paste0(rsv_percent(d[["benefit_share"]]), " of the lines' VaR of ", rsv_amount(d[["stand_alone_var"]]))),
-          dft_stat_tile("Simulations", format(p$n, big.mark = ",", scientific = FALSE), icon_name = "hashtag",
+          netsimr_stat_tile(paste("VaR", label), netsimr_amount(total$var), icon_name = "triangle-exclamation", accent = TRUE,
+                        note = paste("Of the total; mean", netsimr_amount(total$mean))),
+          netsimr_stat_tile(paste("TVaR", label), netsimr_amount(total$tvar), icon_name = "chart-area", note = "The mean beyond the VaR"),
+          netsimr_stat_tile("Diversification", netsimr_amount(d[["benefit"]]), icon_name = "scale-balanced",
+                        note = paste0(netsimr_percent(d[["benefit_share"]]), " of the lines' VaR of ", netsimr_amount(d[["stand_alone_var"]]))),
+          netsimr_stat_tile("Simulations", format(p$n, big.mark = ",", scientific = FALSE), icon_name = "hashtag",
                         note = if (p$copula == "t") paste0("t copula, ", format(p$df), " df") else "Gaussian copula"))
     )
   })
@@ -366,11 +365,11 @@ portfolio_tool_Server <- function(input, output, session) {
     lines <- s[s$line != "total", ]
     total <- s[s$line == "total", ]
     row <- function(x, name = x$line) {
-      list(name, rsv_amount(x$mean), rsv_amount(x$sd), rsv_amount(x$var), rsv_amount(x$tvar), rsv_amount(x$capital),
-           rsv_percent(x$capital_share))
+      list(name, netsimr_amount(x$mean), netsimr_amount(x$sd), netsimr_amount(x$var), netsimr_amount(x$tvar), netsimr_amount(x$capital),
+           netsimr_percent(x$capital_share))
     }
     label <- paste0(format(100 * p$level), "%")
-    rsv_table(c("Line", "Mean", "Standard deviation", paste("VaR", label), paste("TVaR", label), "Capital", "Share"),
+    netsimr_table(c("Line", "Mean", "Standard deviation", paste("VaR", label), paste("TVaR", label), "Capital", "Share"),
               lapply(seq_len(nrow(lines)), function(i) row(lines[i, ])), row(total, "Total"),
               note = paste0("Each line's VaR and TVaR are its own; its capital is its mean loss in the years when the total is at ",
                             "or beyond its VaR (co-TVaR), so the lines' capitals add up to the total's TVaR. The ",
@@ -459,9 +458,9 @@ portfolio_tool_Server <- function(input, output, session) {
       name <- paste0(s, ". ", sii_nonlife_segments$name[s])
       tagList(
         div(class = "pfo-corr-name", name),
-        sim_hidden_label(sim_amount_input(sf_id("premium", s), paste("Premium volume of", name), value = sf_value("premium", s), min = 0)),
-        sim_hidden_label(sim_amount_input(sf_id("reserve", s), paste("Reserve volume of", name), value = sf_value("reserve", s), min = 0)),
-        sim_hidden_label(numericInput(sf_id("div", s), paste("Geographical diversification of", name), value = sf_value("div", s),
+        netsimr_hidden_label(netsimr_amount_input(sf_id("premium", s), paste("Premium volume of", name), value = sf_value("premium", s), min = 0)),
+        netsimr_hidden_label(netsimr_amount_input(sf_id("reserve", s), paste("Reserve volume of", name), value = sf_value("reserve", s), min = 0)),
+        netsimr_hidden_label(numericInput(sf_id("div", s), paste("Geographical diversification of", name), value = sf_value("div", s),
                                       min = 0, max = 1, step = 0.05, width = "100%")),
         if (s %in% c(1, 4, 5)) {
           checkboxInput(sf_id("np", s), span(class = "visually-hidden", paste("Non-proportional reinsurance adjustment for", name)),
@@ -473,7 +472,7 @@ portfolio_tool_Server <- function(input, output, session) {
       div(class = "pfo-grid-wrap",
           div(class = "pfo-corr-grid", style = "grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(8rem, 1fr)) minmax(6rem, 0.7fr) minmax(4rem, auto); min-width: 760px;",
               head("Segment"), head("Premium volume"), head("Reserve volume"), head("Diversification"), head("NP 80%"), cells)),
-      dft_help("Leave a segment's volumes at 0 if it is not written.")
+      netsimr_help("Leave a segment's volumes at 0 if it is not written.")
     )
   })
 
@@ -504,13 +503,13 @@ portfolio_tool_Server <- function(input, output, session) {
       list(value = total$var - total$mean, level = p$level)
     }, error = function(e) NULL)
     div(class = "dft-stats",
-        dft_stat_tile("Capital requirement", rsv_amount(t[["capital"]]), icon_name = "building-columns", accent = TRUE,
-                      note = paste0("3 ", intToUtf8(215), " ", rsv_percent(t[["sd"]], 2), " ", intToUtf8(215), " ", rsv_amount(t[["volume"]]))),
-        dft_stat_tile("Premium risk alone", rsv_amount(s$premium_risk), icon_name = "file-invoice-dollar"),
-        dft_stat_tile("Reserve risk alone", rsv_amount(s$reserve_risk), icon_name = "hourglass-half"),
-        dft_stat_tile("Diversification", rsv_amount(t[["diversification"]]), icon_name = "scale-balanced",
-                      note = paste("Of", rsv_amount(t[["standalone"]]), "for the segments on their own")),
-        dft_stat_tile("Simulated capital", if (is.null(simulated)) dft_dash else rsv_amount(simulated$value), icon_name = "cubes",
+        netsimr_stat_tile("Capital requirement", netsimr_amount(t[["capital"]]), icon_name = "building-columns", accent = TRUE,
+                      note = paste0("3 ", intToUtf8(215), " ", netsimr_percent(t[["sd"]], 2), " ", intToUtf8(215), " ", netsimr_amount(t[["volume"]]))),
+        netsimr_stat_tile("Premium risk alone", netsimr_amount(s$premium_risk), icon_name = "file-invoice-dollar"),
+        netsimr_stat_tile("Reserve risk alone", netsimr_amount(s$reserve_risk), icon_name = "hourglass-half"),
+        netsimr_stat_tile("Diversification", netsimr_amount(t[["diversification"]]), icon_name = "scale-balanced",
+                      note = paste("Of", netsimr_amount(t[["standalone"]]), "for the segments on their own")),
+        netsimr_stat_tile("Simulated capital", if (is.null(simulated)) netsimr_dash else netsimr_amount(simulated$value), icon_name = "cubes",
                       note = if (is.null(simulated)) "Run the Capital tab to compare" else
                         paste0("VaR ", format(100 * simulated$level), "% less the mean, from the Capital tab")))
   })
@@ -519,13 +518,13 @@ portfolio_tool_Server <- function(input, output, session) {
     s <- sf_result()
     b <- s$by_segment
     rows <- lapply(seq_len(nrow(b)), function(i) {
-      list(paste0(b$segment[i], ". ", b$name[i]), rsv_amount(b$premium[i]), rsv_amount(b$reserve[i]), rsv_percent(b$premium_sd[i], 1),
-           rsv_percent(b$reserve_sd[i], 1), rsv_percent(b$sd[i], 2), rsv_amount(b$capital[i]))
+      list(paste0(b$segment[i], ". ", b$name[i]), netsimr_amount(b$premium[i]), netsimr_amount(b$reserve[i]), netsimr_percent(b$premium_sd[i], 1),
+           netsimr_percent(b$reserve_sd[i], 1), netsimr_percent(b$sd[i], 2), netsimr_amount(b$capital[i]))
     })
     t <- s$total
-    rsv_table(c("Segment", "Premium volume", "Reserve volume", "Premium SD", "Reserve SD", "Combined SD", "Capital alone"), rows,
-              list("Total", rsv_amount(sum(b$premium)), rsv_amount(sum(b$reserve)), "", "", rsv_percent(t[["sd"]], 2),
-                   rsv_amount(t[["capital"]])),
+    netsimr_table(c("Segment", "Premium volume", "Reserve volume", "Premium SD", "Reserve SD", "Combined SD", "Capital alone"), rows,
+              list("Total", netsimr_amount(sum(b$premium)), netsimr_amount(sum(b$reserve)), "", "", netsimr_percent(t[["sd"]], 2),
+                   netsimr_amount(t[["capital"]])),
               note = paste("Capital alone: three times the segment's combined standard deviation times its volume. The total",
                            "joins the segments with the correlations of Annex IV."))
   })
@@ -534,10 +533,10 @@ portfolio_tool_Server <- function(input, output, session) {
     s <- sf_result()
     b <- s$by_segment
     labels <- c(paste0(b$segment, ". ", substr(b$name, 1, 18)), "Total")
-    dft_category_chart(labels, bars = list(name = "Capital", values = c(b$capital, s$total[["capital"]]),
+    netsimr_category_chart(labels, bars = list(name = "Capital", values = c(b$capital, s$total[["capital"]]),
                                            colour = pfo_chart_colours(dark())$accent_soft),
                        lines = list(list(name = "Sum of the segments", values = c(rep(NA, nrow(b)), s$total[["standalone"]]),
-                                         colour = dft_model_palette[1])),
+                                         colour = netsimr_palette[1])),
                        x_title = "Segment", y_title = "Capital", dark = dark())
   }, alt = "The standard formula's capital of each segment on its own and of the total")
 
@@ -589,22 +588,11 @@ portfolio_tool_Server <- function(input, output, session) {
   )
 
   observeEvent(input$load_settings, {
-    fail <- function(message) showNotification(paste("The settings could not be loaded:", message), type = "error", duration = 10)
-    settings <- tryCatch(read_settings_file(input$load_settings$datapath, pfo_settings_tool), error = function(e) e)
-    if (inherits(settings, "error")) return(fail(conditionMessage(settings)))
-    if (settings$version > pfo_settings_version) return(fail("it was saved by a newer version of NetSimR."))
-    v <- settings$values
+    v <- load_settings_values(input$load_settings$datapath, pfo_settings_tool, pfo_settings_version)
+    if (is.null(v)) return()
     choices <- list(line_source = c("model", "upload"), upload_sep = c(",", ";", "\t"), upload_dec = c(".", ","),
                     copula = c("gaussian", "t"), corr_mode = c("all", "matrix"), level = unname(pfo_levels))
-    usable <- function(id) {
-      x <- v[[id]]
-      if (is.null(x) || length(x) != 1) return(FALSE)
-      kind <- pfo_settings_inputs[[id]]
-      if (kind %in% c("radio", "select") && !is.null(choices[[id]])) return(is.character(x) && x %in% choices[[id]])
-      if (kind == "numeric") return(is.numeric(x) || (is.logical(x) && is.na(x)))
-      if (kind == "switch") return(is.logical(x) && !is.na(x))
-      is.character(x)
-    }
+    usable <- function(id) setting_usable(v[[id]], pfo_settings_inputs[[id]], choices[[id]])
     # the lines: the distributions first, so their parameters are not reset to the defaults
     labels <- v$line_name
     if (is.character(labels) && length(labels) >= 2 && length(labels) <= pfo_max_lines) {
@@ -634,14 +622,7 @@ portfolio_tool_Server <- function(input, output, session) {
       updateNumericInput(session, "n_lines", value = k)
     }
     for (id in names(pfo_settings_inputs)) {
-      if (!usable(id) || id == "n_lines") next
-      x <- v[[id]]
-      switch(pfo_settings_inputs[[id]],
-        radio = updateRadioButtons(session, id, selected = x),
-        select = updateSelectInput(session, id, selected = x),
-        switch = bslib::update_switch(id, value = x, session = session),
-        numeric = updateNumericInput(session, id, value = if (is.logical(x)) NA else x)
-      )
+      if (usable(id) && id != "n_lines") update_setting_input(session, id, pfo_settings_inputs[[id]], v[[id]])
     }
     upper <- suppressWarnings(as.numeric(v$corr_matrix))
     k <- (1 + sqrt(1 + 8 * length(upper))) / 2

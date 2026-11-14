@@ -1,0 +1,162 @@
+/* The portfolio capital tool's styles, after tools.css and analysis.css: its green accent and
+   the parts only it has. */
+
+:root, [data-bs-theme='light'] {
+  --dft-accent: #15803d;
+  --dft-accent-strong: #166534;
+  --dft-accent-shadow: rgba(21, 128, 61, 0.26);
+  --sim-accent-soft: #f0fdf4;
+  --sim-accent-text: #166534;
+  --dft-row-hover: #f3fdf6;
+  --dft-slider-value: #166534;
+}
+
+[data-bs-theme='dark'] {
+  --dft-accent: #4ade80;
+  --dft-accent-strong: #22c55e;
+  --dft-accent-shadow: rgba(74, 222, 128, 0.28);
+  --sim-accent-soft: rgba(74, 222, 128, 0.14);
+  --sim-accent-text: #86efac;
+  --dft-row-hover: rgba(74, 222, 128, 0.08);
+  --dft-slider-value: #166534;
+  --bs-link-color: #86efac;
+  --bs-link-color-rgb: 134, 239, 172;
+  --bs-link-hover-color: #bbf7d0;
+  --bs-link-hover-color-rgb: 187, 247, 208;
+}
+
+.navbar {
+  background: linear-gradient(90deg, #052e16 0%, #14532d 100%) !important;
+}
+
+.sim-brand-mark {
+  background: linear-gradient(135deg, #4ade80, #15803d);
+  box-shadow: 0 6px 18px rgba(21, 128, 61, 0.35);
+}
+
+.theme-btn.active,
+.sim-hero .btn-light {
+  color: #052e16;
+}
+
+.theme-btn:focus-visible,
+.pill-radio .radio-inline:has(input:focus-visible) {
+  outline-color: #86efac !important;
+}
+
+.form-control:focus, .form-select:focus, .selectize-input.focus,
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(21, 128, 61, 0.18) !important;
+}
+
+/* white on the button: the darker greens, as white on the lighter ones is under 4.5:1 */
+.btn-run {
+  background: linear-gradient(135deg, #15803d, #166534);
+}
+
+.btn-run:hover, .btn-run:focus {
+  background: linear-gradient(135deg, #166534, #14532d);
+}
+
+.sim-hero {
+  background:
+    radial-gradient(circle at 85% 20%, rgba(74, 222, 128, 0.30), transparent 45%),
+    linear-gradient(135deg, #052e16 0%, #14532d 55%, #15803d 130%);
+}
+
+.sim-hero-eyebrow {
+  color: #86efac;
+}
+
+.btn-outline-pfo {
+  border: 1px solid var(--sim-border-strong);
+  background: var(--sim-input-bg);
+  color: var(--sim-label);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.btn-outline-pfo:hover, .btn-outline-pfo:focus {
+  border-color: var(--dft-accent);
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+}
+
+.pfo-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.pfo-settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.pfo-settings-stack > .card {
+  margin-bottom: 0;
+}
+
+/* ---------- The grids of lines and correlations ---------- */
+/* they scroll sideways on a narrow screen; positioned, so that the inputs' hidden labels
+   (absolutely positioned) scroll with them instead of widening the page */
+.pfo-grid-wrap {
+  overflow-x: auto;
+  position: relative;
+}
+
+.pfo-line-grid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.3fr) minmax(11rem, 1fr) minmax(5.5rem, 0.7fr) minmax(5.5rem, 0.7fr)
+                         minmax(8rem, 1fr) minmax(5.5rem, 0.7fr) minmax(6rem, 0.8fr);
+  gap: 0.45rem 0.6rem;
+  align-items: center;
+  min-width: 800px;
+}
+
+.pfo-corr-grid {
+  display: grid;
+  gap: 0.45rem 0.6rem;
+  align-items: center;
+}
+
+.pfo-line-grid .shiny-input-container,
+.pfo-corr-grid .shiny-input-container {
+  margin-bottom: 0 !important;
+  width: 100% !important;
+}
+
+.pfo-line-grid .form-control, .pfo-line-grid .form-select,
+.pfo-corr-grid .form-control {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.pfo-head {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sim-muted);
+}
+
+.pfo-corr-name {
+  font-weight: 700;
+  color: var(--sim-heading);
+  font-size: 0.88rem;
+}
+
+.pfo-corr-one {
+  color: var(--sim-muted);
+  text-align: center;
+}
+
+.dft-table tr.pfo-total td {
+  font-weight: 800;
+  border-top: 1px solid var(--sim-border-strong);
+  background: var(--sim-accent-soft);
+}

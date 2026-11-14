@@ -187,7 +187,7 @@ test_that("claims reported above a threshold are fitted from zero, and their fre
   expect_match(table, "The Pareto and the generalised Pareto start at the threshold", fixed = TRUE)
   #the LogNormal of the claims from zero, not of the claims above the threshold
   fit <- dft_truncated_severity_models(claims$amount, 3000)[[2]]
-  expect_match(table, dft_fmt(fit$params[["mu"]]), fixed = TRUE)
+  expect_match(table, netsimr_fmt(fit$params[["mu"]]), fixed = TRUE)
   expect_lt(abs(fit$params[["mu"]] - 8), 0.15)
 
   app_goto(app, "export")

@@ -91,10 +91,10 @@ test_that("the Severity tab draws the P-P plot and gives the CTEs", {
     html <- output$sev_cte_table$html
     expect_match(html, "CTE 99.5%", fixed = TRUE)
     expect_match(html, "CTE 90%", fixed = TRUE)
-    expect_match(html, dft_fmt(dft_empirical_cte(severity_data(), 0.9)), fixed = TRUE)
+    expect_match(html, netsimr_fmt(dft_empirical_cte(severity_data(), 0.9)), fixed = TRUE)
     expect_match(html, "rests on 1.5 claims", fixed = TRUE)
     #the LogNormal fit's CTE
-    expect_match(html, dft_fmt(dft_model_cte(sev_models()[[2]], 0.99, severity_data())), fixed = TRUE)
+    expect_match(html, netsimr_fmt(dft_model_cte(sev_models()[[2]], 0.99, severity_data())), fixed = TRUE)
     #with one policy limit for every claim: no empirical CTE
     session$setInputs(sev_limit_source = "value", sev_limit = 5000, execute_sev_analysis = 2)
     expect_true(sev_has_censoring())

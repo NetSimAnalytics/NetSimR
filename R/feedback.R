@@ -10,7 +10,7 @@ netsimr_github_url <- "https://github.com/NetSimAnalytics/NetSimR"
 netsimr_issues_url <- "https://github.com/NetSimAnalytics/NetSimR/issues/new"
 
 # The files the tools' uploads accept: text files of values separated by commas, semicolons
-# or tabs, and Excel workbooks (read with readxl, see dft_read_data()).
+# or tabs, and Excel workbooks (read with readxl, see netsimr_read_data()).
 netsimr_data_accept <- c("text/csv", "text/comma-separated-values,text/plain", ".csv", ".txt", ".tsv",
                          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                          "application/vnd.ms-excel", ".xlsx", ".xls")
@@ -61,7 +61,7 @@ netsimr_feedback_links <- function(tool) {
 netsimr_about_card <- function(tool, note = NULL) {
   version <- netsimr_version()
   bslib::card(
-    sim_card_header("user", "About", paste0("NetSimR", if (nzchar(version)) paste0(" ", version),
+    netsimr_card_header("user", "About", paste0("NetSimR", if (nzchar(version)) paste0(" ", version),
                                              ". Feedback and bug reports are very welcome.")),
     bslib::card_body(
       p(

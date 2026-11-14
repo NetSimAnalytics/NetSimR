@@ -560,11 +560,7 @@ bootstrap_chain_ladder <- function(triangle, n = 1000, process = c("gamma", "odp
     if (!is.numeric(seed) || length(seed) != 1 || !is.finite(seed) || seed != round(seed)) {
       stop("seed must be a whole number, or NULL.", call. = FALSE)
     }
-    had_seed <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
-    old_seed <- if (had_seed) get(".Random.seed", envir = globalenv(), inherits = FALSE)
-    on.exit(if (had_seed) assign(".Random.seed", old_seed, envir = globalenv()) else
-      rm(".Random.seed", envir = globalenv()), add = TRUE)
-    set.seed(seed)
+    netsimr_local_seed(seed, kind = NULL)
   }
   checked <- reserving_check_triangle(triangle)
   C <- checked$triangle

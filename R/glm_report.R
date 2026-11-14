@@ -17,9 +17,9 @@ glm_rate_chart <- function(f, rates, dark = FALSE) {
   y <- if (is.na(rates$relativity)) f$effect else f$relativity
   y_title <- glm_rate_label(rates)
   if (length(vars) == 1 && is.numeric(f[[vars]])) {
-    dft_line_chart(list(list(x = f[[vars]], y = y, name = y_title, colour = dft_model_palette[1])), vars, y_title, dark)
+    netsimr_line_chart(list(list(x = f[[vars]], y = y, name = y_title, colour = netsimr_palette[1])), vars, y_title, dark)
   } else if (length(vars) == 1) {
-    dft_category_chart(as.character(f[[vars]]), bars = list(name = y_title, values = y, colour = dft_model_palette[1]),
+    netsimr_category_chart(as.character(f[[vars]]), bars = list(name = y_title, values = y, colour = netsimr_palette[1]),
                        x_title = vars, y_title = y_title, dark = dark)
   } else {
     second <- unique(f[[vars[2]]])
@@ -28,9 +28,9 @@ glm_rate_chart <- function(f, rates, dark = FALSE) {
     lines <- lapply(seq_along(second), function(k) {
       rows <- f[[vars[2]]] == second[k]
       list(name = paste(vars[2], "=", format(second[k])), values = y[rows][match(first, f[[vars[1]]][rows])],
-           colour = dft_model_palette[(k - 1) %% length(dft_model_palette) + 1])
+           colour = netsimr_palette[(k - 1) %% length(netsimr_palette) + 1])
     })
-    dft_category_chart(if (is.numeric(first)) dft_fmt(first, 4) else as.character(first), lines = lines,
+    netsimr_category_chart(if (is.numeric(first)) netsimr_fmt(first, 4) else as.character(first), lines = lines,
                        x_title = vars[1], y_title = y_title, dark = dark)
   }
 }
@@ -50,7 +50,7 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
   model <- r$model
   spec <- r$spec
   frame <- function(...) data.frame(..., check.names = FALSE, stringsAsFactors = FALSE)
-  fmt <- function(x, digits = 4) if (length(x) == 1 && is.finite(x)) dft_fmt(x, digits) else dft_dash
+  fmt <- function(x, digits = 4) if (length(x) == 1 && is.finite(x)) netsimr_fmt(x, digits) else netsimr_dash
   aic <- stats::AIC(model)
   explained <- if (model$null.deviance > 0) 1 - model$deviance / model$null.deviance else NA_real_
   formula_text <- paste(deparse(stats::formula(model), width.cutoff = 500), collapse = " ")
@@ -64,7 +64,7 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
                                note = if (!is.null(test)) paste(format(test$rows, big.mark = ",", scientific = FALSE), "rows held out for testing")),
            Parameters = format(sum(!is.na(stats::coef(model)))),
            AIC = list(value = fmt(aic, 7), note = if (!is.finite(aic)) "None for a quasi-likelihood family"),
-           `Deviance explained` = if (is.finite(explained)) paste0(dft_fmt(100 * explained, 3), "%") else dft_dash),
+           `Deviance explained` = if (is.finite(explained)) paste0(netsimr_fmt(100 * explained, 3), "%") else netsimr_dash),
       list(`Gini` = list(value = if (!is.null(test)) fmt(test$gini, 3) else fmt(training$gini, 3),
                          note = if (!is.null(test)) paste("Test rows; training", fmt(training$gini, 3)) else "Training rows"),
            `Deviance per row` = list(value = if (!is.null(test)) fmt(test$deviance) else fmt(training$deviance),
@@ -81,9 +81,9 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
   )))
 
   co <- summary(model)$coefficients
-  coefficients <- frame(Term = rownames(co), Estimate = dft_fmt(co[, 1], 5), `Std. error` = dft_fmt(co[, 2], 4),
+  coefficients <- frame(Term = rownames(co), Estimate = netsimr_fmt(co[, 1], 5), `Std. error` = netsimr_fmt(co[, 2], 4),
                         `p-value` = formatC(co[, 4], format = "g", digits = 3))
-  if (identical(spec$link, "log")) coefficients$Relativity <- dft_fmt(exp(co[, 1]), 4)
+  if (identical(spec$link, "log")) coefficients$Relativity <- netsimr_fmt(exp(co[, 1]), 4)
   coefficient_section <- list(id = "coefficients", title = "Coefficients", content = netsimr_report_table(
     coefficients, note = if (identical(spec$link, "log")) "Relativity: exp(estimate)."))
 
@@ -95,8 +95,8 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
       vars <- setdiff(names(f), c("effect", "relativity", "base", "rows"))
       shown <- if (nrow(f) > 30) f[unique(round(seq(1, nrow(f), length.out = 30))), ] else f
       table <- frame(Value = do.call(paste, c(lapply(vars, function(v) as.character(shown[[v]])), sep = ", ")),
-                     Rows = ifelse(is.na(shown$rows), dft_dash, format(shown$rows, big.mark = ",", scientific = FALSE)))
-      table[[label]] <- dft_fmt(if (is.na(rates$relativity)) shown$effect else shown$relativity, 4)
+                     Rows = ifelse(is.na(shown$rows), netsimr_dash, format(shown$rows, big.mark = ",", scientific = FALSE)))
+      table[[label]] <- netsimr_fmt(if (is.na(rates$relativity)) shown$effect else shown$relativity, 4)
       div(class = "two-col",
           netsimr_report_table(table, title = name,
                                note = paste0("Terms: ", paste(attr(f, "terms"), collapse = ", "), ". Base: ",
@@ -106,7 +106,7 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
     })
     list(id = "rates", title = "Rate table", content = tagList(
       tags$p(class = "section-intro", paste0(
-        if (is.na(rates$relativity)) "Base prediction " else "Base rate ", dft_fmt(rates$base_rate, 5),
+        if (is.na(rates$relativity)) "Base prediction " else "Base rate ", netsimr_fmt(rates$base_rate, 5),
         if (identical(rates$relativity, "relativity")) ": a policy's prediction is the base rate times its relativity in every rating factor (times its exposure)." else ".")),
       factor_cards
     ))
@@ -117,17 +117,17 @@ write_glm_report <- function(file, r, generated = Sys.time()) {
       tags$p(class = "section-intro", paste0("On the ", r$used, if (identical(r$used, "training rows") && is.null(test))
         ": no rows were held out, so these figures flatter the model." else ".")),
       if (!is.null(r$lift)) netsimr_report_chart(function(dark) {
-        dft_category_chart(as.character(r$lift$band),
+        netsimr_category_chart(as.character(r$lift$band),
                            bars = list(name = r$bar_name, values = r$lift$exposure, colour = "band_bar", y2 = r$bar_name),
                            lines = list(list(name = "Actual", values = r$lift$actual, colour = "empirical"),
-                                        list(name = "Predicted", values = r$lift$predicted, colour = dft_model_palette[2])),
+                                        list(name = "Predicted", values = r$lift$predicted, colour = netsimr_palette[2])),
                            x_title = "Band of predicted rate, lowest to highest", y_title = r$y_title, dark = dark)
       }, "Lift chart", title = "Lift chart",
       note = "The rows sorted by their predicted rate, in bands of about the same exposure: the actual line should rise steeply and the predicted line follow it."),
       if (!is.null(r$lorenz)) netsimr_report_chart(function(dark) {
         curve <- glm_thin_curve(r$lorenz)
-        dft_line_chart(list(list(x = curve$x, y = curve$y, name = paste0("Model (Gini ", dft_fmt(curve$gini, 3), ")"),
-                                 colour = dft_model_palette[2]),
+        netsimr_line_chart(list(list(x = curve$x, y = curve$y, name = paste0("Model (Gini ", netsimr_fmt(curve$gini, 3), ")"),
+                                 colour = netsimr_palette[2]),
                             list(x = c(0, 1), y = c(0, 1), name = "No better than chance", colour = "muted", lwd = 1.4)),
                        x_title = "Share of exposure, lowest predicted rate first", y_title = paste("Share of", r$response),
                        dark = dark, ylim = c(0, 1))

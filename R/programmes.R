@@ -173,18 +173,7 @@ compare_reinsurance <- function(frequency, frequency_params, severity, severity_
   }
 
   if (!is.null(seed)) {
-    global <- globalenv()
-    saved <- if (exists(".Random.seed", envir = global, inherits = FALSE)) get(".Random.seed", envir = global)
-    kind <- RNGkind()
-    on.exit({
-      suppressWarnings(RNGkind(kind[1], kind[2], kind[3]))
-      if (is.null(saved)) {
-        if (exists(".Random.seed", envir = global, inherits = FALSE)) rm(".Random.seed", envir = global)
-      } else {
-        assign(".Random.seed", saved, envir = global)
-      }
-    }, add = TRUE)
-    set.seed(seed, kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
+    netsimr_local_seed(seed)
   }
   # the claims of every year, once for all the programmes, drawn as the simulator draws them
   counts <- freq_dist_options[[frequency_id]]@simulate_func(n, fp)

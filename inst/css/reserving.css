@@ -1,0 +1,232 @@
+/* The reserving tool's styles, after tools.css and analysis.css: its orange accent and the parts
+   only it has. */
+
+:root, [data-bs-theme='light'] {
+  --dft-accent: #ea580c;
+  --dft-accent-strong: #c2410c;
+  --dft-accent-shadow: rgba(234, 88, 12, 0.26);
+  --sim-accent-soft: #fff7ed;
+  --sim-accent-text: #c2410c;
+  --dft-row-hover: #fffaf5;
+  /* white text on the slider's value: the darker orange in both themes */
+  --dft-slider-value: #c2410c;
+  /* a left out link ratio: struck through, in a muted colour that still reads as text (4.5:1) */
+  --rsv-excluded: #64748b;
+}
+
+[data-bs-theme='dark'] {
+  --dft-accent: #f97316;
+  --dft-accent-strong: #ea580c;
+  --dft-accent-shadow: rgba(249, 115, 22, 0.28);
+  --sim-accent-soft: rgba(249, 115, 22, 0.16);
+  --sim-accent-text: #fdba74;
+  --dft-row-hover: rgba(249, 115, 22, 0.08);
+  --dft-slider-value: #c2410c;
+  --rsv-excluded: #94a3b8;
+  --bs-link-color: #fdba74;
+  --bs-link-color-rgb: 253, 186, 116;
+  --bs-link-hover-color: #fed7aa;
+  --bs-link-hover-color-rgb: 254, 215, 170;
+}
+
+/* ---------- Accent ---------- */
+.navbar {
+  background: linear-gradient(90deg, #431407 0%, #7c2d12 100%) !important;
+}
+
+.sim-brand-mark {
+  background: linear-gradient(135deg, #fb923c, #c2410c);
+  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
+}
+
+.theme-btn.active,
+.sim-hero .btn-light {
+  color: #431407;
+}
+
+.theme-btn:focus-visible,
+.pill-radio .radio-inline:has(input:focus-visible) {
+  outline-color: #fdba74 !important;
+}
+
+.form-control:focus, .form-select:focus, .selectize-input.focus,
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(234, 88, 12, 0.18) !important;
+}
+
+/* white on the button: the darker oranges, as white on #ea580c is under 4.5:1 */
+.btn-run {
+  background: linear-gradient(135deg, #c2410c, #9a3412);
+}
+
+.btn-run:hover, .btn-run:focus {
+  background: linear-gradient(135deg, #9a3412, #7c2d12);
+}
+
+.sim-hero {
+  background:
+    radial-gradient(circle at 85% 20%, rgba(251, 146, 60, 0.34), transparent 45%),
+    linear-gradient(135deg, #431407 0%, #7c2d12 55%, #c2410c 130%);
+}
+
+.sim-hero-eyebrow {
+  color: #fdba74;
+}
+
+.btn-outline-rsv {
+  border: 1px solid var(--sim-border-strong);
+  background: var(--sim-input-bg);
+  color: var(--sim-label);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.btn-outline-rsv:hover, .btn-outline-rsv:focus {
+  border-color: var(--dft-accent);
+  background: var(--sim-accent-soft);
+  color: var(--sim-accent-text);
+}
+
+.rsv-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+/* the settings column of the Data tab: two cards, one above the other */
+.rsv-settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.rsv-settings-stack > .card {
+  margin-bottom: 0;
+}
+
+/* ---------- Triangles ---------- */
+.rsv-triangle .dft-table td,
+.rsv-ratios .dft-table td {
+  padding: 0.4rem 0.6rem;
+}
+
+.rsv-triangle .dft-table td.rsv-projected {
+  color: var(--sim-muted);
+  font-style: italic;
+}
+
+/* a link ratio: a button that leaves it out of the factors, or brings it back */
+.rsv-ratio {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--bs-body-color);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 0.1rem 0.35rem;
+  margin: -0.1rem -0.35rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rsv-ratio:hover {
+  border-color: var(--dft-accent);
+  background: var(--sim-accent-soft);
+}
+
+.rsv-ratio:focus-visible {
+  outline: 2px solid var(--dft-accent);
+  outline-offset: 1px;
+}
+
+.rsv-ratio.rsv-excluded {
+  color: var(--rsv-excluded);
+  text-decoration: line-through;
+}
+
+.rsv-ratio.rsv-outside {
+  color: var(--rsv-excluded);
+}
+
+.rsv-ratios tfoot td {
+  border-bottom: 1px solid var(--sim-border);
+  color: var(--sim-label);
+  font-size: 0.85rem;
+}
+
+.rsv-ratios tfoot tr:first-child td {
+  border-top: 1px solid var(--sim-border-strong);
+}
+
+.rsv-ratios tfoot td:first-child {
+  font-weight: 700;
+  color: var(--sim-muted);
+}
+
+.rsv-ratios tfoot tr.rsv-selected td {
+  font-weight: 800;
+  color: var(--sim-accent-text);
+  background: var(--sim-accent-soft);
+}
+
+/* ---------- Inputs by origin ---------- */
+/* the grid scrolls sideways on a narrow screen; positioned, so that the inputs' hidden
+   labels (absolutely positioned) scroll with it instead of widening the page */
+.rsv-origin-wrap {
+  overflow-x: auto;
+  position: relative;
+}
+
+.rsv-origin-grid {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, auto) minmax(7rem, 1fr) minmax(9rem, 1.3fr) minmax(6.5rem, 0.8fr) minmax(11rem, 1.3fr);
+  gap: 0.45rem 0.75rem;
+  align-items: center;
+  min-width: 560px;
+}
+
+.rsv-origin-grid .shiny-input-container {
+  margin-bottom: 0 !important;
+  width: 100% !important;
+}
+
+.rsv-origin-head {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sim-muted);
+}
+
+.rsv-origin-name {
+  font-weight: 700;
+  color: var(--sim-heading);
+}
+
+.rsv-origin-latest {
+  font-variant-numeric: tabular-nums;
+  color: var(--sim-label);
+  text-align: right;
+}
+
+.rsv-origin-head.rsv-origin-latest {
+  color: var(--sim-muted);
+}
+
+.rsv-origin-grid .form-control,
+.rsv-origin-grid .form-select {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.dft-table tfoot td:first-child,
+.dft-table tr.rsv-total td {
+  font-weight: 800;
+}
+
+.dft-table tr.rsv-total td {
+  border-top: 1px solid var(--sim-border-strong);
+  background: var(--sim-accent-soft);
+}

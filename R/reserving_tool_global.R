@@ -82,7 +82,7 @@ rsv_example_input <- function(id) {
 # period, in their order (no incurred triangle).
 rsv_upload_input <- function(df, layout, origin, development = NULL, value = NULL, premium = NULL,
                              cumulative = TRUE, dec = ".", incurred = NULL) {
-  number <- function(column) dft_as_numeric(df[[column]], dec)
+  number <- function(column) netsimr_as_numeric(df[[column]], dec)
   has <- function(column) !is.null(column) && nzchar(column) && column %in% names(df)
   if (!has(origin)) stop("Choose the origin column.", call. = FALSE)
   premium_column <- if (has(premium)) premium
@@ -103,7 +103,7 @@ rsv_upload_input <- function(df, layout, origin, development = NULL, value = NUL
       }
     }
   } else {
-    numbers <- dft_numeric_columns(df, dec)
+    numbers <- netsimr_numeric_columns(df, dec)
     columns <- setdiff(names(df), c(origin, premium_column))
     columns <- columns[columns %in% numbers]
     if (length(columns) < 2) stop("The table needs at least two numeric development period columns besides the origin.", call. = FALSE)
@@ -125,46 +125,30 @@ rsv_upload_input <- function(df, layout, origin, development = NULL, value = NUL
   list(triangle = triangle, incurred = incurred_triangle, premium = premiums)
 }
 
-# Formats amounts in full with thousands separators, ratios with three decimals and
-# shares as percentages; a dash for a missing value.
-rsv_amount <- function(x) {
-  out <- rep(dft_dash, length(x))
-  ok <- is.finite(x)
-  out[ok] <- formatC(round(x[ok]), format = "f", digits = 0, big.mark = ",")
-  out
-}
-
 rsv_ratio <- function(x, digits = 3) {
-  out <- rep(dft_dash, length(x))
+  out <- rep(netsimr_dash, length(x))
   ok <- is.finite(x)
   out[ok] <- formatC(x[ok], format = "f", digits = digits)
-  out
-}
-
-rsv_percent <- function(x, digits = 1) {
-  out <- rep(dft_dash, length(x))
-  ok <- is.finite(x)
-  out[ok] <- paste0(formatC(100 * x[ok], format = "f", digits = digits), "%")
   out
 }
 
 # A triangle as an HTML table: the origins down the side, the development periods
 # across, the observed values as they are and the projected ones (where
 # `projected` is TRUE) muted. The table is written as one string, as for
-# dft_data_preview().
-rsv_triangle_table <- function(values, projected = NULL, format = rsv_amount, note = NULL) {
+# netsimr_data_preview().
+rsv_triangle_table <- function(values, projected = NULL, format = netsimr_amount, note = NULL) {
   if (is.null(projected)) projected <- matrix(FALSE, nrow(values), ncol(values))
   text <- matrix(format(as.vector(values)), nrow(values))
   text[is.na(values)] <- ""
   classes <- ifelse(projected, " class=\"rsv-projected\"", "")
   body <- vapply(seq_len(nrow(values)), function(i) {
-    paste0("<tr><td>", dft_escape(rownames(values)[i]), "</td>",
+    paste0("<tr><td>", netsimr_escape(rownames(values)[i]), "</td>",
            paste0("<td", classes[i, ], ">", text[i, ], "</td>", collapse = ""), "</tr>")
   }, character(1))
-  header <- paste0("<th>Origin</th>", paste0("<th>", dft_escape(colnames(values)), "</th>", collapse = ""))
+  header <- paste0("<th>Origin</th>", paste0("<th>", netsimr_escape(colnames(values)), "</th>", collapse = ""))
   HTML(paste0("<div class=\"dft-table-wrap rsv-triangle\"><table class=\"dft-table\"><thead><tr>", header,
               "</tr></thead><tbody>", paste(body, collapse = ""), "</tbody></table></div>",
-              if (!is.null(note)) paste0("<p class=\"dft-table-note\">", dft_escape(note), "</p>")))
+              if (!is.null(note)) paste0("<p class=\"dft-table-note\">", netsimr_escape(note), "</p>")))
 }
 
 # The link ratios as an HTML table of buttons, one per ratio, that leave it out
@@ -187,10 +171,10 @@ rsv_link_ratio_table <- function(cl, excluded, outside) {
       label <- paste0("Link ratio of ", rownames(ratios)[i], " from ", colnames(ratios)[j], ": ",
                       rsv_ratio(ratios[i, j]), ", ", state, ". ", if (left_out) "Include it." else "Leave it out.")
       paste0("<td><button type=\"button\" class=\"", class, "\" data-row=\"", i, "\" data-col=\"", j,
-             "\" aria-pressed=\"", if (left_out) "true" else "false", "\" aria-label=\"", dft_escape(label), "\">",
+             "\" aria-pressed=\"", if (left_out) "true" else "false", "\" aria-label=\"", netsimr_escape(label), "\">",
              rsv_ratio(ratios[i, j]), "</button></td>")
     }, character(1))
-    paste0("<tr><td>", dft_escape(rownames(ratios)[i]), "</td>", paste(cells, collapse = ""), "<td></td></tr>")
+    paste0("<tr><td>", netsimr_escape(rownames(ratios)[i]), "</td>", paste(cells, collapse = ""), "<td></td></tr>")
   }, character(1))
   C <- cl$triangle
   from <- ifelse(available, C[, -ncol(C), drop = FALSE], 0)
@@ -207,9 +191,9 @@ rsv_link_ratio_table <- function(cl, excluded, outside) {
     footer_row("Simple average, all", c(rsv_ratio(simple), "")),
     footer_row("Selected", c(rsv_ratio(cl$factors), rsv_ratio(cl$tail, 4)), "rsv-selected"),
     footer_row("To ultimate", rsv_ratio(cl$cdf, 3)),
-    footer_row("Developed", rsv_percent(developed))
+    footer_row("Developed", netsimr_percent(developed))
   )
-  header <- paste0("<th>Origin</th>", paste0("<th>", dft_escape(colnames(ratios)), "</th>", collapse = ""), "<th>Tail</th>")
+  header <- paste0("<th>Origin</th>", paste0("<th>", netsimr_escape(colnames(ratios)), "</th>", collapse = ""), "<th>Tail</th>")
   HTML(paste0(
     "<div class=\"dft-table-wrap rsv-ratios\"><table class=\"dft-table\"><thead><tr>", header,
     "</tr></thead><tbody>", paste(body, collapse = ""), "</tbody><tfoot>", footer, "</tfoot></table></div>"
@@ -251,7 +235,7 @@ rsv_development_chart <- function(cl, dark = FALSE) {
   lines_colours <- grDevices::colorRampPalette(c(colours$oldest, colours$newest))(m)
   legend <- list(list(label = "Observed", colour = colours$newest, type = "line"),
                  list(label = "Projected", colour = colours$newest, type = "line", lty = 2))
-  dft_plot_frame(c(0.7, d + 0.3), dft_zero_range(full), "Development period", "Cumulative claims", dark,
+  netsimr_plot_frame(c(0.7, d + 0.3), netsimr_zero_range(full), "Development period", "Cumulative claims", dark,
                  legend = legend, x_labels = colnames(full))
   for (i in seq_len(m)) {
     graphics::lines(seq_len(latest[i]), full[i, seq_len(latest[i])], col = lines_colours[i], lwd = 2)
@@ -269,14 +253,14 @@ rsv_link_ratio_chart <- function(cl, dark = FALSE) {
   ratios <- cl$link_ratios
   used <- cl$used
   colours <- rsv_chart_colours(dark)
-  plot_colours <- dft_plot_colours(dark)
+  plot_colours <- netsimr_plot_colours(dark)
   d <- ncol(ratios)
   shown <- c(ratios[used], cl$factors)
-  ylim <- dft_line_range(shown)
+  ylim <- netsimr_line_range(shown)
   legend <- list(list(label = "Used", colour = colours$accent, type = "marker", pch = 19),
                  list(label = "Left out", colour = plot_colours$muted, type = "marker", pch = 1),
-                 list(label = "Selected factor", colour = dft_model_palette[1], type = "point"))
-  dft_plot_frame(c(0.5, d + 0.5), ylim, "Development factor", "Link ratio", dark, legend = legend,
+                 list(label = "Selected factor", colour = netsimr_palette[1], type = "point"))
+  netsimr_plot_frame(c(0.5, d + 0.5), ylim, "Development factor", "Link ratio", dark, legend = legend,
                  x_labels = colnames(ratios))
   for (j in seq_len(d)) {
     for (state in c("left out", "used")) {
@@ -295,8 +279,8 @@ rsv_link_ratio_chart <- function(cl, dark = FALSE) {
       if (any(low)) graphics::points(x[low], rep(ylim[1], sum(low)), pch = 6, col = colour, cex = 0.9, lwd = 1.5, xpd = NA)
     }
   }
-  graphics::lines(seq_len(d), cl$factors, col = dft_model_palette[1], lwd = 2.2)
-  graphics::points(seq_len(d), cl$factors, pch = 19, col = dft_model_palette[1], cex = 0.9)
+  graphics::lines(seq_len(d), cl$factors, col = netsimr_palette[1], lwd = 2.2)
+  graphics::points(seq_len(d), cl$factors, pch = 19, col = netsimr_palette[1], cex = 0.9)
   invisible(NULL)
 }
 
@@ -306,7 +290,7 @@ rsv_tail_chart <- function(cl, dark = FALSE) {
   curve <- cl$tail_curve
   d <- length(cl$factors)
   colours <- rsv_chart_colours(dark)
-  plot_colours <- dft_plot_colours(dark)
+  plot_colours <- netsimr_plot_colours(dark)
   periods <- seq_len(d + 10)
   fitted <- curve$fitted(periods)
   used <- seq_len(d) %in% curve$used
@@ -314,11 +298,11 @@ rsv_tail_chart <- function(cl, dark = FALSE) {
                  list(label = "Other factors", colour = plot_colours$muted, type = "marker", pch = 1),
                  list(label = paste0(if (curve$curve == "exponential") "Exponential" else "Inverse power",
                                      " curve, tail ", rsv_ratio(cl$tail, 4)),
-                      colour = dft_model_palette[1], type = "line"))
-  ylim <- dft_line_range(c(cl$factors[used], fitted, 1))
-  dft_plot_frame(c(0.5, d + 10.5), ylim, "Development factor (period)", "Factor", dark, legend = legend)
+                      colour = netsimr_palette[1], type = "line"))
+  ylim <- netsimr_line_range(c(cl$factors[used], fitted, 1))
+  netsimr_plot_frame(c(0.5, d + 10.5), ylim, "Development factor (period)", "Factor", dark, legend = legend)
   graphics::abline(v = d + 0.5, col = plot_colours$muted, lty = 2, lwd = 1.2)
-  graphics::lines(periods, fitted, col = dft_model_palette[1], lwd = 2.2)
+  graphics::lines(periods, fitted, col = netsimr_palette[1], lwd = 2.2)
   inside <- cl$factors >= ylim[1] & cl$factors <= ylim[2]
   graphics::points(which(used & inside), cl$factors[used & inside], pch = 19, col = colours$accent, cex = 0.95)
   graphics::points(which(!used & inside), cl$factors[!used & inside], pch = 1, col = plot_colours$muted, cex = 0.95, lwd = 1.5)
@@ -331,12 +315,12 @@ rsv_ultimate_chart <- function(origins, latest, ibnr, methods, dark = FALSE) {
   colours <- rsv_chart_colours(dark)
   n <- length(origins)
   total <- latest + ibnr
-  ylim <- dft_zero_range(c(latest, total, unlist(methods)))
+  ylim <- netsimr_zero_range(c(latest, total, unlist(methods)))
   legend <- c(list(list(label = "Latest", colour = colours$latest, type = "bar"),
                    list(label = "IBNR (selected)", colour = colours$ibnr, type = "bar")),
               unname(Map(function(name, colour) list(label = name, colour = colour, type = "point"),
                          names(methods), rsv_method_colours[names(methods)])))
-  dft_plot_frame(c(0.4, n + 0.6), ylim, "Origin", "Claims", dark, legend = legend, x_labels = origins)
+  netsimr_plot_frame(c(0.4, n + 0.6), ylim, "Origin", "Claims", dark, legend = legend, x_labels = origins)
   x <- seq_len(n)
   ok <- is.finite(total)
   graphics::rect(x[ok] - 0.38, 0, x[ok] + 0.38, latest[ok], col = colours$latest, border = NA)
@@ -352,16 +336,16 @@ rsv_ultimate_chart <- function(origins, latest, ibnr, methods, dark = FALSE) {
 # The distribution of the simulated total IBNR, with its mean and percentiles.
 rsv_bootstrap_chart <- function(totals, mean_ibnr, percentiles, dark = FALSE) {
   colours <- rsv_chart_colours(dark)
-  plot_colours <- dft_plot_colours(dark)
+  plot_colours <- netsimr_plot_colours(dark)
   h <- graphics::hist(totals, breaks = min(60, max(10, round(sqrt(length(totals))))), plot = FALSE)
   share <- h$counts / sum(h$counts)
   marks <- c(Mean = mean_ibnr, percentiles)
-  marker_colours <- c(dft_model_palette[1], dft_model_palette[c(3, 4, 2, 5, 6)])[seq_along(marks)]
+  marker_colours <- c(netsimr_palette[1], netsimr_palette[c(3, 4, 2, 5, 6)])[seq_along(marks)]
   legend <- c(list(list(label = "Simulated total IBNR", colour = colours$accent_soft, type = "bar")),
               unname(Map(function(name, value, colour) {
-                list(label = paste0(name, " ", rsv_amount(value)), colour = colour, type = "line", lty = if (name == "Mean") 1 else 2)
+                list(label = paste0(name, " ", netsimr_amount(value)), colour = colour, type = "line", lty = if (name == "Mean") 1 else 2)
               }, names(marks), marks, marker_colours)))
-  dft_plot_frame(range(h$breaks), dft_zero_range(share), "Total IBNR", "Share of simulations", dark,
+  netsimr_plot_frame(range(h$breaks), netsimr_zero_range(share), "Total IBNR", "Share of simulations", dark,
                  legend = legend, y_percent = TRUE)
   border <- if (graphics::par("pin")[1] / length(share) > 0.06) plot_colours$bar_border else NA
   graphics::rect(h$breaks[-length(h$breaks)], 0, h$breaks[-1], share, col = colours$accent_soft, border = border)
@@ -376,7 +360,7 @@ rsv_bootstrap_chart <- function(totals, mean_ibnr, percentiles, dark = FALSE) {
 rsv_residual_chart <- function(residuals, by = c("origin", "development", "calendar"), dark = FALSE) {
   by <- match.arg(by)
   colours <- rsv_chart_colours(dark)
-  plot_colours <- dft_plot_colours(dark)
+  plot_colours <- netsimr_plot_colours(dark)
   observed <- which(!is.na(residuals), arr.ind = TRUE)
   values <- residuals[observed]
   position <- switch(by, origin = observed[, 1], development = observed[, 2], calendar = observed[, 1] + observed[, 2] - 1)
@@ -393,14 +377,14 @@ rsv_residual_chart <- function(residuals, by = c("origin", "development", "calen
   means <- vapply(groups, function(g) if (any(position == g)) mean(values[position == g]) else NA_real_, numeric(1))
   limit <- max(abs(values), 1) * 1.08
   legend <- list(list(label = "Residual", colour = colours$accent, type = "marker", pch = 19),
-                 list(label = "Mean", colour = dft_model_palette[1], type = "point"))
+                 list(label = "Mean", colour = netsimr_palette[1], type = "point"))
   title <- switch(by, origin = "Origin", development = "Development period", calendar = "Calendar period")
-  dft_plot_frame(c(0.4, length(labels) + 0.6), c(-limit, limit), title, "Scaled Pearson residual", dark,
+  netsimr_plot_frame(c(0.4, length(labels) + 0.6), c(-limit, limit), title, "Scaled Pearson residual", dark,
                  legend = legend, x_labels = labels)
   graphics::abline(h = 0, col = plot_colours$muted, lwd = 1.2)
   graphics::points(position, values, pch = 19, col = colours$accent, cex = 0.8)
-  graphics::lines(groups, means, col = dft_model_palette[1], lwd = 2)
-  graphics::points(groups, means, pch = 19, col = dft_model_palette[1], cex = 0.75)
+  graphics::lines(groups, means, col = netsimr_palette[1], lwd = 2)
+  graphics::points(groups, means, pch = 19, col = netsimr_palette[1], cex = 0.75)
   invisible(NULL)
 }
 
@@ -444,39 +428,11 @@ rsv_method_results <- function(cl, premium, prior, decay, selected) {
   results
 }
 
-# A results table: `rows` and `total` are lists of cells (the first is the row's
-# name), the total row set apart at the bottom. With `stack`, a phone shows each
-# row as a card, a line per column under the column's name.
-rsv_table <- function(header, rows, total = NULL, note = NULL, stack = FALSE) {
-  row <- function(cells, class = NULL) {
-    tags$tr(class = class, lapply(seq_along(cells), function(j) {
-      tags$td(`data-label` = if (stack && j <= length(header)) header[[j]], cells[[j]])
-    }))
-  }
-  tagList(
-    div(
-      class = paste(c("dft-table-wrap", if (stack) "dft-table-stack"), collapse = " "),
-      tags$table(
-        class = "dft-table",
-        tags$thead(tags$tr(lapply(header, tags$th))),
-        tags$tbody(lapply(rows, row), if (!is.null(total)) row(total, "rsv-total"))
-      )
-    ),
-    if (!is.null(note) && length(note) > 0 && any(nzchar(note))) p(class = "dft-table-note", paste(note[nzchar(note)], collapse = " "))
-  )
-}
-
 # The increments of a cumulative triangle.
 rsv_increments <- function(triangle) {
   out <- triangle
   out[, -1] <- triangle[, -1, drop = FALSE] - triangle[, -ncol(triangle), drop = FALSE]
   out
-}
-
-# The column a pattern names first among `columns`, or NULL.
-rsv_guess_column <- function(columns, pattern, exclude = NULL) {
-  hits <- setdiff(columns[grepl(pattern, columns, ignore.case = TRUE)], exclude)
-  if (length(hits) > 0) hits[1]
 }
 
 # The settings file of the reserving tool (see write_settings_file()): the tool, the

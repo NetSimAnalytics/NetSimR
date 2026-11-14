@@ -428,17 +428,17 @@ test_that("loaded settings replace the number of slices a click sent just before
 test_that("the layout keeps the brand, the example names and the compare labels readable", {
   #the brand keeps a gap before the nav links, and where room is short it shrinks with an
   #ellipsis rather than pushing the menu button off a narrow screen
-  expect_match(sim_ui_css, "\\.sim-brand \\{[^}]*margin-right: 2rem;")
-  expect_match(sim_ui_css, "\\.sim-brand-text \\{[^}]*white-space: nowrap;[^}]*min-width: 0;")
-  expect_match(sim_ui_css, "\\.sim-brand-subtitle \\{[^}]*text-overflow: ellipsis;")
-  expect_match(sim_ui_css, "\\.navbar \\.navbar-toggle \\{[^}]*flex-shrink: 0;")
+  expect_match(netsimr_css("tools"), "\\.sim-brand \\{[^}]*margin-right: 2rem;")
+  expect_match(netsimr_css("tools"), "\\.sim-brand-text \\{[^}]*white-space: nowrap;[^}]*min-width: 0;")
+  expect_match(netsimr_css("tools"), "\\.sim-brand-subtitle \\{[^}]*text-overflow: ellipsis;")
+  expect_match(netsimr_css("tools"), "\\.navbar \\.navbar-toggle \\{[^}]*flex-shrink: 0;")
   #the expanded header is one row: the nav never wraps, and below 1500 px the theme switch
   #shows its icons only (the distribution fitting tool has seven tabs)
-  expect_match(sim_ui_css, "@media \\(min-width: 992px\\) \\{\\s*\\.navbar \\.navbar-nav \\{\\s*flex-wrap: nowrap;")
-  expect_match(sim_ui_css, "@media \\(min-width: 992px\\) and \\(max-width: 1499.98px\\) \\{\\s*\\.theme-btn-label \\{\\s*display: none;")
+  expect_match(netsimr_css("tools"), "@media \\(min-width: 992px\\) \\{\\s*\\.navbar \\.navbar-nav \\{\\s*flex-wrap: nowrap;")
+  expect_match(netsimr_css("tools"), "@media \\(min-width: 992px\\) and \\(max-width: 1499.98px\\) \\{\\s*\\.theme-btn-label \\{\\s*display: none;")
   #the example select has the full width of the card, with the button under it
-  expect_match(sim_settings_io_css, "\\.sim-settings-example \\{[^}]*grid-template-columns: minmax\\(0, 1fr\\);")
-  expect_match(sim_tab_css, "\\.sim-compare-table td:first-child \\{[^}]*white-space: nowrap;")
+  expect_match(netsimr_css("simulator-settings"), "\\.sim-settings-example \\{[^}]*grid-template-columns: minmax\\(0, 1fr\\);")
+  expect_match(netsimr_css("simulator-tabs"), "\\.sim-compare-table td:first-child \\{[^}]*white-space: nowrap;")
 })
 
 # ---------------------------------------------------------------- report edge cases
@@ -575,17 +575,17 @@ test_that("the Pareto shows x_m before alpha, a slice its threshold first and a 
 test_that("amounts and the number of simulations are inputs that show thousands separators", {
   skip_server_on_cran()
   #a browser's number input cannot show 1,000,000, so these are text inputs with their own binding
-  expect_identical(sim_amount_text(1234567), "1,234,567")
-  expect_identical(sim_amount_text(1234.5), "1,234.5")
-  expect_identical(sim_amount_text(-2500), "-2,500")
-  expect_identical(sim_amount_text(0.25), "0.25")
+  expect_identical(netsimr_amount_text(1234567), "1,234,567")
+  expect_identical(netsimr_amount_text(1234.5), "1,234.5")
+  expect_identical(netsimr_amount_text(-2500), "-2,500")
+  expect_identical(netsimr_amount_text(0.25), "0.25")
   #from 1e15 the number as R writes it, not hundreds of digits
-  expect_identical(sim_amount_text(1e308), "1e+308")
-  field <- as.character(sim_amount_input("amount", "Amount", value = 50000, min = 0, max = 1e7))
+  expect_identical(netsimr_amount_text(1e308), "1e+308")
+  field <- as.character(netsimr_amount_input("amount", "Amount", value = 50000, min = 0, max = 1e7))
   expect_match(field, 'id="amount"[^>]*type="text"[^>]*class="form-control sim-amount-input"[^>]*value="50,000"')
   expect_match(field, 'inputmode="decimal"[^>]*min="0"[^>]*max="10000000"')
   #an amount that can be negative gets a keypad with a minus sign; an empty field has no value
-  expect_match(as.character(sim_amount_input("mean", "Mean", value = NA)), 'value=""[^>]*inputmode="text"')
+  expect_match(as.character(netsimr_amount_input("mean", "Mean", value = NA)), 'value=""[^>]*inputmode="text"')
   page <- as.character(shiny_simulator_ui(NULL))
   expect_match(page, 'id="numberOfSimulations"[^>]*sim-amount-input[^>]*value="50,000"')
   #the slices' thresholds are amounts, their alphas are not

@@ -141,7 +141,6 @@ summarise_simulation <- function(settings, results) {
   reinstatement_premiums <- column_or_null("reinstatement_premium")
 
   is_blank <- function(x) is.null(x) || length(x) == 0 || all(is.na(x))
-  is_number <- function(x) is.numeric(x) && length(x) == 1 && !is.na(x)
   #infinite totals give a NaN standard deviation; it is reported as missing (NA)
   sd_or_na <- function(x) {
     if (n < 2) return(NA_real_)

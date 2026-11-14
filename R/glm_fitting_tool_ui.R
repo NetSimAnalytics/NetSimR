@@ -1,243 +1,3 @@
-#' Styles for the GLM fitting tool
-#'
-#' Added after the simulator styles (sim_ui_css) and the distribution fitting
-#' tool styles (dft_ui_css), whose cards, inputs, theme switch, tiles, tables
-#' and light / dark tokens the tool shares; this block gives the tool its teal
-#' accent and styles the parts only it has.
-#' @noRd
-glm_ui_css <- "
-:root, [data-bs-theme='light'] {
-  --dft-accent: #0d9488;
-  --dft-accent-strong: #0f766e;
-  --dft-accent-shadow: rgba(13, 148, 136, 0.28);
-  --sim-accent-soft: #f0fdfa;
-  --sim-accent-text: #0f766e;
-  --dft-row-hover: #f5fdfb;
-  /* the slider's value bubble, white text on it: the darker teal in both themes, as white
-     on the dark theme's lighter teal would be 3.7:1 */
-  --dft-slider-value: #0f766e;
-}
-
-[data-bs-theme='dark'] {
-  --dft-accent: #14b8a6;
-  --dft-accent-strong: #0d9488;
-  --dft-accent-shadow: rgba(20, 184, 166, 0.28);
-  --sim-accent-soft: rgba(20, 184, 166, 0.16);
-  --sim-accent-text: #5eead4;
-  --dft-row-hover: rgba(20, 184, 166, 0.08);
-  --dft-slider-value: #0f766e;
-  --bs-link-color: #5eead4;
-  --bs-link-color-rgb: 94, 234, 212;
-  --bs-link-hover-color: #99f6e4;
-  --bs-link-hover-color-rgb: 153, 246, 228;
-}
-
-/* ---------- Accent ---------- */
-.navbar {
-  background: linear-gradient(90deg, #042f2e 0%, #115e59 100%) !important;
-}
-
-.sim-brand-mark {
-  background: linear-gradient(135deg, #2dd4bf, #0d9488);
-  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.35);
-}
-
-.theme-btn.active,
-.sim-hero .btn-light {
-  color: #042f2e;
-}
-
-.theme-btn:focus-visible,
-.pill-radio .radio-inline:has(input:focus-visible) {
-  outline-color: #5eead4 !important;
-}
-
-.form-control:focus, .form-select:focus, .selectize-input.focus,
-.form-check-input:focus {
-  box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.18) !important;
-}
-
-.btn-run {
-  background: linear-gradient(135deg, #0d9488, #0f766e);
-}
-
-.btn-run:hover, .btn-run:focus {
-  background: linear-gradient(135deg, #0f766e, #115e59);
-}
-
-.sim-hero {
-  background:
-    radial-gradient(circle at 85% 20%, rgba(45, 212, 191, 0.32), transparent 45%),
-    linear-gradient(135deg, #042f2e 0%, #115e59 55%, #0d9488 130%);
-}
-
-.sim-hero-eyebrow {
-  color: #5eead4;
-}
-
-/* ---------- Formula ---------- */
-#formula {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.86rem;
-  min-height: 110px;
-}
-
-.glm-formula-lhs {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.82rem;
-  color: var(--sim-muted);
-  margin: -0.35rem 0 0.4rem 0;
-  overflow-wrap: anywhere;
-}
-
-.glm-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin: 0.25rem 0 0.9rem 0;
-}
-
-.glm-chips:empty {
-  display: none;
-}
-
-.glm-chip {
-  border: 1px solid var(--sim-border-strong);
-  background: var(--sim-input-bg);
-  color: var(--sim-label);
-  border-radius: 999px;
-  padding: 0.18rem 0.6rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
-}
-
-.glm-chip:hover {
-  border-color: var(--dft-accent);
-  background: var(--sim-accent-soft);
-  color: var(--sim-accent-text);
-}
-
-.glm-chip:focus-visible {
-  outline: 2px solid var(--dft-accent);
-  outline-offset: 1px;
-}
-
-/* ---------- Stored models ---------- */
-.glm-slots {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0.75rem;
-}
-
-.glm-slot {
-  border: 1px solid var(--sim-border);
-  border-radius: 12px;
-  padding: 0.85rem 0.95rem;
-  background: var(--sim-card-bg);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  min-width: 0;
-}
-
-.glm-slot-title {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--sim-muted);
-}
-
-.glm-slot-body {
-  flex: 1 1 auto;
-  font-size: 0.85rem;
-  color: var(--sim-label);
-  min-width: 0;
-}
-
-.glm-slot-formula {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8rem;
-  color: var(--sim-heading);
-  overflow-wrap: anywhere;
-  margin-bottom: 0.25rem;
-}
-
-.glm-slot-aic {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--sim-heading);
-  font-variant-numeric: tabular-nums;
-}
-
-.glm-slot-empty {
-  color: var(--sim-muted);
-  font-style: italic;
-}
-
-.glm-slot-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.glm-slot-buttons .btn {
-  flex: 1 1 0;
-}
-
-.glm-better {
-  color: var(--dft-best-text);
-  font-weight: 700;
-}
-
-/* ---------- Buttons ---------- */
-.btn-outline-glm {
-  border: 1px solid var(--sim-border-strong);
-  background: var(--sim-input-bg);
-  color: var(--sim-label);
-  font-size: 0.85rem;
-  padding: 0.4rem 0.75rem;
-}
-
-.btn-outline-glm:hover, .btn-outline-glm:focus {
-  border-color: var(--dft-accent);
-  background: var(--sim-accent-soft);
-  color: var(--sim-accent-text);
-}
-
-.btn-outline-glm.disabled, .btn-outline-glm:disabled {
-  opacity: 0.55;
-}
-
-.glm-downloads {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.glm-downloads .btn {
-  width: 100%;
-  text-align: left;
-}
-
-/* significance marks in the coefficient table */
-.glm-signif {
-  color: var(--dft-best-text);
-  font-weight: 800;
-  margin-left: 0.25rem;
-}
-
-.glm-steps-inline {
-  margin: 0;
-  padding-left: 1.1rem;
-  color: var(--sim-label);
-}
-
-.glm-steps-inline li + li {
-  margin-top: 0.35rem;
-}
-"
-
 #' Script for the formula column chips: clicking a column adds it to the formula
 #'
 #' @noRd
@@ -302,47 +62,14 @@ GLMFittingToolUI <- function(request) {
       underline = FALSE
     ),
 
-    theme = bslib::bs_theme(
-      version = 5,
-      primary = "#0d9488",
-      secondary = "#64748b",
-      success = "#16a34a",
-      info = "#0891b2",
-      warning = "#d97706",
-      danger = "#dc2626",
-      base_font = bslib::font_collection(
-        "Inter",
-        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-      ),
-      heading_font = bslib::font_collection(
-        "Inter",
-        "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"
-      ),
-      code_font = bslib::font_collection(
-        "JetBrains Mono",
-        "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"
-      )
-    ),
+    theme = netsimr_bs_theme("#0d9488", code = TRUE),
 
     header = tagList(
-      tags$head(
-        tags$script(HTML(netsimr_theme_js("netsimr-glm-fitting-theme"))),
-        tags$style(HTML(sim_ui_css)),
-        tags$style(HTML(dft_ui_css)),
-        tags$style(HTML(glm_ui_css)),
-        netsimr_fonts_head(code = TRUE),
-        netsimr_phone_head()
-      ),
+      netsimr_tool_head("netsimr-glm-fitting-theme", netsimr_css(c("tools", "analysis", "glm")), code = TRUE, amount_inputs = FALSE),
       #tells the server which theme is showing, so the chart is drawn in matching colours
-      tags$script(HTML(sim_compare_theme_js("app_theme"))),
+      tags$script(HTML(netsimr_theme_input_js("app_theme"))),
       tags$script(HTML(glm_formula_chips_js)),
-      #Shiny's built-in busy indicators: a top progress bar while the server works,
-      #plus spinners on outputs that are recalculating
-      useBusyIndicators(spinners = TRUE, pulse = TRUE, fade = TRUE),
-      busyIndicatorOptions(
-        pulse_background = "linear-gradient(90deg, #2dd4bf, #0d9488, #2dd4bf)",
-        pulse_height = "4px"
-      )
+      netsimr_busy_indicators("#2dd4bf", "#0d9488")
     ),
 
     # -------------------------------------------------------------- Welcome
@@ -375,7 +102,7 @@ GLMFittingToolUI <- function(request) {
         ),
 
         bslib::card(
-          sim_card_header("route", "How it works"),
+          netsimr_card_header("route", "How it works"),
           bslib::card_body(
             tags$ol(
               class = "sim-steps",
@@ -426,10 +153,10 @@ GLMFittingToolUI <- function(request) {
       value = "data",
       icon = icon("table"),
 
-      dft_page_intro("Data", "Import a CSV or Excel file, an example, or the result of a database query."),
+      netsimr_page_intro("Data", "Import a CSV or Excel file, an example, or the result of a database query."),
 
-      dft_layout(
-        dft_settings_card(
+      netsimr_layout(
+        netsimr_settings_card(
           "file-import", "Import", "Choose where the data comes from.",
           div(class = "sim-section-label", "Source"),
           div(class = "pill-radio",
@@ -440,7 +167,7 @@ GLMFittingToolUI <- function(request) {
                            "CSV File", inline = TRUE)),
           conditionalPanel(
             condition = "input.data_source == 'Example'",
-            dft_help("10,000 simulated motor policies (motor_policies): age, region, vehicle, its value, exposure, ",
+            netsimr_help("10,000 simulated motor policies (motor_policies): age, region, vehicle, its value, exposure, ",
                      "and the year's claim count and cost.")
           ),
 
@@ -448,16 +175,7 @@ GLMFittingToolUI <- function(request) {
             condition = "input.data_source == 'CSV File'",
             fileInput("csv_file", "File", accept = netsimr_data_accept, placeholder = "No file selected"),
             netsimr_private_note(),
-            bslib::input_switch("csv_header", "First row holds column names", value = TRUE),
-            div(class = "sim-section-label mt-2", "Separator"),
-            div(class = "pill-radio",
-                radioButtons("csv_sep", NULL, c(Comma = ",", Semicolon = ";", Tab = "\t"), ",", inline = TRUE)),
-            div(class = "sim-section-label mt-2", "Decimal mark"),
-            div(class = "pill-radio",
-                radioButtons("csv_dec", NULL, c("Point (1.5)" = ".", "Comma (1,5)" = ","), ".", inline = TRUE)),
-            div(class = "sim-section-label mt-2", "Quote"),
-            div(class = "pill-radio",
-                radioButtons("csv_quote", NULL, c("Double" = '"', "Single" = "'", "None" = ""), '"', inline = TRUE))
+            netsimr_file_options("csv_header", "csv_sep", "csv_dec", "csv_quote")
           ),
 
           conditionalPanel(
@@ -482,14 +200,14 @@ GLMFittingToolUI <- function(request) {
               passwordInput("db_password", "Password", "")
             ),
             textAreaInput("sql_query", "SQL query", "SELECT * FROM your_table", rows = 5, width = "100%"),
-            dft_help("The password is used for this connection only; it is never saved with the settings.")
+            netsimr_help("The password is used for this connection only; it is never saved with the settings.")
           ),
 
           actionButton("submit", "Import data", icon = icon("file-import"), class = "btn-run mt-2")
         ),
         uiOutput("data_overview"),
         bslib::card(
-          sim_card_header("table-list", "Preview", "The first rows of the imported data."),
+          netsimr_card_header("table-list", "Preview", "The first rows of the imported data."),
           bslib::card_body(uiOutput("selected_input_data_table"))
         )
       )
@@ -501,13 +219,13 @@ GLMFittingToolUI <- function(request) {
       value = "model",
       icon = icon("sliders"),
 
-      dft_page_intro("Model", "Fit a generalised linear model to the imported data."),
+      netsimr_page_intro("Model", "Fit a generalised linear model to the imported data."),
 
-      dft_layout(
+      netsimr_layout(
         tagList(
-          dft_settings_card(
+          netsimr_settings_card(
             "sliders", "Model", "Response, distribution and formula.",
-            dft_column_select("response_variable", "Response"),
+            netsimr_column_select("response_variable", "Response"),
             div(
               class = "param-grid-2",
               selectInput("glm_distribution", "Family",
@@ -519,7 +237,7 @@ GLMFittingToolUI <- function(request) {
             conditionalPanel(
               condition = "input.glm_distribution == 'tweedie'",
               numericInput("tweedie_power", "Variance power", value = 1.5, min = 1.05, max = 1.95, step = 0.05),
-              dft_help("Between 1 and 2: a compound Poisson-Gamma model of the loss cost, zero for most rows. ",
+              netsimr_help("Between 1 and 2: a compound Poisson-Gamma model of the loss cost, zero for most rows. ",
                        "Near 1 it behaves like a model of the claim count, near 2 like a model of the amount. ",
                        "Tweedie models have no AIC: compare them by their test deviance on the Validation tab.")
             ),
@@ -531,14 +249,14 @@ GLMFittingToolUI <- function(request) {
             conditionalPanel(
               condition = "input.offset != 'None'",
               bslib::input_switch("offset_log", "Offset is the log of this column", value = TRUE),
-              dft_help("With a log link, the offset of an exposure column is its log. ",
+              netsimr_help("With a log link, the offset of an exposure column is its log. ",
                        "Turn this off if the column already holds the offset.")
             ),
             textAreaInput("formula", "Explanatory terms", rows = 4, width = "100%",
                           placeholder = "e.g. age + region + log(sum_insured)"),
             uiOutput("formula_lhs"),
             uiOutput("formula_columns", class = "glm-chips"),
-            dft_help("Click a column to add it. Use + between terms, * for interactions (age * region), ",
+            netsimr_help("Click a column to add it. Use + between terms, * for interactions (age * region), ",
                      "and 1 for an intercept-only model. A smooth curve: ns(age, df = 4); bands with breaks you choose: ",
                      "cut(age, c(17, 25, 35, 50, 65, 100)), which predicts new data in the same bands. ",
                      "The terms may only use the data's columns, numbers, ",
@@ -548,25 +266,25 @@ GLMFittingToolUI <- function(request) {
             conditionalPanel(
               condition = "input.holdout_share != '0'",
               numericInput("holdout_seed", "Seed", value = 1, min = 1, step = 1),
-              dft_help("The model is fitted to the other rows; the Validation tab measures it on the rows held out. ",
+              netsimr_help("The model is fitted to the other rows; the Validation tab measures it on the rows held out. ",
                        "The same seed holds out the same rows.")
             ),
             actionButton("fit_model", "Fit model", icon = icon("play"), class = "btn-run mt-3")
           ),
           bslib::card(
             class = "mt-3",
-            sim_card_header("download", "Downloads", "For the fitted model."),
+            netsimr_card_header("download", "Downloads", "For the fitted model."),
             bslib::card_body(uiOutput("model_downloads"))
           )
         ),
         uiOutput("model_stats"),
-        dft_tabs(
+        netsimr_result_tabs(
           id = "model_results_tabs",
           bslib::nav_panel("Coefficients", uiOutput("coefficients_table")),
           bslib::nav_panel("Summary", verbatimTextOutput("model_summary"))
         ),
         bslib::card(
-          sim_card_header("layer-group", "Stored models", "Store the fitted model in a slot to compare it with another."),
+          netsimr_card_header("layer-group", "Stored models", "Store the fitted model in a slot to compare it with another."),
           bslib::card_body(
             div(
               class = "glm-slots",
@@ -586,7 +304,7 @@ GLMFittingToolUI <- function(request) {
           )
         ),
         bslib::card(
-          sim_card_header("wand-magic-sparkles", "Variable selection",
+          netsimr_card_header("wand-magic-sparkles", "Variable selection",
                           "Stepwise by AIC or BIC, or penalised: the lasso, the elastic net or ridge."),
           bslib::card_body(
             div(class = "sim-section-label", "Method"),
@@ -609,11 +327,11 @@ GLMFittingToolUI <- function(request) {
       value = "visualisation",
       icon = icon("chart-column"),
 
-      dft_page_intro("Actual vs predicted",
+      netsimr_page_intro("Actual vs predicted",
                      "Compare the actual and predicted response across the bands of an explanatory variable."),
 
-      dft_layout(
-        dft_settings_card(
+      netsimr_layout(
+        netsimr_settings_card(
           "sliders", "Settings", "Choose the variable to band by.",
           selectInput("visualize_variable", "Explanatory variable", choices = c("None")),
           sliderInput("number_of_bands_input", "Number of bands for numeric variables",
@@ -624,13 +342,13 @@ GLMFittingToolUI <- function(request) {
                            "quantile", inline = TRUE)),
           uiOutput("avp_rows_ui"),
           actionButton("execute_visualization", "Draw chart", icon = icon("chart-column"), class = "btn-run mt-2"),
-          dft_help("Numeric variables with more distinct values than bands are grouped into bands. ",
+          netsimr_help("Numeric variables with more distinct values than bands are grouped into bands. ",
                    "With an offset, the chart compares rates per unit of exposure; with weights, weighted averages. ",
                    "The bars show the exposure, the weights, or the number of rows.")
         ),
         bslib::card(
-          sim_card_header("chart-column", "Actual vs predicted", "Per band of the explanatory variable, for the fitted model."),
-          bslib::card_body(dft_plot_output("fitness_plot", height = "520px"), uiOutput("fitness_note"))
+          netsimr_card_header("chart-column", "Actual vs predicted", "Per band of the explanatory variable, for the fitted model."),
+          bslib::card_body(netsimr_plot_output("fitness_plot", height = "520px"), uiOutput("fitness_note"))
         )
       )
     ),
@@ -641,11 +359,11 @@ GLMFittingToolUI <- function(request) {
       value = "validation",
       icon = icon("bullseye"),
 
-      dft_page_intro("Validation",
+      netsimr_page_intro("Validation",
                      "How well the model ranks and predicts the rows, above all the rows it was not fitted to."),
 
-      dft_layout(
-        dft_settings_card(
+      netsimr_layout(
+        netsimr_settings_card(
           "sliders", "Settings", "Choose the rows and the bands.",
           div(class = "sim-section-label", "Rows"),
           div(class = "pill-radio",
@@ -653,15 +371,15 @@ GLMFittingToolUI <- function(request) {
                            "test", inline = TRUE)),
           selectInput("validation_bands", "Bands", c("5" = "5", "10" = "10", "20" = "20"), selected = "10"),
           selectInput("validation_compare", "Double lift against", c("None" = "none", "Model 1" = "1", "Model 2" = "2")),
-          dft_help("Hold out rows on the Model tab to test the model on rows it has not seen. ",
+          netsimr_help("Hold out rows on the Model tab to test the model on rows it has not seen. ",
                    "The double lift compares this model with a stored one, fitted again to the same rows.")
         ),
         uiOutput("validation_stats"),
-        dft_tabs(
+        netsimr_result_tabs(
           id = "validation_tabs",
-          bslib::nav_panel("Lift", dft_plot_output("lift_plot", height = "460px"), uiOutput("lift_note")),
-          bslib::nav_panel("Lorenz curve", dft_plot_output("lorenz_plot", height = "460px")),
-          bslib::nav_panel("Double lift", dft_plot_output("double_lift_plot", height = "460px"), uiOutput("double_lift_note"))
+          bslib::nav_panel("Lift", netsimr_plot_output("lift_plot", height = "460px"), uiOutput("lift_note")),
+          bslib::nav_panel("Lorenz curve", netsimr_plot_output("lorenz_plot", height = "460px")),
+          bslib::nav_panel("Double lift", netsimr_plot_output("double_lift_plot", height = "460px"), uiOutput("double_lift_note"))
         )
       )
     ),
@@ -672,18 +390,18 @@ GLMFittingToolUI <- function(request) {
       value = "rates",
       icon = icon("tags"),
 
-      dft_page_intro("Rates",
+      netsimr_page_intro("Rates",
                      "The fitted model as a base rate and a table of relativities, and its predictions for a new file."),
 
-      dft_layout(
-        dft_settings_card(
+      netsimr_layout(
+        netsimr_settings_card(
           "sliders", "Rating table", "Of the model on the Model tab.",
           selectInput("rate_factor", "Rating factor", choices = NULL),
           numericInput("rate_values", "Values shown for a number", value = 100, min = 5, max = 500, step = 5),
           div(class = "d-flex flex-wrap gap-2 mt-1",
               downloadButton("download_rate_table", "Rate table (CSV)", class = "btn-outline-glm"),
               netsimr_excel_button("download_rates_excel", "Rate table (Excel)", class = "btn-outline-glm")),
-          dft_help("Each rating factor is a column of the data, or two for an interaction, with every term that uses it: ",
+          netsimr_help("Each rating factor is a column of the data, or two for an interaction, with every term that uses it: ",
                    "age and ns(age, 4), say. Its base value, at relativity 1, is the most common level, or the value ",
                    "nearest the median. The CSV has the base rate and every rating factor, ready for a rating engine."),
           tags$hr(class = "sim-divider"),
@@ -691,16 +409,16 @@ GLMFittingToolUI <- function(request) {
           fileInput("score_file", "File of policies", accept = netsimr_data_accept, placeholder = "No file selected"),
           netsimr_private_note(),
           uiOutput("score_result"),
-          dft_help("Read with the file options of the Data tab.")
+          netsimr_help("Read with the file options of the Data tab.")
         ),
         uiOutput("rate_stats"),
         bslib::card(
-          sim_card_header("table-cells", "Relativities", "The chosen rating factor, at each of its values."),
+          netsimr_card_header("table-cells", "Relativities", "The chosen rating factor, at each of its values."),
           bslib::card_body(uiOutput("rate_table_ui"))
         ),
         bslib::card(
-          sim_card_header("chart-column", "Chart", "The relativity of each value of the rating factor."),
-          bslib::card_body(dft_plot_output("rate_plot", height = "420px"))
+          netsimr_card_header("chart-column", "Chart", "The relativity of each value of the rating factor."),
+          bslib::card_body(netsimr_plot_output("rate_plot", height = "420px"))
         )
       )
     ),
@@ -711,25 +429,25 @@ GLMFittingToolUI <- function(request) {
       value = "settings",
       icon = icon("floppy-disk"),
 
-      dft_page_intro("Save & load", "Keep the settings of a session and restore them later."),
+      netsimr_page_intro("Save & load", "Keep the settings of a session and restore them later."),
 
       bslib::layout_columns(
         col_widths = bslib::breakpoints(sm = 12, lg = c(5, 7)),
         bslib::card(
-          sim_card_header("floppy-disk", "Settings file", "Import options, model choices and the formula."),
+          netsimr_card_header("floppy-disk", "Settings file", "Import options, model choices and the formula."),
           bslib::card_body(
             downloadButton("DownloadDataHandlerConf", "Save settings", class = "btn-run"),
             checkboxInput("settings_include_db",
                           "Include database connection details (server, user, database and query; never the password)",
                           value = FALSE),
-            dft_help("Leave this unticked to share the file: it then names no server, database or table."),
+            netsimr_help("Leave this unticked to share the file: it then names no server, database or table."),
             tags$hr(class = "sim-divider"),
             fileInput("load_config", "Load settings", accept = ".txt", placeholder = "No file selected"),
-            dft_help("The settings are a text file. Database passwords and uploaded files are not saved.")
+            netsimr_help("The settings are a text file. Database passwords and uploaded files are not saved.")
           )
         ),
         bslib::card(
-          sim_card_header("circle-question", "Restoring a session"),
+          netsimr_card_header("circle-question", "Restoring a session"),
           bslib::card_body(
             tags$ol(
               class = "glm-steps-inline",
@@ -743,6 +461,6 @@ GLMFittingToolUI <- function(request) {
     ),
 
     bslib::nav_spacer(),
-    bslib::nav_item(sim_theme_switch())
+    bslib::nav_item(netsimr_theme_switch())
   )
 }

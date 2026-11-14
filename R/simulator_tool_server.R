@@ -140,7 +140,7 @@ shiny_simulator_server <- function(input, output, session) {
     if (is.na(object@paramIDs[param_id])) return(NULL)
     id <- object@paramIDs[param_id]
     if (isTRUE(object@param_amounts[param_id])) {
-      return(sim_amount_input(id, object@param_labels[param_id], value = last_typed(id),
+      return(netsimr_amount_input(id, object@param_labels[param_id], value = last_typed(id),
                               min = object@param_min_values[param_id], max = object@param_max_values[param_id]))
     }
     numericInput(
@@ -227,21 +227,21 @@ shiny_simulator_server <- function(input, output, session) {
   #render severity cap amount
   output$sev_cap_amount_ui <- renderUI({
     if (input$sevCapBinary) {
-      sim_amount_input('sev_cap_amount', 'Severity Cap Amount', value = last_typed('sev_cap_amount'), min = 0)
+      netsimr_amount_input('sev_cap_amount', 'Severity Cap Amount', value = last_typed('sev_cap_amount'), min = 0)
     }
   })
 
   #reinsurance structure EEL inputs
   output$reinsuranceStructureDeductibleEEL <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      sim_amount_input('reinsurance_structure_eel_deductible_amount', 'EEL Deductible Amount',
+      netsimr_amount_input('reinsurance_structure_eel_deductible_amount', 'EEL Deductible Amount',
                        value = last_typed('reinsurance_structure_eel_deductible_amount'), min = 0)
     }
   })
 
   output$reinsuranceStructureLimitEEL <- renderUI({
     if (input$reinsuranceStructureEEL %in% c('Limited Layer', 'Exclude Layer')) {
-      sim_amount_input('reinsurance_structure_eel_limit_amount', 'EEL Limit Amount',
+      netsimr_amount_input('reinsurance_structure_eel_limit_amount', 'EEL Limit Amount',
                        value = last_typed('reinsurance_structure_eel_limit_amount'), min = 0)
     }
   })
@@ -263,7 +263,7 @@ shiny_simulator_server <- function(input, output, session) {
           #an optional upfront premium prices the reinstatements used
           div(
             class = "param-grid",
-            sim_amount_input('reinsurance_structure_eel_premium', 'Upfront premium (optional)',
+            netsimr_amount_input('reinsurance_structure_eel_premium', 'Upfront premium (optional)',
                              value = last_typed('reinsurance_structure_eel_premium'), min = 0),
             numericInput('reinsurance_structure_eel_reinstatement_rate_pct', 'Reinstatement rate (% of upfront)',
                          value = last_typed('reinsurance_structure_eel_reinstatement_rate_pct', 100), min = 0)
@@ -277,14 +277,14 @@ shiny_simulator_server <- function(input, output, session) {
   #reinsurance structure AL inputs
   output$reinsuranceStructureDeductibleAL <- renderUI({
     if (input$reinsuranceStructureAL %in% c('Unlimited Layer', 'Exclude Layer', 'Limited Layer')) {
-      sim_amount_input('reinsurance_structure_al_deductible_amount', 'AL Deductible Amount',
+      netsimr_amount_input('reinsurance_structure_al_deductible_amount', 'AL Deductible Amount',
                        value = last_typed('reinsurance_structure_al_deductible_amount'), min = 0)
     }
   })
 
   output$reinsuranceStructureLimitAL <- renderUI({
     if (input$reinsuranceStructureAL %in% c('Limited Layer', 'Exclude Layer')) {
-      sim_amount_input('reinsurance_structure_al_limit_amount', 'AL Limit Amount',
+      netsimr_amount_input('reinsurance_structure_al_limit_amount', 'AL Limit Amount',
                        value = last_typed('reinsurance_structure_al_limit_amount'), min = 0)
     }
   })

@@ -58,7 +58,7 @@ test_that("the reserving tool fits the chain ladder, leaves out a link ratio the
   exclude[2, 1] <- TRUE
   expected <- chain_ladder(raa_triangle, exclude = exclude)
   app_click(app, selector = ".rsv-ratio[data-row='2'][data-col='1']")
-  rsv_wait_for_text(app, "development_stats", sprintf("/%s/", rsv_amount(expected$total[["ibnr"]])))
+  rsv_wait_for_text(app, "development_stats", sprintf("/%s/", netsimr_amount(expected$total[["ibnr"]])))
   expect_match(app_text(app, "#development_stats"), "RATIOS LEFT OUT 1 of 45", ignore.case = TRUE)
   expect_identical(app$get_js("document.querySelector(\".rsv-ratio[data-row='2'][data-col='1']\").getAttribute('aria-pressed')"), "true")
   expect_identical(rsv_row(app, "link_ratio_table", "Selected")[2], formatC(expected$factors[[1]], format = "f", digits = 3))
@@ -72,7 +72,7 @@ test_that("the reserving tool fits the chain ladder, leaves out a link ratio the
   #a fitted exponential tail, as MackChainLadder(RAA, tail = TRUE)
   app_set(app, tail_method = "exponential")
   rsv_wait_for_text(app, "development_stats", "/1\\.0094/")
-  expect_match(app_text(app, "#development_stats"), rsv_amount(chain_ladder(raa_triangle, tail = "exponential")$total[["ibnr"]]),
+  expect_match(app_text(app, "#development_stats"), netsimr_amount(chain_ladder(raa_triangle, tail = "exponential")$total[["ibnr"]]),
                fixed = TRUE)
   app$set_inputs(development_tabs = "Tail curve", wait_ = FALSE)
   rsv_wait_for_plot(app, "tail_plot")
@@ -92,8 +92,8 @@ test_that("the ultimates follow each origin's method, premium and a priori loss 
   triangle <- as_triangle(simulated_motor_claims, "accident_year", "development_year", "paid", cumulative = FALSE)
   premium <- unique(simulated_motor_claims[c("accident_year", "earned_premium")])$earned_premium
   cl <- chain_ladder(triangle)
-  expect_identical(rsv_row(app, "ultimate_table", "2025")[9], rsv_amount(cl$by_origin$ultimate[12]))
-  expect_identical(rsv_row(app, "ultimate_table", "2025")[7], rsv_amount(cape_cod(cl, premium)$by_origin$ultimate[12]))
+  expect_identical(rsv_row(app, "ultimate_table", "2025")[9], netsimr_amount(cl$by_origin$ultimate[12]))
+  expect_identical(rsv_row(app, "ultimate_table", "2025")[7], netsimr_amount(cape_cod(cl, premium)$by_origin$ultimate[12]))
 
   #2025 by Bornhuetter-Ferguson, with its own premium and loss ratio
   args <- list(app, "bf", 13e6, 65)
@@ -102,10 +102,10 @@ test_that("the ultimates follow each origin's method, premium and a priori loss 
   do.call(app_set, args)
   premium[12] <- 13e6
   bf <- bornhuetter_ferguson(cl, premium, c(rep(0.7, 11), 0.65))$by_origin$ultimate[12]
-  rsv_wait_for_text(app, "ultimate_table", sprintf("/%s/", rsv_amount(bf)))
+  rsv_wait_for_text(app, "ultimate_table", sprintf("/%s/", netsimr_amount(bf)))
   row <- rsv_row(app, "ultimate_table", "2025")
-  expect_identical(row[c(8, 9)], c("Bornhuetter-Ferguson", rsv_amount(bf)))
-  expect_identical(row[11], rsv_percent(bf / 13e6))
+  expect_identical(row[c(8, 9)], c("Bornhuetter-Ferguson", netsimr_amount(bf)))
+  expect_identical(row[11], netsimr_percent(bf / 13e6))
   expect_match(app_text(app, "#ultimate_stats"), "Mixed", fixed = TRUE)
 
   #one method for all origins
@@ -137,8 +137,8 @@ test_that("the bootstrap with a seed gives bootstrap_chain_ladder()'s reserves",
   rsv_wait_for_text(app, "bootstrap_table", "/Total/")
   expected <- bootstrap_chain_ladder(raa_triangle, n = 1000, process = "odp", seed = 7)
   row <- rsv_row(app, "bootstrap_table", "Total")
-  expect_identical(row[2:3], rsv_amount(unname(expected$total[c("ibnr", "se")])))
-  expect_identical(row[9], rsv_amount(expected$total[["p99.5"]]))
+  expect_identical(row[2:3], netsimr_amount(unname(expected$total[c("ibnr", "se")])))
+  expect_identical(row[9], netsimr_amount(expected$total[["p99.5"]]))
   rsv_wait_for_plot(app, "bootstrap_plot")
   app$set_inputs(uncertainty_tabs = "by calendar period", wait_ = FALSE)
   rsv_wait_for_plot(app, "residual_calendar_plot")
@@ -168,7 +168,7 @@ test_that("an uploaded table of payments makes the triangle, with the premiums",
   app_wait_for_inputs(app, list(origin_col = "accident_year", development_col = "development_year", value_col = "paid",
                                 premium_col = "earned_premium"), "the guessed columns")
   app_set(app, cumulative = "incremental")
-  rsv_wait_for_text(app, "data_overview", sprintf("/%s/", rsv_amount(sum(simulated_motor_claims$paid))))
+  rsv_wait_for_text(app, "data_overview", sprintf("/%s/", netsimr_amount(sum(simulated_motor_claims$paid))))
   expect_match(app_text(app, "#data_overview"), "120,431,000", fixed = TRUE)
   expect_match(app_text(app, "#data_overview"), "2014 to 2025", fixed = TRUE)
   #a layout that does not fit the file says why
@@ -212,8 +212,8 @@ test_that("the Paid & incurred tab gives the Munich chain ladder, and the Uncert
   app_goto(app, "uncertainty")
   rsv_wait_for_text(app, "one_year_table", "/Total/")
   mw <- merz_wuthrich(raa_triangle)
-  expect_identical(rsv_row(app, "one_year_table", "Total")[3], rsv_amount(mw$total[["one_year_se"]]))
-  expect_match(app_text(app, "#uncertainty_stats"), rsv_amount(mw$total[["one_year_se"]]), fixed = TRUE)
+  expect_identical(rsv_row(app, "one_year_table", "Total")[3], netsimr_amount(mw$total[["one_year_se"]]))
+  expect_match(app_text(app, "#uncertainty_stats"), netsimr_amount(mw$total[["one_year_se"]]), fixed = TRUE)
 
   #the Quarg and Mack example
   app_goto(app, "data")
@@ -223,7 +223,7 @@ test_that("the Paid & incurred tab gives the Munich chain ladder, and the Uncert
   rsv_wait_for_text(app, "munich_table", "/Total/")
   mcl <- munich_chain_ladder(quarg_mack_paid, quarg_mack_incurred)
   row <- rsv_row(app, "munich_table", "7")
-  expect_identical(row[c(7, 8)], rsv_amount(unlist(mcl$by_origin[7, c("ultimate_paid", "ultimate_incurred")], use.names = FALSE)))
+  expect_identical(row[c(7, 8)], netsimr_amount(unlist(mcl$by_origin[7, c("ultimate_paid", "ultimate_incurred")], use.names = FALSE)))
   rsv_wait_for_plot(app, "munich_plot")
   app$set_inputs(munich_tabs = "Paid to incurred", wait_ = FALSE)
   rsv_wait_for_plot(app, "munich_ratio_plot")
@@ -249,7 +249,7 @@ test_that("saved settings bring back the data, the factors, the link ratios left
   app_set(app, periods = "6")
   app_click(app, selector = ".rsv-ratio[data-row='8'][data-col='1']")
   rsv_wait_for_text(app, "development_stats", left_out)
-  rsv_wait_for_text(app, "development_stats", sprintf("/%s/", rsv_amount(fit$total[["ibnr"]])))
+  rsv_wait_for_text(app, "development_stats", sprintf("/%s/", netsimr_amount(fit$total[["ibnr"]])))
   expected_development <- app_text(app, "#development_stats")
   app_goto(app, "ultimates")
   rsv_wait_for_text(app, "ultimate_table", "/2025/")
