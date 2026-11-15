@@ -287,7 +287,14 @@ clark_growth <- function(triangle, curve = c("loglogistic", "weibull"), premium 
   loglik_gradient <- function(b) colSums((value / mean_of(b) - 1) * mean_derivatives(b))
   hessian <- jacobian(loglik_gradient, full_parameters)
   hessian <- (hessian + t(hessian)) / 2
-  covariance <- tryCatch(sigma2 * solve(-hessian), error = function(e) {
+  # the ultimates (or the loss ratio) and the curve's parameters differ by many orders of
+  # magnitude, which makes the information look singular to solve(): it is inverted
+  # scaled to a unit diagonal, D (D I D)^-1 D with D = diag(I)^-1/2, which is the same
+  # inverse
+  information <- -hessian
+  unit <- 1 / sqrt(abs(diag(information)))
+  if (any(!is.finite(unit))) unit <- rep(1, length(unit))
+  covariance <- tryCatch(sigma2 * unit * t(unit * solve(unit * t(unit * information))), error = function(e) {
     matrix(NA_real_, length(full_parameters), length(full_parameters))
   })
   reserve <- reserve_of(full_parameters)

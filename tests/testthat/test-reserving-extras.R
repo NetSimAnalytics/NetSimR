@@ -107,6 +107,14 @@ test_that("Clark's Cape Cod method has one loss ratio, and a truncation shortens
   expect_error(clark_growth(raa_triangle, truncation = 5), "truncation")
   expect_error(clark_growth(raa_triangle, offset = 1), "offset")
   expect_output(print(cc), "Clark Cape Cod method")
+  # the standard errors do not depend on the currency unit: claims in full units are in the
+  # millions, and their ultimates dwarf the curve's parameters
+  for (method in c("ldf", "cape cod")) {
+    small <- clark_growth(raa_triangle, premium = premium, method = method)
+    large <- clark_growth(raa_triangle * 1000, premium = premium * 1000, method = method)
+    expect_equal(large$total[["se"]] / 1000, small$total[["se"]], tolerance = 1e-5)
+    expect_equal(large$by_origin$parameter_se / 1000, small$by_origin$parameter_se, tolerance = 1e-5)
+  }
 })
 
 test_that("the chain ladder for inflation restates the past and inflates the future", {
