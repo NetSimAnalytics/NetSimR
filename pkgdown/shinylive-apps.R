@@ -95,7 +95,9 @@ for (tool in names(tools)) {
 # each tool's page counts its visits with GoatCounter, as the rest of the website does
 # (_pkgdown.yml): without cookies or personal data, and never the data uploaded to a tool,
 # which stays in the browser. The installed package counts nothing.
-goatcounter <- paste0("<script data-goatcounter=\"https://netsimanalytics.goatcounter.com/count\" ",
+# counted under /NetSimR/..., as the rest of the website is (_pkgdown.yml)
+goatcounter <- paste0('<script>window.goatcounter = {path: function(p) { return "/NetSimR" + p }};</script>',
+                      "<script data-goatcounter=\"https://netsimanalytics.goatcounter.com/count\" ",
                       "async src=\"https://gc.zgo.at/count.js\"></script>")
 for (tool in names(tools)) {
   page <- file.path(out, tool, "index.html")

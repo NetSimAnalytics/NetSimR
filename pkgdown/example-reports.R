@@ -104,7 +104,9 @@ testServer(internal("reserving_tool_Server"), {
 # on the website, each report's page counts its visits with GoatCounter, as the rest of the
 # website does (_pkgdown.yml): without cookies or personal data. A report saved from a tool
 # counts nothing.
-goatcounter <- paste0("<script data-goatcounter=\"https://netsimanalytics.goatcounter.com/count\" ",
+# counted under /NetSimR/..., as the rest of the website is (_pkgdown.yml)
+goatcounter <- paste0('<script>window.goatcounter = {path: function(p) { return "/NetSimR" + p }};</script>',
+                      "<script data-goatcounter=\"https://netsimanalytics.goatcounter.com/count\" ",
                       "async src=\"https://gc.zgo.at/count.js\"></script>")
 for (page in list.files(out, pattern = "-report\\.html$", full.names = TRUE)) {
   html <- readLines(page, warn = FALSE, encoding = "UTF-8")
