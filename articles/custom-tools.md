@@ -71,6 +71,6 @@ the three that the package’s methods refer to: “Free for all” (2023),
 articles in The
 Actuary](https://www.theactuary.com/authors/yiannis-parizas).
 
-**Get in touch.** Yiannis Parizas, the author of NetSimR:
-<yiannis.parizas@gmail.com> or
+**Get in touch.** Yiannis Parizas, the author of NetSimR, at [NetSim
+Analytics](https://netsimanalytics.com/): <hello@netsimanalytics.com> or
 [LinkedIn](https://www.linkedin.com/in/yiannisparizas/).
