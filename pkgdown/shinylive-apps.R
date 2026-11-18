@@ -8,7 +8,7 @@
 # The output directory gets one folder per tool and the shared shinylive assets.
 args <- commandArgs(TRUE)
 out <- if (length(args) >= 1) args[1] else "docs/apps"
-repo <- if (length(args) >= 2) args[2] else "https://netsimanalytics.github.io/NetSimR/wasm"
+repo <- if (length(args) >= 2) args[2] else "https://netsimr.netsimanalytics.com/wasm"
 
 tools <- c(
   simulator = "run_shiny_simulator",

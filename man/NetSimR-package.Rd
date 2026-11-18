@@ -132,7 +132,7 @@ snake_case name, the same function, as the newer functions are named
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://netsimanalytics.github.io/NetSimR/}
+  \item \url{https://netsimr.netsimanalytics.com/}
   \item \url{https://github.com/NetSimAnalytics/NetSimR}
   \item Report bugs at \url{https://github.com/NetSimAnalytics/NetSimR/issues}
 }

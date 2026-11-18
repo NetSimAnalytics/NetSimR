@@ -24,11 +24,11 @@ test_that("every tool's About card links the website, the tools online and GitHu
                   reinsurance_pricing_tool_UI, portfolio_tool_UI)) {
     page <- as.character(htmltools::renderTags(ui(NULL))$html)
     expect_match(page, "Cite: ", fixed = TRUE)
-    expect_match(page, "https://netsimanalytics.github.io/NetSimR/articles/try-online.html", fixed = TRUE)
+    expect_match(page, "https://netsimr.netsimanalytics.com/articles/try-online.html", fixed = TRUE)
     expect_match(page, "https://github.com/NetSimAnalytics/NetSimR\"", fixed = TRUE)
     expect_match(page, "issues/new?template=bug_report.yml", fixed = TRUE)
   }
   footer <- as.character(netsimr_report_footer("1 December 2026, 10:00"))
-  expect_match(footer, "href=\"https://netsimanalytics.github.io/NetSimR/\"", fixed = TRUE)
+  expect_match(footer, "href=\"https://netsimr.netsimanalytics.com/\"", fixed = TRUE)
   expect_match(footer, "Generated with NetSimR", fixed = TRUE)
 })
