@@ -101,7 +101,7 @@ each year is multiplied by its `development` factor, for the losses not
 reported yet, and their total divided by the total on-level premium. The
 expected part of a large loss in the layer is \\E\[\min(X, d + l)\] -
 E\[\min(X, d)\]\\ for a Pareto with minimum \\t\\
-([`ParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMean.md)),
+([`ParetoCappedMean`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMean.md)),
 which needs a deductible of at least the threshold. Aggregate terms are
 not applied.
 
@@ -112,16 +112,16 @@ reinsurance: formulas and applications. Swiss Re.
 
 ## See also
 
-[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+[`burning_cost`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
 and
-[`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md).
+[`technical_premium`](https://netsimr.netsimanalytics.com/reference/technical_premium.md).
 
 Other reinsurance pricing functions:
-[`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md),
-[`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md),
-[`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md),
-[`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md),
-[`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md),
+[`credibility_weight()`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md),
+[`mbbefd_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md),
+[`property_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md),
+[`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 
 ## Examples
 

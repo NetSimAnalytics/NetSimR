@@ -14,7 +14,7 @@ print(x, ...)
 - x:
 
   The result of
-  [`simulate_portfolio`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md).
+  [`simulate_portfolio`](https://netsimr.netsimanalytics.com/reference/simulate_portfolio.md).
 
 - ...:
 

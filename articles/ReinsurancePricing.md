@@ -10,7 +10,7 @@ exposure, with a risk profile and an exposure curve, blends the two and
 turns the expected loss into a premium.
 
 Every step here also runs in the reinsurance pricing tool,
-[`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md),
+[`run_shiny_reinsurance_pricing_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_reinsurance_pricing_tool.md),
 which can be tried in the browser on the package’s website.
 
 ## 2. The experience
@@ -54,7 +54,7 @@ xl_premium
 
 ## 3. The burning cost
 
-[`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+[`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
 brings each loss to the money of 2025 with the claims inflation, takes
 its part in the layer, develops each year’s layer losses to ultimate,
 applies the annual aggregate limit (two limits, with one reinstatement)
@@ -98,14 +98,14 @@ The threshold of the data matters: a loss just below 500,000 in 2015 is
 about 740,000 in the money of 2025. Had the deductible been below the
 indexed threshold, losses missing from the data could have reached the
 layer, and
-[`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+[`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
 would have warned.
 
 ## 4. The Pareto model
 
 The burning cost rests on the few losses that reached the layer, and it
 cannot price a layer above the largest loss seen.
-[`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md)
+[`pareto_rating()`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md)
 fits a Pareto distribution to the indexed losses above a threshold and
 prices the layer from the frequency of large losses and their expected
 part in the layer. The threshold must be at least the reporting
@@ -140,8 +140,8 @@ risk profile of a property portfolio: bands of sum insured with their
 premium. With an expected loss ratio of 55%, each band’s expected loss
 is shared between the layer and the rest by an exposure curve, here
 Swiss Re’s Y3 curve
-([`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md),
-[`swiss_re_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)):
+([`mbbefd_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md),
+[`swiss_re_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md)):
 
 ``` r
 
@@ -199,7 +199,7 @@ for (c in c("Y2", "Y3", "Y4", "Lloyds")) lines(x, swiss_re_curve(x, c))
 ![](ReinsurancePricing_files/figure-html/curves-1.png)
 
 For casualty business,
-[`casualty_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+[`casualty_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
 does the same with the policy limits of the profile and a claim size
 distribution, such as one fitted with the distribution fitting tool:
 
@@ -242,7 +242,7 @@ expected_loss
 
     ## [1] 3434321
 
-[`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 loads the expected loss for expenses, brokerage and profit: the upfront
 premium and the expected reinstatement premium together are the expected
 loss over one minus the loading. The reinstatement premium depends on
@@ -293,5 +293,5 @@ The upfront premium is 75% of the limit, a rate on line typical of a
 working layer, which pays back the limit in 1.3 years. For the
 distribution of the layer’s annual losses and reinstatement premiums,
 simulate the portfolio with
-[`simulate_claims()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md),
+[`simulate_claims()`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md),
 using the Pareto fitted here for the large losses.

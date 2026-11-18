@@ -1,7 +1,7 @@
 # Simulate claims with a frequency-severity model
 
 A simpler interface to
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md),
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md),
 with short argument names and defaults for everything optional. Leaving
 an option out (NULL) switches the feature off: no seed, no Pareto
 slices, no cap, no reinstatement limit.
@@ -121,7 +121,7 @@ simulate_claims(
   The premium rate of each reinstatement as a share of `eel_premium`:
   one rate for all of them, or one per reinstatement. Defaults to 1
   (100%). See
-  [`reinstatement_premium`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md).
+  [`reinstatement_premium`](https://netsimr.netsimanalytics.com/reference/reinstatement_premium.md).
 
 - agg_layer:
 
@@ -143,7 +143,7 @@ simulate_claims(
   when that is expected to be at least a quarter faster, which for
   workers started by the call means a run of a few seconds or more.
   Results are the same either way. See
-  [`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md).
+  [`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md).
 
 - workers:
 
@@ -152,7 +152,7 @@ simulate_claims(
   shut down after it), or a cluster from
   [`parallel::makeCluster()`](https://rdrr.io/r/parallel/makeCluster.html),
   which is used and left running so that several calls share it. See
-  [`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md).
+  [`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md).
 
 - chunk_size:
 
@@ -172,7 +172,7 @@ simulate_claims(
 
   TRUE (the default) to use exact shortcuts where the settings allow;
   see
-  [`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md).
+  [`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md).
 
 - progress:
 
@@ -251,14 +251,14 @@ through a layer of 100 excess of 0 with no reinstatements and an
 aggregate deductible of 50 cede 100. An "exclude" aggregate layer is
 taken out of the recoveries after the reinstatement capacity has capped
 them. See
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md)
 for the details.
 
 ## See also
 
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md),
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md),
 which this calls, and
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
 for the same model in an app.
 
 ## Examples

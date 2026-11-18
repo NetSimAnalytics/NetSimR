@@ -3,7 +3,7 @@
 The page of the reinsurance pricing application: a welcome tab, the
 layer, the experience rating, the exposure rating and the pricing, with
 the settings beside the results;
-[`run_shiny_reinsurance_pricing_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
+[`run_shiny_reinsurance_pricing_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reinsurance_pricing_tool.md)
 pairs it with `reinsurance_pricing_tool_Server`. Like the package's
 other applications, the page is built each time the application starts,
 not when the package is installed, so that its theme compiles from where

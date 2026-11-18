@@ -31,7 +31,7 @@ arguments are recycled to a common length. A non-numeric or non-positive
 
 ## See also
 
-[`GammaCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/GammaCappedMean.md)
+[`GammaCappedMean`](https://netsimr.netsimanalytics.com/reference/GammaCappedMean.md)
 
 ## Examples
 

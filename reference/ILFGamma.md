@@ -43,10 +43,10 @@ and `rate`.
 ## See also
 
 Other ILF functions:
-[`ILFLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ILFLNorm.md),
-[`ILFPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFPareto.md),
-[`ILFSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedGammaPareto.md),
-[`ILFSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedLNormPareto.md)
+[`ILFLNorm()`](https://netsimr.netsimanalytics.com/reference/ILFLNorm.md),
+[`ILFPareto()`](https://netsimr.netsimanalytics.com/reference/ILFPareto.md),
+[`ILFSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedGammaPareto.md),
+[`ILFSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedLNormPareto.md)
 
 ## Examples
 

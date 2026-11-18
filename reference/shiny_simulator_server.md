@@ -3,7 +3,7 @@
 Builds the dynamic inputs of the claims simulator, runs the simulations
 when asked and serves the results tabs, the downloads and the saving and
 loading of settings; it is the server that
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
 pairs with `shiny_simulator_ui`.
 
 ## Usage

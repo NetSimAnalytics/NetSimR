@@ -17,7 +17,7 @@ The premium a year earned was charged at the rates of its policies.
 Rates rose 5% in July 2021, fell 2% in January 2023 and rose 8% in April
 2024; with annual policies written evenly through the year, the premium
 of each calendar year mixes the rates of two years of writing.
-[`on_level_premium()`](https://netsimanalytics.github.io/NetSimR/reference/on_level_premium.md)
+[`on_level_premium()`](https://netsimr.netsimanalytics.com/reference/on_level_premium.md)
 works out each year’s average rate level, the parallelogram method, and
 the factor that brings its premium to today’s rates:
 
@@ -70,7 +70,7 @@ c(experience = rate$experience_loss_ratio, permissible = rate$permissible_loss_r
 A small portfolio’s experience is not fully credible: with `credibility`
 below 1, its loss ratio is blended with a complement, such as the loss
 ratio the current rates assume
-([`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
+([`credibility_weight()`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md)
 gives the limited fluctuation credibility of a number of claims).
 
 ## Credibility between segments

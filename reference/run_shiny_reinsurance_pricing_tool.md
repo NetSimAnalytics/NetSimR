@@ -22,18 +22,18 @@ at the console, opens the application; it can also be passed to
 
 ## See also
 
-[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md),
-[`pareto_rating`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
-[`property_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md),
-[`casualty_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+[`burning_cost`](https://netsimr.netsimanalytics.com/reference/burning_cost.md),
+[`pareto_rating`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
+[`property_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md),
+[`casualty_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
 and
-[`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md),
+[`technical_premium`](https://netsimr.netsimanalytics.com/reference/technical_premium.md),
 the methods of the application;
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md),
-[`run_shiny_distribution_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md),
-[`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md)
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md),
+[`run_shiny_distribution_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md),
+[`run_shiny_glm_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_glm_fitting_tool.md)
 and
-[`run_shiny_reserving_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md),
+[`run_shiny_reserving_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reserving_tool.md),
 the package's other applications.
 
 ## Examples

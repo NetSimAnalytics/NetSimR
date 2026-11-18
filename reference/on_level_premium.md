@@ -51,9 +51,9 @@ any term (numerically, on a fine grid).
 
 ## See also
 
-[`indicated_rate_change`](https://netsimanalytics.github.io/NetSimR/reference/indicated_rate_change.md)
+[`indicated_rate_change`](https://netsimr.netsimanalytics.com/reference/indicated_rate_change.md)
 and
-[`buhlmann_straub`](https://netsimanalytics.github.io/NetSimR/reference/buhlmann_straub.md).
+[`buhlmann_straub`](https://netsimr.netsimanalytics.com/reference/buhlmann_straub.md).
 
 ## Examples
 

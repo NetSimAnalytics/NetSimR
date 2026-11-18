@@ -54,7 +54,7 @@ The probability of a total loss is \\1/g\\. The Swiss Re curves have \\b
 A layer of `limit` excess of `deductible` on a risk with sum insured
 \\M\\ takes the share \\G((d + l) / M) - G(d / M)\\ of the risk's
 expected loss; see
-[`property_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md).
+[`property_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md).
 
 ## References
 
@@ -64,11 +64,11 @@ distribution class. ASTIN Bulletin 27(1), 99-111.
 ## See also
 
 Other reinsurance pricing functions:
-[`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md),
-[`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md),
-[`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
-[`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md),
-[`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md),
+[`credibility_weight()`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md),
+[`pareto_rating()`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
+[`property_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md),
+[`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 
 ## Examples
 

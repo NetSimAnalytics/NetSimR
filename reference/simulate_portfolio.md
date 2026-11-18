@@ -25,7 +25,7 @@ simulate_portfolio(
 - lines:
 
   A named list with one element per line: a list of arguments of
-  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+  [`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
   (without `n_sims` and `seed`), whose `total_claims` are the line's
   losses, or a numeric vector of `n` simulated losses.
 
@@ -71,7 +71,7 @@ lines' VaR; and the copula settings.
 ## Details
 
 Each line is simulated on its own, by
-[`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+[`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
 (or given as a vector of simulated losses). The lines are then joined by
 reordering: `n` draws from the copula give, for each line, the rank its
 losses take in each simulation, and the line's simulated losses are put
@@ -99,7 +99,7 @@ Statistics - Simulation and Computation 11(3), 311-334.
 
 ## See also
 
-[`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md).
+[`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md).
 
 ## Examples
 

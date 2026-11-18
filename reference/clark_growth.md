@@ -23,7 +23,7 @@ clark_growth(
 - triangle:
 
   A triangle of cumulative claims, as for
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 - curve:
 
@@ -96,9 +96,9 @@ maximum likelihood approach. Casualty Actuarial Society Forum, Fall
 
 ## See also
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
 and
-[`cape_cod`](https://netsimanalytics.github.io/NetSimR/reference/cape_cod.md).
+[`cape_cod`](https://netsimr.netsimanalytics.com/reference/cape_cod.md).
 
 ## Examples
 

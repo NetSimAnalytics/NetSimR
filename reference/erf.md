@@ -21,7 +21,7 @@ The value of the error function at `x`. A non-numeric `x` is an error.
 
 ## See also
 
-[`LNormCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/LNormCappedMean.md)
+[`LNormCappedMean`](https://netsimr.netsimanalytics.com/reference/LNormCappedMean.md)
 
 ## Examples
 

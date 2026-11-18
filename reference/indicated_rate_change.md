@@ -29,12 +29,12 @@ indicated_rate_change(
 - losses:
 
   The ultimate losses of each year, such as from
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 - premium:
 
   The on-level earned premium of each year
-  ([`on_level_premium`](https://netsimanalytics.github.io/NetSimR/reference/on_level_premium.md)).
+  ([`on_level_premium`](https://netsimr.netsimanalytics.com/reference/on_level_premium.md)).
 
 - years:
 
@@ -100,10 +100,10 @@ indicated change is that loss ratio over the permissible loss ratio,
 
 ## See also
 
-[`on_level_premium`](https://netsimanalytics.github.io/NetSimR/reference/on_level_premium.md),
-[`buhlmann_straub`](https://netsimanalytics.github.io/NetSimR/reference/buhlmann_straub.md)
+[`on_level_premium`](https://netsimr.netsimanalytics.com/reference/on_level_premium.md),
+[`buhlmann_straub`](https://netsimr.netsimanalytics.com/reference/buhlmann_straub.md)
 and
-[`credibility_weight`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md).
+[`credibility_weight`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md).
 
 ## Examples
 

@@ -3,7 +3,7 @@
 Gives the claim amount that a claim from a sliced severity distribution,
 with Gamma attritional claims below the slice point and a Pareto tail
 above it, stays at or below with probability `q`; the inverse of
-[`pSlicedGammaPareto`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedGammaPareto.md).
+[`pSlicedGammaPareto`](https://netsimr.netsimanalytics.com/reference/pSlicedGammaPareto.md).
 
 ## Usage
 
@@ -59,13 +59,13 @@ sliced LogNormal-Pareto functions call the same parameter `shape`.
 ## See also
 
 Other sliced distribution functions:
-[`SlicedGammaParetoMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoMean.md),
-[`SlicedLNormParetoMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoMean.md),
-[`dSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedGammaPareto.md),
-[`dSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedLNormPareto.md),
-[`pSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedGammaPareto.md),
-[`pSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedLNormPareto.md),
-[`qSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedLNormPareto.md)
+[`SlicedGammaParetoMean()`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoMean.md),
+[`SlicedLNormParetoMean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoMean.md),
+[`dSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedGammaPareto.md),
+[`dSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedLNormPareto.md),
+[`pSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedGammaPareto.md),
+[`pSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedLNormPareto.md),
+[`qSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/qSlicedLNormPareto.md)
 
 ## Examples
 

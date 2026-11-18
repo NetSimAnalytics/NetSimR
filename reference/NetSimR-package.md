@@ -30,86 +30,86 @@ The NetSimR package provides eight categories of functions:
 
 ## NetSimR special functions
 
-[`IGamma`](https://netsimanalytics.github.io/NetSimR/reference/IGamma.md)
-[`erf`](https://netsimanalytics.github.io/NetSimR/reference/erf.md)
+[`IGamma`](https://netsimr.netsimanalytics.com/reference/IGamma.md)
+[`erf`](https://netsimr.netsimanalytics.com/reference/erf.md)
 
 ## NetSimR mean functions
 
-[`SlicedGammaParetoMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoMean.md)
-[`SlicedLNormParetoMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoMean.md)
+[`SlicedGammaParetoMean`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoMean.md)
+[`SlicedLNormParetoMean`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoMean.md)
 
 ## NetSimR capped mean functions
 
-[`GammaCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/GammaCappedMean.md)
-[`LNormCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/LNormCappedMean.md)
-[`ParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMean.md)
-[`ParetoCappedMeanCalc`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMeanCalc.md)
-[`SlicedGammaParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoCappedMean.md)
-[`SlicedLNormParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md)
+[`GammaCappedMean`](https://netsimr.netsimanalytics.com/reference/GammaCappedMean.md)
+[`LNormCappedMean`](https://netsimr.netsimanalytics.com/reference/LNormCappedMean.md)
+[`ParetoCappedMean`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMean.md)
+[`ParetoCappedMeanCalc`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMeanCalc.md)
+[`SlicedGammaParetoCappedMean`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoCappedMean.md)
+[`SlicedLNormParetoCappedMean`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoCappedMean.md)
 
 ## NetSimR exposure curve functions
 
-[`ExposureCurveGamma`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveGamma.md)
-[`ExposureCurveLNorm`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveLNorm.md)
-[`ExposureCurvePareto`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurvePareto.md)
-[`ExposureCurveSlicedGammaPareto`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedGammaPareto.md)
-[`ExposureCurveSlicedLNormPareto`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedLNormPareto.md)
+[`ExposureCurveGamma`](https://netsimr.netsimanalytics.com/reference/ExposureCurveGamma.md)
+[`ExposureCurveLNorm`](https://netsimr.netsimanalytics.com/reference/ExposureCurveLNorm.md)
+[`ExposureCurvePareto`](https://netsimr.netsimanalytics.com/reference/ExposureCurvePareto.md)
+[`ExposureCurveSlicedGammaPareto`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedGammaPareto.md)
+[`ExposureCurveSlicedLNormPareto`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedLNormPareto.md)
 
 ## NetSimR ILF curve functions
 
-[`ILFGamma`](https://netsimanalytics.github.io/NetSimR/reference/ILFGamma.md)
-[`ILFLNorm`](https://netsimanalytics.github.io/NetSimR/reference/ILFLNorm.md)
-[`ILFPareto`](https://netsimanalytics.github.io/NetSimR/reference/ILFPareto.md)
-[`ILFSlicedGammaPareto`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedGammaPareto.md)
-[`ILFSlicedLNormPareto`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedLNormPareto.md)
+[`ILFGamma`](https://netsimr.netsimanalytics.com/reference/ILFGamma.md)
+[`ILFLNorm`](https://netsimr.netsimanalytics.com/reference/ILFLNorm.md)
+[`ILFPareto`](https://netsimr.netsimanalytics.com/reference/ILFPareto.md)
+[`ILFSlicedGammaPareto`](https://netsimr.netsimanalytics.com/reference/ILFSlicedGammaPareto.md)
+[`ILFSlicedLNormPareto`](https://netsimr.netsimanalytics.com/reference/ILFSlicedLNormPareto.md)
 
 ## NetSimR pure IBNR functions
 
-[`PureIBNRGamma`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRGamma.md)
-[`PureIBNRLNorm`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRLNorm.md)
+[`PureIBNRGamma`](https://netsimr.netsimanalytics.com/reference/PureIBNRGamma.md)
+[`PureIBNRLNorm`](https://netsimr.netsimanalytics.com/reference/PureIBNRLNorm.md)
 
 ## NetSimR Sliced distribution functions
 
-[`dSlicedGammaPareto`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedGammaPareto.md)
-[`dSlicedLNormPareto`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedLNormPareto.md)
-[`pSlicedGammaPareto`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedGammaPareto.md)
-[`pSlicedLNormPareto`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedLNormPareto.md)
-[`qSlicedGammaPareto`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedGammaPareto.md)
-[`qSlicedLNormPareto`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedLNormPareto.md)
+[`dSlicedGammaPareto`](https://netsimr.netsimanalytics.com/reference/dSlicedGammaPareto.md)
+[`dSlicedLNormPareto`](https://netsimr.netsimanalytics.com/reference/dSlicedLNormPareto.md)
+[`pSlicedGammaPareto`](https://netsimr.netsimanalytics.com/reference/pSlicedGammaPareto.md)
+[`pSlicedLNormPareto`](https://netsimr.netsimanalytics.com/reference/pSlicedLNormPareto.md)
+[`qSlicedGammaPareto`](https://netsimr.netsimanalytics.com/reference/qSlicedGammaPareto.md)
+[`qSlicedLNormPareto`](https://netsimr.netsimanalytics.com/reference/qSlicedLNormPareto.md)
 
 ## NetSimR claims simulation functions
 
-[`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
-[`simulate_portfolio`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md)
-[`apply_deductible_limit`](https://netsimanalytics.github.io/NetSimR/reference/apply_deductible_limit.md)
+[`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md)
+[`simulate_portfolio`](https://netsimr.netsimanalytics.com/reference/simulate_portfolio.md)
+[`apply_deductible_limit`](https://netsimr.netsimanalytics.com/reference/apply_deductible_limit.md)
 
 ## NetSimR reserving functions
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
-[`bornhuetter_ferguson`](https://netsimanalytics.github.io/NetSimR/reference/bornhuetter_ferguson.md)
-[`cape_cod`](https://netsimanalytics.github.io/NetSimR/reference/cape_cod.md)
-[`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md)
-[`merz_wuthrich`](https://netsimanalytics.github.io/NetSimR/reference/merz_wuthrich.md)
-[`munich_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md)
-[`actual_vs_expected`](https://netsimanalytics.github.io/NetSimR/reference/actual_vs_expected.md)
-[`clark_growth`](https://netsimanalytics.github.io/NetSimR/reference/clark_growth.md)
-[`inflation_adjusted_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/inflation_adjusted_chain_ladder.md)
-[`as_triangle`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
+[`bornhuetter_ferguson`](https://netsimr.netsimanalytics.com/reference/bornhuetter_ferguson.md)
+[`cape_cod`](https://netsimr.netsimanalytics.com/reference/cape_cod.md)
+[`bootstrap_chain_ladder`](https://netsimr.netsimanalytics.com/reference/bootstrap_chain_ladder.md)
+[`merz_wuthrich`](https://netsimr.netsimanalytics.com/reference/merz_wuthrich.md)
+[`munich_chain_ladder`](https://netsimr.netsimanalytics.com/reference/munich_chain_ladder.md)
+[`actual_vs_expected`](https://netsimr.netsimanalytics.com/reference/actual_vs_expected.md)
+[`clark_growth`](https://netsimr.netsimanalytics.com/reference/clark_growth.md)
+[`inflation_adjusted_chain_ladder`](https://netsimr.netsimanalytics.com/reference/inflation_adjusted_chain_ladder.md)
+[`as_triangle`](https://netsimr.netsimanalytics.com/reference/as_triangle.md)
 
 ## NetSimR pricing model functions
 
-[`tweedie_family`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md)
+[`tweedie_family`](https://netsimr.netsimanalytics.com/reference/tweedie_family.md)
 
 ## NetSimR reinsurance pricing functions
 
-[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
-[`pareto_rating`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md)
-[`property_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
-[`casualty_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
-[`mbbefd_curve`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
-[`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
-[`credibility_weight`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
+[`burning_cost`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
+[`pareto_rating`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md)
+[`property_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
+[`casualty_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
+[`mbbefd_curve`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md)
+[`technical_premium`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
+[`credibility_weight`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md)
 
 ## Function names
 
@@ -119,18 +119,18 @@ named (`pareto_capped_mean`). Both work.
 
 ## NetSimR Shiny apps
 
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
-[`run_shiny_distribution_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md)
-[`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md)
-[`run_shiny_reserving_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md)
-[`run_shiny_reinsurance_pricing_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
-[`run_shiny_portfolio_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md)
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
+[`run_shiny_distribution_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md)
+[`run_shiny_glm_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_glm_fitting_tool.md)
+[`run_shiny_reserving_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reserving_tool.md)
+[`run_shiny_reinsurance_pricing_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reinsurance_pricing_tool.md)
+[`run_shiny_portfolio_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_portfolio_tool.md)
 
 ## See also
 
 Useful links:
 
-- <https://netsimanalytics.github.io/NetSimR/>
+- <https://netsimr.netsimanalytics.com/>
 
 - <https://github.com/NetSimAnalytics/NetSimR>
 

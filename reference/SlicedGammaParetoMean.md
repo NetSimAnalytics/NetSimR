@@ -52,13 +52,13 @@ sliced LogNormal-Pareto functions call the same parameter `shape`.
 ## See also
 
 Other sliced distribution functions:
-[`SlicedLNormParetoMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoMean.md),
-[`dSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedGammaPareto.md),
-[`dSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedLNormPareto.md),
-[`pSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedGammaPareto.md),
-[`pSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedLNormPareto.md),
-[`qSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedGammaPareto.md),
-[`qSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedLNormPareto.md)
+[`SlicedLNormParetoMean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoMean.md),
+[`dSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedGammaPareto.md),
+[`dSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedLNormPareto.md),
+[`pSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedGammaPareto.md),
+[`pSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedLNormPareto.md),
+[`qSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/qSlicedGammaPareto.md),
+[`qSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/qSlicedLNormPareto.md)
 
 ## Examples
 

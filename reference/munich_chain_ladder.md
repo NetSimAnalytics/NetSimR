@@ -16,7 +16,7 @@ munich_chain_ladder(paid, incurred, sigma = c("log-linear", "Mack"))
 - paid, incurred:
 
   Triangles of cumulative paid and incurred claims, as for
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md),
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md),
   with values in the same cells.
 
 - sigma:
@@ -53,7 +53,7 @@ Quarg, G. and Mack, T. (2004). Munich chain ladder. Blatter DGVFM 26(4),
 
 ## See also
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 ## Examples
 

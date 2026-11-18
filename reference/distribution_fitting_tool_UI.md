@@ -3,7 +3,7 @@
 The page of the distribution fitting application: a welcome tab, the
 data upload and one tab for each analysis, with the settings beside the
 results;
-[`run_shiny_distribution_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md)
+[`run_shiny_distribution_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md)
 pairs it with `distribution_fitting_tool_Server`. The page is built each
 time the application starts, not when the package is installed: its
 theme compiles Bootstrap's SCSS files from where bslib is installed on

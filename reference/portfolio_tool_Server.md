@@ -2,10 +2,10 @@
 
 Reads the lines (a frequency and a severity for each, or uploaded
 simulated losses) and their dependence, runs
-[`simulate_portfolio`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md)
+[`simulate_portfolio`](https://netsimr.netsimanalytics.com/reference/simulate_portfolio.md)
 and shows the capital of the portfolio and of each line; paired with
 `portfolio_tool_UI` by
-[`run_shiny_portfolio_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md).
+[`run_shiny_portfolio_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_portfolio_tool.md).
 
 ## Usage
 

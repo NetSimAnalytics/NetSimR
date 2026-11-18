@@ -15,9 +15,9 @@ cape_cod(triangle, premium, decay = 1, ...)
 - triangle:
 
   A triangle of cumulative claims, as for
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md),
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md),
   or the result of
-  [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md),
+  [`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md),
   whose development pattern is then used.
 
 - premium:
@@ -32,14 +32,14 @@ cape_cod(triangle, premium, decay = 1, ...)
 - ...:
 
   Arguments passed to
-  [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+  [`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
   for the development pattern, such as `average` and `tail`, when
   `triangle` is a triangle.
 
 ## Value
 
 An object of class `netsimr_reserve`, as for
-[`bornhuetter_ferguson`](https://netsimanalytics.github.io/NetSimR/reference/bornhuetter_ferguson.md),
+[`bornhuetter_ferguson`](https://netsimr.netsimanalytics.com/reference/bornhuetter_ferguson.md),
 whose loss ratios are the estimated ones.
 
 ## Details

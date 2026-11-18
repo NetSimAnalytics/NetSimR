@@ -20,7 +20,7 @@ merz_wuthrich(triangle, sigma = c("log-linear", "Mack"))
   oldest first, and one column per development period, with `NA` for the
   future. A data frame is converted with
   [`as.matrix()`](https://rdrr.io/r/base/matrix.html); see
-  [`as_triangle`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
+  [`as_triangle`](https://netsimr.netsimanalytics.com/reference/as_triangle.md)
   to build one from a table of claims.
 
 - sigma:
@@ -56,9 +56,9 @@ result for solvency purposes. CAS E-Forum, Fall 2008, 542-568.
 
 ## See also
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
 for Mack's standard error until ultimate, and
-[`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md).
+[`bootstrap_chain_ladder`](https://netsimr.netsimanalytics.com/reference/bootstrap_chain_ladder.md).
 
 ## Examples
 

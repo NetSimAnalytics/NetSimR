@@ -105,7 +105,7 @@ Each loss is indexed to the rating year with `inflation`, and its part
 in the layer, \\\min(\max(x - d, 0), l)\\, taken. Each year's layer
 losses are multiplied by its `development` factor (for the late reported
 claims and the development of the known ones, e.g. from
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)),
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)),
 and then the aggregate deductible and limit apply. The burning cost of a
 year is its layer losses over its subject premium times its
 `premium_index` (the on-level premium). The burning cost of the layer is
@@ -118,17 +118,17 @@ exceeds the deductible; a warning names the years where it does.
 
 ## See also
 
-[`pareto_rating`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
-[`property_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+[`pareto_rating`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
+[`property_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
 and
-[`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md).
+[`technical_premium`](https://netsimr.netsimanalytics.com/reference/technical_premium.md).
 
 Other reinsurance pricing functions:
-[`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md),
-[`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md),
-[`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
-[`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md),
-[`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`credibility_weight()`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md),
+[`mbbefd_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md),
+[`pareto_rating()`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
+[`property_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md),
+[`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 
 ## Examples
 

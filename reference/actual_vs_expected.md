@@ -16,12 +16,12 @@ actual_vs_expected(triangle, ...)
 - triangle:
 
   A triangle of cumulative claims, as for
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 - ...:
 
   Arguments passed to
-  [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+  [`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
   for the earlier triangle, such as `average` or `periods`.
 
 ## Value
@@ -41,7 +41,7 @@ factor standard errors. An origin with \\C\\ claims at its previous age
 \\k\\ was expected to develop by \\C (f_k - 1)\\, with a standard error
 \\\sqrt{C^{2 - \alpha} \sigma_k^2 + C^2 se(f_k)^2}\\ (process and
 parameter error, \\\alpha\\ as in
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)).
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)).
 The standardised difference (actual less expected, over its standard
 error) shows which origins moved more than the method allows for: beyond
 about 2 in either direction is worth a look. The total's standard error
@@ -52,8 +52,8 @@ expected development and is left out of the total.
 
 ## See also
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md);
-[`merz_wuthrich`](https://netsimanalytics.github.io/NetSimR/reference/merz_wuthrich.md)
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md);
+[`merz_wuthrich`](https://netsimr.netsimanalytics.com/reference/merz_wuthrich.md)
 for the uncertainty of the next period's development.
 
 ## Examples

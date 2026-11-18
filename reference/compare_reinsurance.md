@@ -32,13 +32,13 @@ compare_reinsurance(
 - frequency, frequency_params:
 
   The claim count distribution and its parameters, as in
-  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md),
+  [`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md),
   such as "Poisson" (lambda) or "Negative Binomial" (r, beta).
 
 - severity, severity_params:
 
   The claim size distribution and its parameters, as in
-  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md),
+  [`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md),
   such as "LogNormal" (meanlog, sdlog) or "Pareto" (alpha, x_m).
 
 - programmes:
@@ -86,7 +86,7 @@ compare_reinsurance(
 - pareto_thresholds, pareto_alphas:
 
   Pareto slices of the claim size, as in
-  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md):
+  [`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md):
   increasing claim sizes above which the tail of the severity is a
   Pareto, and the alpha of each. `NULL` (the default) for none.
 
@@ -126,7 +126,7 @@ what the surplus treaty leaves of it), less its ceding commission. A
 layer's or stop loss's premium is given or, when it is not, priced at
 the expected ceded loss with `loading` as the share of the premium for
 the reinsurer's expenses and profit
-([`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md),
+([`technical_premium`](https://netsimr.netsimanalytics.com/reference/technical_premium.md),
 with the reinstatements the simulations use). The excess of loss layer's
 reinstatement premiums are paid pro rata to the cover reinstated.
 
@@ -141,10 +141,10 @@ saves more in the cost of capital than it costs.
 
 ## See also
 
-[`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md),
-[`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md),
+[`technical_premium`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 and
-[`run_shiny_reinsurance_pricing_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md),
+[`run_shiny_reinsurance_pricing_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reinsurance_pricing_tool.md),
 which compares programmes on its Programmes tab.
 
 ## Examples

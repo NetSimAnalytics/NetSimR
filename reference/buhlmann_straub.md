@@ -54,7 +54,7 @@ Mitteilungen der Vereinigung Schweizerischer Versicherungsmathematiker
 
 ## See also
 
-[`credibility_weight`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md),
+[`credibility_weight`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md),
 limited fluctuation credibility.
 
 ## Examples

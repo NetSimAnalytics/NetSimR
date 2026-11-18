@@ -43,10 +43,10 @@ and `shape`.
 ## See also
 
 Other ILF functions:
-[`ILFGamma()`](https://netsimanalytics.github.io/NetSimR/reference/ILFGamma.md),
-[`ILFLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ILFLNorm.md),
-[`ILFSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedGammaPareto.md),
-[`ILFSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedLNormPareto.md)
+[`ILFGamma()`](https://netsimr.netsimanalytics.com/reference/ILFGamma.md),
+[`ILFLNorm()`](https://netsimr.netsimanalytics.com/reference/ILFLNorm.md),
+[`ILFSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedGammaPareto.md),
+[`ILFSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedLNormPareto.md)
 
 ## Examples
 

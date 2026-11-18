@@ -34,18 +34,18 @@ pareto_capped_mean_calc(cap, scale, shape)
 An interim calculation for the mean of the claim severity capped at
 `cap` with a Pareto distribution with parameters `scale` and `shape`. It
 is the closed form for `cap >= scale` and `shape != 1`; use
-[`ParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMean.md)
+[`ParetoCappedMean`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMean.md)
 for the capped mean itself. The arguments are recycled to a common
 length.
 
 ## See also
 
 Other capped mean functions:
-[`GammaCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/GammaCappedMean.md),
-[`LNormCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/LNormCappedMean.md),
-[`ParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMean.md),
-[`SlicedGammaParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoCappedMean.md),
-[`SlicedLNormParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md)
+[`GammaCappedMean()`](https://netsimr.netsimanalytics.com/reference/GammaCappedMean.md),
+[`LNormCappedMean()`](https://netsimr.netsimanalytics.com/reference/LNormCappedMean.md),
+[`ParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMean.md),
+[`SlicedGammaParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoCappedMean.md),
+[`SlicedLNormParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoCappedMean.md)
 
 ## Examples
 

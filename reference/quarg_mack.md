@@ -26,7 +26,7 @@ Quarg, G. and Mack, T. (2004). Munich chain ladder. Blatter DGVFM 26(4),
 
 ## See also
 
-[`munich_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md).
+[`munich_chain_ladder`](https://netsimr.netsimanalytics.com/reference/munich_chain_ladder.md).
 
 ## Examples
 

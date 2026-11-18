@@ -27,7 +27,7 @@ risk_adjustment(
 - boot:
 
   The
-  [`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md)
+  [`bootstrap_chain_ladder`](https://netsimr.netsimanalytics.com/reference/bootstrap_chain_ladder.md)
   of the reserves: needed for the percentile method, and for the
   confidence level of the cost of capital method.
 
@@ -38,7 +38,7 @@ risk_adjustment(
 - discounted:
 
   The
-  [`discount_reserves`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)
+  [`discount_reserves`](https://netsimr.netsimanalytics.com/reference/discount_reserves.md)
   of the reserves: its payments give the run-off of the cost of capital
   method, its yield curve the discounting, and its ratio of discounted
   to undiscounted reserve scales the percentile method. Needed for the
@@ -48,7 +48,7 @@ risk_adjustment(
 
   The capital held now for the reserves, such as their Solvency II
   reserve risk
-  ([`sii_premium_reserve_risk`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md))
+  ([`sii_premium_reserve_risk`](https://netsimr.netsimanalytics.com/reference/sii_premium_reserve_risk.md))
   or the bootstrap's 99.5% quantile less its mean. Needed for the cost
   of capital method.
 
@@ -80,14 +80,14 @@ adjustment.
 
 The discounting of the reserves applies to the risk adjustment too: with
 a discounted best estimate
-([`discount_reserves`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)),
+([`discount_reserves`](https://netsimr.netsimanalytics.com/reference/discount_reserves.md)),
 the percentile risk adjustment is scaled by the ratio of the discounted
 to the undiscounted reserve.
 
 ## See also
 
-[`discount_reserves`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md),
-[`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md).
+[`discount_reserves`](https://netsimr.netsimanalytics.com/reference/discount_reserves.md),
+[`bootstrap_chain_ladder`](https://netsimr.netsimanalytics.com/reference/bootstrap_chain_ladder.md).
 
 ## Examples
 

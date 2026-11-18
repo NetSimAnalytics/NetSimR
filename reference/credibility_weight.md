@@ -31,11 +31,11 @@ The credibility weight, between 0 and 1.
 ## See also
 
 Other reinsurance pricing functions:
-[`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md),
-[`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md),
-[`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
-[`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md),
-[`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md),
+[`mbbefd_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md),
+[`pareto_rating()`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
+[`property_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md),
+[`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 
 ## Examples
 

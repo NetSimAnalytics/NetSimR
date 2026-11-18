@@ -39,10 +39,10 @@ returns 0 in that case.
 ## See also
 
 Other exposure curve functions:
-[`ExposureCurveGamma()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveGamma.md),
-[`ExposureCurveLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveLNorm.md),
-[`ExposureCurveSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedGammaPareto.md),
-[`ExposureCurveSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedLNormPareto.md)
+[`ExposureCurveGamma()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveGamma.md),
+[`ExposureCurveLNorm()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveLNorm.md),
+[`ExposureCurveSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedGammaPareto.md),
+[`ExposureCurveSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedLNormPareto.md)
 
 ## Examples
 

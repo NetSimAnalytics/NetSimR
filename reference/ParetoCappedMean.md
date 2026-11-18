@@ -40,11 +40,11 @@ values give `NA`.
 ## See also
 
 Other capped mean functions:
-[`GammaCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/GammaCappedMean.md),
-[`LNormCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/LNormCappedMean.md),
-[`ParetoCappedMeanCalc()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMeanCalc.md),
-[`SlicedGammaParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoCappedMean.md),
-[`SlicedLNormParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md)
+[`GammaCappedMean()`](https://netsimr.netsimanalytics.com/reference/GammaCappedMean.md),
+[`LNormCappedMean()`](https://netsimr.netsimanalytics.com/reference/LNormCappedMean.md),
+[`ParetoCappedMeanCalc()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMeanCalc.md),
+[`SlicedGammaParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoCappedMean.md),
+[`SlicedLNormParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoCappedMean.md)
 
 ## Examples
 

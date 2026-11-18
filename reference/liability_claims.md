@@ -34,7 +34,7 @@ A data frame with 2,500 rows, one per claim, and 4 columns:
 
 ## See also
 
-[`run_shiny_distribution_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md).
+[`run_shiny_distribution_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md).
 
 ## Examples
 

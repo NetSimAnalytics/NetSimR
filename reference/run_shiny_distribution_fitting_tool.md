@@ -19,15 +19,15 @@ at the console, opens the application; it can also be passed to
 
 ## See also
 
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
 and
-[`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md),
+[`run_shiny_glm_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_glm_fitting_tool.md),
 two of the package's other applications;
-[`SlicedLNormParetoMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoMean.md),
-[`SlicedLNormParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md),
-[`SlicedGammaParetoMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoMean.md)
+[`SlicedLNormParetoMean`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoMean.md),
+[`SlicedLNormParetoCappedMean`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoCappedMean.md),
+[`SlicedGammaParetoMean`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoMean.md)
 and
-[`SlicedGammaParetoCappedMean`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoCappedMean.md)
+[`SlicedGammaParetoCappedMean`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoCappedMean.md)
 for the moments of the sliced distributions the tool fits.
 
 ## Examples

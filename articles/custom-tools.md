@@ -34,7 +34,7 @@ line, and the comparison with the standard formula.
   read as they are.
 - **Your data stays yours**: a tool runs on your own servers or on each
   actuary’s computer, and sends nothing outside, as [NetSimR’s
-  tools](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer)
+  tools](https://netsimr.netsimanalytics.com/articles/try-online.html#your-data-stays-on-your-computer)
   do.
 - **Your methods and assumptions**: the tool does what your actuaries do
   today, faster and the same way every time, with the choices they make
@@ -50,14 +50,14 @@ line, and the comparison with the standard formula.
 ## See the tools
 
 The [Try
-online](https://netsimanalytics.github.io/NetSimR/articles/try-online.md)
-page runs NetSimR’s six tools in your browser, and its gallery shows
-them at work. [A worked
-example](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md)
+online](https://netsimr.netsimanalytics.com/articles/try-online.md) page
+runs NetSimR’s six tools in your browser, and its gallery shows them at
+work. [A worked
+example](https://netsimr.netsimanalytics.com/articles/worked-example.md)
 runs each tool on example data and opens the report it writes, the kind
 of document a custom tool hands to a committee. The vignette [From
 pricing to capital and
-reserves](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md)
+reserves](https://netsimr.netsimanalytics.com/articles/EndToEnd.md)
 follows one portfolio through the same steps in code.
 
 ## About the author

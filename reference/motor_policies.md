@@ -51,8 +51,8 @@ A data frame with 10,000 rows, one per policy, and 8 columns:
 
 ## See also
 
-[`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md),
-[`tweedie_family`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md).
+[`run_shiny_glm_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_glm_fitting_tool.md),
+[`tweedie_family`](https://netsimr.netsimanalytics.com/reference/tweedie_family.md).
 
 ## Examples
 

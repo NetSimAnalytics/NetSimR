@@ -2,7 +2,7 @@
 
 The bands of sum insured of a simulated property portfolio, with the
 number of risks, average sum insured and premium of each: the example of
-[`property_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md).
+[`property_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md).
 
 ## Usage
 
@@ -40,7 +40,7 @@ Simulated.
 
 ## See also
 
-[`property_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md).
+[`property_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md).
 
 ## Examples
 

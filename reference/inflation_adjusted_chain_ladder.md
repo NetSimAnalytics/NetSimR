@@ -22,7 +22,7 @@ inflation_adjusted_chain_ladder(
 - triangle:
 
   A triangle of cumulative claims, as for
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md);
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md);
   paid claims, as incurred claims include case reserves that are not
   inflated by period.
 
@@ -41,7 +41,7 @@ inflation_adjusted_chain_ladder(
 - ...:
 
   Arguments passed to
-  [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+  [`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
   for the restated triangle, such as `average` or `tail`.
 
 ## Value
@@ -65,7 +65,7 @@ calendar period after the triangle's last development period.
 
 ## See also
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 ## Examples
 

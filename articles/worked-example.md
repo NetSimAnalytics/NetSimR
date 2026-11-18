@@ -3,10 +3,10 @@
 The six tools of NetSimR, each run on the example data that comes with
 the package, with the report it writes. Every step can be repeated in a
 few clicks, in your browser on the [Try
-online](https://netsimanalytics.github.io/NetSimR/articles/try-online.md)
-page or in R, and every report below is the tool’s own: a single HTML
-file that opens anywhere, with its charts in a light and a dark theme,
-to send to a colleague or file with the work.
+online](https://netsimr.netsimanalytics.com/articles/try-online.md) page
+or in R, and every report below is the tool’s own: a single HTML file
+that opens anywhere, with its charts in a light and a dark theme, to
+send to a colleague or file with the work.
 
 The reports on this page are written again each time the website is
 built, by the tools as they are now.
@@ -26,11 +26,11 @@ To repeat it: open the tool, click **Try an example**, choose to hold
 out 20% of the rows, then click **Fit model**.
 
 [Open the
-report](https://netsimanalytics.github.io/NetSimR/reports/netglm-report.md)
-[Open NetGLM](https://netsimanalytics.github.io/NetSimR/apps/glm/)
+report](https://netsimr.netsimanalytics.com/reports/netglm-report.md)
+[Open NetGLM](https://netsimr.netsimanalytics.com/apps/glm/)
 
 [![The top of the GLM report: the model, its observations, AIC and Gini
-coefficient](../screenshots/report-netglm.png)](https://netsimanalytics.github.io/NetSimR/reports/netglm-report.md)
+coefficient](../screenshots/report-netglm.png)](https://netsimr.netsimanalytics.com/reports/netglm-report.md)
 
 The GLM report.
 
@@ -52,13 +52,12 @@ analysis**. On the Export tab, save the report, and the fitted Burr as a
 settings file for the next step.
 
 [Open the
-report](https://netsimanalytics.github.io/NetSimR/reports/netdisfit-report.md)
-[Open
-NetDisFit](https://netsimanalytics.github.io/NetSimR/apps/distribution/)
+report](https://netsimr.netsimanalytics.com/reports/netdisfit-report.md)
+[Open NetDisFit](https://netsimr.netsimanalytics.com/apps/distribution/)
 
 [![The top of the distribution fitting report: the data, the closest fit
 and the
-settings](../screenshots/report-netdisfit.png)](https://netsimanalytics.github.io/NetSimR/reports/netdisfit-report.md)
+settings](../screenshots/report-netdisfit.png)](https://netsimr.netsimanalytics.com/reports/netdisfit-report.md)
 
 The distribution fitting report.
 
@@ -82,13 +81,12 @@ set the claim count, the severity cap and the layer, and click **Run
 Simulations**.
 
 [Open the
-report](https://netsimanalytics.github.io/NetSimR/reports/netsimulator-report.md)
-[Open
-NetSimulator](https://netsimanalytics.github.io/NetSimR/apps/simulator/)
+report](https://netsimr.netsimanalytics.com/reports/netsimulator-report.md)
+[Open NetSimulator](https://netsimr.netsimanalytics.com/apps/simulator/)
 
 [![The top of the simulation report: the mean, the percentiles and the
 tail of the ceded
-losses](../screenshots/report-netsimulator.png)](https://netsimanalytics.github.io/NetSimR/reports/netsimulator-report.md)
+losses](../screenshots/report-netsimulator.png)](https://netsimr.netsimanalytics.com/reports/netsimulator-report.md)
 
 The simulation report.
 
@@ -112,13 +110,12 @@ To repeat it: open the tool, which starts with the example; click
 tab.
 
 [Open the
-report](https://netsimanalytics.github.io/NetSimR/reports/nettreaty-report.md)
-[Open
-NetTreaty](https://netsimanalytics.github.io/NetSimR/apps/reinsurance/)
+report](https://netsimr.netsimanalytics.com/reports/nettreaty-report.md)
+[Open NetTreaty](https://netsimr.netsimanalytics.com/apps/reinsurance/)
 
 [![The top of the reinsurance pricing report: the layer, its technical
 premium, rate on line and the best value
-programme](../screenshots/report-nettreaty.png)](https://netsimanalytics.github.io/NetSimR/reports/nettreaty-report.md)
+programme](../screenshots/report-nettreaty.png)](https://netsimr.netsimanalytics.com/reports/nettreaty-report.md)
 
 The reinsurance pricing report.
 
@@ -138,13 +135,12 @@ To repeat it: open the tool, which starts with the three lines, and
 click **Run** on the Capital tab.
 
 [Open the
-report](https://netsimanalytics.github.io/NetSimR/reports/netcapital-report.md)
-[Open
-NetCapital](https://netsimanalytics.github.io/NetSimR/apps/portfolio/)
+report](https://netsimr.netsimanalytics.com/reports/netcapital-report.md)
+[Open NetCapital](https://netsimr.netsimanalytics.com/apps/portfolio/)
 
 [![The top of the portfolio capital report: the mean total loss, VaR,
 TVaR and the diversification
-benefit](../screenshots/report-netcapital.png)](https://netsimanalytics.github.io/NetSimR/reports/netcapital-report.md)
+benefit](../screenshots/report-netcapital.png)](https://netsimr.netsimanalytics.com/reports/netcapital-report.md)
 
 The portfolio capital report.
 
@@ -167,20 +163,19 @@ the Data tab, run the bootstrap on the Uncertainty tab, and save the
 report.
 
 [Open the
-report](https://netsimanalytics.github.io/NetSimR/reports/netreserve-report.md)
-[Open
-NetReserve](https://netsimanalytics.github.io/NetSimR/apps/reserving/)
+report](https://netsimr.netsimanalytics.com/reports/netreserve-report.md)
+[Open NetReserve](https://netsimr.netsimanalytics.com/apps/reserving/)
 
 [![The top of the reserving report: the latest claims, the ultimate, the
 IBNR and its
-uncertainty](../screenshots/report-netreserve.png)](https://netsimanalytics.github.io/NetSimR/reports/netreserve-report.md)
+uncertainty](../screenshots/report-netreserve.png)](https://netsimr.netsimanalytics.com/reports/netreserve-report.md)
 
 The reserving report.
 
 ## The same in code
 
 The vignette [From pricing to capital and
-reserves](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md)
+reserves](https://netsimr.netsimanalytics.com/articles/EndToEnd.md)
 follows one portfolio through the same steps with the package’s
 functions, for those who work in R.
 
@@ -189,6 +184,6 @@ functions, for those who work in R.
 Each tool reads CSV, text and Excel files, so the same steps run on your
 own policies, claims and triangles, in the browser or in R. Either way
 [the data never leaves your
-computer](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer).
+computer](https://netsimr.netsimanalytics.com/articles/try-online.html#your-data-stays-on-your-computer).
 For tools built around your own data, methods and reporting, see [Custom
-tools](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md).
+tools](https://netsimr.netsimanalytics.com/articles/custom-tools.md).

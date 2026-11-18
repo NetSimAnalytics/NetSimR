@@ -61,7 +61,7 @@ a mix of them) give the same results.
 ## See also
 
 Other pure IBNR functions:
-[`PureIBNRGamma()`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRGamma.md)
+[`PureIBNRGamma()`](https://netsimr.netsimanalytics.com/reference/PureIBNRGamma.md)
 
 ## Examples
 

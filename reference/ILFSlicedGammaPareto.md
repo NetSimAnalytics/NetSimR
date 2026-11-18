@@ -60,10 +60,10 @@ sliced LogNormal-Pareto functions call the same parameter `shape`.
 ## See also
 
 Other ILF functions:
-[`ILFGamma()`](https://netsimanalytics.github.io/NetSimR/reference/ILFGamma.md),
-[`ILFLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ILFLNorm.md),
-[`ILFPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFPareto.md),
-[`ILFSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedLNormPareto.md)
+[`ILFGamma()`](https://netsimr.netsimanalytics.com/reference/ILFGamma.md),
+[`ILFLNorm()`](https://netsimr.netsimanalytics.com/reference/ILFLNorm.md),
+[`ILFPareto()`](https://netsimr.netsimanalytics.com/reference/ILFPareto.md),
+[`ILFSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedLNormPareto.md)
 
 ## Examples
 

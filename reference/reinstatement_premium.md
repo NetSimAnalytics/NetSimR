@@ -38,7 +38,7 @@ Reinstatement \\k\\ restores the layer's limit once the recoveries pass
 \\k\\ limits. With \\u\\ reinstatements used (the period's recoveries
 divided by the limit, capped at the number of reinstatements, as
 `number_of_reinstatements_used` of
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md)
 counts them), the share of reinstatement \\k\\ used is \\\min(\max(u -
 (k - 1), 0), 1)\\, and its premium is that share times its rate times
 the upfront premium. A rate of 1 charges the full upfront premium for a
@@ -47,9 +47,9 @@ at 100% and one at 50% are `rates = c(1, 0.5)`.
 
 ## See also
 
-[`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+[`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
 and
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md),
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md),
 which add these premiums to their results when given an upfront premium.
 
 ## Examples

@@ -3,7 +3,7 @@
 The paid and incurred claims of a simulated motor portfolio, by accident
 year 2014 to 2025 and development year, with each accident year's earned
 premium: a table in the long form that
-[`as_triangle`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
+[`as_triangle`](https://netsimr.netsimanalytics.com/reference/as_triangle.md)
 turns into triangles. Each year's loss ratio is around 68%, and its
 payments follow a development pattern with over-dispersed (gamma) noise;
 the incurred claims add case reserves that each year sets a little high
@@ -44,11 +44,11 @@ past, and 5 columns:
 
 ## See also
 
-[`as_triangle`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md),
-[`bornhuetter_ferguson`](https://netsimanalytics.github.io/NetSimR/reference/bornhuetter_ferguson.md),
-[`cape_cod`](https://netsimanalytics.github.io/NetSimR/reference/cape_cod.md)
+[`as_triangle`](https://netsimr.netsimanalytics.com/reference/as_triangle.md),
+[`bornhuetter_ferguson`](https://netsimr.netsimanalytics.com/reference/bornhuetter_ferguson.md),
+[`cape_cod`](https://netsimr.netsimanalytics.com/reference/cape_cod.md)
 and
-[`munich_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md).
+[`munich_chain_ladder`](https://netsimr.netsimanalytics.com/reference/munich_chain_ladder.md).
 
 ## Examples
 

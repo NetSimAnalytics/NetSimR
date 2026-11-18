@@ -67,16 +67,16 @@ n)\\, which is exact when the annual losses never exceed the reinstated
 cover; the burning cost's layer losses at the rating premium give a
 better one (see the examples). For the reinstatement premiums of each
 simulated year, see
-[`reinstatement_premium`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md).
+[`reinstatement_premium`](https://netsimr.netsimanalytics.com/reference/reinstatement_premium.md).
 
 ## See also
 
 Other reinsurance pricing functions:
-[`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md),
-[`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md),
-[`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md),
-[`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
-[`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+[`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md),
+[`credibility_weight()`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md),
+[`mbbefd_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md),
+[`pareto_rating()`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
+[`property_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
 
 ## Examples
 

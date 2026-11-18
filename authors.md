@@ -26,6 +26,6 @@ https://doi.org/10.32614/CRAN.package.NetSimR
       author = {Yiannis Parizas},
       year = {2026},
       note = {R package version 0.4.0},
-      url = {https://netsimanalytics.github.io/NetSimR/},
+      url = {https://netsimr.netsimanalytics.com/},
       doi = {10.32614/CRAN.package.NetSimR},
     }

@@ -39,10 +39,10 @@ non-positive `shape` or `rate` is an error; `NA` values give `NA`.
 ## See also
 
 Other exposure curve functions:
-[`ExposureCurveLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveLNorm.md),
-[`ExposureCurvePareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurvePareto.md),
-[`ExposureCurveSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedGammaPareto.md),
-[`ExposureCurveSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedLNormPareto.md)
+[`ExposureCurveLNorm()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveLNorm.md),
+[`ExposureCurvePareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurvePareto.md),
+[`ExposureCurveSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedGammaPareto.md),
+[`ExposureCurveSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedLNormPareto.md)
 
 ## Examples
 

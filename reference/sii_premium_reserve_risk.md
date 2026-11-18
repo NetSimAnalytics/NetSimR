@@ -22,7 +22,7 @@ sii_premium_reserve_risk(
 
   A data frame with a row per segment the undertaking writes: its
   `segment` (the number, 1 to 12, of
-  [`sii_nonlife_segments`](https://netsimanalytics.github.io/NetSimR/reference/sii_nonlife_segments.md)),
+  [`sii_nonlife_segments`](https://netsimr.netsimanalytics.com/reference/sii_nonlife_segments.md)),
   its `premium` and `reserve` volume measures, and optionally its
   geographical `diversification` (1 when not given).
 
@@ -77,8 +77,8 @@ Annexes II and IV, as amended by Commission Delegated Regulation (EU)
 
 ## See also
 
-[`sii_nonlife_segments`](https://netsimanalytics.github.io/NetSimR/reference/sii_nonlife_segments.md),
-[`risk_adjustment`](https://netsimanalytics.github.io/NetSimR/reference/risk_adjustment.md).
+[`sii_nonlife_segments`](https://netsimr.netsimanalytics.com/reference/sii_nonlife_segments.md),
+[`risk_adjustment`](https://netsimr.netsimanalytics.com/reference/risk_adjustment.md).
 
 ## Examples
 

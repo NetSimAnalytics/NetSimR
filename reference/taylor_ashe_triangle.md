@@ -22,7 +22,7 @@ outstanding claims. Journal of Econometrics 23(1), 37-61.
 
 ## See also
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 ## Examples
 

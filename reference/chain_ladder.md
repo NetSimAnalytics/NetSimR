@@ -27,7 +27,7 @@ chain_ladder(
   oldest first, and one column per development period, with `NA` for the
   future. A data frame is converted with
   [`as.matrix()`](https://rdrr.io/r/base/matrix.html); see
-  [`as_triangle`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
+  [`as_triangle`](https://netsimr.netsimanalytics.com/reference/as_triangle.md)
   to build one from a table of claims.
 
 - average:
@@ -146,11 +146,11 @@ recursive calculation and inclusion of a tail factor. ASTIN Bulletin
 
 ## See also
 
-[`bornhuetter_ferguson`](https://netsimanalytics.github.io/NetSimR/reference/bornhuetter_ferguson.md),
-[`cape_cod`](https://netsimanalytics.github.io/NetSimR/reference/cape_cod.md)
+[`bornhuetter_ferguson`](https://netsimr.netsimanalytics.com/reference/bornhuetter_ferguson.md),
+[`cape_cod`](https://netsimr.netsimanalytics.com/reference/cape_cod.md)
 and
-[`bootstrap_chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md);
-[`run_shiny_reserving_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md),
+[`bootstrap_chain_ladder`](https://netsimr.netsimanalytics.com/reference/bootstrap_chain_ladder.md);
+[`run_shiny_reserving_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reserving_tool.md),
 an application for all of them.
 
 ## Examples

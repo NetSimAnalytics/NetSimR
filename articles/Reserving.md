@@ -9,7 +9,7 @@ measures how uncertain the reserves are, and projects paid and incurred
 claims together.
 
 Every method here also runs in the reserving tool,
-[`run_shiny_reserving_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md),
+[`run_shiny_reserving_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_reserving_tool.md),
 where the link ratios can be left out with a click and the method of
 each origin chosen from a list.
 
@@ -41,7 +41,7 @@ raa_triangle
 
 Data usually comes as a table, one row per origin and development
 period, or one row per payment.
-[`as_triangle()`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
+[`as_triangle()`](https://netsimr.netsimanalytics.com/reference/as_triangle.md)
 builds the triangle from it. With incremental amounts, those of the same
 cell are added up:
 
@@ -76,7 +76,7 @@ motor[1:4, 1:6]
 The chain ladder develops each origin’s latest claims to ultimate with
 the average ratio of one development period’s claims to the previous
 one’s.
-[`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+[`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
 also gives Mack’s standard error of each origin’s reserve and of the
 total, split into the process error (the randomness of the claims to
 come) and the parameter error (that of the estimated factors):

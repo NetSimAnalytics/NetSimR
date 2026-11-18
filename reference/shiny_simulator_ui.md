@@ -24,5 +24,5 @@ shiny_simulator_ui(request)
 ## Value
 
 The user interface of the application, a bslib navbar page, which
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
 pairs with `shiny_simulator_server`.

@@ -60,10 +60,10 @@ Gamma-Pareto functions call the same parameter `PShape`.
 ## See also
 
 Other ILF functions:
-[`ILFGamma()`](https://netsimanalytics.github.io/NetSimR/reference/ILFGamma.md),
-[`ILFLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ILFLNorm.md),
-[`ILFPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFPareto.md),
-[`ILFSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedGammaPareto.md)
+[`ILFGamma()`](https://netsimr.netsimanalytics.com/reference/ILFGamma.md),
+[`ILFLNorm()`](https://netsimr.netsimanalytics.com/reference/ILFLNorm.md),
+[`ILFPareto()`](https://netsimr.netsimanalytics.com/reference/ILFPareto.md),
+[`ILFSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedGammaPareto.md)
 
 ## Examples
 

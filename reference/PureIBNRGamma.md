@@ -61,7 +61,7 @@ a mix of them) give the same results.
 ## See also
 
 Other pure IBNR functions:
-[`PureIBNRLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRLNorm.md)
+[`PureIBNRLNorm()`](https://netsimr.netsimanalytics.com/reference/PureIBNRLNorm.md)
 
 ## Examples
 

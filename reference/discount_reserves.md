@@ -23,7 +23,7 @@ discount_reserves(
 - x:
 
   A triangle of cumulative paid claims, or its
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 - yield_curve:
 
@@ -47,7 +47,7 @@ discount_reserves(
 - ...:
 
   Arguments of
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
   when `x` is a triangle.
 
 ## Value
@@ -88,11 +88,11 @@ gives a flat curve.
 
 ## See also
 
-[`risk_adjustment`](https://netsimanalytics.github.io/NetSimR/reference/risk_adjustment.md),
-[`sii_premium_reserve_risk`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md)
+[`risk_adjustment`](https://netsimr.netsimanalytics.com/reference/risk_adjustment.md),
+[`sii_premium_reserve_risk`](https://netsimr.netsimanalytics.com/reference/sii_premium_reserve_risk.md)
 and
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md);
-[`run_shiny_reserving_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md),
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md);
+[`run_shiny_reserving_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reserving_tool.md),
 an application for them.
 
 ## Examples

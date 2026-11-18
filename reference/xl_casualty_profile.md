@@ -2,7 +2,7 @@
 
 The premium written at each policy limit by a simulated liability
 portfolio: the example of
-[`casualty_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md).
+[`casualty_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md).
 
 ## Usage
 
@@ -28,7 +28,7 @@ Simulated.
 
 ## See also
 
-[`casualty_exposure_rating`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md).
+[`casualty_exposure_rating`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md).
 
 ## Examples
 

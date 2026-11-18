@@ -28,4 +28,4 @@ amended by Commission Delegated Regulation (EU) 2019/981.
 
 ## See also
 
-[`sii_premium_reserve_risk`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md).
+[`sii_premium_reserve_risk`](https://netsimr.netsimanalytics.com/reference/sii_premium_reserve_risk.md).

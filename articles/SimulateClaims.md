@@ -3,7 +3,7 @@
 ## 1.Introduction
 
 This vignette shows how to simulate insurance claims with
-[`simulate_claims()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md).
+[`simulate_claims()`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md).
 For each simulated period (for example a year) the function draws the
 number of claims from a frequency distribution and the size of each
 claim from a severity distribution. It can replace the tail of the
@@ -12,11 +12,11 @@ each-and-every-loss layer (with limited reinstatements) and an aggregate
 layer. It returns one row per period.
 
 The same model runs in the claims simulator app,
-[`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md),
+[`run_shiny_simulator()`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md),
 and through
-[`simulate_function()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md),
+[`simulate_function()`](https://netsimr.netsimanalytics.com/reference/simulate_function.md),
 which has the app’s long argument names.
-[`simulate_claims()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+[`simulate_claims()`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
 has short names and defaults for everything optional.
 
 The runs below are kept small so that the vignette builds quickly. At
@@ -89,7 +89,7 @@ zero-inflated Poisson or Negative Binomial (section 4), or a fixed
 number of claims; the severity Normal, Log-Normal, Gamma, Exponential,
 Pareto, Weibull, Burr, generalised Pareto (section 5) or a fixed amount.
 The table in
-[`?simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+[`?simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
 lists the parameters of each. Names ignore case, spaces and underscores,
 and the parameters can be given in order or named, in any order:
 
@@ -155,7 +155,7 @@ round(rbind(poisson = tail_stats(claims$total_claims), zero_inflated = tail_stat
 
 `"Zero-inflated Negative Binomial"` takes `r`, `beta` and `zero_prob`.
 The distribution fitting tool,
-[`run_shiny_distribution_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md),
+[`run_shiny_distribution_fitting_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md),
 fits both to claim counts beside the Poisson and the Negative Binomial,
 and suggests the one with the lowest AIC: a zero-inflated model is worth
 its extra parameter only when the data has more zeros than the others
@@ -492,9 +492,9 @@ Keep it the same to reproduce a run exactly.
 `truncate_at_zero = TRUE` draws Normal claim sizes from the Normal
 distribution truncated at zero; `progress` takes a function that is
 called after each chunk.
-[`?simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+[`?simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
 and
-[`?simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
+[`?simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md)
 describe every argument, and
-[`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
+[`run_shiny_simulator()`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
 runs the same model in an app with a full report of each run.

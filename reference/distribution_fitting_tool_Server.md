@@ -3,7 +3,7 @@
 Reads the uploaded file, fits the frequency, severity, sliced and
 piecewise Pareto models the user asks for and renders their tables and
 charts; paired with `distribution_fitting_tool_UI` by
-[`run_shiny_distribution_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md).
+[`run_shiny_distribution_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md).
 
 ## Usage
 

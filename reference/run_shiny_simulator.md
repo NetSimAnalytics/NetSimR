@@ -2,7 +2,7 @@
 
 Opens NetSimulator, a Shiny app for running the frequency-severity model
 of
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md)
 from a form, with charts, a report and saved settings, without writing
 any code.
 
@@ -21,9 +21,9 @@ choose options such as the port.
 
 ## See also
 
-[`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+[`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
 and
-[`simulate_function`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md),
+[`simulate_function`](https://netsimr.netsimanalytics.com/reference/simulate_function.md),
 which run the same model from R code.
 
 ## Examples

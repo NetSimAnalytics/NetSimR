@@ -26,8 +26,7 @@ checked](#your-data-stays-on-your-computer).
 Frequency-severity simulation with Pareto tails, caps and reinsurance
 layers, with return periods, run comparison and a report.
 
-[Open
-NetSimulator](https://netsimanalytics.github.io/NetSimR/apps/simulator/)
+[Open NetSimulator](https://netsimr.netsimanalytics.com/apps/simulator/)
 
 ### NetDisFit Distribution fitting
 
@@ -36,8 +35,7 @@ or at their policy limits; compare the fits with Q-Q, P-P and Hill plots
 and their tail expectations, and send them to the simulator and the
 reinsurance pricing tool, with a report.
 
-[Open
-NetDisFit](https://netsimanalytics.github.io/NetSimR/apps/distribution/)
+[Open NetDisFit](https://netsimr.netsimanalytics.com/apps/distribution/)
 
 ### NetGLM GLM fitting
 
@@ -45,7 +43,7 @@ Fit generalised linear models to a CSV or Excel file, with splines and
 bands; let stepwise selection or the lasso suggest the terms, test them
 on held-out rows, and download the rate table and a report.
 
-[Open NetGLM](https://netsimanalytics.github.io/NetSimR/apps/glm/)
+[Open NetGLM](https://netsimr.netsimanalytics.com/apps/glm/)
 
 ### NetReserve Claims reserving
 
@@ -53,8 +51,7 @@ The chain ladder with Mack's standard errors, Bornhuetter-Ferguson, Cape
 Cod, the bootstrap and the Munich chain ladder, with discounting and the
 risk adjustment for IFRS 17 and Solvency II, and a report.
 
-[Open
-NetReserve](https://netsimanalytics.github.io/NetSimR/apps/reserving/)
+[Open NetReserve](https://netsimr.netsimanalytics.com/apps/reserving/)
 
 ### NetTreaty Reinsurance pricing
 
@@ -63,8 +60,7 @@ exposure curves, blend them, and compare quota share, surplus, excess of
 loss and stop loss programmes by their cost and the capital they save,
 with a report.
 
-[Open
-NetTreaty](https://netsimanalytics.github.io/NetSimR/apps/reinsurance/)
+[Open NetTreaty](https://netsimr.netsimanalytics.com/apps/reinsurance/)
 
 ### NetCapital Portfolio capital
 
@@ -72,82 +68,81 @@ Join lines of business with a Gaussian or t copula: VaR, TVaR,
 diversification and each line's capital, beside the Solvency II standard
 formula.
 
-[Open
-NetCapital](https://netsimanalytics.github.io/NetSimR/apps/portfolio/)
+[Open NetCapital](https://netsimr.netsimanalytics.com/apps/portfolio/)
 
 New to the tools? [A worked
-example](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md)
+example](https://netsimr.netsimanalytics.com/articles/worked-example.md)
 runs each of them on the package’s example data, with the report it
 writes.
 
 ## Gallery
 
 [![The claims simulator's report of a run with an excess of loss
-layer](../screenshots/simulator.png)](https://netsimanalytics.github.io/NetSimR/screenshots/simulator.png)
+layer](../screenshots/simulator.png)](https://netsimr.netsimanalytics.com/screenshots/simulator.png)
 
 NetSimulator: the report of a run with an excess of loss layer.
 
 [![Severity fits of claims at their policy
-limits](../screenshots/distribution.png)](https://netsimanalytics.github.io/NetSimR/screenshots/distribution.png)
+limits](../screenshots/distribution.png)](https://netsimr.netsimanalytics.com/screenshots/distribution.png)
 
 NetDisFit: claim sizes fitted with their policy limits.
 
 [![The rate table of a GLM with a spline of
-age](../screenshots/glm-rates.png)](https://netsimanalytics.github.io/NetSimR/screenshots/glm-rates.png)
+age](../screenshots/glm-rates.png)](https://netsimr.netsimanalytics.com/screenshots/glm-rates.png)
 
 NetGLM: the rate table of a model with a spline of age.
 
 [![Ultimates of each reserving method by
-origin](../screenshots/reserving.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reserving.png)
+origin](../screenshots/reserving.png)](https://netsimr.netsimanalytics.com/screenshots/reserving.png)
 
 NetReserve: the ultimates of each method, origin by origin.
 
 [![Discounted reserves and cash flows for IFRS
-17](../screenshots/reserving-ifrs17.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reserving-ifrs17.png)
+17](../screenshots/reserving-ifrs17.png)](https://netsimr.netsimanalytics.com/screenshots/reserving-ifrs17.png)
 
 NetReserve: discounted reserves and the risk adjustment for IFRS 17.
 
 [![The technical premium of an excess of loss layer by
-method](../screenshots/reinsurance.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reinsurance.png)
+method](../screenshots/reinsurance.png)](https://netsimr.netsimanalytics.com/screenshots/reinsurance.png)
 
 NetTreaty: the layer priced by experience and exposure.
 
 [![Reinsurance programmes compared by cost and
-capital](../screenshots/reinsurance-programmes.png)](https://netsimanalytics.github.io/NetSimR/screenshots/reinsurance-programmes.png)
+capital](../screenshots/reinsurance-programmes.png)](https://netsimr.netsimanalytics.com/screenshots/reinsurance-programmes.png)
 
 NetTreaty: programmes compared by their cost and the capital they save.
 
 [![The capital of a portfolio of three lines joined by a
-copula](../screenshots/portfolio.png)](https://netsimanalytics.github.io/NetSimR/screenshots/portfolio.png)
+copula](../screenshots/portfolio.png)](https://netsimr.netsimanalytics.com/screenshots/portfolio.png)
 
 NetCapital: VaR, TVaR and each line's capital.
 
 [![The Solvency II standard formula by
-segment](../screenshots/portfolio-standard-formula.png)](https://netsimanalytics.github.io/NetSimR/screenshots/portfolio-standard-formula.png)
+segment](../screenshots/portfolio-standard-formula.png)](https://netsimr.netsimanalytics.com/screenshots/portfolio-standard-formula.png)
 
 NetCapital: the Solvency II standard formula by segment.
 
 [![The report of the distribution fitting
-tool](../screenshots/report-netdisfit.png)](https://netsimanalytics.github.io/NetSimR/reports/netdisfit-report.md)
+tool](../screenshots/report-netdisfit.png)](https://netsimr.netsimanalytics.com/reports/netdisfit-report.md)
 
 NetDisFit: the report of the fits, [to
-open](https://netsimanalytics.github.io/NetSimR/reports/netdisfit-report.md).
+open](https://netsimr.netsimanalytics.com/reports/netdisfit-report.md).
 
 [![The report of the reinsurance pricing
-tool](../screenshots/report-nettreaty.png)](https://netsimanalytics.github.io/NetSimR/reports/nettreaty-report.md)
+tool](../screenshots/report-nettreaty.png)](https://netsimr.netsimanalytics.com/reports/nettreaty-report.md)
 
 NetTreaty: the report of the layer's pricing, [to
-open](https://netsimanalytics.github.io/NetSimR/reports/nettreaty-report.md).
+open](https://netsimr.netsimanalytics.com/reports/nettreaty-report.md).
 
 [![The report of the reserving
-tool](../screenshots/report-netreserve.png)](https://netsimanalytics.github.io/NetSimR/reports/netreserve-report.md)
+tool](../screenshots/report-netreserve.png)](https://netsimr.netsimanalytics.com/reports/netreserve-report.md)
 
 NetReserve: the reserving report, [to
-open](https://netsimanalytics.github.io/NetSimR/reports/netreserve-report.md).
+open](https://netsimr.netsimanalytics.com/reports/netreserve-report.md).
 
 Need a tool like these built around your own data and methods? See
 [Custom
-tools](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md).
+tools](https://netsimr.netsimanalytics.com/articles/custom-tools.md).
 
 ## Your data stays on your computer
 

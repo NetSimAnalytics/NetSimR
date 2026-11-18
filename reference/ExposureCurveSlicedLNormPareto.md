@@ -56,10 +56,10 @@ Gamma-Pareto functions call the same parameter `PShape`.
 ## See also
 
 Other exposure curve functions:
-[`ExposureCurveGamma()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveGamma.md),
-[`ExposureCurveLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveLNorm.md),
-[`ExposureCurvePareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurvePareto.md),
-[`ExposureCurveSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedGammaPareto.md)
+[`ExposureCurveGamma()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveGamma.md),
+[`ExposureCurveLNorm()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveLNorm.md),
+[`ExposureCurvePareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurvePareto.md),
+[`ExposureCurveSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedGammaPareto.md)
 
 ## Examples
 

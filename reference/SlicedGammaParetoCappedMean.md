@@ -55,11 +55,11 @@ sliced LogNormal-Pareto functions call the same parameter `shape`.
 ## See also
 
 Other capped mean functions:
-[`GammaCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/GammaCappedMean.md),
-[`LNormCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/LNormCappedMean.md),
-[`ParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMean.md),
-[`ParetoCappedMeanCalc()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMeanCalc.md),
-[`SlicedLNormParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md)
+[`GammaCappedMean()`](https://netsimr.netsimanalytics.com/reference/GammaCappedMean.md),
+[`LNormCappedMean()`](https://netsimr.netsimanalytics.com/reference/LNormCappedMean.md),
+[`ParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMean.md),
+[`ParetoCappedMeanCalc()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMeanCalc.md),
+[`SlicedLNormParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoCappedMean.md)
 
 ## Examples
 

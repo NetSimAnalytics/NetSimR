@@ -15,9 +15,9 @@ bornhuetter_ferguson(triangle, premium, loss_ratio, iterations = 1, ...)
 - triangle:
 
   A triangle of cumulative claims, as for
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md),
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md),
   or the result of
-  [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md),
+  [`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md),
   whose development pattern is then used.
 
 - premium:
@@ -36,7 +36,7 @@ bornhuetter_ferguson(triangle, premium, loss_ratio, iterations = 1, ...)
 - ...:
 
   Arguments passed to
-  [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+  [`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
   for the development pattern, such as `average` and `tail`, when
   `triangle` is a triangle.
 
@@ -68,9 +68,9 @@ Bulletin 30(2), 333-347.
 
 ## See also
 
-[`cape_cod`](https://netsimanalytics.github.io/NetSimR/reference/cape_cod.md),
+[`cape_cod`](https://netsimr.netsimanalytics.com/reference/cape_cod.md),
 which estimates the loss ratio from the triangle, and
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 ## Examples
 

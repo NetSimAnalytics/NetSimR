@@ -5,7 +5,7 @@ without loss experience. Each band's (or policy's) expected loss, its
 premium times its loss ratio, is shared between the layer and the rest
 by an exposure curve. `property_exposure_rating()` uses an MBBEFD curve
 of the damage as a share of the sum insured
-([`mbbefd_curve`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)):
+([`mbbefd_curve`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md)):
 the layer takes \\G((d + l) / M) - G(d / M)\\ of a band with sum insured
 \\M\\. `casualty_exposure_rating()` uses the limited expected value of a
 claim size distribution: the layer takes \\(LEV(\min(P, d + l)) -
@@ -65,7 +65,7 @@ casualty_exposure_rating(
 - severity:
 
   The claim size distribution of the casualty business, as in
-  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md):
+  [`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md):
   "LogNormal" (meanlog, sdlog), "Gamma" (shape, scale), "Exponential"
   (rate) or "Pareto" (alpha, x_m).
 
@@ -85,18 +85,18 @@ severity.
 
 ## See also
 
-[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+[`burning_cost`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
 and
-[`pareto_rating`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
+[`pareto_rating`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
 the experience rating of a layer, and
-[`technical_premium`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md).
+[`technical_premium`](https://netsimr.netsimanalytics.com/reference/technical_premium.md).
 
 Other reinsurance pricing functions:
-[`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md),
-[`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md),
-[`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md),
-[`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
-[`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md),
+[`credibility_weight()`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md),
+[`mbbefd_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md),
+[`pareto_rating()`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
+[`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 
 ## Examples
 

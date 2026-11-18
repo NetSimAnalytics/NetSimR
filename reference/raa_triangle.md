@@ -22,7 +22,7 @@ estimates. Casualty Actuarial Society Forum, Spring 1994, 101-182.
 
 ## See also
 
-[`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+[`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 ## Examples
 

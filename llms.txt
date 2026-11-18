@@ -13,18 +13,18 @@ and reinsurance pricing, reserving and capital modelling, with six Shiny
 tools for simulating claims, fitting distributions and GLMs, reserving,
 pricing excess of loss reinsurance and the capital of a portfolio. Its
 website, with every help page and the vignettes, is
-<https://netsimanalytics.github.io/NetSimR/>, where the tools can also
-be [tried in the
-browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.html),
+<https://netsimr.netsimanalytics.com/>, where the tools can also be
+[tried in the
+browser](https://netsimr.netsimanalytics.com/articles/try-online.html),
 with nothing to install.
 
 **Your data stays on your computer.** The tools run on your own machine:
 in R or, on the website, in an R that runs inside your browser. A file
 you open in a tool is read there and is not sent anywhere. [How this
-works](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer).
+works](https://netsimr.netsimanalytics.com/articles/try-online.html#your-data-stays-on-your-computer).
 
 [![Try the Shiny apps in your browser, nothing to
-install](https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge)](https://netsimanalytics.github.io/NetSimR/articles/try-online.html)
+install](https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge)](https://netsimr.netsimanalytics.com/articles/try-online.html)
 
 ## Installation
 
@@ -202,17 +202,17 @@ mention to a colleague also helps others find it.
 
 Applications that run the package’s models without writing code.
 
-- [`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
+- [`run_shiny_simulator()`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
   : Run the claims simulator application
-- [`run_shiny_distribution_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md)
+- [`run_shiny_distribution_fitting_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md)
   : Run the distribution fitting application
-- [`run_shiny_glm_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md)
+- [`run_shiny_glm_fitting_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_glm_fitting_tool.md)
   : Run the generalised linear model fitting application
-- [`run_shiny_reserving_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md)
+- [`run_shiny_reserving_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_reserving_tool.md)
   : Run the claims reserving application
-- [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md)
+- [`run_shiny_reinsurance_pricing_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_reinsurance_pricing_tool.md)
   : Run the reinsurance pricing application
-- [`run_shiny_portfolio_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md)
+- [`run_shiny_portfolio_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_portfolio_tool.md)
   : Run the portfolio capital application
 
 ## Claims simulation and reinsurance
@@ -220,17 +220,17 @@ Applications that run the package’s models without writing code.
 Frequency-severity simulation with Pareto tails, caps and layers, and
 portfolios of lines joined by a copula.
 
-- [`simulate_claims()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+- [`simulate_claims()`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
   : Simulate claims with a frequency-severity model
-- [`simulate_function()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_function.md)
+- [`simulate_function()`](https://netsimr.netsimanalytics.com/reference/simulate_function.md)
   : Simulate insurance claims with reinsurance structures
-- [`simulate_portfolio()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md)
+- [`simulate_portfolio()`](https://netsimr.netsimanalytics.com/reference/simulate_portfolio.md)
   : Simulate a portfolio of dependent lines
-- [`apply_deductible_limit()`](https://netsimanalytics.github.io/NetSimR/reference/apply_deductible_limit.md)
+- [`apply_deductible_limit()`](https://netsimr.netsimanalytics.com/reference/apply_deductible_limit.md)
   : Apply a deductible and limit to claims
-- [`reinstatement_premium()`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md)
+- [`reinstatement_premium()`](https://netsimr.netsimanalytics.com/reference/reinstatement_premium.md)
   : Reinstatement premiums of an excess of loss layer
-- [`compare_reinsurance()`](https://netsimanalytics.github.io/NetSimR/reference/compare_reinsurance.md)
+- [`compare_reinsurance()`](https://netsimr.netsimanalytics.com/reference/compare_reinsurance.md)
   : Compare reinsurance programmes
 
 ## Claims reserving
@@ -239,26 +239,26 @@ Chain ladder with Mack’s standard errors, methods with premiums, the
 bootstrap, the one-year view, the Munich chain ladder, Clark’s growth
 curves, inflation and actual vs expected.
 
-- [`chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md)
+- [`chain_ladder()`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md)
   : Chain ladder reserves with Mack's standard errors
-- [`bornhuetter_ferguson()`](https://netsimanalytics.github.io/NetSimR/reference/bornhuetter_ferguson.md)
+- [`bornhuetter_ferguson()`](https://netsimr.netsimanalytics.com/reference/bornhuetter_ferguson.md)
   : Bornhuetter-Ferguson and Benktander reserves
-- [`cape_cod()`](https://netsimanalytics.github.io/NetSimR/reference/cape_cod.md)
+- [`cape_cod()`](https://netsimr.netsimanalytics.com/reference/cape_cod.md)
   : Cape Cod reserves
-- [`bootstrap_chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/bootstrap_chain_ladder.md)
+- [`bootstrap_chain_ladder()`](https://netsimr.netsimanalytics.com/reference/bootstrap_chain_ladder.md)
   : Bootstrap of the chain ladder reserves
-- [`merz_wuthrich()`](https://netsimanalytics.github.io/NetSimR/reference/merz_wuthrich.md)
+- [`merz_wuthrich()`](https://netsimr.netsimanalytics.com/reference/merz_wuthrich.md)
   : The one-year view of the reserves: Merz and Wuthrich's claims
   development result
-- [`munich_chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/munich_chain_ladder.md)
+- [`munich_chain_ladder()`](https://netsimr.netsimanalytics.com/reference/munich_chain_ladder.md)
   : Munich chain ladder of paid and incurred claims
-- [`actual_vs_expected()`](https://netsimanalytics.github.io/NetSimR/reference/actual_vs_expected.md)
+- [`actual_vs_expected()`](https://netsimr.netsimanalytics.com/reference/actual_vs_expected.md)
   : Actual against expected development
-- [`clark_growth()`](https://netsimanalytics.github.io/NetSimR/reference/clark_growth.md)
+- [`clark_growth()`](https://netsimr.netsimanalytics.com/reference/clark_growth.md)
   : Clark's growth curve reserves
-- [`inflation_adjusted_chain_ladder()`](https://netsimanalytics.github.io/NetSimR/reference/inflation_adjusted_chain_ladder.md)
+- [`inflation_adjusted_chain_ladder()`](https://netsimr.netsimanalytics.com/reference/inflation_adjusted_chain_ladder.md)
   : Chain ladder for claims inflation
-- [`as_triangle()`](https://netsimanalytics.github.io/NetSimR/reference/as_triangle.md)
+- [`as_triangle()`](https://netsimr.netsimanalytics.com/reference/as_triangle.md)
   : Build a claims triangle from a table
 
 ## IFRS 17 and Solvency II
@@ -266,14 +266,14 @@ curves, inflation and actual vs expected.
 Discounted reserves, the risk adjustment, and the standard formula’s
 non-life premium and reserve risk.
 
-- [`discount_reserves()`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)
+- [`discount_reserves()`](https://netsimr.netsimanalytics.com/reference/discount_reserves.md)
   : Discounted reserves from the chain ladder's payment pattern
-- [`risk_adjustment()`](https://netsimanalytics.github.io/NetSimR/reference/risk_adjustment.md)
+- [`risk_adjustment()`](https://netsimr.netsimanalytics.com/reference/risk_adjustment.md)
   : Risk adjustment for non-financial risk
-- [`sii_premium_reserve_risk()`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md)
+- [`sii_premium_reserve_risk()`](https://netsimr.netsimanalytics.com/reference/sii_premium_reserve_risk.md)
   : Solvency II standard formula: non-life premium and reserve risk
-- [`sii_nonlife_segments`](https://netsimanalytics.github.io/NetSimR/reference/sii_nonlife_segments.md)
-  [`sii_nonlife_correlation`](https://netsimanalytics.github.io/NetSimR/reference/sii_nonlife_segments.md)
+- [`sii_nonlife_segments`](https://netsimr.netsimanalytics.com/reference/sii_nonlife_segments.md)
+  [`sii_nonlife_correlation`](https://netsimr.netsimanalytics.com/reference/sii_nonlife_segments.md)
   : The Solvency II standard formula's non-life segments
 
 ## Excess of loss pricing
@@ -281,20 +281,20 @@ non-life premium and reserve risk.
 Burning cost, Pareto rating, exposure rating with MBBEFD curves or a
 claim size distribution, and the technical premium.
 
-- [`burning_cost()`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+- [`burning_cost()`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
   : Burning cost of an excess of loss layer
-- [`pareto_rating()`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md)
+- [`pareto_rating()`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md)
   : Pareto rating of an excess of loss layer
-- [`property_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
-  [`casualty_exposure_rating()`](https://netsimanalytics.github.io/NetSimR/reference/property_exposure_rating.md)
+- [`property_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
+  [`casualty_exposure_rating()`](https://netsimr.netsimanalytics.com/reference/property_exposure_rating.md)
   : Exposure rating of property and casualty excess of loss layers
-- [`mbbefd_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
-  [`swiss_re_parameters()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
-  [`swiss_re_curve()`](https://netsimanalytics.github.io/NetSimR/reference/mbbefd_curve.md)
+- [`mbbefd_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md)
+  [`swiss_re_parameters()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md)
+  [`swiss_re_curve()`](https://netsimr.netsimanalytics.com/reference/mbbefd_curve.md)
   : MBBEFD exposure curves
-- [`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+- [`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
   : Technical premium of an excess of loss layer
-- [`credibility_weight()`](https://netsimanalytics.github.io/NetSimR/reference/credibility_weight.md)
+- [`credibility_weight()`](https://netsimr.netsimanalytics.com/reference/credibility_weight.md)
   : Credibility of the loss experience
 
 ## Pricing models and rate reviews
@@ -303,68 +303,68 @@ A Tweedie family for generalised linear models of the loss cost,
 on-level premiums, the indicated rate change and Buhlmann-Straub
 credibility.
 
-- [`tweedie_family()`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md)
+- [`tweedie_family()`](https://netsimr.netsimanalytics.com/reference/tweedie_family.md)
   : Tweedie family for generalised linear models
-- [`on_level_premium()`](https://netsimanalytics.github.io/NetSimR/reference/on_level_premium.md)
+- [`on_level_premium()`](https://netsimr.netsimanalytics.com/reference/on_level_premium.md)
   : Premiums at today's rates: the parallelogram method
-- [`indicated_rate_change()`](https://netsimanalytics.github.io/NetSimR/reference/indicated_rate_change.md)
+- [`indicated_rate_change()`](https://netsimr.netsimanalytics.com/reference/indicated_rate_change.md)
   : The indicated rate change: the loss ratio method
-- [`buhlmann_straub()`](https://netsimanalytics.github.io/NetSimR/reference/buhlmann_straub.md)
+- [`buhlmann_straub()`](https://netsimr.netsimanalytics.com/reference/buhlmann_straub.md)
   : Buhlmann-Straub credibility
 
 ## Capped means
 
-- [`GammaCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/GammaCappedMean.md)
-  [`gamma_capped_mean()`](https://netsimanalytics.github.io/NetSimR/reference/GammaCappedMean.md)
+- [`GammaCappedMean()`](https://netsimr.netsimanalytics.com/reference/GammaCappedMean.md)
+  [`gamma_capped_mean()`](https://netsimr.netsimanalytics.com/reference/GammaCappedMean.md)
   : Gamma capped mean
-- [`LNormCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/LNormCappedMean.md)
-  [`lnorm_capped_mean()`](https://netsimanalytics.github.io/NetSimR/reference/LNormCappedMean.md)
+- [`LNormCappedMean()`](https://netsimr.netsimanalytics.com/reference/LNormCappedMean.md)
+  [`lnorm_capped_mean()`](https://netsimr.netsimanalytics.com/reference/LNormCappedMean.md)
   : Lognormal capped mean
-- [`ParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMean.md)
-  [`pareto_capped_mean()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMean.md)
+- [`ParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMean.md)
+  [`pareto_capped_mean()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMean.md)
   : Pareto capped mean
-- [`ParetoCappedMeanCalc()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMeanCalc.md)
-  [`pareto_capped_mean_calc()`](https://netsimanalytics.github.io/NetSimR/reference/ParetoCappedMeanCalc.md)
+- [`ParetoCappedMeanCalc()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMeanCalc.md)
+  [`pareto_capped_mean_calc()`](https://netsimr.netsimanalytics.com/reference/ParetoCappedMeanCalc.md)
   : Pareto capped mean intermediary calculation
-- [`SlicedGammaParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoCappedMean.md)
-  [`sliced_gamma_pareto_capped_mean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoCappedMean.md)
+- [`SlicedGammaParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoCappedMean.md)
+  [`sliced_gamma_pareto_capped_mean()`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoCappedMean.md)
   : Sliced Gamma Pareto capped mean
-- [`SlicedLNormParetoCappedMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md)
-  [`sliced_lnorm_pareto_capped_mean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoCappedMean.md)
+- [`SlicedLNormParetoCappedMean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoCappedMean.md)
+  [`sliced_lnorm_pareto_capped_mean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoCappedMean.md)
   : Sliced LogNormal Pareto capped mean
 
 ## Exposure curves and increased limit factors
 
-- [`ExposureCurveGamma()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveGamma.md)
-  [`exposure_curve_gamma()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveGamma.md)
+- [`ExposureCurveGamma()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveGamma.md)
+  [`exposure_curve_gamma()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveGamma.md)
   : Exposure Curve from a Gamma severity distribution
-- [`ExposureCurveLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveLNorm.md)
-  [`exposure_curve_lnorm()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveLNorm.md)
+- [`ExposureCurveLNorm()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveLNorm.md)
+  [`exposure_curve_lnorm()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveLNorm.md)
   : Exposure Curve from a LogNormal severity distribution
-- [`ExposureCurvePareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurvePareto.md)
-  [`exposure_curve_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurvePareto.md)
+- [`ExposureCurvePareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurvePareto.md)
+  [`exposure_curve_pareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurvePareto.md)
   : Exposure Curve from a Pareto severity distribution
-- [`ExposureCurveSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedGammaPareto.md)
-  [`exposure_curve_sliced_gamma_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedGammaPareto.md)
+- [`ExposureCurveSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedGammaPareto.md)
+  [`exposure_curve_sliced_gamma_pareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedGammaPareto.md)
   : Exposure Curve from a Sliced Gamma Pareto severity distribution
-- [`ExposureCurveSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedLNormPareto.md)
-  [`exposure_curve_sliced_lnorm_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/ExposureCurveSlicedLNormPareto.md)
+- [`ExposureCurveSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedLNormPareto.md)
+  [`exposure_curve_sliced_lnorm_pareto()`](https://netsimr.netsimanalytics.com/reference/ExposureCurveSlicedLNormPareto.md)
   : Exposure Curve from a Sliced LogNormal Pareto severity distribution
-- [`ILFGamma()`](https://netsimanalytics.github.io/NetSimR/reference/ILFGamma.md)
-  [`ilf_gamma()`](https://netsimanalytics.github.io/NetSimR/reference/ILFGamma.md)
+- [`ILFGamma()`](https://netsimr.netsimanalytics.com/reference/ILFGamma.md)
+  [`ilf_gamma()`](https://netsimr.netsimanalytics.com/reference/ILFGamma.md)
   : Increased Limit Factor Curve from a Gamma severity distribution
-- [`ILFLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/ILFLNorm.md)
-  [`ilf_lnorm()`](https://netsimanalytics.github.io/NetSimR/reference/ILFLNorm.md)
+- [`ILFLNorm()`](https://netsimr.netsimanalytics.com/reference/ILFLNorm.md)
+  [`ilf_lnorm()`](https://netsimr.netsimanalytics.com/reference/ILFLNorm.md)
   : Increased Limit Factor Curve from a LogNormal severity distribution
-- [`ILFPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFPareto.md)
-  [`ilf_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFPareto.md)
+- [`ILFPareto()`](https://netsimr.netsimanalytics.com/reference/ILFPareto.md)
+  [`ilf_pareto()`](https://netsimr.netsimanalytics.com/reference/ILFPareto.md)
   : Increased Limit Factor Curve from a Pareto severity distribution
-- [`ILFSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedGammaPareto.md)
-  [`ilf_sliced_gamma_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedGammaPareto.md)
+- [`ILFSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedGammaPareto.md)
+  [`ilf_sliced_gamma_pareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedGammaPareto.md)
   : Increased Limit Factor Curve from a Sliced Gamma Pareto severity
   distribution
-- [`ILFSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedLNormPareto.md)
-  [`ilf_sliced_lnorm_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/ILFSlicedLNormPareto.md)
+- [`ILFSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedLNormPareto.md)
+  [`ilf_sliced_lnorm_pareto()`](https://netsimr.netsimanalytics.com/reference/ILFSlicedLNormPareto.md)
   : Increased Limit Factor Curve from a Sliced LogNormal Pareto severity
   distribution
 
@@ -372,76 +372,76 @@ credibility.
 
 LogNormal or Gamma bodies with a Pareto tail.
 
-- [`SlicedGammaParetoMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoMean.md)
-  [`sliced_gamma_pareto_mean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedGammaParetoMean.md)
+- [`SlicedGammaParetoMean()`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoMean.md)
+  [`sliced_gamma_pareto_mean()`](https://netsimr.netsimanalytics.com/reference/SlicedGammaParetoMean.md)
   : Sliced Gamma Pareto mean
-- [`SlicedLNormParetoMean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoMean.md)
-  [`sliced_lnorm_pareto_mean()`](https://netsimanalytics.github.io/NetSimR/reference/SlicedLNormParetoMean.md)
+- [`SlicedLNormParetoMean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoMean.md)
+  [`sliced_lnorm_pareto_mean()`](https://netsimr.netsimanalytics.com/reference/SlicedLNormParetoMean.md)
   : Sliced LogNormal Pareto mean
-- [`dSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedGammaPareto.md)
-  [`dsliced_gamma_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedGammaPareto.md)
+- [`dSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedGammaPareto.md)
+  [`dsliced_gamma_pareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedGammaPareto.md)
   : The probability density function (pdf) of a Sliced Gamma Pareto
   severity distribution
-- [`pSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedGammaPareto.md)
-  [`psliced_gamma_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedGammaPareto.md)
+- [`pSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedGammaPareto.md)
+  [`psliced_gamma_pareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedGammaPareto.md)
   : The cumulative distribution function (cdf) of a Sliced Gamma-Pareto
   severity distribution
-- [`qSlicedGammaPareto()`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedGammaPareto.md)
-  [`qsliced_gamma_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedGammaPareto.md)
+- [`qSlicedGammaPareto()`](https://netsimr.netsimanalytics.com/reference/qSlicedGammaPareto.md)
+  [`qsliced_gamma_pareto()`](https://netsimr.netsimanalytics.com/reference/qSlicedGammaPareto.md)
   : The inverse cumulative distribution function of a Sliced Gamma
   Pareto severity distribution
-- [`dSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedLNormPareto.md)
-  [`dsliced_lnorm_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/dSlicedLNormPareto.md)
+- [`dSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedLNormPareto.md)
+  [`dsliced_lnorm_pareto()`](https://netsimr.netsimanalytics.com/reference/dSlicedLNormPareto.md)
   : The probability density function (pdf) of a Sliced LogNormal Pareto
   severity distribution
-- [`pSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedLNormPareto.md)
-  [`psliced_lnorm_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/pSlicedLNormPareto.md)
+- [`pSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedLNormPareto.md)
+  [`psliced_lnorm_pareto()`](https://netsimr.netsimanalytics.com/reference/pSlicedLNormPareto.md)
   : The cumulative distribution function (cdf) of a Sliced LogNormal
   Pareto severity distribution
-- [`qSlicedLNormPareto()`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedLNormPareto.md)
-  [`qsliced_lnorm_pareto()`](https://netsimanalytics.github.io/NetSimR/reference/qSlicedLNormPareto.md)
+- [`qSlicedLNormPareto()`](https://netsimr.netsimanalytics.com/reference/qSlicedLNormPareto.md)
+  [`qsliced_lnorm_pareto()`](https://netsimr.netsimanalytics.com/reference/qSlicedLNormPareto.md)
   : The inverse cumulative distribution function of a Sliced LogNormal
   Pareto severity distribution
 
 ## Pure IBNR and unearned premium
 
-- [`PureIBNRGamma()`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRGamma.md)
-  [`pure_ibnr_gamma()`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRGamma.md)
+- [`PureIBNRGamma()`](https://netsimr.netsimanalytics.com/reference/PureIBNRGamma.md)
+  [`pure_ibnr_gamma()`](https://netsimr.netsimanalytics.com/reference/PureIBNRGamma.md)
   : Pure IBNR exposure from a Gamma reporting delay distribution
-- [`PureIBNRLNorm()`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRLNorm.md)
-  [`pure_ibnr_lnorm()`](https://netsimanalytics.github.io/NetSimR/reference/PureIBNRLNorm.md)
+- [`PureIBNRLNorm()`](https://netsimr.netsimanalytics.com/reference/PureIBNRLNorm.md)
+  [`pure_ibnr_lnorm()`](https://netsimr.netsimanalytics.com/reference/PureIBNRLNorm.md)
   : Pure IBNR exposure from a LogNormal reporting delay distribution
 
 ## Special functions
 
-- [`IGamma()`](https://netsimanalytics.github.io/NetSimR/reference/IGamma.md)
-  [`upper_incomplete_gamma()`](https://netsimanalytics.github.io/NetSimR/reference/IGamma.md)
+- [`IGamma()`](https://netsimr.netsimanalytics.com/reference/IGamma.md)
+  [`upper_incomplete_gamma()`](https://netsimr.netsimanalytics.com/reference/IGamma.md)
   : Upper incomplete gamma function
-- [`erf()`](https://netsimanalytics.github.io/NetSimR/reference/erf.md)
-  : Error function
+- [`erf()`](https://netsimr.netsimanalytics.com/reference/erf.md) :
+  Error function
 
 ## Data sets
 
-- [`raa_triangle`](https://netsimanalytics.github.io/NetSimR/reference/raa_triangle.md)
+- [`raa_triangle`](https://netsimr.netsimanalytics.com/reference/raa_triangle.md)
   : RAA triangle of incurred claims
-- [`taylor_ashe_triangle`](https://netsimanalytics.github.io/NetSimR/reference/taylor_ashe_triangle.md)
+- [`taylor_ashe_triangle`](https://netsimr.netsimanalytics.com/reference/taylor_ashe_triangle.md)
   : Taylor and Ashe triangle of paid claims
-- [`quarg_mack_paid`](https://netsimanalytics.github.io/NetSimR/reference/quarg_mack.md)
-  [`quarg_mack_incurred`](https://netsimanalytics.github.io/NetSimR/reference/quarg_mack.md)
+- [`quarg_mack_paid`](https://netsimr.netsimanalytics.com/reference/quarg_mack.md)
+  [`quarg_mack_incurred`](https://netsimr.netsimanalytics.com/reference/quarg_mack.md)
   : Paid and incurred triangles of the Munich chain ladder paper
-- [`simulated_motor_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulated_motor_claims.md)
+- [`simulated_motor_claims`](https://netsimr.netsimanalytics.com/reference/simulated_motor_claims.md)
   : Simulated motor claims with premiums
-- [`xl_large_losses`](https://netsimanalytics.github.io/NetSimR/reference/xl_large_losses.md)
+- [`xl_large_losses`](https://netsimr.netsimanalytics.com/reference/xl_large_losses.md)
   : Simulated large losses of an excess of loss treaty
-- [`xl_premium`](https://netsimanalytics.github.io/NetSimR/reference/xl_premium.md)
+- [`xl_premium`](https://netsimr.netsimanalytics.com/reference/xl_premium.md)
   : Subject premiums of an excess of loss treaty
-- [`xl_property_profile`](https://netsimanalytics.github.io/NetSimR/reference/xl_property_profile.md)
+- [`xl_property_profile`](https://netsimr.netsimanalytics.com/reference/xl_property_profile.md)
   : Risk profile of a property portfolio
-- [`xl_casualty_profile`](https://netsimanalytics.github.io/NetSimR/reference/xl_casualty_profile.md)
+- [`xl_casualty_profile`](https://netsimr.netsimanalytics.com/reference/xl_casualty_profile.md)
   : Risk profile of a casualty portfolio
-- [`motor_policies`](https://netsimanalytics.github.io/NetSimR/reference/motor_policies.md)
+- [`motor_policies`](https://netsimr.netsimanalytics.com/reference/motor_policies.md)
   : Simulated motor policies
-- [`liability_claims`](https://netsimanalytics.github.io/NetSimR/reference/liability_claims.md)
+- [`liability_claims`](https://netsimr.netsimanalytics.com/reference/liability_claims.md)
   : Simulated liability claims at their policy limits
 
 # Articles
@@ -449,56 +449,56 @@ LogNormal or Gamma bodies with a Pareto tail.
 ### Articles
 
 - [From pricing to capital and reserves: a motor
-  portfolio](https://netsimanalytics.github.io/NetSimR/articles/EndToEnd.md):
+  portfolio](https://netsimr.netsimanalytics.com/articles/EndToEnd.md):
 
   A motor portfolio through a non-life actuary’s work in R: GLM pricing,
   claims simulation, excess of loss reinsurance, capital, reserves, IFRS
   17 and Solvency II.
 
 - [Rate reviews: on-level premiums, the indicated rate change and
-  credibility](https://netsimanalytics.github.io/NetSimR/articles/PricingMonitoring.md):
+  credibility](https://netsimr.netsimanalytics.com/articles/PricingMonitoring.md):
 
   A rate review with the loss ratio method in R: on-level premiums by
   the parallelogram method, trended losses, the indicated rate change
   and credibility.
 
 - [Simulating claims with
-  simulate_claims()](https://netsimanalytics.github.io/NetSimR/articles/SimulateClaims.md):
+  simulate_claims()](https://netsimr.netsimanalytics.com/articles/SimulateClaims.md):
 
   Simulating insurance claims in R: frequency and severity
   distributions, Pareto tails, caps, and excess of loss layers with
   limited reinstatements.
 
 - [Claims reserving with the chain ladder and its
-  relatives](https://netsimanalytics.github.io/NetSimR/articles/Reserving.md):
+  relatives](https://netsimr.netsimanalytics.com/articles/Reserving.md):
 
   Claims reserving in R: the chain ladder with Mack’s standard errors,
   Bornhuetter-Ferguson, Cape Cod, the bootstrap, the one-year view and
   the Munich chain ladder.
 
 - [Pricing an excess of loss
-  layer](https://netsimanalytics.github.io/NetSimR/articles/ReinsurancePricing.md):
+  layer](https://netsimr.netsimanalytics.com/articles/ReinsurancePricing.md):
 
   Pricing an excess of loss layer in R: burning cost, Pareto rating,
   exposure rating with a risk profile, credibility and the technical
   premium.
 
 - [Capped means, exposure curves and increased limit
-  factors](https://netsimanalytics.github.io/NetSimR/articles/CappedMean.md):
+  factors](https://netsimr.netsimanalytics.com/articles/CappedMean.md):
 
   Capped means, exposure curves and increased limit factors for
   LogNormal, Gamma, Pareto and sliced severities, with the theory and
   worked examples in R.
 
 - [Sliced LogNormal-Pareto and Gamma-Pareto
-  distributions](https://netsimanalytics.github.io/NetSimR/articles/SlicedDistributions.md):
+  distributions](https://netsimr.netsimanalytics.com/articles/SlicedDistributions.md):
 
   Sliced LogNormal-Pareto and Gamma-Pareto distributions for claim
   severities with a heavy tail: densities, distribution functions,
   quantiles and means in R.
 
 - [Pure IBNR exposure from a reporting delay
-  distribution](https://netsimanalytics.github.io/NetSimR/articles/PureIBNR.md):
+  distribution](https://netsimr.netsimanalytics.com/articles/PureIBNR.md):
 
   Pure IBNR claim counts and unearned exposure from a LogNormal or Gamma
   reporting delay distribution, with the theory and worked examples in
@@ -507,13 +507,13 @@ LogNormal or Gamma bodies with a Pareto tail.
 ### Shiny tools
 
 - [Try the Shiny tools in your
-  browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.md):
+  browser](https://netsimr.netsimanalytics.com/articles/try-online.md):
 
   The package’s six Shiny tools, running in your browser with webR: no R
   to install, and your data never leaves your computer.
 
 - [A worked example: the six tools and their
-  reports](https://netsimanalytics.github.io/NetSimR/articles/worked-example.md):
+  reports](https://netsimr.netsimanalytics.com/articles/worked-example.md):
 
   The six Shiny tools of NetSimR run on the package’s example data, from
   pricing to reserves, with the report each one writes.
@@ -521,7 +521,7 @@ LogNormal or Gamma bodies with a Pareto tail.
 ### Custom tools
 
 - [Custom tools for insurers and
-  reinsurers](https://netsimanalytics.github.io/NetSimR/articles/custom-tools.md):
+  reinsurers](https://netsimr.netsimanalytics.com/articles/custom-tools.md):
 
   Pricing, reserving, reinsurance and capital tools built around your
   data, methods and governance.

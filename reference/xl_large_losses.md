@@ -3,11 +3,11 @@
 The large losses of a simulated portfolio for the years 2015 to 2024,
 those of at least 500,000 in the money of their year: the experience of
 the examples of
-[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+[`burning_cost`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
 and
-[`pareto_rating`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md),
+[`pareto_rating`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md),
 with the premiums of
-[`xl_premium`](https://netsimanalytics.github.io/NetSimR/reference/xl_premium.md).
+[`xl_premium`](https://netsimr.netsimanalytics.com/reference/xl_premium.md).
 In the money of 2025, at 4% claims inflation a year, they are Pareto
 with alpha 1.7 above 500,000, about 0.16 per million of on-level
 premium, with fewer in the recent years, whose losses are not all
@@ -42,10 +42,10 @@ Simulated.
 
 ## See also
 
-[`xl_premium`](https://netsimanalytics.github.io/NetSimR/reference/xl_premium.md),
-[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md)
+[`xl_premium`](https://netsimr.netsimanalytics.com/reference/xl_premium.md),
+[`burning_cost`](https://netsimr.netsimanalytics.com/reference/burning_cost.md)
 and
-[`pareto_rating`](https://netsimanalytics.github.io/NetSimR/reference/pareto_rating.md).
+[`pareto_rating`](https://netsimr.netsimanalytics.com/reference/pareto_rating.md).
 
 ## Examples
 

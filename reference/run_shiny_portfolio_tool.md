@@ -23,9 +23,9 @@ at the console, opens the application; it can also be passed to
 
 ## See also
 
-[`simulate_portfolio`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md),
+[`simulate_portfolio`](https://netsimr.netsimanalytics.com/reference/simulate_portfolio.md),
 the function behind the application;
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md),
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md),
 whose simulated losses it can take, and the package's other
 applications.
 

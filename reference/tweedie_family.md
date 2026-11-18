@@ -46,7 +46,7 @@ fitted to. The unit deviance is \$\$2 \left(
 
 ## See also
 
-[`run_shiny_glm_fitting_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md),
+[`run_shiny_glm_fitting_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_glm_fitting_tool.md),
 which fits it from a form.
 
 ## Examples

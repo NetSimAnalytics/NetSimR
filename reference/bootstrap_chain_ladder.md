@@ -23,7 +23,7 @@ bootstrap_chain_ladder(
 - triangle:
 
   A triangle of cumulative claims, as for
-  [`chain_ladder`](https://netsimanalytics.github.io/NetSimR/reference/chain_ladder.md).
+  [`chain_ladder`](https://netsimr.netsimanalytics.com/reference/chain_ladder.md).
 
 - n:
 

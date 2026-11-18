@@ -4,7 +4,7 @@ Reads the layer and the rating year, rates the layer on the large losses
 (burning cost and Pareto) and on the risk profile (exposure curve or
 claim size distribution), blends the rates and prices the layer; paired
 with `reinsurance_pricing_tool_UI` by
-[`run_shiny_reinsurance_pricing_tool`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md).
+[`run_shiny_reinsurance_pricing_tool`](https://netsimr.netsimanalytics.com/reference/run_shiny_reinsurance_pricing_tool.md).
 
 ## Usage
 

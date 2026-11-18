@@ -77,14 +77,14 @@ simulate_function(
   `"Binomial"`, `"Zero_Inflated_Poisson"`,
   `"Zero_Inflated_Negative_Binomial"` or `"Fixed_number_of_Counts"`. The
   parameters of each are listed in
-  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md).
+  [`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md).
 
 - sevDistr:
 
   The severity distribution: `"Normal"`, `"LogNormal"`, `"Gamma"`,
   `"Exponential"`, `"Pareto"` or `"Fixed_Severity"`. The parameters of
   each are listed in
-  [`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md).
+  [`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md).
 
 - paretoSlice:
 
@@ -153,7 +153,7 @@ simulate_function(
   The premium rate of each reinstatement as a share of the upfront
   premium: one rate for all of them, or one per reinstatement. Defaults
   to 1 (100%). See
-  [`reinstatement_premium`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md).
+  [`reinstatement_premium`](https://netsimr.netsimanalytics.com/reference/reinstatement_premium.md).
 
 - multiprocessing:
 
@@ -261,7 +261,7 @@ aggregate exclusion of 150 excess of 50 give a total of 50 but 2
 reinstatements used (180 / 60, capped at 2). With an upfront premium,
 `reinstatement_premium`: the premium for the reinstatements used, pro
 rata to the amount reinstated (see
-[`reinstatement_premium`](https://netsimanalytics.github.io/NetSimR/reference/reinstatement_premium.md)).
+[`reinstatement_premium`](https://netsimr.netsimanalytics.com/reference/reinstatement_premium.md)).
 With `largest_claims = TRUE`, `largest_claim`: the simulation's largest
 single claim after the each-and-every-loss structure (the layer's loss
 on that claim; the gross claim when there is no structure), before the
@@ -313,9 +313,9 @@ adapts to the expected number of claims per simulation.
 
 ## See also
 
-[`simulate_claims`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md),
+[`simulate_claims`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md),
 a simpler interface with short argument names, and
-[`run_shiny_simulator`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md)
+[`run_shiny_simulator`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md)
 for the same model in an app.
 
 ## Examples

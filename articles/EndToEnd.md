@@ -86,7 +86,7 @@ round(exp(coef(severity_model)), 3)
 The frequency relativities find the young drivers, the North and the
 motorcycles; the severity relativities find the vans, and little else. A
 Tweedie GLM,
-[`tweedie_family()`](https://netsimanalytics.github.io/NetSimR/reference/tweedie_family.md),
+[`tweedie_family()`](https://netsimr.netsimanalytics.com/reference/tweedie_family.md),
 models the cost per policy in one step: a compound Poisson-Gamma
 distribution with a mass at zero, for the many policies without a claim.
 Its relativities combine the two:
@@ -166,7 +166,7 @@ c(meanlog = meanlog, sdlog = sdlog)
     ##   meanlog     sdlog 
     ## 7.7001608 0.9383796
 
-[`simulate_claims()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_claims.md)
+[`simulate_claims()`](https://netsimr.netsimanalytics.com/reference/simulate_claims.md)
 simulates 5,000 years of claims. An excess of loss layer of 100,000 in
 excess of 50,000, each and every loss, with two reinstatements, protects
 the portfolio against its rare large claims; the results are the gross
@@ -196,11 +196,11 @@ it on worker processes when that is faster.) Its expected loss,
 `mean(years$total_claims)`, is the starting point for its price: the
 reinsurance pricing tool and the vignette “Pricing an excess of loss
 layer” price a layer from the cedant’s large losses and exposure, and
-[`technical_premium()`](https://netsimanalytics.github.io/NetSimR/reference/technical_premium.md)
+[`technical_premium()`](https://netsimr.netsimanalytics.com/reference/technical_premium.md)
 loads the expected loss for the reinstatements, expenses and profit.
 
 Is the layer worth buying?
-[`compare_reinsurance()`](https://netsimanalytics.github.io/NetSimR/reference/compare_reinsurance.md)
+[`compare_reinsurance()`](https://netsimr.netsimanalytics.com/reference/compare_reinsurance.md)
 puts the same simulated claims through several programmes and sets what
 each costs, the margin paid to the reinsurers above the expected
 recoveries, against the capital it saves, the drop in the 1 in 200 bad
@@ -228,7 +228,7 @@ margin: positive when the capital relief is worth more than the
 reinsurance costs. The reinsurance pricing tool compares up to five
 programmes on its Programmes tab, a surplus treaty on its risk profile
 among them;
-[`compare_reinsurance()`](https://netsimanalytics.github.io/NetSimR/reference/compare_reinsurance.md)
+[`compare_reinsurance()`](https://netsimr.netsimanalytics.com/reference/compare_reinsurance.md)
 takes one too, with the sums insured of the risks.
 
 ## 5. Capital with a property line
@@ -237,7 +237,7 @@ The insurer also writes property, whose annual losses come from a few
 large Pareto claims (the severity parameters are alpha, then the
 threshold x_m). The two lines are not independent: a severe winter
 raises both.
-[`simulate_portfolio()`](https://netsimanalytics.github.io/NetSimR/reference/simulate_portfolio.md)
+[`simulate_portfolio()`](https://netsimr.netsimanalytics.com/reference/simulate_portfolio.md)
 simulates each line on its own and joins them with a copula, here a rank
 correlation of about 0.3. With a Gaussian copula the lines rarely have
 their worst years together; a t copula with few degrees of freedom makes
@@ -371,7 +371,7 @@ most of all for the recent accident years.
 Under IFRS 17 the liability for incurred claims is the best estimate of
 the future payments, discounted, plus a risk adjustment for their
 uncertainty.
-[`discount_reserves()`](https://netsimanalytics.github.io/NetSimR/reference/discount_reserves.md)
+[`discount_reserves()`](https://netsimr.netsimanalytics.com/reference/discount_reserves.md)
 takes the chain ladder’s payments by future calendar year and discounts
 them with a yield curve, here rising from 3% to 3.8% over five years:
 
@@ -406,7 +406,7 @@ rbind(percentile = c(percentile$risk_adjustment, percentile$confidence_level),
 The capital of the cost of capital method was the reserve risk of
 Solvency II’s standard formula: three times the 9% standard deviation of
 motor vehicle liability (segment 1) times the best estimate.
-[`sii_premium_reserve_risk()`](https://netsimanalytics.github.io/NetSimR/reference/sii_premium_reserve_risk.md)
+[`sii_premium_reserve_risk()`](https://netsimr.netsimanalytics.com/reference/sii_premium_reserve_risk.md)
 gives the standard formula’s premium and reserve risk of several
 segments together, with their correlations; here the motor reserves with
 next year’s motor premium, and a property segment:
@@ -433,22 +433,22 @@ segment.
 Each step has a Shiny tool, which runs on the computer or in the browser
 on the package’s website:
 
-- [`run_shiny_glm_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_glm_fitting_tool.md):
+- [`run_shiny_glm_fitting_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_glm_fitting_tool.md):
   the GLMs of section 3, with the Tweedie family, splines, holdout
   validation, lift and double lift charts, variable selection, and the
   rate table.
-- [`run_shiny_distribution_fitting_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_distribution_fitting_tool.md):
+- [`run_shiny_distribution_fitting_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_distribution_fitting_tool.md):
   the claim size fits of section 4, sent on to the simulator and to the
   reinsurance pricing tool’s Programmes tab, with a report.
-- [`run_shiny_simulator()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_simulator.md):
+- [`run_shiny_simulator()`](https://netsimr.netsimanalytics.com/reference/run_shiny_simulator.md):
   the simulation and the layer of section 4, with a report.
-- [`run_shiny_reinsurance_pricing_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reinsurance_pricing_tool.md):
+- [`run_shiny_reinsurance_pricing_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_reinsurance_pricing_tool.md):
   the price of the layer, and the comparison of programmes on the fitted
   claims, with a report.
-- [`run_shiny_portfolio_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_portfolio_tool.md):
+- [`run_shiny_portfolio_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_portfolio_tool.md):
   the portfolio of section 5, with a correlation matrix, charts and a
   report, and the standard formula of section 7.
-- [`run_shiny_reserving_tool()`](https://netsimanalytics.github.io/NetSimR/reference/run_shiny_reserving_tool.md):
+- [`run_shiny_reserving_tool()`](https://netsimr.netsimanalytics.com/reference/run_shiny_reserving_tool.md):
   the chain ladder, actual vs expected, Clark’s curves and the claims
   inflation of section 6, and the discounting and risk adjustment of
   section 7, with a report.

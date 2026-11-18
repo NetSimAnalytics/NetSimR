@@ -1,7 +1,7 @@
 # Subject premiums of an excess of loss treaty
 
 The subject premium of each year 2015 to 2024 of the portfolio of
-[`xl_large_losses`](https://netsimanalytics.github.io/NetSimR/reference/xl_large_losses.md),
+[`xl_large_losses`](https://netsimr.netsimanalytics.com/reference/xl_large_losses.md),
 with the rate index that brings it to the rates of 2025 and the
 development factor of its layer losses.
 
@@ -38,7 +38,7 @@ Simulated.
 
 ## See also
 
-[`burning_cost`](https://netsimanalytics.github.io/NetSimR/reference/burning_cost.md).
+[`burning_cost`](https://netsimr.netsimanalytics.com/reference/burning_cost.md).
 
 ## Examples
 
