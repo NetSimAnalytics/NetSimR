@@ -45,6 +45,8 @@ home:
     href: https://netsimr.netsimanalytics.com/articles/try-online.html
   - text: Custom tools for insurers and reinsurers
     href: https://netsimr.netsimanalytics.com/articles/custom-tools.html
+  - text: NetSim Analytics, the company behind NetSimR
+    href: https://netsimanalytics.com/
 
 # the author's name in the sidebar links to his articles in The Actuary
 authors:
@@ -54,7 +56,7 @@ authors:
 navbar:
   structure:
     left: [intro, tryonline, reference, articles, news, customtools]
-    right: [search, github, lightswitch]
+    right: [search, company, github, lightswitch]
   components:
     tryonline:
       text: Try online
@@ -64,6 +66,17 @@ navbar:
       text: Custom tools
       icon: fa-handshake
       href: articles/custom-tools.html
+    # the company website, which links back here from its Open source page
+    company:
+      text: NetSim Analytics
+      icon: fa-building
+      href: https://netsimanalytics.com/
+      aria-label: NetSim Analytics, the company website
+
+# every page's footer names the company, with a link to its website
+footer:
+  components:
+    developed_by: "Developed by Yiannis Parizas, [NetSim Analytics](https://netsimanalytics.com/)."
 
 reference:
 - title: Shiny tools
