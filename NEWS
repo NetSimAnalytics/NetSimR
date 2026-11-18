@@ -200,7 +200,7 @@ Changes in Version 0.4.0
     downloads and saved settings.
   o The five tools run in the browser on the package's website, with webR and
     shinylive, with nothing to install
-    (https://netsimanalytics.github.io/NetSimR/articles/try-online.html).
+    (https://netsimr.netsimanalytics.com/articles/try-online.html).
     There, the simulator has no processing choice and the GLM tool reads
     CSV files only, as a browser cannot start worker processes or reach a
     database.
@@ -224,7 +224,7 @@ Changes in Version 0.4.0
     psliced_lnorm_pareto() for pSlicedLNormPareto(), upper_incomplete_gamma()
     for IGamma(), and so on. The CamelCase names keep working.
   o A package website, built with pkgdown, at
-    https://netsimanalytics.github.io/NetSimR/, and the share of the code
+    https://netsimr.netsimanalytics.com/, and the share of the code
     the tests run measured on every push (covr and Codecov).
   o Fewer dependencies. Parallel simulations run on base R's parallel
     package instead of future, which is no longer needed (with the globals,

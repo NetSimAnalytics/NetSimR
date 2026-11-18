@@ -10,7 +10,7 @@ bibentry(
                   comment = c(ORCID = "0009-0000-0523-0751")),
   year = year,
   note = note,
-  url = "https://netsimanalytics.github.io/NetSimR/",
+  url = "https://netsimr.netsimanalytics.com/",
   doi = "10.32614/CRAN.package.NetSimR",
   textVersion = paste0("Parizas, Y. (", year, "). NetSimR: Non-Life Actuarial Pricing, Reserving, Reinsurance and Capital. ",
                        note, ". https://doi.org/10.32614/CRAN.package.NetSimR")

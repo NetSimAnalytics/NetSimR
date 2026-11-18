@@ -21,7 +21,7 @@ expect_self_contained <- function(html) {
   expect_false(grepl("url\\(['\"]?https?://", html))
   expect_false(grepl("<script[^>]+src=", html))
   links <- regmatches(html, gregexpr("href=\"https?://[^\"]*\"", html))[[1]]
-  expect_identical(links, "href=\"https://netsimanalytics.github.io/NetSimR/\"")
+  expect_identical(links, "href=\"https://netsimr.netsimanalytics.com/\"")
   for (id in c("key-results", "model-settings", "statistics", "charts", "how-to-read")) {
     expect_true(has_section(html, id), label = paste("section", id))
   }

@@ -4,7 +4,7 @@
 
 # The package's website, its DOI (CRAN's), repository and issue forms (.github/ISSUE_TEMPLATE: a bug report
 # and a feature request).
-netsimr_website_url <- "https://netsimanalytics.github.io/NetSimR/"
+netsimr_website_url <- "https://netsimr.netsimanalytics.com/"
 netsimr_doi_url <- "https://doi.org/10.32614/CRAN.package.NetSimR"
 netsimr_github_url <- "https://github.com/NetSimAnalytics/NetSimR"
 netsimr_issues_url <- "https://github.com/NetSimAnalytics/NetSimR/issues/new"
@@ -93,6 +93,6 @@ netsimr_report_footer <- function(generated_text) {
   version <- netsimr_version()
   tags$footer(class = "report-footer",
               paste0("Generated with NetSimR", if (nzchar(version)) paste0(" ", version), " ", intToUtf8(183), " "),
-              a(href = netsimr_website_url, target = "_blank", rel = "noopener noreferrer", "netsimanalytics.github.io/NetSimR"),
+              a(href = netsimr_website_url, target = "_blank", rel = "noopener noreferrer", "netsimr.netsimanalytics.com"),
               paste0(" ", intToUtf8(183), " ", generated_text))
 }

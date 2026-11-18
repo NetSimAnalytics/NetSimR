@@ -9,16 +9,16 @@ NetSimR is an R package of actuarial functions for non-life insurance and
 reinsurance pricing, reserving and capital modelling, with six Shiny tools
 for simulating claims, fitting distributions and GLMs, reserving, pricing
 excess of loss reinsurance and the capital of a portfolio. Its website, with every help page and the
-vignettes, is <https://netsimanalytics.github.io/NetSimR/>, where the tools
-can also be [tried in the browser](https://netsimanalytics.github.io/NetSimR/articles/try-online.html),
+vignettes, is <https://netsimr.netsimanalytics.com/>, where the tools
+can also be [tried in the browser](https://netsimr.netsimanalytics.com/articles/try-online.html),
 with nothing to install.
 
 **Your data stays on your computer.** The tools run on your own machine: in R or, on the
 website, in an R that runs inside your browser. A file you open in a tool is read there and is
-not sent anywhere. [How this works](https://netsimanalytics.github.io/NetSimR/articles/try-online.html#your-data-stays-on-your-computer).
+not sent anywhere. [How this works](https://netsimr.netsimanalytics.com/articles/try-online.html#your-data-stays-on-your-computer).
 
 <p align="center">
-<a class="netsimr-try" href="https://netsimanalytics.github.io/NetSimR/articles/try-online.html" aria-label="Try the Shiny apps in your browser, nothing to install"><img src="https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge" alt="Try the Shiny apps in your browser, nothing to install" width="683" height="40"></a>
+<a class="netsimr-try" href="https://netsimr.netsimanalytics.com/articles/try-online.html" aria-label="Try the Shiny apps in your browser, nothing to install"><img src="https://img.shields.io/badge/%E2%96%B6%20Try%20the%20Shiny%20apps-in%20your%20browser%2C%20nothing%20to%20install-2563eb?style=for-the-badge" alt="Try the Shiny apps in your browser, nothing to install" width="683" height="40"></a>
 </p>
 
 ## Installation

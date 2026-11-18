@@ -1,9 +1,12 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 # Builds the package website with pkgdown and publishes it to the gh-pages branch, which
-# GitHub Pages serves at https://netsimanalytics.github.io/NetSimR/. With the site go the six
+# GitHub Pages serves at https://netsimr.netsimanalytics.com/. With the site go the six
 # Shiny tools, exported with shinylive to run in the browser (apps/), a WebAssembly build of
 # the package for webR, from which they install it (wasm/), and the reports of the worked
 # example (reports/).
+# The site's custom domain comes from _pkgdown.yml's url: pkgdown writes it to docs/CNAME, which
+# keeps it set in the repository's Pages settings. GitHub forwards the old addresses
+# (netsimanalytics.github.io/NetSimR/...) to it page by page, as long as it stays set.
 on:
   push:
     branches: [main]
@@ -69,7 +72,7 @@ jobs:
       # the tools for the browser; they install NetSimR from the WebAssembly repository below
       - name: Export the tools for the browser
         if: github.event_name != 'pull_request'
-        run: Rscript pkgdown/shinylive-apps.R docs/apps https://netsimanalytics.github.io/NetSimR/wasm
+        run: Rscript pkgdown/shinylive-apps.R docs/apps https://netsimr.netsimanalytics.com/wasm
 
       # a repository of the package built for webR (its dependencies come from webR's own); the
       # step runs in Docker, and its files cannot be changed by later steps

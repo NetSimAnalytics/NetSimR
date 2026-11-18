@@ -48,7 +48,7 @@ Description: Actuarial methods for pricing, reserving, reinsurance and
     Taken to excess by Yiannis Parizas (2019) <https://www.theactuary.com/features/2019/03/2019/03/06/taken-excess>.
 License: GPL-3
 Copyright: file inst/COPYRIGHTS
-URL: https://netsimanalytics.github.io/NetSimR/, https://github.com/NetSimAnalytics/NetSimR
+URL: https://netsimr.netsimanalytics.com/, https://github.com/NetSimAnalytics/NetSimR
 BugReports: https://github.com/NetSimAnalytics/NetSimR/issues
 Encoding: UTF-8
 Language: en-GB
