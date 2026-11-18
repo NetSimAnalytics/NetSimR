@@ -23,9 +23,12 @@ template:
     google_site_verification: AKlPkBAn-vsvVKpt5cN47ZEQHXtdrM5_FtSX6NEI0Dc
   # page views, counted by GoatCounter without cookies or personal data
   # (https://netsimanalytics.goatcounter.com); the browser tools get the same script from
-  # pkgdown/shinylive-apps.R
+  # pkgdown/shinylive-apps.R. The company website counts into the same GoatCounter site, so
+  # this site's pages are counted under /NetSimR/..., the paths they had before the site moved
+  # from netsimanalytics.github.io/NetSimR/
   includes:
     in_header: |
+      <script>window.goatcounter = {path: function(p) { return "/NetSimR" + p }};</script>
       <script data-goatcounter="https://netsimanalytics.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
       <meta name="twitter:card" content="summary_large_image">
       <meta name="msvalidate.01" content="81143FE784BFBFD304B0AB4F2EC23785">
