@@ -8,6 +8,9 @@ netsimr_website_url <- "https://netsimr.netsimanalytics.com/"
 netsimr_doi_url <- "https://doi.org/10.32614/CRAN.package.NetSimR"
 netsimr_github_url <- "https://github.com/NetSimAnalytics/NetSimR"
 netsimr_issues_url <- "https://github.com/NetSimAnalytics/NetSimR/issues/new"
+# The company behind the package, and its address (it forwards to the author).
+netsimr_company_url <- "https://netsimanalytics.com/"
+netsimr_company_email <- "hello@netsimanalytics.com"
 
 # The files the tools' uploads accept: text files of values separated by commas, semicolons
 # or tabs, and Excel workbooks (read with readxl, see netsimr_read_data()).
@@ -65,12 +68,14 @@ netsimr_about_card <- function(tool, note = NULL) {
                                              ". Feedback and bug reports are very welcome.")),
     bslib::card_body(
       p(
-        "Created by Yiannis Parizas. For more information, visit my ",
-        # (no space between a link and the full stop after it)
-        a("LinkedIn profile", href = "https://www.linkedin.com/in/yiannisparizas/", target = "_blank", rel = "noopener noreferrer",
+        "Created by Yiannis Parizas at ",
+        a("NetSim Analytics", href = netsimr_company_url, target = "_blank", rel = "noopener noreferrer", .noWS = "after"),
+        ", which builds actuarial tools around insurers' own data and methods. Reach me at ",
+        # (no space between a link and the punctuation after it)
+        a(netsimr_company_email, href = paste0("mailto:", netsimr_company_email), .noWS = "after"),
+        " or on ",
+        a("LinkedIn", href = "https://www.linkedin.com/in/yiannisparizas/", target = "_blank", rel = "noopener noreferrer",
           .noWS = "after"),
-        ". You can also reach me by email at ",
-        a("yiannis.parizas@gmail.com", href = "mailto:yiannis.parizas@gmail.com", .noWS = "after"),
         "."
       ),
       div(class = "netsimr-links d-flex flex-wrap gap-2 mb-2",
@@ -78,6 +83,7 @@ netsimr_about_card <- function(tool, note = NULL) {
           netsimr_link_button("All six tools online", paste0(netsimr_website_url, "articles/try-online.html"), "play"),
           netsimr_link_button("GitHub", netsimr_github_url, "github"),
           netsimr_link_button("Custom tools", paste0(netsimr_website_url, "articles/custom-tools.html"), "handshake"),
+          netsimr_link_button("NetSim Analytics", netsimr_company_url, "building"),
           netsimr_feedback_links(tool)),
       p(class = "sim-muted mb-2",
         "If the tools help your work, a star on GitHub or a mention to a colleague helps others find them."),
