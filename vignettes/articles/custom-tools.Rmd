@@ -70,8 +70,9 @@ Actuary](https://www.theactuary.com/authors/yiannis-parizas).
 
 ```{=html}
 <div class="netsimr-contact">
-  <strong>Get in touch.</strong> Yiannis Parizas, the author of NetSimR:
-  <a href="mailto:yiannis.parizas@gmail.com">yiannis.parizas@gmail.com</a> or
+  <strong>Get in touch.</strong> Yiannis Parizas, the author of NetSimR, at
+  <a href="https://netsimanalytics.com/">NetSim Analytics</a>:
+  <a href="mailto:hello@netsimanalytics.com">hello@netsimanalytics.com</a> or
   <a href="https://www.linkedin.com/in/yiannisparizas/" target="_blank" rel="noopener">LinkedIn</a>.
 </div>
 ```
