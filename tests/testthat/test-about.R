@@ -29,6 +29,7 @@ test_that("every tool's About card links the website, the tools online and GitHu
     expect_match(page, "issues/new?template=bug_report.yml", fixed = TRUE)
     expect_match(page, "href=\"https://netsimanalytics.com/\"", fixed = TRUE)
     expect_match(page, "href=\"mailto:hello@netsimanalytics.com\"", fixed = TRUE)
+    expect_match(page, "href=\"https://www.linkedin.com/company/netsim-analytics\"", fixed = TRUE)
   }
   footer <- as.character(netsimr_report_footer("1 December 2026, 10:00"))
   expect_match(footer, "href=\"https://netsimr.netsimanalytics.com/\"", fixed = TRUE)
