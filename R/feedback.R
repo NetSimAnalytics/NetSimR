@@ -10,6 +10,7 @@ netsimr_github_url <- "https://github.com/NetSimAnalytics/NetSimR"
 netsimr_issues_url <- "https://github.com/NetSimAnalytics/NetSimR/issues/new"
 # The company behind the package, and its address (it forwards to the author).
 netsimr_company_url <- "https://netsimanalytics.com/"
+netsimr_company_linkedin_url <- "https://www.linkedin.com/company/netsim-analytics"
 netsimr_company_email <- "hello@netsimanalytics.com"
 
 # The files the tools' uploads accept: text files of values separated by commas, semicolons
@@ -86,7 +87,9 @@ netsimr_about_card <- function(tool, note = NULL) {
           netsimr_link_button("NetSim Analytics", netsimr_company_url, "building"),
           netsimr_feedback_links(tool)),
       p(class = "sim-muted mb-2",
-        "If the tools help your work, a star on GitHub or a mention to a colleague helps others find them."),
+        "If the tools help your work, a star on GitHub, a follow for NetSim Analytics on ",
+        a("LinkedIn", href = netsimr_company_linkedin_url, target = "_blank", rel = "noopener noreferrer"),
+        " or a mention to a colleague helps others find them."),
       p(class = "sim-muted mb-2", tags$strong("Cite: "), netsimr_citation_text(version)),
       if (!is.null(note)) p(class = "sim-muted mb-0", note)
     )
